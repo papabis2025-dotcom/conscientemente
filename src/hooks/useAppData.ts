@@ -20,6 +20,7 @@ export const useAppData = () => {
     const [autoSave, setAutoSave] = useState<boolean>(true); // Kept for UI compatibility, but save is now distinct
     const [lastSaved, setLastSaved] = useState<string>('');
     const [isSaving, setIsSaving] = useState(false);
+    const [saveError, setSaveError] = useState<string | null>(null);
 
     // Theme logic remains local for now to avoid flickering before auth loads
     const [theme, setTheme] = useState<'light' | 'dark'>(() => {
@@ -140,6 +141,7 @@ export const useAppData = () => {
 
     // Actions that now persist immediately
     const addSession = async (session: StudySession) => {
+        setSaveError(null);
         setSessions(prev => [...prev, session]);
         try {
             await api.sessions.create(session);
@@ -170,10 +172,12 @@ export const useAppData = () => {
             setLastSaved(new Date().toLocaleTimeString());
         } catch (e) {
             console.error('Error adding session:', e);
+            setSaveError('Erro ao salvar sessão. Tente novamente.');
         }
     };
 
     const addSimulado = async (sim: Simulado) => {
+        setSaveError(null);
         setSimulados(prev => [...prev, sim]);
         try {
             await api.simulados.create(sim);
@@ -192,30 +196,36 @@ export const useAppData = () => {
             setLastSaved(new Date().toLocaleTimeString());
         } catch (e) {
             console.error('Error adding simulado:', e);
+            setSaveError('Erro ao salvar simulado.');
         }
     };
 
     const deleteSimulado = async (id: string) => {
+        setSaveError(null);
         setSimulados(prev => prev.filter(s => s.id !== id));
         try {
             await api.simulados.delete(id);
             setLastSaved(new Date().toLocaleTimeString());
         } catch (e) {
             console.error('Error deleting simulado:', e);
+            setSaveError('Erro ao excluir simulado.');
         }
     };
 
     const deleteSession = async (id: string) => {
+        setSaveError(null);
         setSessions(prev => prev.filter(s => s.id !== id));
         try {
             await api.sessions.delete(id);
             setLastSaved(new Date().toLocaleTimeString());
         } catch (e) {
             console.error('Error deleting session:', e);
+            setSaveError('Erro ao excluir sessão.');
         }
     };
 
     const updateConcursos = async (newConcursos: Concurso[]) => {
+        setSaveError(null);
         setConcursos(newConcursos);
         setIsSaving(true);
         try {
@@ -237,12 +247,14 @@ export const useAppData = () => {
             setLastSaved(new Date().toLocaleTimeString());
         } catch (e) {
             console.error('Error updating concursos:', e);
+            setSaveError('Erro ao atualizar concursos.');
         } finally {
             setIsSaving(false);
         }
     };
 
     const updateScheduledStudies = async (newSchedule: ScheduledStudy[]) => {
+        setSaveError(null);
         setScheduledStudies(newSchedule);
         // Handle as bulk for now, but better would be specific actions
         try {
@@ -257,26 +269,31 @@ export const useAppData = () => {
             setLastSaved(new Date().toLocaleTimeString());
         } catch (e) {
             console.error('Error updating schedule:', e);
+            setSaveError('Erro ao atualizar agenda.');
         }
     };
 
     const updateDailyGoals = async (newGoals: DailyGoal[]) => {
+        setSaveError(null);
         setDailyGoals(newGoals);
         try {
             for (const goal of newGoals) await api.dailyGoals.upsert(goal);
             setLastSaved(new Date().toLocaleTimeString());
         } catch (e) {
             console.error('Error updating goals:', e);
+            setSaveError('Erro ao atualizar metas.');
         }
     };
 
     const clearLogs = async () => {
+        setSaveError(null);
         setLogs([]);
         try {
             await api.logs.clear();
             setLastSaved(new Date().toLocaleTimeString());
         } catch (e) {
             console.error('Error clearing logs:', e);
+            setSaveError('Erro ao limpar logs.');
         }
     };
 
@@ -296,7 +313,7 @@ export const useAppData = () => {
         dailyGoals, setDailyGoals: updateDailyGoals,
         logs, setLogs: (s: any) => s, // Disabled direct set
         theme, toggleTheme,
-        lastSaved, isSaving,
+        lastSaved, isSaving, saveError,
         filteredSubjects,
         activeConcurso,
         handleManualSave,

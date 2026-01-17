@@ -24,7 +24,7 @@ const App: React.FC = () => {
     sessions, setSessions, simulados, setSimulados,
     scheduledStudies, setScheduledStudies, dailyGoals, setDailyGoals,
     logs, setLogs, theme, toggleTheme,
-    lastSaved, isSaving, filteredSubjects, activeConcurso,
+    lastSaved, isSaving, saveError, filteredSubjects, activeConcurso,
     handleLogout: logout, addSession, addSimulado,
     deleteSimulado, deleteSession, clearLogs, deleteLog
   } = useAppData();
@@ -92,8 +92,10 @@ const App: React.FC = () => {
       </main>
       <footer className="fixed bottom-0 left-64 right-0 h-9 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 px-4 flex items-center justify-between text-[9px] font-medium z-40">
         <div className="flex items-center gap-3">
-          <div className={`w-1.5 h-1.5 rounded-full ${isSaving ? 'bg-blue-400 animate-ping' : 'bg-emerald-500'}`}></div>
-          <span className="opacity-70 dark:text-slate-400">{isSaving ? 'Salvando...' : `Sincronizado: ${lastSaved}`}</span>
+          <div className={`w-1.5 h-1.5 rounded-full ${saveError ? 'bg-red-500' : isSaving ? 'bg-blue-400 animate-ping' : 'bg-emerald-500'}`}></div>
+          <span className={`${saveError ? 'text-red-500 font-bold' : 'opacity-70 dark:text-slate-400'}`}>
+            {saveError ? saveError : (isSaving ? 'Salvando...' : `Sincronizado: ${lastSaved}`)}
+          </span>
         </div>
         <div className="uppercase font-bold tracking-widest text-slate-400 dark:text-slate-500">
           Gabaritando Questões - {activeConcurso ? activeConcurso.name : 'Visão Global'}

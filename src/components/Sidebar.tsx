@@ -18,6 +18,8 @@ interface SidebarProps {
   currentUser: User;
   onLogout: () => void;
   isReorderMode?: boolean;
+  isCollapsed: boolean;
+  onToggleCollapse: () => void;
 }
 
 interface MenuItem {
@@ -40,7 +42,8 @@ const Sidebar: React.FC<SidebarProps> = ({
   activeTab, setActiveTab, theme, toggleTheme,
   timerSeconds, isTimerActive, timerSubjectId, subjects,
   onToggleTimer, onSetTimerSubject, onResetTimer, onAddSession,
-  currentUser, onLogout, isReorderMode = false
+  currentUser, onLogout, isReorderMode = false,
+  isCollapsed = false, onToggleCollapse
 }) => {
   const [menuItems, setMenuItems] = useState<MenuItem[]>(() => {
     const saved = localStorage.getItem('cp_menu_order');
@@ -111,56 +114,82 @@ const Sidebar: React.FC<SidebarProps> = ({
   };
 
   return (
-    <div className="w-64 h-full bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col p-4 transition-colors z-50 shadow-xl overflow-hidden text-sm">
-      <div className="mb-6 px-1 flex items-center justify-between">
+    <div className={`${isCollapsed ? 'w-20' : 'w-64'} h-full bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col p-4 transition-all duration-300 z-50 shadow-xl overflow-hidden text-sm relative`}>
+
+      <button
+        onClick={onToggleCollapse}
+        className="absolute -right-3 top-9 w-6 h-6 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full flex items-center justify-center text-xs shadow-sm z-50 hover:scale-110 transition-transform"
+      >
+        {isCollapsed ? '➡' : '⬅'}
+      </button>
+
+      <div className={`mb-6 px-1 flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'}`}>
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-blue-700 rounded-lg flex items-center justify-center text-white font-black shadow-lg shadow-blue-500/30 text-base">G</div>
-          <div>
-            <h1 className="text-[12px] font-black text-slate-800 dark:text-white leading-none tracking-tighter uppercase">Gabaritando</h1>
-            <p className="text-[8px] font-black text-blue-600 tracking-widest uppercase opacity-70">Questões</p>
-          </div>
+          <div className="w-8 h-8 bg-blue-700 rounded-lg flex items-center justify-center text-white font-black shadow-lg shadow-blue-500/30 text-base shrink-0">G</div>
+          {!isCollapsed && (
+            <div className="animate-in fade-in slide-in-from-left-4 duration-300">
+              <h1 className="text-[12px] font-black text-slate-800 dark:text-white leading-none tracking-tighter uppercase">Gabaritando</h1>
+              <p className="text-[8px] font-black text-blue-600 tracking-widest uppercase opacity-70">Questões</p>
+            </div>
+          )}
         </div>
 
-        <button
-          onClick={toggleTheme}
-          className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-amber-400 hover:scale-110 transition-all border border-slate-200 dark:border-slate-700"
-        >
-          {theme === 'light' ? '🌙' : '☀️'}
-        </button>
+        {!isCollapsed && (
+          <button
+            onClick={toggleTheme}
+            className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-amber-400 hover:scale-110 transition-all border border-slate-200 dark:border-slate-700"
+          >
+            {theme === 'light' ? '🌙' : '☀️'}
+          </button>
+        )}
       </div>
 
-      <div className="mb-6 p-3 bg-slate-50 dark:bg-slate-800/40 rounded-2xl flex items-center gap-3 border border-slate-100 dark:border-slate-700">
-        <div className="w-10 h-10 bg-white dark:bg-slate-700 rounded-xl flex items-center justify-center text-xl shadow-sm">
+      <div className={`mb-6 p-3 bg-slate-50 dark:bg-slate-800/40 rounded-2xl flex items-center gap-3 border border-slate-100 dark:border-slate-700 ${isCollapsed ? 'justify-center' : ''}`}>
+        <div className="w-10 h-10 bg-white dark:bg-slate-700 rounded-xl flex items-center justify-center text-xl shadow-sm shrink-0">
           {currentUser.avatar}
         </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 leading-none mb-1">Perfil Ativo</p>
-          <p className="text-xs font-black text-slate-800 dark:text-white truncate">{currentUser.name}</p>
-        </div>
+        {!isCollapsed && (
+          <div className="flex-1 min-w-0 animate-in fade-in slide-in-from-left-4 duration-300">
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 leading-none mb-1">Perfil Ativo</p>
+            <p className="text-xs font-black text-slate-800 dark:text-white truncate">{currentUser.name}</p>
+          </div>
+        )}
       </div>
 
       <div className="mb-5 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-2xl border border-slate-100 dark:border-slate-700">
-        <select
-          value={timerSubjectId}
-          onChange={(e) => onSetTimerSubject(e.target.value)}
-          className="w-full text-[9px] font-black uppercase tracking-widest bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 outline-none text-blue-600 dark:text-blue-400 mb-2"
-        >
-          <option value="">Cronômetro...</option>
-          {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-        </select>
-        <div className="text-center py-1">
-          <span className={`text-xl font-mono font-bold tabular-nums ${isTimerActive ? 'text-emerald-500' : 'text-slate-400 dark:text-slate-500'}`}>
-            {formatTime(timerSeconds)}
-          </span>
-        </div>
-        <div className="flex gap-1 mt-2">
-          <button onClick={() => timerSubjectId && onToggleTimer()} className={`flex-1 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all ${isTimerActive ? 'bg-amber-500 text-white' : 'bg-blue-700 text-white'}`}>{isTimerActive ? 'Pausar' : 'Iniciar'}</button>
-          <button onClick={handleFinish} className="flex-1 py-1.5 bg-emerald-500 text-white rounded-lg text-[8px] font-black uppercase tracking-widest">Fim</button>
-        </div>
+        {!isCollapsed ? (
+          <>
+            <select
+              value={timerSubjectId}
+              onChange={(e) => onSetTimerSubject(e.target.value)}
+              className="w-full text-[9px] font-black uppercase tracking-widest bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 outline-none text-blue-600 dark:text-blue-400 mb-2"
+            >
+              <option value="">Cronômetro...</option>
+              {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
+            <div className="text-center py-1">
+              <span className={`text-xl font-mono font-bold tabular-nums ${isTimerActive ? 'text-emerald-500' : 'text-slate-400 dark:text-slate-500'}`}>
+                {formatTime(timerSeconds)}
+              </span>
+            </div>
+            <div className="flex gap-1 mt-2">
+              <button onClick={() => timerSubjectId && onToggleTimer()} className={`flex-1 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all ${isTimerActive ? 'bg-amber-500 text-white' : 'bg-blue-700 text-white'}`}>{isTimerActive ? 'Pausar' : 'Iniciar'}</button>
+              <button onClick={handleFinish} className="flex-1 py-1.5 bg-emerald-500 text-white rounded-lg text-[8px] font-black uppercase tracking-widest">Fim</button>
+            </div>
+          </>
+        ) : (
+          <div className="flex flex-col items-center gap-2">
+            <div className={`w-2 h-2 rounded-full ${isTimerActive ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`} />
+            <span className="text-[10px] font-mono">{formatTime(timerSeconds)}</span>
+            <button onClick={() => isActive ? onToggleTimer() : onSetTimerSubject(subjects[0]?.id)} className="text-lg">
+              {isTimerActive ? '⏸️' : '▶️'}
+            </button>
+          </div>
+        )}
       </div>
 
-      {isReorderMode && (
-        <div className="mb-4 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-2xl border border-amber-200 dark:border-amber-800">
+      {isReorderMode && !isCollapsed && (
+        <div className="mb-4 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-2xl border border-amber-200 dark:border-amber-800 animate-in fade-in">
           <p className="text-[9px] font-black uppercase text-amber-700 dark:text-amber-400 mb-2">🔄 Arraste para reorganizar</p>
           <button
             onClick={resetMenuOrder}
@@ -175,31 +204,44 @@ const Sidebar: React.FC<SidebarProps> = ({
         {menuItems.map((item, index) => (
           <button
             key={item.id}
-            draggable={isReorderMode}
+            draggable={isReorderMode && !isCollapsed}
             onDragStart={() => handleDragStart(index)}
             onDragOver={(e) => handleDragOver(e, index)}
             onDragEnd={handleDragEnd}
             onClick={() => !isReorderMode && setActiveTab(item.id)}
-            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl transition-all ${activeTab === item.id
+            className={`w-full flex items-center ${isCollapsed ? 'justify-center px-1' : 'gap-2.5 px-3'} py-2.5 rounded-xl transition-all ${activeTab === item.id
               ? 'bg-blue-700 text-white font-black shadow-lg shadow-blue-500/20'
               : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
               } ${isReorderMode ? 'cursor-move' : ''} ${draggedIndex === index ? 'opacity-50 scale-95' : ''}`}
+            title={isCollapsed ? item.label : ''}
           >
-            {isReorderMode && <span className="text-xs opacity-50">⋮⋮</span>}
+            {isReorderMode && !isCollapsed && <span className="text-xs opacity-50">⋮⋮</span>}
             <span className="text-lg">{item.icon}</span>
-            <span className="text-[10px] uppercase tracking-widest font-black">{item.label}</span>
+            {!isCollapsed && <span className="text-[10px] uppercase tracking-widest font-black whitespace-nowrap">{item.label}</span>}
           </button>
         ))}
+        {/* Logs Link Added Permanently or via menuItems? user asked to add it. I'll add it to default menu items below separately or ensure it's here */}
+        <button
+          onClick={() => setActiveTab('logs')}
+          className={`w-full flex items-center ${isCollapsed ? 'justify-center px-1' : 'gap-2.5 px-3'} py-2.5 rounded-xl transition-all ${activeTab === 'logs'
+            ? 'bg-blue-700 text-white font-black shadow-lg shadow-blue-500/20'
+            : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+            }`}
+          title={isCollapsed ? 'Logs' : ''}
+        >
+          <span className="text-lg">📋</span>
+          {!isCollapsed && <span className="text-[10px] uppercase tracking-widest font-black whitespace-nowrap">Logs</span>}
+        </button>
       </nav>
 
       <div className="pt-3 mt-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
-        <button onClick={() => setActiveTab('settings')} className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl transition-colors ${activeTab === 'settings' ? 'text-blue-700 bg-blue-50 dark:bg-blue-900/10' : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'}`}>
+        <button onClick={() => setActiveTab('settings')} className={`w-full flex items-center ${isCollapsed ? 'justify-center px-1' : 'gap-2.5 px-3'} py-2 rounded-xl transition-colors ${activeTab === 'settings' ? 'text-blue-700 bg-blue-50 dark:bg-blue-900/10' : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'}`} title="Ajustes">
           <span className="text-lg">⚙️</span>
-          <span className="text-[10px] uppercase tracking-widest font-black">Ajustes</span>
+          {!isCollapsed && <span className="text-[10px] uppercase tracking-widest font-black">Ajustes</span>}
         </button>
-        <button onClick={onLogout} className="w-full flex items-center gap-2.5 px-3 py-2 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/10 rounded-xl transition-colors">
+        <button onClick={onLogout} className={`w-full flex items-center ${isCollapsed ? 'justify-center px-1' : 'gap-2.5 px-3'} py-2 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/10 rounded-xl transition-colors`} title="Sair">
           <span className="text-lg">🔓</span>
-          <span className="text-[10px] uppercase tracking-widest font-black">Sair</span>
+          {!isCollapsed && <span className="text-[10px] uppercase tracking-widest font-black">Sair</span>}
         </button>
       </div>
     </div>

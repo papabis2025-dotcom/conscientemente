@@ -17,6 +17,7 @@ import { useTimer } from './hooks/useTimer';
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isReorderMode, setIsReorderMode] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   const {
     currentUser, setCurrentUser, users, setUsers,
@@ -86,11 +87,13 @@ const App: React.FC = () => {
         onToggleTimer={toggleTimer} onSetTimerSubject={setTimerSubjectId} onResetTimer={resetTimer}
         onAddSession={addSession} currentUser={currentUser} onLogout={handleLogout}
         isReorderMode={isReorderMode}
+        isCollapsed={isSidebarCollapsed}
+        onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
       />
       <main className="flex-1 overflow-y-auto p-4 relative">
         <div className="max-w-[1440px] mx-auto pb-10">{renderContent()}</div>
       </main>
-      <footer className="fixed bottom-0 left-64 right-0 h-9 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 px-4 flex items-center justify-between text-[9px] font-medium z-40">
+      <footer className={`fixed bottom-0 right-0 h-9 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 px-4 flex items-center justify-between text-[9px] font-medium z-40 transition-all duration-300 ${isSidebarCollapsed ? 'left-20' : 'left-64'}`}>
         <div className="flex items-center gap-3">
           <div className={`w-1.5 h-1.5 rounded-full ${saveError ? 'bg-red-500' : isSaving ? 'bg-blue-400 animate-ping' : 'bg-emerald-500'}`}></div>
           <span className={`${saveError ? 'text-red-500 font-bold' : 'opacity-70 dark:text-slate-400'}`}>

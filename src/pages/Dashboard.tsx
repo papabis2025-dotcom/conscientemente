@@ -1,7 +1,9 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, Cell, LineChart, Line } from 'recharts';
+
 import { Subject, StudySession, Concurso, Simulado } from '../types';
+import AISuggestions from '../components/dashboard/AISuggestions';
 
 interface DashboardProps {
   subjects: Subject[];
@@ -67,14 +69,37 @@ const Dashboard: React.FC<DashboardProps> = ({
 }) => {
   const [isEditMode, setIsEditMode] = useState(false);
   const [widgets, setWidgets] = useState<WidgetState[]>(() => {
-    const saved = localStorage.getItem('cp_dashboard_layout_v12');
+    const saved = localStorage.getItem('cp_dashboard_layout_v13');
     return saved ? JSON.parse(saved) : DEFAULT_WIDGETS;
   });
+
+  const [draggedWidgetIndex, setDraggedWidgetIndex] = useState<number | null>(null);
 
   const isDarkMode = theme === 'dark';
   const chartTextColor = isDarkMode ? '#94a3b8' : '#64748b';
 
-  useEffect(() => { localStorage.setItem('cp_dashboard_layout_v12', JSON.stringify(widgets)); }, [widgets]);
+  useEffect(() => { localStorage.setItem('cp_dashboard_layout_v13', JSON.stringify(widgets)); }, [widgets]);
+
+  const handleDragStart = (index: number) => {
+    setDraggedWidgetIndex(index);
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    if (draggedWidgetIndex === null || draggedWidgetIndex === index) return;
+
+    const newWidgets = [...widgets];
+    const draggedItem = newWidgets[draggedWidgetIndex];
+    newWidgets.splice(draggedWidgetIndex, 1);
+    newWidgets.splice(index, 0, draggedItem);
+
+    setWidgets(newWidgets);
+    setDraggedWidgetIndex(index);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedWidgetIndex(null);
+  };
 
   const cycleSize = (id: string) => {
     setWidgets(prev => prev.map(w => {
@@ -162,21 +187,17 @@ const Dashboard: React.FC<DashboardProps> = ({
           </div>
         );
       case 'study_suggestions':
-        const critical = subjectStats.all.filter(s => (s.done > 0 && s.accuracy < 65) || (s.minutes > 0 && s.minutes < 60));
-        return (
-          <div className="mt-2 space-y-3 max-h-56 overflow-y-auto pr-1 custom-scrollbar">
-            {critical.length === 0 ? (
-              <p className="text-sm text-slate-400 italic text-center py-8">Estratégia equilibrada. Mantenha o foco!</p>
-            ) : critical.slice(0, 3).map((s, i) => (
-              <div key={i} className="p-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl">
-                <p className="text-xs font-black text-blue-600 dark:text-blue-400 uppercase leading-none mb-1.5">{s.name}</p>
-                <p className="text-sm text-slate-600 dark:text-slate-400 font-medium">
-                  {s.accuracy < 65 && s.done > 0 ? `Reforçar base teórica (${s.accuracy}%)` : `Dedicar mais tempo de estudo (${s.hours}h)`}
-                </p>
-              </div>
-            ))}
-          </div>
-        );
+        const suggestions = subjectStats.all.reduce((acc, s) => {
+          if (s.done > 10 && s.accuracy < 60) {
+            acc.push({ subjectName: s.name, type: 'warning', message: `Base fraca em ${s.name} (${s.accuracy}%). Revise a teoria antes de mais questões.` });
+          } else if (s.done > 20 && s.accuracy > 85) {
+            acc.push({ subjectName: s.name, type: 'success', message: `Dominando ${s.name}! Considere reduzir frequência e priorizar outras.` });
+          } else if (s.minutes < 60 && s.done < 5) {
+            acc.push({ subjectName: s.name, type: 'info', message: `Pouco estudo em ${s.name}. Que tal um ciclo hoje?` });
+          }
+          return acc;
+        }, [] as any[]);
+        return <AISuggestions suggestions={suggestions} />;
       case 'simulados_summary':
         const simDone = simulados.reduce((acc, s) => acc + s.results.reduce((a, r) => a + r.done, 0), 0);
         const simCorrect = simulados.reduce((acc, s) => acc + s.results.reduce((a, r) => a + r.correct, 0), 0);
@@ -283,11 +304,19 @@ const Dashboard: React.FC<DashboardProps> = ({
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 auto-rows-auto">
-        {widgets.map((widget) => {
+        {widgets.map((widget, index) => {
           if (!widget.isVisible && !isEditMode) return null;
           const sizeClass = widget.size === 'full' ? 'md:col-span-3' : widget.size === 'wide' ? 'md:col-span-2' : 'md:col-span-1';
           return (
-            <div key={widget.id} className={`${sizeClass} ${widget.isVisible ? 'opacity-100' : 'opacity-40'} bg-white dark:bg-slate-900 p-5 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-sm relative group hover:shadow-md transition-all duration-300`}>
+
+            <div
+              key={widget.id}
+              draggable={isEditMode}
+              onDragStart={() => handleDragStart(index)}
+              onDragOver={(e) => handleDragOver(e, index)}
+              onDragEnd={handleDragEnd}
+              className={`${sizeClass} ${widget.isVisible ? 'opacity-100' : 'opacity-40'} bg-white dark:bg-slate-900 p-5 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-sm relative group hover:shadow-md transition-all duration-300 ${isEditMode ? 'cursor-move ring-2 ring-emerald-500/20' : ''} ${draggedWidgetIndex === index ? 'opacity-50 scale-95' : ''}`}
+            >
               <div className="flex justify-between items-center mb-3">
                 <h4 className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{widget.title}</h4>
                 {isEditMode && (

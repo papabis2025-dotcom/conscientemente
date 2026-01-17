@@ -1,5 +1,4 @@
-
-import React from 'react';
+import React, { useMemo } from 'react';
 import { LogEntry } from '../types';
 
 interface LogViewProps {
@@ -9,80 +8,71 @@ interface LogViewProps {
 }
 
 const LogView: React.FC<LogViewProps> = ({ logs, onClearLogs, onDeleteLog }) => {
-  const getTypeColor = (type: LogEntry['type']) => {
-    switch (type) {
-      case 'success': return 'text-emerald-500 bg-emerald-50 dark:bg-emerald-900/20';
-      case 'warning': return 'text-amber-500 bg-amber-50 dark:bg-amber-900/20';
-      case 'danger': return 'text-rose-500 bg-rose-50 dark:bg-rose-900/20';
-      default: return 'text-blue-500 bg-blue-50 dark:bg-blue-900/20';
-    }
-  };
-
-  const formatTimestamp = (iso: string) => {
-    const date = new Date(iso);
-    return `${date.toLocaleDateString()} ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
-  };
+  const sortedLogs = useMemo(() => {
+    return [...logs].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  }, [logs]);
 
   return (
-    <div className="space-y-6 animate-in fade-in">
-      <div className="flex justify-between items-center">
+    <div className="space-y-6 animate-in fade-in duration-500">
+      <header className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tight">Log de Atividade 📜</h2>
-          <p className="text-slate-500 dark:text-slate-400">Histórico de alterações e integrações do sistema.</p>
+          <h2 className="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tight">Registro de Atividades 📋</h2>
+          <p className="text-slate-500 dark:text-slate-400">Histórico técnico de alterações e eventos do sistema.</p>
         </div>
-        <button 
-          onClick={() => confirm("Deseja limpar o histórico de logs?") && onClearLogs()}
-          className="px-4 py-2 text-xs font-black uppercase text-slate-400 hover:text-rose-500 transition-colors"
+        <button
+          onClick={() => confirm('Limpar todos os logs?') && onClearLogs()}
+          className="px-4 py-2 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl font-bold uppercase text-xs transition-colors"
+          disabled={logs.length === 0}
         >
-          Limpar Tudo
+          Limpar Histórico
         </button>
-      </div>
+      </header>
 
-      <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-        <div className="max-h-[600px] overflow-y-auto custom-scrollbar">
-          {logs.length === 0 ? (
-            <div className="p-20 text-center">
-              <span className="text-4xl mb-4 block">📭</span>
-              <p className="text-slate-400 font-medium">Nenhuma atividade registrada ainda.</p>
-            </div>
-          ) : (
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-slate-50 dark:bg-slate-800/50">
-                  <th className="px-6 py-4 text-[10px] font-black uppercase text-slate-400 tracking-widest">Horário</th>
-                  <th className="px-6 py-4 text-[10px] font-black uppercase text-slate-400 tracking-widest">Descrição da Atividade</th>
-                  <th className="px-6 py-4 text-[10px] font-black uppercase text-slate-400 tracking-widest text-right">Ação</th>
+      <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 p-6 shadow-sm overflow-hidden">
+        {sortedLogs.length === 0 ? (
+          <div className="text-center py-20 opacity-40">
+            <span className="text-4xl block mb-2">📜</span>
+            <p className="font-bold uppercase tracking-widest text-xs">Nenhum registro encontrado</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm text-slate-600 dark:text-slate-400">
+              <thead className="bg-slate-50 dark:bg-slate-800/50 uppercase tracking-widest text-[10px] font-black text-slate-400">
+                <tr>
+                  <th className="px-6 py-4 rounded-l-2xl">Data/Hora</th>
+                  <th className="px-6 py-4">Tipo</th>
+                  <th className="px-6 py-4 w-full">Mensagem</th>
+                  <th className="px-6 py-4 rounded-r-2xl text-right">Ação</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {logs.map((log) => (
-                  <tr key={log.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors group">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="text-xs font-mono text-slate-400">{formatTimestamp(log.timestamp)}</span>
+                {sortedLogs.map((log) => (
+                  <tr key={log.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+                    <td className="px-6 py-4 font-mono text-xs whitespace-nowrap text-slate-500">
+                      {new Date(log.timestamp).toLocaleString('pt-BR')}
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-2 h-2 rounded-full shrink-0 ${getTypeColor(log.type).split(' ')[1]}`}></div>
-                        <p className={`text-sm font-medium ${log.type === 'danger' ? 'text-rose-500' : 'text-slate-700 dark:text-slate-200'}`}>
-                          {log.message}
-                        </p>
-                      </div>
+                      <span className={`inline-flex items-center px-2 py-1 rounded-md text-[10px] font-black uppercase tracking-widest ${log.type === 'error' ? 'bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400' :
+                          log.type === 'success' ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400' :
+                            log.type === 'warning' ? 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400' :
+                              'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
+                        }`}>
+                        {log.type}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 font-medium text-slate-800 dark:text-slate-200">
+                      {log.message}
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <button 
-                        onClick={() => onDeleteLog(log.id)}
-                        className="opacity-0 group-hover:opacity-100 p-2 text-slate-300 hover:text-rose-500 transition-all"
-                        title="Remover este log"
-                      >
-                        ✕
-                      </button>
+                      {/* Delete disabled for generic logs usually, but keeping prop if needed */}
+                      <span className="text-slate-300 text-xs font-mono">#{log.id.slice(0, 4)}</span>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );

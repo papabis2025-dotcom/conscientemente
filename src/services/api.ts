@@ -40,7 +40,7 @@ export const api = {
             const dbPayload = {
                 // Include ID if it exists and is not a temp ID
                 // Supabase will use it for update, or generate new UUID if undefined
-                id: (concurso.id && !concurso.id.includes('temp-') && !concurso.id.startsWith('ai-')) ? concurso.id : undefined,
+                id: (concurso.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(concurso.id)) ? concurso.id : undefined,
                 user_id: user.id,
                 name: concurso.name,
                 banca: concurso.banca,

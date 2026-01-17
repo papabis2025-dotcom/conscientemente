@@ -46,14 +46,14 @@ const AICoach: React.FC<AICoachProps> = ({ onImportPlan }) => {
           </div>
           <p className="text-sm text-slate-500 dark:text-slate-400">Diga o nome do concurso e a IA criará uma estrutura de disciplinas.</p>
           <div className="flex gap-2">
-            <input 
-              type="text" 
+            <input
+              type="text"
               placeholder="Ex: Receita Federal, TJ-SP, INSS..."
               className="flex-1 px-4 py-2 border border-slate-200 dark:border-slate-700 dark:bg-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800 dark:text-white"
               value={examName}
               onChange={(e) => setExamName(e.target.value)}
             />
-            <button 
+            <button
               onClick={handleGeneratePlan}
               disabled={isLoading}
               className="bg-blue-600 text-white px-6 py-2 rounded-xl font-bold hover:bg-blue-700 disabled:opacity-50 transition-all"
@@ -73,14 +73,14 @@ const AICoach: React.FC<AICoachProps> = ({ onImportPlan }) => {
                   </ul>
                 </div>
               ))}
-              <button 
+              <button
                 onClick={() => {
                   const mapped = suggestedPlan.map((s, i) => ({
-                    id: `ai-${Date.now()}-${i}`,
+                    id: `ai-${crypto.randomUUID()}`,
                     name: s.subjectName,
                     color: 'bg-blue-500',
                     topics: s.topics.map((t: string, j: number) => ({
-                      id: `ai-t-${Date.now()}-${i}-${j}`,
+                      id: `ai-t-${crypto.randomUUID()}`,
                       title: t,
                       isCompleted: false,
                       priority: 'Alta'
@@ -107,14 +107,14 @@ const AICoach: React.FC<AICoachProps> = ({ onImportPlan }) => {
           </div>
           <p className="text-sm text-slate-500 dark:text-slate-400">Peça uma explicação simplificada de qualquer assunto acadêmico.</p>
           <div className="space-y-3">
-            <textarea 
+            <textarea
               rows={3}
               placeholder="Ex: Me explique o princípio da insignificância no Direito Penal..."
               className="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 dark:bg-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 text-slate-800 dark:text-white"
               value={topicToExplain}
               onChange={(e) => setTopicToExplain(e.target.value)}
             />
-            <button 
+            <button
               onClick={handleExplain}
               disabled={isLoading}
               className="w-full bg-purple-600 text-white py-3 rounded-xl font-bold hover:bg-purple-700 disabled:opacity-50 transition-all shadow-lg shadow-purple-500/20"

@@ -156,8 +156,9 @@ export const useAppData = () => {
             );
 
             if (!alreadyExists) {
+                const tempId = `temp-${crypto.randomUUID()}`;
                 const newScheduled: ScheduledStudy = {
-                    id: `temp-${Date.now()}`,
+                    id: tempId,
                     date: sessionDate,
                     subjectId: session.subjectId,
                     topicId: session.topicId,
@@ -167,7 +168,10 @@ export const useAppData = () => {
                     questionsCorrect: session.questionsCorrect
                 };
                 setScheduledStudies(prev => [...prev, newScheduled]);
-                await api.schedule.create(newScheduled);
+                const saved = await api.schedule.create(newScheduled);
+                if (saved) {
+                    setScheduledStudies(prev => prev.map(s => s.id === tempId ? saved : s));
+                }
             }
             setLastSaved(new Date().toLocaleTimeString());
         } catch (e) {
@@ -183,7 +187,7 @@ export const useAppData = () => {
             await api.simulados.create(sim);
             sim.results.forEach(async res => {
                 const session: StudySession = {
-                    id: `temp-sim-${sim.id}-${res.subjectId}`,
+                    id: crypto.randomUUID(),
                     subjectId: res.subjectId,
                     date: new Date(`${sim.date}T12:00:00`).toISOString(),
                     durationInMinutes: 0,

@@ -57,7 +57,7 @@ const App: React.FC = () => {
         return <CalendarView subjects={filteredSubjects} scheduledStudies={scheduledStudies} onUpdateSchedule={setScheduledStudies} onAddSession={addSession} />;
       case 'ai-coach':
         return <AICoach onImportPlan={(aiSubs) => {
-          const newConc: Concurso = { id: `ai-${Date.now()}`, name: "Plano IA", banca: "Sugerida", startDate: new Date().toISOString(), subjects: aiSubs };
+          const newConc: Concurso = { id: `ai-${crypto.randomUUID()}`, name: "Plano IA", banca: "Sugerida", startDate: new Date().toISOString(), subjects: aiSubs };
           setConcursos([...concursos, newConc]);
           setSelectedConcursoId(newConc.id);
           setActiveTab('subjects');
@@ -71,7 +71,7 @@ const App: React.FC = () => {
 
   if (!currentUser) {
     return <LoginView users={users} onLogin={setCurrentUser} onCreateFirstUser={(name, pass) => {
-      const newUser = { id: Date.now().toString(), name, password: pass, avatar: '🎓' };
+      const newUser = { id: crypto.randomUUID(), name, password: pass, avatar: '🎓' };
       const newUsers = [...users, newUser];
       setUsers(newUsers);
       setCurrentUser(newUser);

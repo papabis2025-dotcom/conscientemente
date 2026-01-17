@@ -14,7 +14,7 @@ const SimuladosView: React.FC<SimuladosViewProps> = ({ subjects, simulados, onAd
   const [name, setName] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [results, setResults] = useState<SimuladoSubjectResult[]>([]);
-  
+
   // Current subject being added to the list
   const [currentSubjectId, setCurrentSubjectId] = useState('');
   const [currentDone, setCurrentDone] = useState('');
@@ -43,7 +43,7 @@ const SimuladosView: React.FC<SimuladosViewProps> = ({ subjects, simulados, onAd
 
     const totalQuestions = results.reduce((acc, r) => acc + r.done, 0);
     const newSim: Simulado = {
-      id: `sim-${Date.now()}`,
+      id: `sim-${crypto.randomUUID()}`,
       name,
       date,
       totalQuestions,
@@ -61,7 +61,7 @@ const SimuladosView: React.FC<SimuladosViewProps> = ({ subjects, simulados, onAd
           <h2 className="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tight">Simulados Completos 📝</h2>
           <p className="text-slate-500 dark:text-slate-400">Avalie seu desempenho global em condições de prova.</p>
         </div>
-        <button 
+        <button
           onClick={() => setIsAdding(true)}
           className="bg-emerald-500 text-white px-6 py-3 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-emerald-600 shadow-lg shadow-emerald-500/20 active:scale-95 transition-all"
         >
@@ -72,7 +72,7 @@ const SimuladosView: React.FC<SimuladosViewProps> = ({ subjects, simulados, onAd
       {isAdding && (
         <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-xl animate-in slide-in-from-top-4">
           <h3 className="text-xl font-black text-slate-800 dark:text-white mb-6 uppercase tracking-tight">Registro de Simulado</h3>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
             <div>
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Nome do Simulado</label>
@@ -87,8 +87,8 @@ const SimuladosView: React.FC<SimuladosViewProps> = ({ subjects, simulados, onAd
           <div className="bg-slate-50 dark:bg-slate-800/50 p-6 rounded-3xl border border-slate-200 dark:border-slate-700 mb-8">
             <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Detalhamento por Disciplina</h4>
             <div className="flex flex-wrap gap-3 mb-6">
-              <select 
-                value={currentSubjectId} 
+              <select
+                value={currentSubjectId}
                 onChange={(e) => setCurrentSubjectId(e.target.value)}
                 className="flex-1 min-w-[150px] px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none text-sm dark:text-white"
               >
@@ -132,7 +132,7 @@ const SimuladosView: React.FC<SimuladosViewProps> = ({ subjects, simulados, onAd
           const totalDone = sim.results.reduce((acc, r) => acc + r.done, 0);
           const totalCorrect = sim.results.reduce((acc, r) => acc + r.correct, 0);
           const accuracy = totalDone > 0 ? Math.round((totalCorrect / totalDone) * 100) : 0;
-          
+
           return (
             <div key={sim.id} className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 p-6 shadow-sm hover:shadow-xl transition-all group">
               <div className="flex justify-between items-start mb-4">
@@ -149,8 +149,8 @@ const SimuladosView: React.FC<SimuladosViewProps> = ({ subjects, simulados, onAd
                   <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Aproveitamento Total</p>
                 </div>
                 <div className="text-right">
-                   <p className="text-sm font-black text-slate-700 dark:text-slate-300">{totalCorrect}/{totalDone}</p>
-                   <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Acertos/Questões</p>
+                  <p className="text-sm font-black text-slate-700 dark:text-slate-300">{totalCorrect}/{totalDone}</p>
+                  <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Acertos/Questões</p>
                 </div>
               </div>
 
@@ -158,7 +158,7 @@ const SimuladosView: React.FC<SimuladosViewProps> = ({ subjects, simulados, onAd
                 {sim.results.map((res, i) => (
                   <div key={i} className="flex justify-between items-center text-[10px]">
                     <span className="text-slate-500 dark:text-slate-400 truncate max-w-[120px]">{subjects.find(s => s.id === res.subjectId)?.name}</span>
-                    <span className="font-bold text-slate-700 dark:text-slate-300">{Math.round((res.correct/res.done)*100)}%</span>
+                    <span className="font-bold text-slate-700 dark:text-slate-300">{Math.round((res.correct / res.done) * 100)}%</span>
                   </div>
                 ))}
               </div>

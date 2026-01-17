@@ -97,7 +97,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   const handleFinish = () => {
     if (timerSeconds > 0 && timerSubjectId) {
       onAddSession({
-        id: `session-${Date.now()}`,
+        id: crypto.randomUUID(),
         subjectId: timerSubjectId,
         date: new Date().toISOString(),
         durationInMinutes: Math.floor(timerSeconds / 60) || 1,

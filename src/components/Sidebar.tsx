@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Subject, StudySession, User } from '../types';
 
 interface SidebarProps {
@@ -17,23 +17,75 @@ interface SidebarProps {
   onAddSession: (session: StudySession) => void;
   currentUser: User;
   onLogout: () => void;
+  isReorderMode?: boolean;
 }
+
+interface MenuItem {
+  id: string;
+  label: string;
+  icon: string;
+}
+
+const DEFAULT_MENU_ITEMS: MenuItem[] = [
+  { id: 'dashboard', label: 'Dashboard', icon: '📊' },
+  { id: 'concursos', label: 'Meus Editais', icon: '🏆' },
+  { id: 'subjects', label: 'Disciplinas', icon: '📚' },
+  { id: 'questions', label: 'Questões', icon: '🎯' },
+  { id: 'simulados', label: 'Simulados', icon: '📝' },
+  { id: 'calendar', label: 'Planner', icon: '📅' },
+  { id: 'ai-coach', label: 'IA Mentor', icon: '🤖' },
+];
 
 const Sidebar: React.FC<SidebarProps> = ({
   activeTab, setActiveTab, theme, toggleTheme,
   timerSeconds, isTimerActive, timerSubjectId, subjects,
   onToggleTimer, onSetTimerSubject, onResetTimer, onAddSession,
-  currentUser, onLogout
+  currentUser, onLogout, isReorderMode = false
 }) => {
-  const menuItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: '📊' },
-    { id: 'concursos', label: 'Meus Editais', icon: '🏆' },
-    { id: 'subjects', label: 'Disciplinas', icon: '📚' },
-    { id: 'questions', label: 'Questões', icon: '🎯' },
-    { id: 'simulados', label: 'Simulados', icon: '📝' },
-    { id: 'calendar', label: 'Planner', icon: '📅' },
-    { id: 'ai-coach', label: 'IA Mentor', icon: '🤖' },
-  ];
+  const [menuItems, setMenuItems] = useState<MenuItem[]>(() => {
+    const saved = localStorage.getItem('cp_menu_order');
+    if (saved) {
+      try {
+        const savedIds = JSON.parse(saved);
+        return savedIds.map((id: string) => DEFAULT_MENU_ITEMS.find(item => item.id === id)!).filter(Boolean);
+      } catch {
+        return DEFAULT_MENU_ITEMS;
+      }
+    }
+    return DEFAULT_MENU_ITEMS;
+  });
+
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+
+  useEffect(() => {
+    localStorage.setItem('cp_menu_order', JSON.stringify(menuItems.map(item => item.id)));
+  }, [menuItems]);
+
+  const handleDragStart = (index: number) => {
+    setDraggedIndex(index);
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === index) return;
+
+    const newItems = [...menuItems];
+    const draggedItem = newItems[draggedIndex];
+    newItems.splice(draggedIndex, 1);
+    newItems.splice(index, 0, draggedItem);
+
+    setMenuItems(newItems);
+    setDraggedIndex(index);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+  };
+
+  const resetMenuOrder = () => {
+    setMenuItems(DEFAULT_MENU_ITEMS);
+    localStorage.removeItem('cp_menu_order');
+  };
 
   const formatTime = (totalSeconds: number) => {
     const hrs = Math.floor(totalSeconds / 3600);
@@ -48,7 +100,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         id: `session-${Date.now()}`,
         subjectId: timerSubjectId,
         date: new Date().toISOString(),
-        durationInMinutes: Math.floor(timerSeconds / 60) || 1, // Minimum 1 minute if started
+        durationInMinutes: Math.floor(timerSeconds / 60) || 1,
         isSimulado: false
       });
     }
@@ -102,16 +154,35 @@ const Sidebar: React.FC<SidebarProps> = ({
           <button onClick={() => timerSubjectId && onToggleTimer()} className={`flex-1 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all ${isTimerActive ? 'bg-amber-500 text-white' : 'bg-blue-700 text-white'}`}>{isTimerActive ? 'Pausar' : 'Iniciar'}</button>
           <button onClick={handleFinish} className="flex-1 py-1.5 bg-emerald-500 text-white rounded-lg text-[8px] font-black uppercase tracking-widest">Fim</button>
         </div>
-
       </div>
 
+      {isReorderMode && (
+        <div className="mb-4 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-2xl border border-amber-200 dark:border-amber-800">
+          <p className="text-[9px] font-black uppercase text-amber-700 dark:text-amber-400 mb-2">🔄 Arraste para reorganizar</p>
+          <button
+            onClick={resetMenuOrder}
+            className="w-full py-1.5 bg-amber-600 text-white rounded-lg text-[8px] font-black uppercase tracking-widest hover:bg-amber-700"
+          >
+            Restaurar Padrão
+          </button>
+        </div>
+      )}
+
       <nav className="flex-1 space-y-1 overflow-y-auto custom-scrollbar pr-1">
-        {menuItems.map((item) => (
+        {menuItems.map((item, index) => (
           <button
             key={item.id}
-            onClick={() => setActiveTab(item.id)}
-            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl transition-all ${activeTab === item.id ? 'bg-blue-700 text-white font-black shadow-lg shadow-blue-500/20' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+            draggable={isReorderMode}
+            onDragStart={() => handleDragStart(index)}
+            onDragOver={(e) => handleDragOver(e, index)}
+            onDragEnd={handleDragEnd}
+            onClick={() => !isReorderMode && setActiveTab(item.id)}
+            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl transition-all ${activeTab === item.id
+                ? 'bg-blue-700 text-white font-black shadow-lg shadow-blue-500/20'
+                : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+              } ${isReorderMode ? 'cursor-move' : ''} ${draggedIndex === index ? 'opacity-50 scale-95' : ''}`}
           >
+            {isReorderMode && <span className="text-xs opacity-50">⋮⋮</span>}
             <span className="text-lg">{item.icon}</span>
             <span className="text-[10px] uppercase tracking-widest font-black">{item.label}</span>
           </button>
@@ -128,7 +199,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           <span className="text-[10px] uppercase tracking-widest font-black">Sair</span>
         </button>
       </div>
-    </div >
+    </div>
   );
 };
 

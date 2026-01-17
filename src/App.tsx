@@ -16,6 +16,7 @@ import { useTimer } from './hooks/useTimer';
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [isReorderMode, setIsReorderMode] = useState(false);
 
   const {
     currentUser, setCurrentUser, users, setUsers,
@@ -43,7 +44,7 @@ const App: React.FC = () => {
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard':
-        return <Dashboard subjects={filteredSubjects} sessions={sessions} simulados={simulados} activeConcurso={activeConcurso} selectedConcursoId={selectedConcursoId} onSelectConcursoId={setSelectedConcursoId} concursos={concursos} theme={theme} />;
+        return <Dashboard subjects={filteredSubjects} sessions={sessions} simulados={simulados} activeConcurso={activeConcurso} selectedConcursoId={selectedConcursoId} onSelectConcursoId={setSelectedConcursoId} concursos={concursos} theme={theme} onToggleReorderMode={setIsReorderMode} />;
       case 'concursos':
         return <ConcursosView concursos={concursos} onUpdateConcursos={setConcursos} onSelectConcurso={(c) => { setSelectedConcursoId(c.id); setActiveTab('dashboard'); }} />;
       case 'subjects':
@@ -84,6 +85,7 @@ const App: React.FC = () => {
         timerSeconds={timerSeconds} isTimerActive={isTimerActive} timerSubjectId={timerSubjectId} subjects={filteredSubjects}
         onToggleTimer={toggleTimer} onSetTimerSubject={setTimerSubjectId} onResetTimer={resetTimer}
         onAddSession={addSession} currentUser={currentUser} onLogout={handleLogout}
+        isReorderMode={isReorderMode}
       />
       <main className="flex-1 overflow-y-auto p-4 relative">
         <div className="max-w-[1440px] mx-auto pb-10">{renderContent()}</div>

@@ -12,6 +12,7 @@ interface DashboardProps {
   onSelectConcursoId: (id: string | 'all') => void;
   concursos: Concurso[];
   theme?: 'light' | 'dark';
+  onToggleReorderMode?: (isReorder: boolean) => void;
 }
 
 interface WidgetState {
@@ -61,7 +62,8 @@ const Dashboard: React.FC<DashboardProps> = ({
   selectedConcursoId,
   onSelectConcursoId,
   concursos,
-  theme = 'light'
+  theme = 'light',
+  onToggleReorderMode
 }) => {
   const [isEditMode, setIsEditMode] = useState(false);
   const [widgets, setWidgets] = useState<WidgetState[]>(() => {
@@ -272,7 +274,10 @@ const Dashboard: React.FC<DashboardProps> = ({
 
       <header className="flex justify-between items-center px-1">
         <h2 className="text-lg font-black text-slate-800 dark:text-white uppercase tracking-tight">Análise Estratégica 🔥</h2>
-        <button onClick={() => setIsEditMode(!isEditMode)} className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${isEditMode ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50'}`}>
+        <button onClick={() => {
+          setIsEditMode(!isEditMode);
+          onToggleReorderMode?.(!isEditMode);
+        }} className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${isEditMode ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50'}`}>
           {isEditMode ? 'Salvar Painel' : 'Ajustar Layout'}
         </button>
       </header>

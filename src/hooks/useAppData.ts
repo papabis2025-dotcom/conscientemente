@@ -216,18 +216,23 @@ export const useAppData = () => {
     };
 
     const updateConcursos = async (newConcursos: Concurso[]) => {
-        // This is a bulk setter. To persist, we need to find what changed.
-        // For simplicity, we'll upsert all of them (Supabase handles it) or find the new ones.
         setConcursos(newConcursos);
         setIsSaving(true);
         try {
-            // Find deleted ones
+            // Find deleted concursos
             const deletedIds = concursos.filter(c => !newConcursos.find(nc => nc.id === c.id)).map(c => c.id);
             for (const id of deletedIds) await api.concursos.delete(id);
 
-            // Upsert remaining/new
-            for (const conc of newConcursos) {
-                await api.concursos.upsert(conc);
+            // Find changed/new concursos by comparing with previous state
+            for (const newConc of newConcursos) {
+                const oldConc = concursos.find(c => c.id === newConc.id);
+
+                // If it's new or if subjects changed, upsert it
+                if (!oldConc || JSON.stringify(oldConc.subjects) !== JSON.stringify(newConc.subjects) ||
+                    oldConc.name !== newConc.name || oldConc.banca !== newConc.banca) {
+                    console.log('Upserting concurso:', newConc.id, newConc.name);
+                    await api.concursos.upsert(newConc);
+                }
             }
             setLastSaved(new Date().toLocaleTimeString());
         } catch (e) {

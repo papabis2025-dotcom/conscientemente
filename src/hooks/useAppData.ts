@@ -19,7 +19,8 @@ export const useAppData = () => {
     const [lastSaved, setLastSaved] = useState<string>('');
     const [isSaving, setIsSaving] = useState(false);
     const [theme, setTheme] = useState<'light' | 'dark'>(() => {
-        return (localStorage.getItem('cp_theme') as 'light' | 'dark') || 'light';
+        const saved = localStorage.getItem('cp_theme');
+        return (saved === 'dark' || saved === 'light') ? saved : 'light';
     });
 
     // Theme Sync

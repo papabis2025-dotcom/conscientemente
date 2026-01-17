@@ -11,6 +11,7 @@ interface DashboardProps {
   selectedConcursoId: string | 'all';
   onSelectConcursoId: (id: string | 'all') => void;
   concursos: Concurso[];
+  theme?: 'light' | 'dark';
 }
 
 interface WidgetState {
@@ -52,14 +53,15 @@ const getAcronym = (name: string) => {
   return name.substring(0, 4).toUpperCase();
 };
 
-const Dashboard: React.FC<DashboardProps> = ({ 
-  subjects, 
-  sessions, 
+const Dashboard: React.FC<DashboardProps> = ({
+  subjects,
+  sessions,
   simulados,
-  activeConcurso, 
+  activeConcurso,
   selectedConcursoId,
   onSelectConcursoId,
-  concursos
+  concursos,
+  theme = 'light'
 }) => {
   const [isEditMode, setIsEditMode] = useState(false);
   const [widgets, setWidgets] = useState<WidgetState[]>(() => {
@@ -67,7 +69,7 @@ const Dashboard: React.FC<DashboardProps> = ({
     return saved ? JSON.parse(saved) : DEFAULT_WIDGETS;
   });
 
-  const isDarkMode = document.documentElement.classList.contains('dark');
+  const isDarkMode = theme === 'dark';
   const chartTextColor = isDarkMode ? '#94a3b8' : '#64748b';
 
   useEffect(() => { localStorage.setItem('cp_dashboard_layout_v12', JSON.stringify(widgets)); }, [widgets]);
@@ -85,13 +87,13 @@ const Dashboard: React.FC<DashboardProps> = ({
 
   const subjectStats = useMemo(() => {
     const stats: Record<string, { done: number, correct: number, minutes: number, name: string, colorClass: string }> = {};
-    
-    subjects.forEach(s => { 
+
+    subjects.forEach(s => {
       if (!stats[s.name]) {
-        stats[s.name] = { done: 0, correct: 0, minutes: 0, name: s.name, colorClass: s.color }; 
+        stats[s.name] = { done: 0, correct: 0, minutes: 0, name: s.name, colorClass: s.color };
       }
     });
-    
+
     sessions.forEach(session => {
       const sub = subjects.find(s => s.id === session.subjectId);
       if (sub && stats[sub.name]) {
@@ -102,8 +104,8 @@ const Dashboard: React.FC<DashboardProps> = ({
     });
 
     const list = Object.values(stats)
-      .map(s => ({ 
-        ...s, 
+      .map(s => ({
+        ...s,
         accuracy: s.done > 0 ? Math.round((s.correct / s.done) * 100) : 0,
         hours: parseFloat((s.minutes / 60).toFixed(1)),
         hexColor: tailwindToHex(s.colorClass),
@@ -153,7 +155,7 @@ const Dashboard: React.FC<DashboardProps> = ({
               <p className="text-[11px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Aproveitamento Global</p>
             </div>
             <div className="w-full h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-               <div className="h-full bg-blue-500 transition-all duration-1000" style={{ width: `${globalAccuracy}%` }} />
+              <div className="h-full bg-blue-500 transition-all duration-1000" style={{ width: `${globalAccuracy}%` }} />
             </div>
           </div>
         );
@@ -165,10 +167,10 @@ const Dashboard: React.FC<DashboardProps> = ({
               <p className="text-sm text-slate-400 italic text-center py-8">Estratégia equilibrada. Mantenha o foco!</p>
             ) : critical.slice(0, 3).map((s, i) => (
               <div key={i} className="p-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl">
-                 <p className="text-xs font-black text-blue-600 dark:text-blue-400 uppercase leading-none mb-1.5">{s.name}</p>
-                 <p className="text-sm text-slate-600 dark:text-slate-400 font-medium">
-                   {s.accuracy < 65 && s.done > 0 ? `Reforçar base teórica (${s.accuracy}%)` : `Dedicar mais tempo de estudo (${s.hours}h)`}
-                 </p>
+                <p className="text-xs font-black text-blue-600 dark:text-blue-400 uppercase leading-none mb-1.5">{s.name}</p>
+                <p className="text-sm text-slate-600 dark:text-slate-400 font-medium">
+                  {s.accuracy < 65 && s.done > 0 ? `Reforçar base teórica (${s.accuracy}%)` : `Dedicar mais tempo de estudo (${s.hours}h)`}
+                </p>
               </div>
             ))}
           </div>
@@ -184,7 +186,7 @@ const Dashboard: React.FC<DashboardProps> = ({
               <p className="text-[11px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Média em Simulados</p>
             </div>
             <div className="w-full h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-               <div className="h-full bg-emerald-500 transition-all duration-1000" style={{ width: `${simAccuracy}%` }} />
+              <div className="h-full bg-emerald-500 transition-all duration-1000" style={{ width: `${simAccuracy}%` }} />
             </div>
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{simulados.length} simulados realizados</p>
           </div>
@@ -195,9 +197,9 @@ const Dashboard: React.FC<DashboardProps> = ({
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={weeklyData}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
-                <XAxis dataKey="n" axisLine={false} tickLine={false} tick={{fontSize: 11, fontWeight: 'bold', fill: chartTextColor}} />
-                <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fill: chartTextColor}} />
-                <Tooltip contentStyle={{fontSize: '11px', borderRadius: '12px', border: 'none', backgroundColor: isDarkMode ? '#0f172a' : '#fff', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'}} />
+                <XAxis dataKey="n" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 'bold', fill: chartTextColor }} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: chartTextColor }} />
+                <Tooltip contentStyle={{ fontSize: '11px', borderRadius: '12px', border: 'none', backgroundColor: isDarkMode ? '#0f172a' : '#fff', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }} />
                 <Area type="monotone" dataKey="h" stroke="#2563eb" fill="#2563eb22" strokeWidth={3} />
               </AreaChart>
             </ResponsiveContainer>
@@ -206,33 +208,33 @@ const Dashboard: React.FC<DashboardProps> = ({
       case 'questions_by_subject':
         return (
           <div className="h-64 w-full mt-2">
-             <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={subjectStats.questionsData} margin={{ bottom: 20 }}>
-                  <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} strokeOpacity={0.1} />
-                  <XAxis dataKey="acronym" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 'bold', fill: chartTextColor}} />
-                  <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fill: chartTextColor}} />
-                  <Tooltip cursor={{fill: 'transparent'}} contentStyle={{fontSize: '11px', borderRadius: '12px', border: 'none', backgroundColor: isDarkMode ? '#0f172a' : '#fff'}} />
-                  <Bar dataKey="done" radius={[6, 6, 0, 0]} barSize={35}>
-                    {subjectStats.questionsData.map((entry, index) => <Cell key={index} fill={entry.hexColor} />)}
-                  </Bar>
-                </BarChart>
-             </ResponsiveContainer>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={subjectStats.questionsData} margin={{ bottom: 20 }}>
+                <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} strokeOpacity={0.1} />
+                <XAxis dataKey="acronym" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 'bold', fill: chartTextColor }} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: chartTextColor }} />
+                <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ fontSize: '11px', borderRadius: '12px', border: 'none', backgroundColor: isDarkMode ? '#0f172a' : '#fff' }} />
+                <Bar dataKey="done" radius={[6, 6, 0, 0]} barSize={35}>
+                  {subjectStats.questionsData.map((entry, index) => <Cell key={index} fill={entry.hexColor} />)}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
           </div>
         );
       case 'time_by_subject':
         return (
           <div className="h-64 w-full mt-2">
-             <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={subjectStats.timeData} margin={{ bottom: 20 }}>
-                  <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} strokeOpacity={0.1} />
-                  <XAxis dataKey="acronym" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 'bold', fill: chartTextColor}} />
-                  <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fill: chartTextColor}} />
-                  <Tooltip cursor={{fill: 'transparent'}} contentStyle={{fontSize: '11px', borderRadius: '12px', border: 'none', backgroundColor: isDarkMode ? '#0f172a' : '#fff'}} />
-                  <Bar dataKey="hours" radius={[6, 6, 0, 0]} barSize={35}>
-                    {subjectStats.timeData.map((entry, index) => <Cell key={index} fill={entry.hexColor} />)}
-                  </Bar>
-                </BarChart>
-             </ResponsiveContainer>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={subjectStats.timeData} margin={{ bottom: 20 }}>
+                <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} strokeOpacity={0.1} />
+                <XAxis dataKey="acronym" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 'bold', fill: chartTextColor }} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: chartTextColor }} />
+                <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ fontSize: '11px', borderRadius: '12px', border: 'none', backgroundColor: isDarkMode ? '#0f172a' : '#fff' }} />
+                <Bar dataKey="hours" radius={[6, 6, 0, 0]} barSize={35}>
+                  {subjectStats.timeData.map((entry, index) => <Cell key={index} fill={entry.hexColor} />)}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
           </div>
         );
       default: return null;
@@ -246,8 +248,8 @@ const Dashboard: React.FC<DashboardProps> = ({
           <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/40 rounded-xl flex items-center justify-center text-xl">🏆</div>
           <div>
             <p className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest leading-none mb-1.5">Meta Ativa</p>
-            <select 
-              value={selectedConcursoId} 
+            <select
+              value={selectedConcursoId}
               onChange={(e) => onSelectConcursoId(e.target.value)}
               className="bg-transparent border-none outline-none text-sm font-black text-slate-800 dark:text-white cursor-pointer"
             >
@@ -257,14 +259,14 @@ const Dashboard: React.FC<DashboardProps> = ({
           </div>
         </div>
         <div className="flex gap-10 px-4">
-           <div className="flex flex-col">
-             <span className="text-base font-black text-slate-800 dark:text-white leading-none mb-1">{subjects.length}</span>
-             <span className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest">Matérias</span>
-           </div>
-           <div className="flex flex-col">
-             <span className="text-base font-black text-slate-800 dark:text-white leading-none mb-1">{sessions.reduce((acc, s) => acc + (s.questionsDone || 0), 0)}</span>
-             <span className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest">Questões</span>
-           </div>
+          <div className="flex flex-col">
+            <span className="text-base font-black text-slate-800 dark:text-white leading-none mb-1">{subjects.length}</span>
+            <span className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest">Matérias</span>
+          </div>
+          <div className="flex flex-col">
+            <span className="text-base font-black text-slate-800 dark:text-white leading-none mb-1">{sessions.reduce((acc, s) => acc + (s.questionsDone || 0), 0)}</span>
+            <span className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest">Questões</span>
+          </div>
         </div>
       </div>
 
@@ -286,7 +288,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                 {isEditMode && (
                   <div className="flex gap-2">
                     <button onClick={() => cycleSize(widget.id)} className="bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-tight">Tam: {widget.size}</button>
-                    <button onClick={() => setWidgets(prev => prev.map(w => w.id === widget.id ? {...w, isVisible: !w.isVisible} : w))} className="text-sm">{widget.isVisible ? '👁️' : '🚫'}</button>
+                    <button onClick={() => setWidgets(prev => prev.map(w => w.id === widget.id ? { ...w, isVisible: !w.isVisible } : w))} className="text-sm">{widget.isVisible ? '👁️' : '🚫'}</button>
                   </div>
                 )}
               </div>

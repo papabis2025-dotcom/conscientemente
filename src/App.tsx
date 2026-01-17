@@ -24,7 +24,8 @@ const App: React.FC = () => {
     scheduledStudies, setScheduledStudies, dailyGoals, setDailyGoals,
     logs, setLogs, theme, toggleTheme,
     lastSaved, isSaving, filteredSubjects, activeConcurso,
-    handleLogout: logout, addSession, addSimulado
+    handleLogout: logout, addSession, addSimulado,
+    deleteSimulado, deleteSession, clearLogs, deleteLog
   } = useAppData();
 
   const {
@@ -48,9 +49,9 @@ const App: React.FC = () => {
       case 'subjects':
         return <SubjectsView subjects={activeConcurso?.subjects || []} onUpdateSubjects={(subs) => setConcursos(concursos.map(c => c.id === selectedConcursoId ? { ...c, subjects: subs } : c))} />;
       case 'questions':
-        return <QuestionsView subjects={filteredSubjects} sessions={sessions} dailyGoals={dailyGoals} onUpdateDailyGoals={setDailyGoals} onAddSession={addSession} onDeleteSession={(id) => setSessions(sessions.filter(s => s.id !== id))} />;
+        return <QuestionsView subjects={filteredSubjects} sessions={sessions} dailyGoals={dailyGoals} onUpdateDailyGoals={setDailyGoals} onAddSession={addSession} onDeleteSession={deleteSession} />;
       case 'simulados':
-        return <SimuladosView subjects={filteredSubjects} simulados={simulados} onAddSimulado={addSimulado} onDeleteSimulado={(id) => setSimulados(simulados.filter(s => s.id !== id))} />;
+        return <SimuladosView subjects={filteredSubjects} simulados={simulados} onAddSimulado={addSimulado} onDeleteSimulado={deleteSimulado} />;
       case 'calendar':
         return <CalendarView subjects={filteredSubjects} scheduledStudies={scheduledStudies} onUpdateSchedule={setScheduledStudies} onAddSession={addSession} />;
       case 'ai-coach':
@@ -62,7 +63,7 @@ const App: React.FC = () => {
         }} />;
       case 'settings':
         return <SettingsView onExport={() => { }} onImport={() => { }} onClearData={() => { }} users={users} onUpdateUsers={setUsers} currentUser={currentUser!} />;
-      case 'logs': return <LogView logs={logs} onClearLogs={() => setLogs([])} onDeleteLog={(id) => setLogs(logs.filter(l => l.id !== id))} />;
+      case 'logs': return <LogView logs={logs} onClearLogs={clearLogs} onDeleteLog={deleteLog} />;
       default: return null;
     }
   };

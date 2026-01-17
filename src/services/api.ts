@@ -20,33 +20,58 @@ export const api = {
 
     // Concursos
     concursos: {
-        list: async () => handleRequest(supabase.from('concursos').select('*').order('created_at', { ascending: false })),
-        create: async (concurso: Omit<Concurso, 'id' | 'user_id' | 'created_at'>) => {
+        list: async () => {
+            const data = await handleRequest<any[]>(supabase.from('concursos').select('*').order('created_at', { ascending: false }));
+            return (data || []).map((c: any) => ({
+                id: c.id,
+                name: c.name,
+                banca: c.banca,
+                startDate: c.start_date,
+                targetDate: c.target_date,
+                subjects: c.subjects,
+                categoryId: c.category_id
+            }));
+        },
+        upsert: async (concurso: Concurso) => {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) throw new Error('Not authenticated');
 
-            // For JSONB compatibility, ensure subjects is stringified if needed by your logic, 
-            // but Supabase JS client handles objects for JSONB columns automatically.
-            return handleRequest(supabase.from('concursos').insert({
+            // Map camelCase to snake_case for DB
+            const dbPayload = {
+                id: (concurso.id && !concurso.id.includes('temp-') && concurso.id.length > 20) ? concurso.id : undefined,
                 user_id: user.id,
-                ...concurso
-            }).select().single());
+                name: concurso.name,
+                banca: concurso.banca,
+                start_date: concurso.startDate,
+                target_date: concurso.targetDate,
+                category_id: concurso.categoryId,
+                subjects: concurso.subjects // JSONB supported directly
+            };
+
+            return handleRequest<Concurso>(supabase.from('concursos').upsert(dbPayload).select().single());
         },
-        update: async (id: string, updates: Partial<Concurso>) => handleRequest(supabase.from('concursos').update(updates).eq('id', id).select().single()),
         delete: async (id: string) => handleRequest(supabase.from('concursos').delete().eq('id', id)),
     },
 
     // Study Sessions
     sessions: {
-        list: async () => handleRequest(supabase.from('study_sessions').select('*').order('date', { ascending: false })),
+        list: async () => {
+            const data = await handleRequest<any[]>(supabase.from('study_sessions').select('*').order('date', { ascending: false }));
+            return (data || []).map((s: any) => ({
+                id: s.id,
+                subjectId: s.subject_id,
+                topicId: s.topic_id,
+                durationInMinutes: s.duration_minutes,
+                date: s.date,
+                questionsDone: s.questions_done,
+                questionsCorrect: s.questions_correct,
+                isSimulado: s.is_simulado
+            }));
+        },
         create: async (session: Omit<StudySession, 'id' | 'user_id' | 'created_at'>) => {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) throw new Error('Not authenticated');
 
-            // Map frontend camelCase to snake_case if strictly typed, 
-            // but here we used snake_case in SQL and the client usually expects matching names.
-            // We need to map camelCase (frontend) to snake_case (DB) manually or assume automated mapper.
-            // Let's map manually to be safe.
             const dbPayload = {
                 user_id: user.id,
                 subject_id: session.subjectId,
@@ -58,23 +83,33 @@ export const api = {
                 is_simulado: session.isSimulado
             };
 
-            return handleRequest(supabase.from('study_sessions').insert(dbPayload).select().single());
-        }
+            return handleRequest<StudySession>(supabase.from('study_sessions').insert(dbPayload).select().single());
+        },
+        delete: async (id: string) => handleRequest(supabase.from('study_sessions').delete().eq('id', id)),
     },
 
     // Simulados
     simulados: {
-        list: async () => handleRequest(supabase.from('simulados').select('*').order('date', { ascending: false })),
+        list: async () => {
+            const data = await handleRequest<any[]>(supabase.from('simulados').select('*').order('date', { ascending: false }));
+            return (data || []).map((s: any) => ({
+                id: s.id,
+                name: s.name,
+                date: s.date,
+                totalQuestions: s.total_questions,
+                results: s.results
+            }));
+        },
         create: async (simulado: Omit<Simulado, 'id' | 'user_id' | 'created_at'>) => {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) throw new Error('Not authenticated');
 
-            return handleRequest(supabase.from('simulados').insert({
+            return handleRequest<Simulado>(supabase.from('simulados').insert({
                 user_id: user.id,
                 name: simulado.name,
                 date: simulado.date,
                 total_questions: simulado.totalQuestions,
-                results: simulado.results // JSONB
+                results: simulado.results
             }).select().single());
         },
         delete: async (id: string) => handleRequest(supabase.from('simulados').delete().eq('id', id)),
@@ -82,12 +117,25 @@ export const api = {
 
     // Scheduled Studies
     schedule: {
-        list: async () => handleRequest(supabase.from('scheduled_studies').select('*').order('date', { ascending: true })),
+        list: async () => {
+            const data = await handleRequest<any[]>(supabase.from('scheduled_studies').select('*').order('date', { ascending: true }));
+            return (data || []).map((i: any) => ({
+                id: i.id,
+                date: i.date,
+                subjectId: i.subject_id,
+                topicId: i.topic_id,
+                activityType: i.activity_type,
+                notes: i.notes,
+                durationInMinutes: i.duration_minutes,
+                questionsDone: i.questions_done,
+                questionsCorrect: i.questions_correct
+            }));
+        },
         create: async (item: Omit<ScheduledStudy, 'id' | 'user_id' | 'created_at'>) => {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) throw new Error('Not authenticated');
 
-            return handleRequest(supabase.from('scheduled_studies').insert({
+            return handleRequest<ScheduledStudy>(supabase.from('scheduled_studies').insert({
                 user_id: user.id,
                 date: item.date,
                 subject_id: item.subjectId,
@@ -100,25 +148,27 @@ export const api = {
             }).select().single());
         },
         update: async (id: string, updates: Partial<ScheduledStudy>) => {
-            // Need to map keys if partial updates
             const dbPayload: any = {};
             if (updates.subjectId) dbPayload.subject_id = updates.subjectId;
             if (updates.topicId) dbPayload.topic_id = updates.topicId;
             if (updates.activityType) dbPayload.activity_type = updates.activityType;
-            // ... map others loop or explicitly
-            // simpler to just spread if keys matched, but they don't.
-            // For now, assume this function implies specific known updates or full re-sync.
-            // Let's keep it simple: mapped manually
             if (updates.questionsDone !== undefined) dbPayload.questions_done = updates.questionsDone;
             if (updates.questionsCorrect !== undefined) dbPayload.questions_correct = updates.questionsCorrect;
 
             return handleRequest(supabase.from('scheduled_studies').update(dbPayload).eq('id', id));
-        }
+        },
+        delete: async (id: string) => handleRequest(supabase.from('scheduled_studies').delete().eq('id', id)),
     },
 
     // Daily Goals
     dailyGoals: {
-        list: async () => handleRequest(supabase.from('daily_goals').select('*').order('date', { ascending: false })),
+        list: async () => {
+            const data = await handleRequest<any[]>(supabase.from('daily_goals').select('*').order('date', { ascending: false }));
+            return (data || []).map((g: any) => ({
+                date: g.date,
+                questionsTarget: g.questions_target
+            }));
+        },
         upsert: async (goal: DailyGoal) => {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) throw new Error('Not authenticated');
@@ -143,6 +193,11 @@ export const api = {
                 message: log.message,
                 type: log.type
             }));
+        },
+        clear: async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+            return handleRequest(supabase.from('logs').delete().eq('user_id', user.id));
         }
     }
 };

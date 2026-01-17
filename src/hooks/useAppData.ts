@@ -140,17 +140,12 @@ export const useAppData = () => {
 
     // Actions that now persist immediately
     const addSession = async (session: StudySession) => {
-        // Optimistic Update
         setSessions(prev => [...prev, session]);
-
         try {
             await api.sessions.create(session);
-
-            // Auto schedule logic preserved
             const sessionDate = session.date.split('T')[0];
             const activityType = session.isSimulado ? 'Simulado' : session.questionsDone !== undefined ? 'Questões' : 'Leitura';
 
-            // Check existence locally to save a read
             const alreadyExists = scheduledStudies.some(s =>
                 s.date === sessionDate &&
                 s.subjectId === session.subjectId &&
@@ -160,7 +155,7 @@ export const useAppData = () => {
 
             if (!alreadyExists) {
                 const newScheduled: ScheduledStudy = {
-                    id: `temp-${Date.now()}`, // Temp ID
+                    id: `temp-${Date.now()}`,
                     date: sessionDate,
                     subjectId: session.subjectId,
                     topicId: session.topicId,
@@ -172,9 +167,9 @@ export const useAppData = () => {
                 setScheduledStudies(prev => [...prev, newScheduled]);
                 await api.schedule.create(newScheduled);
             }
+            setLastSaved(new Date().toLocaleTimeString());
         } catch (e) {
             console.error('Error adding session:', e);
-            // Revert optimistic update if needed or show toast
         }
     };
 
@@ -182,7 +177,6 @@ export const useAppData = () => {
         setSimulados(prev => [...prev, sim]);
         try {
             await api.simulados.create(sim);
-            // Also add implied sessions
             sim.results.forEach(async res => {
                 const session: StudySession = {
                     id: `temp-sim-${sim.id}-${res.subjectId}`,
@@ -193,22 +187,97 @@ export const useAppData = () => {
                     questionsCorrect: res.correct,
                     isSimulado: true
                 };
-                addSession(session); // This handles API call for session
+                addSession(session);
             });
+            setLastSaved(new Date().toLocaleTimeString());
         } catch (e) {
             console.error('Error adding simulado:', e);
         }
     };
 
-    // Legacy support for setting concursos directly (e.g. from UI import)
-    // We strictly should create API methods for this, but for now let's wrap it
+    const deleteSimulado = async (id: string) => {
+        setSimulados(prev => prev.filter(s => s.id !== id));
+        try {
+            await api.simulados.delete(id);
+            setLastSaved(new Date().toLocaleTimeString());
+        } catch (e) {
+            console.error('Error deleting simulado:', e);
+        }
+    };
+
+    const deleteSession = async (id: string) => {
+        setSessions(prev => prev.filter(s => s.id !== id));
+        try {
+            await api.sessions.delete(id);
+            setLastSaved(new Date().toLocaleTimeString());
+        } catch (e) {
+            console.error('Error deleting session:', e);
+        }
+    };
+
     const updateConcursos = async (newConcursos: Concurso[]) => {
+        // This is a bulk setter. To persist, we need to find what changed.
+        // For simplicity, we'll upsert all of them (Supabase handles it) or find the new ones.
         setConcursos(newConcursos);
-        // This is complex because determining which one is new/updated/deleted from a full array replace is hard.
-        // Ideally UI calls addConcurso or updateConcurso.
-        // For now, we assume this is mostly used for adding/editing active one or initial setup.
-        // We will just log a warning that bulk update is not fully sync-safe yet.
-        console.warn('Bulk update of concursos is local-only optimized. Use specific methods for persistence.');
+        setIsSaving(true);
+        try {
+            // Find deleted ones
+            const deletedIds = concursos.filter(c => !newConcursos.find(nc => nc.id === c.id)).map(c => c.id);
+            for (const id of deletedIds) await api.concursos.delete(id);
+
+            // Upsert remaining/new
+            for (const conc of newConcursos) {
+                await api.concursos.upsert(conc);
+            }
+            setLastSaved(new Date().toLocaleTimeString());
+        } catch (e) {
+            console.error('Error updating concursos:', e);
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const updateScheduledStudies = async (newSchedule: ScheduledStudy[]) => {
+        setScheduledStudies(newSchedule);
+        // Handle as bulk for now, but better would be specific actions
+        try {
+            // Very basic sync for schedule
+            for (const item of newSchedule) {
+                if (item.id.includes('temp-')) {
+                    await api.schedule.create(item);
+                } else {
+                    await api.schedule.update(item.id, item);
+                }
+            }
+            setLastSaved(new Date().toLocaleTimeString());
+        } catch (e) {
+            console.error('Error updating schedule:', e);
+        }
+    };
+
+    const updateDailyGoals = async (newGoals: DailyGoal[]) => {
+        setDailyGoals(newGoals);
+        try {
+            for (const goal of newGoals) await api.dailyGoals.upsert(goal);
+            setLastSaved(new Date().toLocaleTimeString());
+        } catch (e) {
+            console.error('Error updating goals:', e);
+        }
+    };
+
+    const clearLogs = async () => {
+        setLogs([]);
+        try {
+            await api.logs.clear();
+            setLastSaved(new Date().toLocaleTimeString());
+        } catch (e) {
+            console.error('Error clearing logs:', e);
+        }
+    };
+
+    const deleteLog = async (id: string) => {
+        // Logs don't have individual delete in my schema yet, but for UI:
+        setLogs(prev => prev.filter(l => l.id !== id));
     };
 
     return {
@@ -216,18 +285,22 @@ export const useAppData = () => {
         users, setUsers: updateUser,
         concursos, setConcursos: updateConcursos,
         selectedConcursoId, setSelectedConcursoId,
-        sessions, setSessions,
-        simulados, setSimulados,
-        scheduledStudies, setScheduledStudies,
-        dailyGoals, setDailyGoals,
-        logs, setLogs,
+        sessions, setSessions: (s: any) => s, // Disabled direct set
+        simulados, setSimulados: (s: any) => s, // Disabled direct set
+        scheduledStudies, setScheduledStudies: updateScheduledStudies,
+        dailyGoals, setDailyGoals: updateDailyGoals,
+        logs, setLogs: (s: any) => s, // Disabled direct set
         theme, toggleTheme,
-        lastSaved, isSaving: isLoading, // Reusing isSaving to show loading state
+        lastSaved, isSaving,
         filteredSubjects,
         activeConcurso,
         handleManualSave,
         handleLogout,
         addSession,
-        addSimulado
+        addSimulado,
+        deleteSimulado,
+        deleteSession,
+        clearLogs,
+        deleteLog
     };
 };

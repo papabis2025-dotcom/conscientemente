@@ -43,6 +43,15 @@ const Sidebar: React.FC<SidebarProps> = ({
   };
 
   const handleFinish = () => {
+    if (timerSeconds > 0 && timerSubjectId) {
+      onAddSession({
+        id: `session-${Date.now()}`,
+        subjectId: timerSubjectId,
+        date: new Date().toISOString(),
+        durationInMinutes: Math.floor(timerSeconds / 60) || 1, // Minimum 1 minute if started
+        isSimulado: false
+      });
+    }
     onResetTimer();
   };
 

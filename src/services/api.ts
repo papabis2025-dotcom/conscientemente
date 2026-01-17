@@ -38,7 +38,9 @@ export const api = {
 
             // Map camelCase to snake_case for DB
             const dbPayload = {
-                id: (concurso.id && !concurso.id.includes('temp-') && concurso.id.length > 20) ? concurso.id : undefined,
+                // Include ID if it exists and is not a temp ID
+                // Supabase will use it for update, or generate new UUID if undefined
+                id: (concurso.id && !concurso.id.includes('temp-') && !concurso.id.startsWith('ai-')) ? concurso.id : undefined,
                 user_id: user.id,
                 name: concurso.name,
                 banca: concurso.banca,
@@ -48,6 +50,7 @@ export const api = {
                 subjects: concurso.subjects // JSONB supported directly
             };
 
+            console.log('Upserting concurso to DB:', { id: dbPayload.id, name: dbPayload.name, subjectsCount: concurso.subjects?.length });
             return handleRequest<Concurso>(supabase.from('concursos').upsert(dbPayload).select().single());
         },
         delete: async (id: string) => handleRequest(supabase.from('concursos').delete().eq('id', id)),

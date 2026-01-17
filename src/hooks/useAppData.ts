@@ -17,7 +17,7 @@ export const useAppData = () => {
     const [dailyGoals, setDailyGoals] = useState<DailyGoal[]>([]);
     const [logs, setLogs] = useState<LogEntry[]>([]);
 
-    const [autoSave, setAutoSave] = useState<boolean>(true); // Kept for UI compatibility, but save is now distinct
+    // AutoSave removed as per new architecture (save-on-action)
     const [lastSaved, setLastSaved] = useState<string>('');
     const [isSaving, setIsSaving] = useState(false);
     const [saveError, setSaveError] = useState<string | null>(null);
@@ -172,11 +172,9 @@ export const useAppData = () => {
 
             // ...
             /* 
-              This logging helps debug why tasks disappear. 
               We expect `saved` to have the correct ID and DATE.
             */
             const saved = await api.schedule.create(newScheduled);
-            console.log('DEBUG: Saved schedule item:', saved);
 
             if (saved) {
                 // Ensure date match to avoid disappearing items if server returns full timestamp

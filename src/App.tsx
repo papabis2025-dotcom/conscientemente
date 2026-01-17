@@ -23,7 +23,7 @@ const App: React.FC = () => {
     currentUser, setCurrentUser, users, setUsers,
     concursos, setConcursos, selectedConcursoId, setSelectedConcursoId,
     sessions, setSessions, simulados, setSimulados,
-    scheduledStudies, setScheduledStudies, dailyGoals, setDailyGoals,
+    scheduledStudies, setScheduledStudies, deleteScheduledStudy, dailyGoals, setDailyGoals,
     logs, setLogs, theme, toggleTheme,
     lastSaved, isSaving, saveError, filteredSubjects, activeConcurso,
     handleLogout: logout, addSession, addSimulado,
@@ -55,7 +55,7 @@ const App: React.FC = () => {
       case 'simulados':
         return <SimuladosView subjects={filteredSubjects} simulados={simulados} onAddSimulado={addSimulado} onDeleteSimulado={deleteSimulado} />;
       case 'calendar':
-        return <CalendarView subjects={filteredSubjects} scheduledStudies={scheduledStudies} onUpdateSchedule={setScheduledStudies} onAddSession={addSession} />;
+        return <CalendarView subjects={filteredSubjects} scheduledStudies={scheduledStudies} onUpdateSchedule={setScheduledStudies} onDelete={deleteScheduledStudy} onAddSession={addSession} />;
       case 'ai-coach':
         return <AICoach onImportPlan={(aiSubs) => {
           const newConc: Concurso = { id: `ai-${crypto.randomUUID()}`, name: "Plano IA", banca: "Sugerida", startDate: new Date().toISOString(), subjects: aiSubs };

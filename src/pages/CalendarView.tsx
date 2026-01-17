@@ -6,12 +6,13 @@ interface CalendarViewProps {
   subjects: Subject[];
   scheduledStudies: ScheduledStudy[];
   onUpdateSchedule: (studies: ScheduledStudy[]) => void;
+  onDelete: (id: string) => void;
   onAddSession?: (session: StudySession) => void;
 }
 
 type ViewMode = 'semanal' | 'mensal' | 'semestral' | 'anual';
 
-const CalendarView: React.FC<CalendarViewProps> = ({ subjects, scheduledStudies, onUpdateSchedule, onAddSession }) => {
+const CalendarView: React.FC<CalendarViewProps> = ({ subjects, scheduledStudies, onUpdateSchedule, onDelete, onAddSession }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<ViewMode>('mensal');
   const [selectedDayKey, setSelectedDayKey] = useState<string | null>(null);
@@ -97,7 +98,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ subjects, scheduledStudies,
   };
 
   const handleDelete = (id: string) => {
-    onUpdateSchedule(scheduledStudies.filter(s => s.id !== id));
+    onDelete(id);
   };
 
   const selectedSubject = subjects.find(s => s.id === formData.subjectId);

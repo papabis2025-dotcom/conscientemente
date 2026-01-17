@@ -272,6 +272,19 @@ export const useAppData = () => {
         }
     };
 
+    const deleteScheduledStudy = async (id: string) => {
+        setSaveError(null);
+        setScheduledStudies(prev => prev.filter(s => s.id !== id));
+        try {
+            await api.schedule.delete(id);
+            setLastSaved(new Date().toLocaleTimeString());
+        } catch (e) {
+            console.error('Error deleting schedule item:', e);
+            setSaveError('Erro ao excluir item da agenda.');
+            // Revert on error? For now, let's just show error.
+        }
+    };
+
     const updateScheduledStudies = async (newSchedule: ScheduledStudy[]) => {
         setSaveError(null);
         setScheduledStudies(newSchedule);
@@ -342,7 +355,7 @@ export const useAppData = () => {
         selectedConcursoId, setSelectedConcursoId,
         sessions, setSessions: (s: any) => s, // Disabled direct set
         simulados, setSimulados: (s: any) => s, // Disabled direct set
-        scheduledStudies, setScheduledStudies: updateScheduledStudies,
+        scheduledStudies, setScheduledStudies: updateScheduledStudies, deleteScheduledStudy,
         dailyGoals, setDailyGoals: updateDailyGoals,
         logs, setLogs: (s: any) => s, // Disabled direct set
         theme, toggleTheme,

@@ -124,7 +124,7 @@ export const api = {
             const data = await handleRequest<any[]>(supabase.from('scheduled_studies').select('*').order('date', { ascending: true }));
             return (data || []).map((i: any) => ({
                 id: i.id,
-                date: i.date,
+                date: i.date.split('T')[0], // Ensure YYYY-MM-DD only
                 subjectId: i.subject_id,
                 topicId: i.topic_id,
                 activityType: i.activity_type,

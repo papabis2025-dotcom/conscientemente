@@ -217,47 +217,53 @@ const Dashboard: React.FC<DashboardProps> = ({
       case 'weekly_chart':
         return (
           <div className="h-48 w-full mt-2">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={weeklyData}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
-                <XAxis dataKey="n" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 'bold', fill: chartTextColor }} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: chartTextColor }} />
-                <Tooltip contentStyle={{ fontSize: '11px', borderRadius: '12px', border: 'none', backgroundColor: isDarkMode ? '#0f172a' : '#fff', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }} />
-                <Area type="monotone" dataKey="h" stroke="#2563eb" fill="#2563eb22" strokeWidth={3} />
-              </AreaChart>
-            </ResponsiveContainer>
+            {weeklyData.some(d => d.h > 0) ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={weeklyData}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
+                  <XAxis dataKey="n" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 'bold', fill: chartTextColor }} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: chartTextColor }} />
+                  <Tooltip contentStyle={{ fontSize: '11px', borderRadius: '12px', border: 'none', backgroundColor: isDarkMode ? '#0f172a' : '#fff', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }} />
+                  <Area type="monotone" dataKey="h" stroke="#2563eb" fill="#2563eb22" strokeWidth={3} />
+                </AreaChart>
+              </ResponsiveContainer>
+            ) : <div className="h-full flex items-center justify-center text-xs text-slate-400">Sem dados de estudo na semana</div>}
           </div>
         );
       case 'questions_by_subject':
         return (
           <div className="h-64 w-full mt-2">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={subjectStats.questionsData} margin={{ bottom: 20 }}>
-                <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} strokeOpacity={0.1} />
-                <XAxis dataKey="acronym" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 'bold', fill: chartTextColor }} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: chartTextColor }} />
-                <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ fontSize: '11px', borderRadius: '12px', border: 'none', backgroundColor: isDarkMode ? '#0f172a' : '#fff' }} />
-                <Bar dataKey="done" radius={[6, 6, 0, 0]} barSize={35}>
-                  {subjectStats.questionsData.map((entry, index) => <Cell key={index} fill={entry.hexColor} />)}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+            {subjectStats.questionsData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={subjectStats.questionsData} margin={{ bottom: 20 }}>
+                  <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} strokeOpacity={0.1} />
+                  <XAxis dataKey="acronym" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 'bold', fill: chartTextColor }} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: chartTextColor }} />
+                  <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ fontSize: '11px', borderRadius: '12px', border: 'none', backgroundColor: isDarkMode ? '#0f172a' : '#fff' }} />
+                  <Bar dataKey="done" radius={[6, 6, 0, 0]} barSize={35}>
+                    {subjectStats.questionsData.map((entry, index) => <Cell key={index} fill={entry.hexColor} />)}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            ) : <div className="h-full flex items-center justify-center text-xs text-slate-400">Sem questões resolvidas</div>}
           </div>
         );
       case 'time_by_subject':
         return (
           <div className="h-64 w-full mt-2">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={subjectStats.timeData} margin={{ bottom: 20 }}>
-                <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} strokeOpacity={0.1} />
-                <XAxis dataKey="acronym" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 'bold', fill: chartTextColor }} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: chartTextColor }} />
-                <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ fontSize: '11px', borderRadius: '12px', border: 'none', backgroundColor: isDarkMode ? '#0f172a' : '#fff' }} />
-                <Bar dataKey="hours" radius={[6, 6, 0, 0]} barSize={35}>
-                  {subjectStats.timeData.map((entry, index) => <Cell key={index} fill={entry.hexColor} />)}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+            {subjectStats.timeData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={subjectStats.timeData} margin={{ bottom: 20 }}>
+                  <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} strokeOpacity={0.1} />
+                  <XAxis dataKey="acronym" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 'bold', fill: chartTextColor }} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: chartTextColor }} />
+                  <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ fontSize: '11px', borderRadius: '12px', border: 'none', backgroundColor: isDarkMode ? '#0f172a' : '#fff' }} />
+                  <Bar dataKey="hours" radius={[6, 6, 0, 0]} barSize={35}>
+                    {subjectStats.timeData.map((entry, index) => <Cell key={index} fill={entry.hexColor} />)}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            ) : <div className="h-full flex items-center justify-center text-xs text-slate-400">Sem dados</div>}
           </div>
         );
       default: return null;

@@ -170,9 +170,18 @@ export const useAppData = () => {
                 type: 'success'
             });
 
+            // ...
+            /* 
+              This logging helps debug why tasks disappear. 
+              We expect `saved` to have the correct ID and DATE.
+            */
             const saved = await api.schedule.create(newScheduled);
+            console.log('DEBUG: Saved schedule item:', saved);
+
             if (saved) {
-                setScheduledStudies(prev => prev.map(s => s.id === tempId ? saved : s));
+                // Ensure date match to avoid disappearing items if server returns full timestamp
+                const normalizedSaved = { ...saved, date: saved.date.split('T')[0] };
+                setScheduledStudies(prev => prev.map(s => s.id === tempId ? normalizedSaved : s));
             }
 
             setLastSaved(new Date().toLocaleTimeString());

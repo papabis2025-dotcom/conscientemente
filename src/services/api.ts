@@ -5,7 +5,7 @@ import { Concurso, StudySession, Simulado, ScheduledStudy, DailyGoal, LogEntry, 
 const handleRequest = async <T>(request: PromiseLike<{ data: T | null; error: any }> | any): Promise<T | null> => {
     const { data, error } = await request;
     if (error) {
-        console.error('Supabase API Error:', error);
+        console.error('Supabase API Error:', JSON.stringify(error, null, 2));
         throw error;
     }
     return data;
@@ -44,10 +44,10 @@ export const api = {
                 user_id: user.id,
                 name: concurso.name,
                 banca: concurso.banca,
-                start_date: concurso.startDate,
-                target_date: concurso.targetDate,
+                start_date: concurso.startDate || null,
+                target_date: concurso.targetDate || null,
                 category_id: concurso.categoryId,
-                subjects: concurso.subjects // JSONB supported directly
+                subjects: concurso.subjects || [] // JSONB supported directly, default to empty array
             };
 
             console.log('Upserting concurso to DB:', { id: dbPayload.id, name: dbPayload.name, subjectsCount: concurso.subjects?.length });

@@ -241,7 +241,11 @@ export const useAppData = () => {
                 if (!oldConc || JSON.stringify(oldConc.subjects) !== JSON.stringify(newConc.subjects) ||
                     oldConc.name !== newConc.name || oldConc.banca !== newConc.banca) {
                     console.log('Upserting concurso:', newConc.id, newConc.name);
-                    await api.concursos.upsert(newConc);
+                    const upserted = await api.concursos.upsert(newConc);
+                    if (upserted && upserted.id !== newConc.id) {
+                        // Update local ID if it changed (e.g. from ai-... to uuid)
+                        setConcursos(prev => prev.map(c => c.id === newConc.id ? { ...c, id: upserted.id } : c));
+                    }
                 }
             }
             setLastSaved(new Date().toLocaleTimeString());

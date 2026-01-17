@@ -71,11 +71,12 @@ export const api = {
                 isSimulado: s.is_simulado
             }));
         },
-        create: async (session: Omit<StudySession, 'id' | 'user_id' | 'created_at'>) => {
+        create: async (session: Omit<StudySession, 'id' | 'user_id' | 'created_at'> & { id?: string }) => {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) throw new Error('Not authenticated');
 
             const dbPayload = {
+                id: session.id, // Allow explicit ID
                 user_id: user.id,
                 subject_id: session.subjectId,
                 topic_id: session.topicId,
@@ -89,6 +90,7 @@ export const api = {
             return handleRequest<StudySession>(supabase.from('study_sessions').insert(dbPayload).select().single());
         },
         delete: async (id: string) => handleRequest(supabase.from('study_sessions').delete().eq('id', id)),
+        deleteBySubject: async (subjectId: string) => handleRequest(supabase.from('study_sessions').delete().eq('subject_id', subjectId)),
     },
 
     // Simulados
@@ -116,6 +118,8 @@ export const api = {
             }).select().single());
         },
         delete: async (id: string) => handleRequest(supabase.from('simulados').delete().eq('id', id)),
+        // Note: Simulados effectively embed subjects in JSON 'results', so we can't simple delete by subject_id column
+        // Handling must be done application side or by updating the JSONB
     },
 
     // Scheduled Studies
@@ -134,11 +138,12 @@ export const api = {
                 questionsCorrect: i.questions_correct
             }));
         },
-        create: async (item: Omit<ScheduledStudy, 'id' | 'user_id' | 'created_at'>) => {
+        create: async (item: Omit<ScheduledStudy, 'id' | 'user_id' | 'created_at'> & { id?: string }) => {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) throw new Error('Not authenticated');
 
             return handleRequest<ScheduledStudy>(supabase.from('scheduled_studies').insert({
+                id: item.id, // Allow explicit ID
                 user_id: user.id,
                 date: item.date,
                 subject_id: item.subjectId,
@@ -161,6 +166,7 @@ export const api = {
             return handleRequest(supabase.from('scheduled_studies').update(dbPayload).eq('id', id));
         },
         delete: async (id: string) => handleRequest(supabase.from('scheduled_studies').delete().eq('id', id)),
+        deleteBySubject: async (subjectId: string) => handleRequest(supabase.from('scheduled_studies').delete().eq('subject_id', subjectId)),
     },
 
     // Daily Goals

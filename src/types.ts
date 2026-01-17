@@ -12,6 +12,13 @@ export interface User {
   avatar: string;
 }
 
+export interface Profile {
+  id: string;
+  name: string;
+  avatar: string;
+  updated_at?: string;
+}
+
 export interface Concurso {
   id: string;
   name: string;

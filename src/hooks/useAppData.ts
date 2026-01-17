@@ -2,10 +2,12 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Subject, StudySession, Concurso, ScheduledStudy, DailyGoal, LogEntry, User, Simulado } from '../types';
 import { INITIAL_CONCURSOS } from '../constants';
 import { supabase } from '../services/supabase';
+import { api } from '../services/api';
 
 export const useAppData = () => {
     const [currentUser, setCurrentUser] = useState<User | null>(null);
-    const [users, setUsers] = useState<User[]>([]); // Keeping for legacy/compatibility if needed, but primary auth is Supabase
+    const [users, setUsers] = useState<User[]>([]); // Keeping for legacy/compatibility
+    const [isLoading, setIsLoading] = useState(true);
 
     const [concursos, setConcursos] = useState<Concurso[]>([]);
     const [selectedConcursoId, setSelectedConcursoId] = useState<string | 'all'>('all');
@@ -15,9 +17,11 @@ export const useAppData = () => {
     const [dailyGoals, setDailyGoals] = useState<DailyGoal[]>([]);
     const [logs, setLogs] = useState<LogEntry[]>([]);
 
-    const [autoSave, setAutoSave] = useState<boolean>(true);
+    const [autoSave, setAutoSave] = useState<boolean>(true); // Kept for UI compatibility, but save is now distinct
     const [lastSaved, setLastSaved] = useState<string>('');
     const [isSaving, setIsSaving] = useState(false);
+
+    // Theme logic remains local for now to avoid flickering before auth loads
     const [theme, setTheme] = useState<'light' | 'dark'>(() => {
         const saved = localStorage.getItem('cp_theme');
         return (saved === 'dark' || saved === 'light') ? saved : 'light';
@@ -30,158 +34,187 @@ export const useAppData = () => {
         localStorage.setItem('cp_theme', theme);
     }, [theme]);
 
-    // Supabase Auth Listener
+    // Initial Data Fetch
+    const fetchData = useCallback(async () => {
+        if (!currentUser) return;
+        setIsLoading(true);
+        try {
+            const [concursosData, sessionsData, simuladosData, scheduleData, goalsData, logsData] = await Promise.all([
+                api.concursos.list(),
+                api.sessions.list(),
+                api.simulados.list(),
+                api.schedule.list(),
+                api.dailyGoals.list(),
+                api.logs.list()
+            ]);
+
+            if (concursosData) setConcursos(concursosData);
+            if (sessionsData) setSessions(sessionsData);
+            if (simuladosData) setSimulados(simuladosData);
+            if (scheduleData) setScheduledStudies(scheduleData);
+            if (goalsData) setDailyGoals(goalsData);
+            if (logsData) setLogs(logsData);
+
+            setLastSaved(new Date().toLocaleTimeString());
+        } catch (error) {
+            console.error('Failed to fetch data:', error);
+        } finally {
+            setIsLoading(false);
+        }
+    }, [currentUser]);
+
+    // Supabase Auth and User Setup
     useEffect(() => {
-        // Check initial session
         supabase.auth.getSession().then(({ data: { session } }) => {
             if (session?.user) {
                 setCurrentUser({
                     id: session.user.id,
-                    name: session.user.email?.split('@')[0] || 'Estudante',
-                    password: '', // Not needed
+                    name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Estudante',
+                    password: '',
                     avatar: '🎓'
                 });
+            } else {
+                setIsLoading(false);
             }
         });
 
-        // Listen for changes
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
             if (session?.user) {
                 setCurrentUser({
                     id: session.user.id,
-                    name: session.user.email?.split('@')[0] || 'Estudante',
+                    name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Estudante',
                     password: '',
                     avatar: '🎓'
                 });
             } else {
                 setCurrentUser(null);
+                setConcursos([]);
+                setSessions([]);
+                setSimulados([]);
+                setIsLoading(false);
             }
         });
 
         return () => subscription.unsubscribe();
     }, []);
 
-    // Load User Data based on UID
+    // Trigger Fetch on User Change
     useEffect(() => {
-        if (!currentUser) return;
-        const uid = currentUser.id;
-
-        // In the future, these would be supabase.from('...').select() calls
-        // For now, we keep localStorage but keyed by the Supabase UID
-        setConcursos(JSON.parse(localStorage.getItem(`cp_concursos_${uid}`) || JSON.stringify(INITIAL_CONCURSOS)));
-        setSessions(JSON.parse(localStorage.getItem(`cp_sessions_${uid}`) || '[]'));
-        setSimulados(JSON.parse(localStorage.getItem(`cp_simulados_${uid}`) || '[]'));
-        setScheduledStudies(JSON.parse(localStorage.getItem(`cp_schedule_${uid}`) || '[]'));
-        setDailyGoals(JSON.parse(localStorage.getItem(`cp_daily_goals_${uid}`) || '[]'));
-        setLogs(JSON.parse(localStorage.getItem(`cp_logs_${uid}`) || '[]'));
-        setSelectedConcursoId(localStorage.getItem(`cp_active_concurso_id_${uid}`) || 'all');
-        setLastSaved(new Date().toLocaleTimeString());
-    }, [currentUser]);
-
-    // Save Data
-    const handleManualSave = useCallback(() => {
-        if (!currentUser) return;
-        setIsSaving(true);
-        const uid = currentUser.id;
-        // In the future: await supabase.from('...').upsert(...)
-        localStorage.setItem(`cp_concursos_${uid}`, JSON.stringify(concursos));
-        localStorage.setItem(`cp_sessions_${uid}`, JSON.stringify(sessions));
-        localStorage.setItem(`cp_simulados_${uid}`, JSON.stringify(simulados));
-        localStorage.setItem(`cp_schedule_${uid}`, JSON.stringify(scheduledStudies));
-        localStorage.setItem(`cp_daily_goals_${uid}`, JSON.stringify(dailyGoals));
-        localStorage.setItem(`cp_logs_${uid}`, JSON.stringify(logs));
-        localStorage.setItem(`cp_active_concurso_id_${uid}`, selectedConcursoId);
-        setTimeout(() => {
-            setLastSaved(new Date().toLocaleTimeString());
-            setIsSaving(false);
-        }, 400);
-    }, [currentUser, concursos, sessions, simulados, scheduledStudies, dailyGoals, logs, selectedConcursoId]);
-
-    // Auto Save
-    useEffect(() => {
-        if (currentUser && autoSave) {
-            const timer = setTimeout(() => handleManualSave(), 3000);
-            return () => clearTimeout(timer);
+        if (currentUser) {
+            fetchData();
         }
-    }, [concursos, sessions, simulados, scheduledStudies, dailyGoals, logs, selectedConcursoId, autoSave, handleManualSave, currentUser]);
+    }, [currentUser, fetchData]);
+
+
+    // Wrapper for legacy compatibility in UI (handleManualSave was used for everything)
+    // Now creates a sync effect or does nothing as we save on action
+    const handleManualSave = useCallback(async () => {
+        // In this new architecture, save happens on action. 
+        // We can use this to perhaps force a re-fetch or sync check.
+        await fetchData();
+        setLastSaved(new Date().toLocaleTimeString());
+    }, [fetchData]);
+
 
     const activeConcurso = useMemo(() => concursos.find(c => c.id === selectedConcursoId), [concursos, selectedConcursoId]);
 
     const filteredSubjects = useMemo(() => {
         if (selectedConcursoId === 'all') {
             const allSubs = concursos.flatMap(c => c.subjects);
-            const uniqueIds = new Set();
-            return allSubs.filter(s => {
-                if (uniqueIds.has(s.id)) return false;
-                uniqueIds.add(s.id);
-                return true;
-            });
+            // Unique by ID
+            const uniqueMap = new Map();
+            allSubs.forEach(s => uniqueMap.set(s.id, s));
+            return Array.from(uniqueMap.values());
         }
         return activeConcurso?.subjects || [];
     }, [concursos, selectedConcursoId, activeConcurso]);
 
     const toggleTheme = () => setTheme(theme === 'light' ? 'dark' : 'light');
 
-    const updateUser = (users: User[]) => {
-        setUsers(users);
-    };
+    const updateUser = (users: User[]) => setUsers(users); // Legacy
 
     const handleLogout = async () => {
-        handleManualSave();
         await supabase.auth.signOut();
         setCurrentUser(null);
     };
 
-    const addSession = (session: StudySession) => {
+    // Actions that now persist immediately
+    const addSession = async (session: StudySession) => {
+        // Optimistic Update
         setSessions(prev => [...prev, session]);
 
-        const sessionDate = session.date.split('T')[0];
-        const activityType = session.isSimulado ? 'Simulado' : session.questionsDone !== undefined ? 'Questões' : 'Leitura';
+        try {
+            await api.sessions.create(session);
 
-        setScheduledStudies(prev => {
-            const alreadyExists = prev.some(s =>
+            // Auto schedule logic preserved
+            const sessionDate = session.date.split('T')[0];
+            const activityType = session.isSimulado ? 'Simulado' : session.questionsDone !== undefined ? 'Questões' : 'Leitura';
+
+            // Check existence locally to save a read
+            const alreadyExists = scheduledStudies.some(s =>
                 s.date === sessionDate &&
                 s.subjectId === session.subjectId &&
                 s.activityType === activityType &&
                 (s.topicId === session.topicId)
             );
 
-            if (alreadyExists) return prev;
-
-            const newScheduled: ScheduledStudy = {
-                id: `sync-cal-${Date.now()}-${Math.random()}`,
-                date: sessionDate,
-                subjectId: session.subjectId,
-                topicId: session.topicId,
-                activityType: activityType,
-                durationInMinutes: session.durationInMinutes,
-                questionsDone: session.questionsDone,
-                questionsCorrect: session.questionsCorrect
-            };
-            return [...prev, newScheduled];
-        });
+            if (!alreadyExists) {
+                const newScheduled: ScheduledStudy = {
+                    id: `temp-${Date.now()}`, // Temp ID
+                    date: sessionDate,
+                    subjectId: session.subjectId,
+                    topicId: session.topicId,
+                    activityType: activityType as any,
+                    durationInMinutes: session.durationInMinutes,
+                    questionsDone: session.questionsDone,
+                    questionsCorrect: session.questionsCorrect
+                };
+                setScheduledStudies(prev => [...prev, newScheduled]);
+                await api.schedule.create(newScheduled);
+            }
+        } catch (e) {
+            console.error('Error adding session:', e);
+            // Revert optimistic update if needed or show toast
+        }
     };
 
-    const addSimulado = (sim: Simulado) => {
+    const addSimulado = async (sim: Simulado) => {
         setSimulados(prev => [...prev, sim]);
-        sim.results.forEach(res => {
-            const session: StudySession = {
-                id: `sim-res-${sim.id}-${res.subjectId}`,
-                subjectId: res.subjectId,
-                date: new Date(`${sim.date}T12:00:00`).toISOString(),
-                durationInMinutes: 0,
-                questionsDone: res.done,
-                questionsCorrect: res.correct,
-                isSimulado: true
-            };
-            addSession(session);
-        });
+        try {
+            await api.simulados.create(sim);
+            // Also add implied sessions
+            sim.results.forEach(async res => {
+                const session: StudySession = {
+                    id: `temp-sim-${sim.id}-${res.subjectId}`,
+                    subjectId: res.subjectId,
+                    date: new Date(`${sim.date}T12:00:00`).toISOString(),
+                    durationInMinutes: 0,
+                    questionsDone: res.done,
+                    questionsCorrect: res.correct,
+                    isSimulado: true
+                };
+                addSession(session); // This handles API call for session
+            });
+        } catch (e) {
+            console.error('Error adding simulado:', e);
+        }
+    };
+
+    // Legacy support for setting concursos directly (e.g. from UI import)
+    // We strictly should create API methods for this, but for now let's wrap it
+    const updateConcursos = async (newConcursos: Concurso[]) => {
+        setConcursos(newConcursos);
+        // This is complex because determining which one is new/updated/deleted from a full array replace is hard.
+        // Ideally UI calls addConcurso or updateConcurso.
+        // For now, we assume this is mostly used for adding/editing active one or initial setup.
+        // We will just log a warning that bulk update is not fully sync-safe yet.
+        console.warn('Bulk update of concursos is local-only optimized. Use specific methods for persistence.');
     };
 
     return {
         currentUser, setCurrentUser,
         users, setUsers: updateUser,
-        concursos, setConcursos,
+        concursos, setConcursos: updateConcursos,
         selectedConcursoId, setSelectedConcursoId,
         sessions, setSessions,
         simulados, setSimulados,
@@ -189,7 +222,7 @@ export const useAppData = () => {
         dailyGoals, setDailyGoals,
         logs, setLogs,
         theme, toggleTheme,
-        lastSaved, isSaving,
+        lastSaved, isSaving: isLoading, // Reusing isSaving to show loading state
         filteredSubjects,
         activeConcurso,
         handleManualSave,

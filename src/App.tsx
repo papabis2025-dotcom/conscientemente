@@ -62,7 +62,7 @@ const App: React.FC = () => {
           setActiveTab('subjects');
         }} />;
       case 'settings':
-        return <SettingsView onExport={() => { }} onImport={() => { }} onClearData={() => { }} users={users} onUpdateUsers={setUsers} currentUser={currentUser!} />;
+        return <SettingsView currentUserEmail={currentUser?.email || ''} />;
       case 'logs': return <LogView logs={logs} onClearLogs={clearLogs} onDeleteLog={deleteLog} />;
       default: return null;
     }

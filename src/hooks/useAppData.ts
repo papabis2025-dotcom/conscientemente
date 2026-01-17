@@ -146,33 +146,35 @@ export const useAppData = () => {
         try {
             await api.sessions.create(session);
             const sessionDate = session.date.split('T')[0];
-            const activityType = session.isSimulado ? 'Simulado' : session.questionsDone !== undefined ? 'Questões' : 'Leitura';
+            // Use provided activityType if available, otherwise infer
+            const activityType = session.activityType || (session.isSimulado ? 'Simulado' : session.questionsDone !== undefined ? 'Questões' : 'Leitura');
 
-            const alreadyExists = scheduledStudies.some(s =>
-                s.date === sessionDate &&
-                s.subjectId === session.subjectId &&
-                s.activityType === activityType &&
-                (s.topicId === session.topicId)
-            );
+            // Removed aggressive duplicate check that was hiding tasks from Planner
+            // Now we rely on the user's intent. If they added it, we show it.
+            const tempId = `temp-${crypto.randomUUID()}`;
+            const newScheduled: ScheduledStudy = {
+                id: tempId,
+                date: sessionDate,
+                subjectId: session.subjectId,
+                topicId: session.topicId,
+                activityType: activityType as any,
+                durationInMinutes: session.durationInMinutes,
+                questionsDone: session.questionsDone,
+                questionsCorrect: session.questionsCorrect
+            };
+            setScheduledStudies(prev => [...prev, newScheduled]);
 
-            if (!alreadyExists) {
-                const tempId = `temp-${crypto.randomUUID()}`;
-                const newScheduled: ScheduledStudy = {
-                    id: tempId,
-                    date: sessionDate,
-                    subjectId: session.subjectId,
-                    topicId: session.topicId,
-                    activityType: activityType as any,
-                    durationInMinutes: session.durationInMinutes,
-                    questionsDone: session.questionsDone,
-                    questionsCorrect: session.questionsCorrect
-                };
-                setScheduledStudies(prev => [...prev, newScheduled]);
-                const saved = await api.schedule.create(newScheduled);
-                if (saved) {
-                    setScheduledStudies(prev => prev.map(s => s.id === tempId ? saved : s));
-                }
+            // Generate automatic log for the session
+            addLog({
+                message: `Sessão de ${activityType} registrada: ${session.durationInMinutes} min`,
+                type: 'success'
+            });
+
+            const saved = await api.schedule.create(newScheduled);
+            if (saved) {
+                setScheduledStudies(prev => prev.map(s => s.id === tempId ? saved : s));
             }
+
             setLastSaved(new Date().toLocaleTimeString());
         } catch (e) {
             console.error('Error adding session:', e);
@@ -310,6 +312,20 @@ export const useAppData = () => {
         setLogs(prev => prev.filter(l => l.id !== id));
     };
 
+    const addLog = async (entry: Omit<LogEntry, 'id' | 'timestamp'>) => {
+        const newLog: LogEntry = {
+            id: crypto.randomUUID(),
+            timestamp: new Date().toISOString(),
+            ...entry
+        };
+        setLogs(prev => [newLog, ...prev]);
+        try {
+            await api.logs.create(newLog);
+        } catch (e) {
+            console.error('Error adding log:', e);
+        }
+    };
+
     return {
         currentUser, setCurrentUser,
         users, setUsers: updateUser,
@@ -331,6 +347,7 @@ export const useAppData = () => {
         deleteSimulado,
         deleteSession,
         clearLogs,
-        deleteLog
+        deleteLog,
+        addLog
     };
 };

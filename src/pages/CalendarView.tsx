@@ -16,7 +16,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ subjects, scheduledStudies,
   const [viewMode, setViewMode] = useState<ViewMode>('mensal');
   const [selectedDayKey, setSelectedDayKey] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
-  
+
   const [formData, setFormData] = useState({
     subjectId: '',
     topicId: '',
@@ -53,14 +53,14 @@ const CalendarView: React.FC<CalendarViewProps> = ({ subjects, scheduledStudies,
   const handleDayClick = (dayKey: string) => {
     setSelectedDayKey(dayKey);
     setShowModal(true);
-    setFormData({ 
-      subjectId: '', 
-      topicId: '', 
+    setFormData({
+      subjectId: '',
+      topicId: '',
       activityType: 'Leitura',
-      duration: '', 
-      questionsDone: '', 
-      questionsCorrect: '', 
-      notes: '' 
+      duration: '',
+      questionsDone: '',
+      questionsCorrect: '',
+      notes: ''
     });
   };
 
@@ -75,7 +75,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({ subjects, scheduledStudies,
         durationInMinutes: parseInt(formData.duration) || 0,
         date: new Date(`${selectedDayKey}T12:00:00`).toISOString(),
         questionsDone: formData.activityType === 'Questões' ? (parseInt(formData.questionsDone) || undefined) : undefined,
-        questionsCorrect: formData.activityType === 'Questões' ? (parseInt(formData.questionsCorrect) || undefined) : undefined
+        questionsCorrect: formData.activityType === 'Questões' ? (parseInt(formData.questionsCorrect) || undefined) : undefined,
+        activityType: formData.activityType // Explicitly pass the type
       });
     } else {
       const newEntry: ScheduledStudy = {
@@ -91,7 +92,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ subjects, scheduledStudies,
       };
       onUpdateSchedule([...scheduledStudies, newEntry]);
     }
-    
+
     setShowModal(false);
   };
 
@@ -231,20 +232,20 @@ const CalendarView: React.FC<CalendarViewProps> = ({ subjects, scheduledStudies,
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
           <div className="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95 flex flex-col md:flex-row">
             <div className="w-full md:w-5/12 bg-slate-50 dark:bg-slate-800/50 p-8 border-r border-slate-200 dark:border-slate-700 overflow-y-auto max-h-[80vh]">
-               <h4 className="text-[10px] font-black text-slate-400 uppercase mb-6 tracking-widest">Logs do Dia</h4>
-               <div className="space-y-3">
-                 {tasksForSelectedDay.map(task => (
-                   <div key={task.id} className="p-4 bg-white dark:bg-slate-900 rounded-[1.5rem] border border-slate-200 dark:border-slate-700 group relative">
-                     <button onClick={() => handleDelete(task.id)} className="absolute top-2 right-2 text-slate-300 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-all">✕</button>
-                     <p className="text-[8px] font-black uppercase text-blue-600 mb-1">{task.activityType}</p>
-                     <h5 className="text-xs font-bold dark:text-white truncate">{subjects.find(s => s.id === task.subjectId)?.name}</h5>
-                     {task.questionsDone !== undefined && (
-                        <p className="text-[9px] text-slate-400 mt-1 font-bold">{task.questionsCorrect}/{task.questionsDone} Questões</p>
-                     )}
-                   </div>
-                 ))}
-                 {tasksForSelectedDay.length === 0 && <p className="text-xs text-slate-400 italic text-center py-10 opacity-40">Vazio</p>}
-               </div>
+              <h4 className="text-[10px] font-black text-slate-400 uppercase mb-6 tracking-widest">Logs do Dia</h4>
+              <div className="space-y-3">
+                {tasksForSelectedDay.map(task => (
+                  <div key={task.id} className="p-4 bg-white dark:bg-slate-900 rounded-[1.5rem] border border-slate-200 dark:border-slate-700 group relative">
+                    <button onClick={() => handleDelete(task.id)} className="absolute top-2 right-2 text-slate-300 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-all">✕</button>
+                    <p className="text-[8px] font-black uppercase text-blue-600 mb-1">{task.activityType}</p>
+                    <h5 className="text-xs font-bold dark:text-white truncate">{subjects.find(s => s.id === task.subjectId)?.name}</h5>
+                    {task.questionsDone !== undefined && (
+                      <p className="text-[9px] text-slate-400 mt-1 font-bold">{task.questionsCorrect}/{task.questionsDone} Questões</p>
+                    )}
+                  </div>
+                ))}
+                {tasksForSelectedDay.length === 0 && <p className="text-xs text-slate-400 italic text-center py-10 opacity-40">Vazio</p>}
+              </div>
             </div>
             <div className="flex-1 p-8 overflow-y-auto max-h-[80vh]">
               <div className="flex justify-between items-center mb-6">
@@ -254,7 +255,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ subjects, scheduledStudies,
               <div className="space-y-4">
                 <div>
                   <label className="text-[10px] font-black text-slate-400 uppercase mb-1 block">Tipo de Atividade</label>
-                  <select value={formData.activityType} onChange={(e) => setFormData({...formData, activityType: e.target.value as any})} className="w-full p-3 bg-slate-50 dark:bg-slate-800 border rounded-2xl outline-none text-sm dark:text-white">
+                  <select value={formData.activityType} onChange={(e) => setFormData({ ...formData, activityType: e.target.value as any })} className="w-full p-3 bg-slate-50 dark:bg-slate-800 border rounded-2xl outline-none text-sm dark:text-white">
                     <option value="Leitura">Leitura</option>
                     <option value="Questões">Questões</option>
                     <option value="Aula">Aula</option>
@@ -263,7 +264,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ subjects, scheduledStudies,
                 </div>
                 <div>
                   <label className="text-[10px] font-black text-slate-400 uppercase mb-1 block">Disciplina</label>
-                  <select value={formData.subjectId} onChange={(e) => setFormData({...formData, subjectId: e.target.value, topicId: ''})} className="w-full p-3 bg-slate-50 dark:bg-slate-800 border rounded-2xl outline-none text-sm dark:text-white">
+                  <select value={formData.subjectId} onChange={(e) => setFormData({ ...formData, subjectId: e.target.value, topicId: '' })} className="w-full p-3 bg-slate-50 dark:bg-slate-800 border rounded-2xl outline-none text-sm dark:text-white">
                     <option value="">Selecione...</option>
                     {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                   </select>
@@ -271,7 +272,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ subjects, scheduledStudies,
                 {formData.subjectId && (
                   <div>
                     <label className="text-[10px] font-black text-slate-400 uppercase mb-1 block">Assunto</label>
-                    <select value={formData.topicId} onChange={(e) => setFormData({...formData, topicId: e.target.value})} className="w-full p-3 bg-slate-50 dark:bg-slate-800 border rounded-2xl outline-none text-sm dark:text-white">
+                    <select value={formData.topicId} onChange={(e) => setFormData({ ...formData, topicId: e.target.value })} className="w-full p-3 bg-slate-50 dark:bg-slate-800 border rounded-2xl outline-none text-sm dark:text-white">
                       <option value="">Geral / Outros</option>
                       {subjects.find(s => s.id === formData.subjectId)?.topics.map(t => (
                         <option key={t.id} value={t.id}>{t.title}</option>
@@ -282,19 +283,19 @@ const CalendarView: React.FC<CalendarViewProps> = ({ subjects, scheduledStudies,
                 <div className="grid grid-cols-1 gap-4">
                   <div>
                     <label className="text-[10px] font-black text-slate-400 uppercase mb-1 block">Duração (min)</label>
-                    <input type="number" placeholder="Duração" value={formData.duration} onChange={(e) => setFormData({...formData, duration: e.target.value})} className="w-full p-3 bg-slate-50 dark:bg-slate-800 border rounded-2xl outline-none text-sm dark:text-white" />
+                    <input type="number" placeholder="Duração" value={formData.duration} onChange={(e) => setFormData({ ...formData, duration: e.target.value })} className="w-full p-3 bg-slate-50 dark:bg-slate-800 border rounded-2xl outline-none text-sm dark:text-white" />
                   </div>
                 </div>
-                
+
                 {formData.activityType === 'Questões' && (
                   <div className="grid grid-cols-2 gap-3 animate-in fade-in slide-in-from-top-2">
                     <div>
                       <label className="text-[10px] font-black text-slate-400 uppercase mb-1 block">Total Questões</label>
-                      <input type="number" placeholder="Ex: 20" value={formData.questionsDone} onChange={(e) => setFormData({...formData, questionsDone: e.target.value})} className="w-full p-3 bg-slate-50 dark:bg-slate-800 border rounded-2xl outline-none text-sm dark:text-white" />
+                      <input type="number" placeholder="Ex: 20" value={formData.questionsDone} onChange={(e) => setFormData({ ...formData, questionsDone: e.target.value })} className="w-full p-3 bg-slate-50 dark:bg-slate-800 border rounded-2xl outline-none text-sm dark:text-white" />
                     </div>
                     <div>
                       <label className="text-[10px] font-black text-slate-400 uppercase mb-1 block">Acertos</label>
-                      <input type="number" placeholder="Ex: 18" value={formData.questionsCorrect} onChange={(e) => setFormData({...formData, questionsCorrect: e.target.value})} className="w-full p-3 bg-slate-50 dark:bg-slate-800 border rounded-2xl outline-none text-sm dark:text-white" />
+                      <input type="number" placeholder="Ex: 18" value={formData.questionsCorrect} onChange={(e) => setFormData({ ...formData, questionsCorrect: e.target.value })} className="w-full p-3 bg-slate-50 dark:bg-slate-800 border rounded-2xl outline-none text-sm dark:text-white" />
                     </div>
                   </div>
                 )}

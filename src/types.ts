@@ -52,6 +52,7 @@ export interface StudySession {
   questionsDone?: number;
   questionsCorrect?: number;
   isSimulado?: boolean;
+  activityType?: ActivityType;
 }
 
 export interface SimuladoSubjectResult {

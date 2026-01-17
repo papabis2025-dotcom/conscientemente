@@ -109,7 +109,7 @@ const Dashboard: React.FC<DashboardProps> = ({
       .map(s => ({
         ...s,
         accuracy: s.done > 0 ? Math.round((s.correct / s.done) * 100) : 0,
-        hours: parseFloat((s.minutes / 60).toFixed(1)),
+        hours: parseFloat((s.minutes / 60).toFixed(2)),
         hexColor: tailwindToHex(s.colorClass),
         acronym: getAcronym(s.name)
       }));
@@ -140,7 +140,7 @@ const Dashboard: React.FC<DashboardProps> = ({
     });
 
     const reordered = [...dataMap.slice(1), dataMap[0]];
-    return reordered.map(d => ({ ...d, h: parseFloat(d.h.toFixed(1)) }));
+    return reordered.map(d => ({ ...d, h: parseFloat(d.h.toFixed(2)) }));
   }, [sessions]);
 
   const renderWidgetContent = (id: string) => {

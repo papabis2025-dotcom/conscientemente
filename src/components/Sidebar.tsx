@@ -104,6 +104,9 @@ const Sidebar: React.FC<SidebarProps> = ({
         isSimulado: false
       });
     }
+    if (isTimerActive) {
+      onToggleTimer();
+    }
     onResetTimer();
   };
 
@@ -178,8 +181,8 @@ const Sidebar: React.FC<SidebarProps> = ({
             onDragEnd={handleDragEnd}
             onClick={() => !isReorderMode && setActiveTab(item.id)}
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl transition-all ${activeTab === item.id
-                ? 'bg-blue-700 text-white font-black shadow-lg shadow-blue-500/20'
-                : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+              ? 'bg-blue-700 text-white font-black shadow-lg shadow-blue-500/20'
+              : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
               } ${isReorderMode ? 'cursor-move' : ''} ${draggedIndex === index ? 'opacity-50 scale-95' : ''}`}
           >
             {isReorderMode && <span className="text-xs opacity-50">⋮⋮</span>}

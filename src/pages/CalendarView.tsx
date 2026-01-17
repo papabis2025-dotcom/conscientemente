@@ -70,7 +70,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ subjects, scheduledStudies,
 
     if (onAddSession) {
       onAddSession({
-        id: `cal-${Date.now()}`,
+        id: crypto.randomUUID(),
         subjectId: formData.subjectId,
         topicId: formData.topicId || undefined,
         durationInMinutes: parseInt(formData.duration) || 0,
@@ -81,7 +81,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ subjects, scheduledStudies,
       });
     } else {
       const newEntry: ScheduledStudy = {
-        id: Date.now().toString(),
+        id: crypto.randomUUID(),
         date: selectedDayKey,
         subjectId: formData.subjectId,
         topicId: formData.topicId || undefined,

@@ -58,7 +58,7 @@ const App: React.FC = () => {
         return <CalendarView subjects={filteredSubjects} scheduledStudies={scheduledStudies} onUpdateSchedule={setScheduledStudies} onDelete={deleteScheduledStudy} onAddSession={addSession} />;
       case 'ai-coach':
         return <AICoach onImportPlan={(aiSubs) => {
-          const newConc: Concurso = { id: `ai-${crypto.randomUUID()}`, name: "Plano IA", banca: "Sugerida", startDate: new Date().toISOString(), subjects: aiSubs };
+          const newConc: Concurso = { id: crypto.randomUUID(), name: "Plano IA", banca: "Sugerida", startDate: new Date().toISOString(), subjects: aiSubs };
           setConcursos([...concursos, newConc]);
           setSelectedConcursoId(newConc.id);
           setActiveTab('subjects');

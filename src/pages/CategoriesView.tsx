@@ -16,7 +16,7 @@ const CategoriesView: React.FC<CategoriesViewProps> = ({ categories, onUpdateCat
   const addCategory = () => {
     if (!newCatName.trim()) return;
     const newCat: Category = {
-      id: Date.now().toString(),
+      id: crypto.randomUUID(),
       name: newCatName,
       color: COLORS[Math.floor(Math.random() * COLORS.length)]
     };
@@ -53,14 +53,14 @@ const CategoriesView: React.FC<CategoriesViewProps> = ({ categories, onUpdateCat
       <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm max-w-xl">
         <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4">Nova Categoria</h3>
         <div className="flex gap-2">
-          <input 
-            type="text" 
+          <input
+            type="text"
             placeholder="Nome da categoria..."
             value={newCatName}
             onChange={(e) => setNewCatName(e.target.value)}
             className="flex-1 px-4 py-2 border border-slate-200 dark:border-slate-700 dark:bg-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800 dark:text-white"
           />
-          <button 
+          <button
             onClick={addCategory}
             className="bg-blue-600 text-white px-6 py-2 rounded-xl font-bold hover:bg-blue-700 transition-colors"
           >
@@ -75,7 +75,7 @@ const CategoriesView: React.FC<CategoriesViewProps> = ({ categories, onUpdateCat
             <div className="flex justify-between items-start">
               {editingId === cat.id ? (
                 <div className="flex gap-2 w-full">
-                  <input 
+                  <input
                     type="text"
                     value={editName}
                     onChange={(e) => setEditName(e.target.value)}
@@ -91,7 +91,7 @@ const CategoriesView: React.FC<CategoriesViewProps> = ({ categories, onUpdateCat
                   <h4 className="font-bold text-slate-800 dark:text-white">{cat.name}</h4>
                 </div>
               )}
-              
+
               <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button onClick={() => startEdit(cat)} className="text-slate-400 hover:text-blue-500">
                   ✏️

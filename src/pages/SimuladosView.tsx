@@ -43,7 +43,7 @@ const SimuladosView: React.FC<SimuladosViewProps> = ({ subjects, simulados, onAd
 
     const totalQuestions = results.reduce((acc, r) => acc + r.done, 0);
     const newSim: Simulado = {
-      id: `sim-${crypto.randomUUID()}`,
+      id: crypto.randomUUID(),
       name,
       date,
       totalQuestions,

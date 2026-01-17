@@ -20,9 +20,9 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
       alert("Preencha o nome e a banca do concurso.");
       return;
     }
-    const newConc: Concurso = { 
-      id: Date.now().toString(), 
-      name: newConcName, 
+    const newConc: Concurso = {
+      id: crypto.randomUUID(),
+      name: newConcName,
       banca: banca,
       startDate: new Date(startDate).toISOString(),
       subjects: [],
@@ -46,8 +46,8 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
           <h2 className="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tight">Meus Editais 🏆</h2>
           <p className="text-slate-500 dark:text-slate-400">Gerencie suas metas e prazos estratégicos.</p>
         </div>
-        <button 
-          onClick={() => setIsAdding(true)} 
+        <button
+          onClick={() => setIsAdding(true)}
           className="bg-blue-600 text-white px-6 py-3 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/20 active:scale-95"
         >
           + Novo Concurso
@@ -88,11 +88,11 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
           const totalCount = conc.subjects.reduce((acc, s) => acc + s.topics.length, 0);
           const progress = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
           const daysActive = calculateDaysSince(conc.startDate);
-          
+
           return (
             <div key={conc.id} className="bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-200 dark:border-slate-800 p-8 shadow-sm hover:border-blue-300 dark:hover:border-blue-700 hover:shadow-xl transition-all group relative overflow-hidden">
               <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 -mr-16 -mt-16 rounded-full group-hover:bg-blue-500/10 transition-colors"></div>
-              
+
               <div className="flex justify-between items-start mb-6">
                 <div>
                   <div className="flex gap-2 mb-3">
@@ -105,8 +105,8 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
                   </div>
                   <h3 className="text-2xl font-black text-slate-800 dark:text-white leading-tight">{conc.name}</h3>
                 </div>
-                <button 
-                  onClick={() => confirm("Excluir este concurso?") && onUpdateConcursos(concursos.filter(c => c.id !== conc.id))} 
+                <button
+                  onClick={() => confirm("Excluir este concurso?") && onUpdateConcursos(concursos.filter(c => c.id !== conc.id))}
                   className="text-slate-200 hover:text-rose-500 transition-colors p-2"
                 >🗑️</button>
               </div>
@@ -118,28 +118,28 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
                     <span className="text-blue-600">{progress}%</span>
                   </div>
                   <div className="w-full h-3 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-blue-600 rounded-full transition-all duration-1000" 
+                    <div
+                      className="h-full bg-blue-600 rounded-full transition-all duration-1000"
                       style={{ width: `${progress}%` }}
                     ></div>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                   <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
-                      <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Disciplinas</p>
-                      <p className="text-lg font-black text-slate-800 dark:text-white">{conc.subjects.length}</p>
-                   </div>
-                   <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
-                      <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Início em</p>
-                      <p className="text-sm font-black text-slate-800 dark:text-white">
-                        {new Date(conc.startDate).toLocaleDateString('pt-BR')}
-                      </p>
-                   </div>
+                  <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
+                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Disciplinas</p>
+                    <p className="text-lg font-black text-slate-800 dark:text-white">{conc.subjects.length}</p>
+                  </div>
+                  <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
+                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Início em</p>
+                    <p className="text-sm font-black text-slate-800 dark:text-white">
+                      {new Date(conc.startDate).toLocaleDateString('pt-BR')}
+                    </p>
+                  </div>
                 </div>
 
-                <button 
-                  onClick={() => onSelectConcurso(conc)} 
+                <button
+                  onClick={() => onSelectConcurso(conc)}
                   className="w-full bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-600 hover:text-white text-blue-600 dark:text-blue-400 py-4 rounded-[1.5rem] text-xs font-black uppercase tracking-widest transition-all border border-blue-100 dark:border-blue-900/30 active:scale-95"
                 >
                   Focar neste concurso →
@@ -151,15 +151,15 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
 
         {concursos.length === 0 && !isAdding && (
           <div className="col-span-full py-32 text-center bg-white dark:bg-slate-900 rounded-[3rem] border border-dashed border-slate-200 dark:border-slate-800">
-             <span className="text-6xl mb-6 block">📝</span>
-             <h3 className="text-xl font-black text-slate-400 uppercase tracking-tighter">Nenhum edital cadastrado</h3>
-             <p className="text-slate-400 text-sm mt-2 mb-8">Comece adicionando o edital que você está estudando.</p>
-             <button 
-               onClick={() => setIsAdding(true)} 
-               className="bg-blue-600 text-white px-8 py-3 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-blue-700"
-             >
-               + Adicionar Meu Primeiro Edital
-             </button>
+            <span className="text-6xl mb-6 block">📝</span>
+            <h3 className="text-xl font-black text-slate-400 uppercase tracking-tighter">Nenhum edital cadastrado</h3>
+            <p className="text-slate-400 text-sm mt-2 mb-8">Comece adicionando o edital que você está estudando.</p>
+            <button
+              onClick={() => setIsAdding(true)}
+              className="bg-blue-600 text-white px-8 py-3 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-blue-700"
+            >
+              + Adicionar Meu Primeiro Edital
+            </button>
           </div>
         )}
       </div>

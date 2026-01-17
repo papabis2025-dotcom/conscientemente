@@ -11,13 +11,13 @@ interface QuestionsViewProps {
   onDeleteSession: (sessionId: string) => void;
 }
 
-const QuestionsView: React.FC<QuestionsViewProps> = ({ 
-  subjects, 
-  sessions, 
-  dailyGoals, 
-  onUpdateDailyGoals, 
-  onAddSession, 
-  onDeleteSession 
+const QuestionsView: React.FC<QuestionsViewProps> = ({
+  subjects,
+  sessions,
+  dailyGoals,
+  onUpdateDailyGoals,
+  onAddSession,
+  onDeleteSession
 }) => {
   const [selectedSubjectId, setSelectedSubjectId] = useState('');
   const [selectedTopicId, setSelectedTopicId] = useState('');
@@ -28,7 +28,7 @@ const QuestionsView: React.FC<QuestionsViewProps> = ({
 
   const selectedSubject = subjects.find(s => s.id === selectedSubjectId);
   const currentGoal = dailyGoals.find(g => g.date === date)?.questionsTarget || 0;
-  
+
   const handleSetGoal = (target: string) => {
     const targetNum = parseInt(target) || 0;
     const existingIndex = dailyGoals.findIndex(g => g.date === date);
@@ -48,7 +48,7 @@ const QuestionsView: React.FC<QuestionsViewProps> = ({
   }, [sessions, date]);
 
   const progressPercent = currentGoal > 0 ? Math.min(Math.round((doneToday / currentGoal) * 100), 100) : 0;
-  
+
   const handleSave = () => {
     if (!selectedSubjectId || !done || !correct) {
       alert("Preencha os campos obrigatórios.");
@@ -62,7 +62,7 @@ const QuestionsView: React.FC<QuestionsViewProps> = ({
     }
 
     const newSession: StudySession = {
-      id: `q-session-${Date.now()}`,
+      id: crypto.randomUUID(),
       subjectId: selectedSubjectId,
       topicId: selectedTopicId || undefined,
       durationInMinutes: parseInt(duration) || 0,
@@ -85,7 +85,7 @@ const QuestionsView: React.FC<QuestionsViewProps> = ({
 
     sessions.forEach(s => {
       if (s.questionsDone === undefined) return;
-      
+
       const subject = subjects.find(sub => sub.id === s.subjectId);
       if (!subject) return;
 
@@ -128,7 +128,7 @@ const QuestionsView: React.FC<QuestionsViewProps> = ({
           <h2 className="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tight">Performance em Questões 🎯</h2>
           <p className="text-slate-500 dark:text-slate-400">Analise seu rendimento detalhado por matéria e assunto.</p>
         </div>
-        
+
         <div className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col min-w-[300px]">
           <div className="flex justify-between items-center mb-4">
             <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Meta Diária</span>
@@ -200,26 +200,26 @@ const QuestionsView: React.FC<QuestionsViewProps> = ({
                 <div className="py-20 text-center opacity-30 uppercase text-xs font-black tracking-widest">Sem dados registrados</div>
               ) : performanceHierarchy.map(subject => (
                 <div key={subject.id} className="space-y-4">
-                   <div className="flex items-center gap-3">
-                     <div className={`h-6 w-1 rounded-full ${subject.color}`} />
-                     <h4 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">{subject.name}</h4>
-                   </div>
-                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 ml-4">
-                     {subject.topics.map((topic, i) => (
-                       <div key={i} className="p-4 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-100 dark:border-slate-800">
-                         <div className="flex justify-between items-start mb-2">
-                           <p className="text-[11px] font-bold text-slate-700 dark:text-slate-200 leading-tight pr-2">{topic.title}</p>
-                           <span className={`text-xs font-black shrink-0 ${topic.accuracy >= 75 ? 'text-emerald-500' : topic.accuracy >= 60 ? 'text-amber-500' : 'text-rose-500'}`}>
-                             {topic.accuracy}%
-                           </span>
-                         </div>
-                         <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden mb-1">
-                            <div className={`h-full transition-all duration-1000 ${topic.accuracy >= 75 ? 'bg-emerald-500' : topic.accuracy >= 60 ? 'bg-amber-500' : 'bg-rose-500'}`} style={{ width: `${topic.accuracy}%` }} />
-                         </div>
-                         <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{topic.correct}/{topic.done} Questões</p>
-                       </div>
-                     ))}
-                   </div>
+                  <div className="flex items-center gap-3">
+                    <div className={`h-6 w-1 rounded-full ${subject.color}`} />
+                    <h4 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">{subject.name}</h4>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 ml-4">
+                    {subject.topics.map((topic, i) => (
+                      <div key={i} className="p-4 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-100 dark:border-slate-800">
+                        <div className="flex justify-between items-start mb-2">
+                          <p className="text-[11px] font-bold text-slate-700 dark:text-slate-200 leading-tight pr-2">{topic.title}</p>
+                          <span className={`text-xs font-black shrink-0 ${topic.accuracy >= 75 ? 'text-emerald-500' : topic.accuracy >= 60 ? 'text-amber-500' : 'text-rose-500'}`}>
+                            {topic.accuracy}%
+                          </span>
+                        </div>
+                        <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden mb-1">
+                          <div className={`h-full transition-all duration-1000 ${topic.accuracy >= 75 ? 'bg-emerald-500' : topic.accuracy >= 60 ? 'bg-amber-500' : 'bg-rose-500'}`} style={{ width: `${topic.accuracy}%` }} />
+                        </div>
+                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{topic.correct}/{topic.done} Questões</p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               ))}
             </div>

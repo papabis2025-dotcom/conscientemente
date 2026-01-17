@@ -216,7 +216,7 @@ const Dashboard: React.FC<DashboardProps> = ({
         );
       case 'weekly_chart':
         return (
-          <div className="h-48 w-full mt-2">
+          <div className="h-48 w-full mt-2" style={{ minHeight: '192px' }}>
             {weeklyData.some(d => d.h > 0) ? (
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={weeklyData}>
@@ -232,9 +232,9 @@ const Dashboard: React.FC<DashboardProps> = ({
         );
       case 'questions_by_subject':
         return (
-          <div className="h-64 w-full mt-2">
+          <div className="h-64 w-full mt-2" style={{ minHeight: '256px' }}>
             {subjectStats.questionsData.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="99%" height="100%">
                 <BarChart data={subjectStats.questionsData} margin={{ bottom: 20 }}>
                   <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} strokeOpacity={0.1} />
                   <XAxis dataKey="acronym" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 'bold', fill: chartTextColor }} />
@@ -250,9 +250,9 @@ const Dashboard: React.FC<DashboardProps> = ({
         );
       case 'time_by_subject':
         return (
-          <div className="h-64 w-full mt-2">
+          <div className="h-64 w-full mt-2" style={{ minHeight: '256px' }}>
             {subjectStats.timeData.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="99%" height="100%">
                 <BarChart data={subjectStats.timeData} margin={{ bottom: 20 }}>
                   <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} strokeOpacity={0.1} />
                   <XAxis dataKey="acronym" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 'bold', fill: chartTextColor }} />

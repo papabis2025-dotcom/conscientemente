@@ -16,7 +16,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, onUpdateSubjects 
   const [editingSubjectId, setEditingSubjectId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [editColor, setEditColor] = useState('');
-  
+
   // State for manual topic addition
   const [addingTopicToId, setAddingTopicToId] = useState<string | null>(null);
   const [newTopicTitle, setNewTopicTitle] = useState('');
@@ -27,7 +27,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, onUpdateSubjects 
   const addSubject = () => {
     if (!newSubjectName.trim()) return;
     const newSub: Subject = {
-      id: Date.now().toString(),
+      id: crypto.randomUUID(),
       name: newSubjectName,
       color: selectedColor,
       topics: []
@@ -58,9 +58,9 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, onUpdateSubjects 
 
   const handleAddTopic = (subjectId: string) => {
     if (!newTopicTitle.trim()) return;
-    
+
     const newTopic: Topic = {
-      id: `topic-${Date.now()}`,
+      id: crypto.randomUUID(),
       title: newTopicTitle,
       isCompleted: false,
       priority: newTopicPriority
@@ -148,27 +148,27 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, onUpdateSubjects 
           <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Disciplinas & Edital</h2>
           <p className="text-sm text-slate-500 dark:text-slate-400">Gerencie seu conteúdo programático e cores.</p>
         </div>
-        
+
         <div className="flex flex-wrap gap-3 w-full md:w-auto">
-          <input 
-            type="file" 
+          <input
+            type="file"
             ref={fileInputRef}
             onChange={handleFileUpload}
             accept=".pdf"
             className="hidden"
           />
-          <button 
+          <button
             onClick={() => fileInputRef.current?.click()}
             disabled={isProcessing}
             className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-xl font-bold transition-all shadow-lg shadow-emerald-500/20 disabled:opacity-50"
           >
             {isProcessing ? '⌛ Processando...' : '📄 Importar Edital (PDF)'}
           </button>
-          
+
           <div className="flex flex-col gap-2 w-full md:w-auto">
             <div className="flex gap-2">
-              <input 
-                type="text" 
+              <input
+                type="text"
                 placeholder="Nova disciplina..."
                 value={newSubjectName}
                 onChange={(e) => setNewSubjectName(e.target.value)}
@@ -207,8 +207,8 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, onUpdateSubjects 
                 <div className="flex-1 mr-2">
                   {editingSubjectId === subject.id ? (
                     <div className="space-y-3">
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
                         value={editName}
                         onChange={(e) => setEditName(e.target.value)}
                         className="w-full px-2 py-1 bg-slate-50 dark:bg-slate-800 border border-blue-400 rounded-lg text-sm font-bold dark:text-white focus:outline-none"
@@ -240,15 +240,15 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, onUpdateSubjects 
                 </div>
                 <span className="text-[10px] bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-full text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider shrink-0">{subject.topics.length} tópicos</span>
               </div>
-              
+
               <div className="space-y-1.5 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
                 {subject.topics.map(topic => (
                   <div key={topic.id} className="flex items-start gap-3 p-2 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-xl transition-colors group/topic">
-                    <input 
-                      type="checkbox" 
-                      checked={topic.isCompleted} 
-                      onChange={() => toggleTopic(subject.id, topic.id)} 
-                      className="mt-0.5 w-5 h-5 rounded border-slate-300 dark:border-slate-600 dark:bg-slate-700 text-blue-600 cursor-pointer transition-all" 
+                    <input
+                      type="checkbox"
+                      checked={topic.isCompleted}
+                      onChange={() => toggleTopic(subject.id, topic.id)}
+                      className="mt-0.5 w-5 h-5 rounded border-slate-300 dark:border-slate-600 dark:bg-slate-700 text-blue-600 cursor-pointer transition-all"
                     />
                     <div className="flex-1 min-w-0">
                       <p className={`text-sm leading-tight ${topic.isCompleted ? 'text-slate-400 line-through' : 'text-slate-700 dark:text-slate-300'}`}>
@@ -259,7 +259,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, onUpdateSubjects 
                       <span className={`text-[9px] uppercase font-black px-1.5 py-0.5 rounded ${topic.priority === 'Alta' ? 'bg-rose-50 dark:bg-rose-900/20 text-rose-500' : topic.priority === 'Média' ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-500' : 'bg-slate-50 dark:bg-slate-800 text-slate-400'}`}>
                         {topic.priority[0]}
                       </span>
-                      <button 
+                      <button
                         onClick={() => deleteTopic(subject.id, topic.id)}
                         className="opacity-0 group-hover/topic:opacity-100 text-[10px] text-slate-300 hover:text-rose-500 transition-all"
                       >
@@ -274,13 +274,13 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, onUpdateSubjects 
                   </p>
                 )}
               </div>
-              
+
               <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
                 {addingTopicToId === subject.id ? (
                   <div className="space-y-3 animate-in slide-in-from-top-1">
                     <div className="flex gap-2">
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
                         placeholder="Nome do assunto..."
                         value={newTopicTitle}
                         onChange={(e) => setNewTopicTitle(e.target.value)}
@@ -288,7 +288,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, onUpdateSubjects 
                         className="flex-1 text-xs px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 dark:text-white"
                         autoFocus
                       />
-                      <select 
+                      <select
                         value={newTopicPriority}
                         onChange={(e) => setNewTopicPriority(e.target.value as any)}
                         className="text-[10px] bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg outline-none px-1 dark:text-white"
@@ -299,13 +299,13 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, onUpdateSubjects 
                       </select>
                     </div>
                     <div className="flex gap-2">
-                      <button 
+                      <button
                         onClick={() => handleAddTopic(subject.id)}
                         className="flex-1 py-1.5 bg-blue-600 text-white text-[10px] font-bold rounded-lg hover:bg-blue-700 transition-colors"
                       >
                         Adicionar
                       </button>
-                      <button 
+                      <button
                         onClick={() => setAddingTopicToId(null)}
                         className="px-3 py-1.5 text-slate-400 text-[10px] font-bold"
                       >
@@ -314,7 +314,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, onUpdateSubjects 
                     </div>
                   </div>
                 ) : (
-                  <button 
+                  <button
                     onClick={() => setAddingTopicToId(subject.id)}
                     className="w-full py-2 border border-dashed border-slate-300 dark:border-slate-700 text-slate-400 hover:text-blue-500 hover:border-blue-500 dark:hover:border-blue-400 text-xs font-bold rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all"
                   >

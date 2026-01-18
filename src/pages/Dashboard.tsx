@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, Cell, LineChart, Line } from 'recharts';
+import { Eye, EyeOff, X, Plus, Save, Trash2, Trophy, Target, Calendar, Clock, CheckCircle, AlertTriangle, TrendingUp } from 'lucide-react';
 
 import { Subject, StudySession, Concurso, Simulado, ActivityType } from '../types';
 import AISuggestions from '../components/dashboard/AISuggestions';
@@ -36,7 +37,6 @@ interface WidgetState {
 }
 
 const DEFAULT_WIDGETS: WidgetState[] = [
-  { id: 'focus_timer', title: 'Timer de Foco 🚀', isVisible: true, size: 'normal' },
   { id: 'general_stats', title: 'Desempenho Geral', isVisible: true, size: 'normal' },
   { id: 'study_frequency', title: 'Frequência de Estudo', isVisible: true, size: 'normal' },
   { id: 'study_suggestions', title: 'Sugestões Estratégicas', isVisible: true, size: 'normal' },
@@ -91,11 +91,14 @@ const Dashboard: React.FC<DashboardProps> = ({
     // Merge with defaults to ensure new widgets appear
     if (!saved) return DEFAULT_WIDGETS;
     const parsed = JSON.parse(saved);
+    // Remove focus_timer if present
+    const filtered = parsed.filter((w: any) => w.id !== 'focus_timer');
+
     // Check if new widget is missing
-    if (!parsed.find((w: any) => w.id === 'study_frequency')) {
+    if (!filtered.find((w: any) => w.id === 'study_frequency')) {
       return [...DEFAULT_WIDGETS];
     }
-    return parsed;
+    return filtered;
   });
 
   const [formData, setFormData] = useState({
@@ -300,21 +303,6 @@ const Dashboard: React.FC<DashboardProps> = ({
 
   const renderWidgetContent = (id: string) => {
     switch (id) {
-      case 'focus_timer':
-        return (
-          <div className="h-full pt-2">
-            <TimerWidget
-              timeLeft={timeLeft || 0}
-              isActive={isActive || false}
-              isAlarmPlaying={isAlarmPlaying || false}
-              onStartTimer={onStartTimer || (() => { })}
-              onPauseTimer={onPauseTimer || (() => { })}
-              onResumeTimer={onResumeTimer || (() => { })}
-              onResetTimer={onResetTimer || (() => { })}
-              onStopAlarm={onStopAlarm || (() => { })}
-            />
-          </div>
-        );
       case 'general_stats':
         const totalDone = subjectStats.questionsData.reduce((acc, s) => acc + s.done, 0);
         const totalCorrect = subjectStats.questionsData.reduce((acc, s) => acc + s.correct, 0);
@@ -322,8 +310,8 @@ const Dashboard: React.FC<DashboardProps> = ({
         return (
           <div className="mt-2 space-y-4">
             <div>
-              <p className="text-4xl font-black text-slate-800 dark:text-white leading-none mb-1">{globalAccuracy}%</p>
-              <p className="text-[11px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Aproveitamento Global</p>
+              <p className="text-4xl font-bold text-slate-800 dark:text-white leading-none mb-1">{globalAccuracy}%</p>
+              <p className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide">Aproveitamento Global</p>
             </div>
             <div className="w-full h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
               <div className="h-full bg-blue-500 transition-all duration-1000" style={{ width: `${globalAccuracy}%` }} />
@@ -335,8 +323,8 @@ const Dashboard: React.FC<DashboardProps> = ({
           <div className="mt-2 flex flex-col h-full justify-between pb-2">
             <div>
               <div className="flex items-end gap-2 mb-2">
-                <span className="text-5xl font-black text-amber-500 leading-none">{frequencyData.streak}</span>
-                <span className="text-[10px] font-black uppercase text-slate-400 mb-1.5">Dias Seguidos 🔥</span>
+                <span className="text-5xl font-bold text-amber-500 leading-none">{frequencyData.streak}</span>
+                <span className="text-[10px] font-semibold uppercase text-slate-400 mb-1.5 ">Dias Seguidos</span>
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
                 Você estudou em <strong className="text-blue-600 dark:text-blue-400">{frequencyData.last7DaysCount}</strong> dos últimos 7 dias.
@@ -366,13 +354,13 @@ const Dashboard: React.FC<DashboardProps> = ({
         return (
           <div className="mt-2 space-y-4">
             <div>
-              <p className="text-4xl font-black text-emerald-500 leading-none mb-1">{simAccuracy}%</p>
-              <p className="text-[11px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Média em Simulados</p>
+              <p className="text-4xl font-bold text-emerald-500 leading-none mb-1">{simAccuracy}%</p>
+              <p className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide">Média em Simulados</p>
             </div>
             <div className="w-full h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
               <div className="h-full bg-emerald-500 transition-all duration-1000" style={{ width: `${simAccuracy}%` }} />
             </div>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{simulados.length} simulados realizados</p>
+            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">{simulados.length} simulados realizados</p>
           </div>
         );
       case 'weekly_chart':
@@ -382,7 +370,7 @@ const Dashboard: React.FC<DashboardProps> = ({
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={weeklyData}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
-                  <XAxis dataKey="n" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 'bold', fill: chartTextColor }} />
+                  <XAxis dataKey="n" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 600, fill: chartTextColor }} />
                   <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: chartTextColor }} />
                   <Tooltip contentStyle={{ fontSize: '11px', borderRadius: '12px', border: 'none', backgroundColor: isDarkMode ? '#0f172a' : '#fff', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }} />
                   <Area type="monotone" dataKey="h" stroke="#2563eb" fill="#2563eb22" strokeWidth={3} />
@@ -398,7 +386,7 @@ const Dashboard: React.FC<DashboardProps> = ({
               <ResponsiveContainer width="99%" height="100%">
                 <BarChart data={subjectStats.questionsData} margin={{ bottom: 20 }}>
                   <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} strokeOpacity={0.1} />
-                  <XAxis dataKey="acronym" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 'bold', fill: chartTextColor }} />
+                  <XAxis dataKey="acronym" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 600, fill: chartTextColor }} />
                   <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: chartTextColor }} />
                   <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ fontSize: '11px', borderRadius: '12px', border: 'none', backgroundColor: isDarkMode ? '#0f172a' : '#fff' }} />
                   <Bar dataKey="done" radius={[6, 6, 0, 0]} barSize={35}>
@@ -416,7 +404,7 @@ const Dashboard: React.FC<DashboardProps> = ({
               <ResponsiveContainer width="99%" height="100%">
                 <BarChart data={subjectStats.timeData} margin={{ bottom: 20 }}>
                   <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} strokeOpacity={0.1} />
-                  <XAxis dataKey="acronym" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 'bold', fill: chartTextColor }} />
+                  <XAxis dataKey="acronym" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 600, fill: chartTextColor }} />
                   <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: chartTextColor }} />
                   <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ fontSize: '11px', borderRadius: '12px', border: 'none', backgroundColor: isDarkMode ? '#0f172a' : '#fff' }} />
                   <Bar dataKey="hours" radius={[6, 6, 0, 0]} barSize={35}>
@@ -435,13 +423,13 @@ const Dashboard: React.FC<DashboardProps> = ({
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex items-center gap-6 bg-white dark:bg-slate-900 p-4 rounded-[1.5rem] border border-slate-200 dark:border-slate-800 shadow-sm overflow-x-auto">
         <div className="flex items-center gap-4 pr-6 border-r border-slate-100 dark:border-slate-800 shrink-0">
-          <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/40 rounded-xl flex items-center justify-center text-xl">🏆</div>
+          <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/40 rounded-xl flex items-center justify-center text-blue-600 dark:text-blue-400"><Trophy size={20} /></div>
           <div>
-            <p className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest leading-none mb-1.5">Meta Ativa</p>
+            <p className="text-[10px] font-semibold uppercase text-slate-400 dark:text-slate-500 tracking-wide leading-none mb-1.5">Meta Ativa</p>
             <select
               value={selectedConcursoId}
               onChange={(e) => onSelectConcursoId(e.target.value)}
-              className="bg-transparent border-none outline-none text-sm font-black text-slate-800 dark:text-white cursor-pointer"
+              className="bg-transparent border-none outline-none text-sm font-bold text-slate-800 dark:text-white cursor-pointer"
             >
               <option value="all">Visão Global</option>
               {concursos.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -450,24 +438,24 @@ const Dashboard: React.FC<DashboardProps> = ({
         </div>
         <div className="flex gap-6 px-4">
           <div className="flex flex-col">
-            <span className="text-base font-black text-slate-800 dark:text-white leading-none mb-1">
+            <span className="text-base font-bold text-slate-800 dark:text-white leading-none mb-1">
               {activeConcurso ? Math.floor((new Date().getTime() - new Date(activeConcurso.startDate).getTime()) / (1000 * 60 * 60 * 24)) : 0}
             </span>
-            <span className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest">Decorridos</span>
+            <span className="text-[10px] font-semibold uppercase text-slate-400 dark:text-slate-500 tracking-wide">Decorridos</span>
           </div>
           <div className="flex flex-col">
-            <span className={`text-base font-black leading-none mb-1 ${activeConcurso?.targetDate ? 'text-rose-500' : 'text-slate-300'}`}>
+            <span className={`text-base font-bold leading-none mb-1 ${activeConcurso?.targetDate ? 'text-rose-500' : 'text-slate-300'}`}>
               {activeConcurso?.targetDate ? Math.ceil((new Date(activeConcurso.targetDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : '-'}
             </span>
-            <span className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest">Restantes</span>
+            <span className="text-[10px] font-semibold uppercase text-slate-400 dark:text-slate-500 tracking-wide">Restantes</span>
           </div>
           <div className="w-px h-8 bg-slate-100 dark:bg-slate-800 mx-2" />
           <div className="flex flex-col">
-            <span className="text-base font-black text-slate-800 dark:text-white leading-none mb-1">{subjects.length}</span>
-            <span className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest">Matérias</span>
+            <span className="text-base font-bold text-slate-800 dark:text-white leading-none mb-1">{subjects.length}</span>
+            <span className="text-[10px] font-semibold uppercase text-slate-400 dark:text-slate-500 tracking-wide">Matérias</span>
           </div>
           <div className="flex flex-col">
-            <span className="text-base font-black text-slate-800 dark:text-white leading-none mb-1">{sessions.reduce((acc, s) => {
+            <span className="text-base font-bold text-slate-800 dark:text-white leading-none mb-1">{sessions.reduce((acc, s) => {
               // If specific concurso selected, only count questions if subject belongs to it
               if (selectedConcursoId !== 'all') {
                 const subjectIds = subjects.map(sub => sub.id);
@@ -475,10 +463,10 @@ const Dashboard: React.FC<DashboardProps> = ({
               }
               return acc + (s.questionsDone || 0);
             }, 0)}</span>
-            <span className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest">Questões</span>
+            <span className="text-[10px] font-semibold uppercase text-slate-400 dark:text-slate-500 tracking-wide">Questões</span>
           </div>
           <div className="flex flex-col">
-            <span className="text-base font-black text-slate-800 dark:text-white leading-none mb-1">
+            <span className="text-base font-bold text-slate-800 dark:text-white leading-none mb-1">
               {(sessions.reduce((acc, s) => {
                 if (selectedConcursoId !== 'all') {
                   const subjectIds = subjects.map(sub => sub.id);
@@ -487,25 +475,25 @@ const Dashboard: React.FC<DashboardProps> = ({
                 return acc + s.durationInMinutes;
               }, 0) / 60).toFixed(1)}h
             </span>
-            <span className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest">Tempo Total</span>
+            <span className="text-[10px] font-semibold uppercase text-slate-400 dark:text-slate-500 tracking-wide">Tempo Total</span>
           </div>
         </div>
       </div>
 
       <header className="flex justify-between items-center px-1">
         <div className="flex items-center gap-4">
-          <h2 className="text-lg font-black text-slate-800 dark:text-white uppercase tracking-tight">Análise Estratégica 🔥</h2>
+          <h2 className="text-lg font-bold text-slate-800 dark:text-white uppercase tracking-tight flex items-center gap-2">Análise Estratégica <TrendingUp size={20} className="text-blue-500" /></h2>
           <button
             onClick={() => setShowModal(true)}
-            className="bg-blue-600 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-700 shadow-sm transition-all flex items-center gap-2"
+            className="bg-blue-600 text-white px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wide hover:bg-blue-700 shadow-sm transition-all flex items-center gap-2"
           >
-            <span>+</span> Adicionar Atividade
+            <Plus size={14} /> Adicionar Atividade
           </button>
         </div>
         <button onClick={() => {
           setIsEditMode(!isEditMode);
           onToggleReorderMode?.(!isEditMode);
-        }} className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${isEditMode ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50'}`}>
+        }} className={`px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wide transition-all ${isEditMode ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50'}`}>
           {isEditMode ? 'Salvar Painel' : 'Ajustar Layout'}
         </button>
       </header>
@@ -525,11 +513,11 @@ const Dashboard: React.FC<DashboardProps> = ({
               className={`${sizeClass} ${widget.isVisible ? 'opacity-100' : 'opacity-40'} bg-white dark:bg-slate-900 p-5 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-sm relative group hover:shadow-md transition-all duration-300 ${isEditMode ? 'cursor-move ring-2 ring-emerald-500/20' : ''} ${draggedWidgetIndex === index ? 'opacity-50 scale-95' : ''}`}
             >
               <div className="flex justify-between items-center mb-3">
-                <h4 className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{widget.title}</h4>
+                <h4 className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wide">{widget.title}</h4>
                 {isEditMode && (
                   <div className="flex gap-2">
-                    <button onClick={() => cycleSize(widget.id)} className="bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-tight">Tam: {widget.size}</button>
-                    <button onClick={() => setWidgets(prev => prev.map(w => w.id === widget.id ? { ...w, isVisible: !w.isVisible } : w))} className="text-sm">{widget.isVisible ? '👁️' : '🚫'}</button>
+                    <button onClick={() => cycleSize(widget.id)} className="bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-lg text-[9px] font-bold uppercase tracking-tight text-slate-500">Tam: {widget.size}</button>
+                    <button onClick={() => setWidgets(prev => prev.map(w => w.id === widget.id ? { ...w, isVisible: !w.isVisible } : w))} className="text-slate-500 hover:text-blue-500">{widget.isVisible ? <Eye size={16} /> : <EyeOff size={16} />}</button>
                   </div>
                 )}
               </div>
@@ -546,15 +534,15 @@ const Dashboard: React.FC<DashboardProps> = ({
               onClick={() => setShowModal(false)}
               className="absolute top-6 right-6 text-slate-400 hover:text-rose-500 w-8 h-8 flex items-center justify-center rounded-full bg-slate-50 dark:bg-slate-800 transition-colors"
             >
-              ✕
+              <X size={18} />
             </button>
 
-            <h3 className="text-xl font-black uppercase tracking-tighter mb-6 dark:text-white">Nova Atividade 📝</h3>
+            <h3 className="text-xl font-bold uppercase tracking-tight mb-6 dark:text-white flex items-center gap-2">Nova Atividade <Clock size={20} className="text-blue-500" /></h3>
 
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-[10px] font-black text-slate-400 uppercase mb-1.5 block">Tipo</label>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase mb-1.5 block">Tipo</label>
                   <select value={formData.activityType} onChange={(e) => setFormData({ ...formData, activityType: e.target.value as any })} className="w-full p-3 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl outline-none text-sm font-bold dark:text-white ring-1 ring-slate-100 dark:ring-slate-800 focus:ring-blue-500">
                     <option value="Leitura">Leitura</option>
                     <option value="Questões">Questões</option>
@@ -563,13 +551,13 @@ const Dashboard: React.FC<DashboardProps> = ({
                   </select>
                 </div>
                 <div>
-                  <label className="text-[10px] font-black text-slate-400 uppercase mb-1.5 block">Data</label>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase mb-1.5 block">Data</label>
                   <input type="date" value={formData.date} onChange={(e) => setFormData({ ...formData, date: e.target.value })} className="w-full p-3 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl outline-none text-sm font-bold dark:text-white ring-1 ring-slate-100 dark:ring-slate-800 focus:ring-blue-500" />
                 </div>
               </div>
 
               <div>
-                <label className="text-[10px] font-black text-slate-400 uppercase mb-1.5 block">Disciplina</label>
+                <label className="text-[10px] font-bold text-slate-400 uppercase mb-1.5 block">Disciplina</label>
                 <select value={formData.subjectId} onChange={(e) => setFormData({ ...formData, subjectId: e.target.value, topicId: '' })} className="w-full p-3 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl outline-none text-sm font-bold dark:text-white ring-1 ring-slate-100 dark:ring-slate-800 focus:ring-blue-500">
                   <option value="">Selecione a matéria...</option>
                   {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
@@ -578,7 +566,7 @@ const Dashboard: React.FC<DashboardProps> = ({
 
               {formData.subjectId && (
                 <div className="animate-in fade-in slide-in-from-top-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase mb-1.5 block">Assunto / Tópico</label>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase mb-1.5 block">Assunto / Tópico</label>
                   <select value={formData.topicId} onChange={(e) => setFormData({ ...formData, topicId: e.target.value })} className="w-full p-3 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl outline-none text-sm font-bold dark:text-white ring-1 ring-slate-100 dark:ring-slate-800 focus:ring-blue-500">
                     <option value="">Geral / Outros</option>
                     {subjects.find(s => s.id === formData.subjectId)?.topics.map(t => (
@@ -589,18 +577,18 @@ const Dashboard: React.FC<DashboardProps> = ({
               )}
 
               <div>
-                <label className="text-[10px] font-black text-slate-400 uppercase mb-1.5 block">Tempo Dedicado (min)</label>
+                <label className="text-[10px] font-bold text-slate-400 uppercase mb-1.5 block">Tempo Dedicado (min)</label>
                 <input type="number" placeholder="Ex: 45" value={formData.duration} onChange={(e) => setFormData({ ...formData, duration: e.target.value })} className="w-full p-3 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl outline-none text-sm font-bold dark:text-white ring-1 ring-slate-100 dark:ring-slate-800 focus:ring-blue-500" />
               </div>
 
               {formData.activityType === 'Questões' && (
                 <div className="grid grid-cols-2 gap-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 animate-in fade-in slide-in-from-top-2">
                   <div>
-                    <label className="text-[10px] font-black text-slate-400 uppercase mb-1.5 block">Resolvidas</label>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase mb-1.5 block">Resolvidas</label>
                     <input type="number" placeholder="0" value={formData.questionsDone} onChange={(e) => setFormData({ ...formData, questionsDone: e.target.value })} className="w-full p-3 bg-white dark:bg-slate-900 border-none rounded-xl outline-none text-sm font-bold dark:text-white shadow-sm" />
                   </div>
                   <div>
-                    <label className="text-[10px] font-black text-slate-400 uppercase mb-1.5 block">Acertos</label>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase mb-1.5 block">Acertos</label>
                     <input type="number" placeholder="0" value={formData.questionsCorrect} onChange={(e) => setFormData({ ...formData, questionsCorrect: e.target.value })} className="w-full p-3 bg-white dark:bg-slate-900 border-none rounded-xl outline-none text-sm font-bold dark:text-white shadow-sm" />
                   </div>
                 </div>
@@ -609,9 +597,9 @@ const Dashboard: React.FC<DashboardProps> = ({
               <button
                 onClick={handleSaveActivity}
                 disabled={!formData.subjectId}
-                className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-[10px] font-black uppercase shadow-lg shadow-blue-500/20 disabled:opacity-50 disabled:shadow-none active:scale-95 transition-all mt-4"
+                className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-[10px] font-bold uppercase shadow-lg shadow-blue-500/20 disabled:opacity-50 disabled:shadow-none active:scale-95 transition-all mt-4 flex items-center justify-center gap-2"
               >
-                Salvar Registro
+                <Save size={16} /> Salvar Registro
               </button>
             </div>
           </div>

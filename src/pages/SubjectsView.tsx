@@ -1,8 +1,22 @@
-
 import React, { useState, useRef } from 'react';
 import { Subject, Topic, StudySession } from '../types';
 import { geminiService } from '../services/geminiService';
 import { COLORS } from '../constants';
+import {
+  ChevronDown,
+  ChevronRight,
+  MoreHorizontal,
+  Trash2,
+  Edit2,
+  Plus,
+  FileText,
+  Bot,
+  Clock,
+  Target,
+  TrendingUp,
+  CheckCircle,
+  Circle
+} from 'lucide-react';
 
 interface SubjectsViewProps {
   subjects: Subject[];
@@ -18,17 +32,28 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
   const [editName, setEditName] = useState('');
   const [editColor, setEditColor] = useState('');
 
-  // State for manual topic addition
+  // Expanded rows state
+  const [expandedSubjects, setExpandedSubjects] = useState<Set<string>>(new Set());
+
+  // Topic addition state
   const [addingTopicToId, setAddingTopicToId] = useState<string | null>(null);
   const [newTopicTitle, setNewTopicTitle] = useState('');
   const [newTopicPriority, setNewTopicPriority] = useState<'Baixa' | 'Média' | 'Alta'>('Média');
 
   const [sortBy, setSortBy] = useState<'default' | 'time' | 'questions'>('default');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  const [topicSortBy, setTopicSortBy] = useState<'default' | 'time' | 'questions'>('default');
+
+  const [topicSortBy, setTopicSortBy] = useState<'default' | 'priority' | 'time' | 'questions' | 'name'>('default');
   const [topicSortOrder, setTopicSortOrder] = useState<'asc' | 'desc'>('desc');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const toggleExpand = (id: string) => {
+    const newSet = new Set(expandedSubjects);
+    if (newSet.has(id)) newSet.delete(id);
+    else newSet.add(id);
+    setExpandedSubjects(newSet);
+  };
 
   const getSubjectStats = (subjectId: string) => {
     const subSessions = sessions.filter(s => s.subjectId === subjectId);
@@ -58,26 +83,9 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
     if (sortBy === 'default') return 0;
     const statsA = getSubjectStats(a.id);
     const statsB = getSubjectStats(b.id);
-
-    if (sortBy === 'time') {
-      return sortOrder === 'desc' ? statsB.hours - statsA.hours : statsA.hours - statsB.hours;
-    } else {
-      return sortOrder === 'desc' ? statsB.questions - statsA.questions : statsA.questions - statsB.questions;
-    }
+    if (sortBy === 'time') return sortOrder === 'desc' ? statsB.hours - statsA.hours : statsA.hours - statsB.hours;
+    return sortOrder === 'desc' ? statsB.questions - statsA.questions : statsA.questions - statsB.questions;
   });
-
-  const getSortedTopics = (subjectId: string, topics: Topic[]) => {
-    if (topicSortBy === 'default') return topics;
-    return [...topics].sort((a, b) => {
-      const statsA = getTopicStats(subjectId, a.id);
-      const statsB = getTopicStats(subjectId, b.id);
-
-      const valA = topicSortBy === 'time' ? statsA.minutes : statsA.done;
-      const valB = topicSortBy === 'time' ? statsB.minutes : statsB.done;
-
-      return topicSortOrder === 'desc' ? valB - valA : valA - valB;
-    });
-  };
 
   const addSubject = () => {
     if (!newSubjectName.trim()) return;
@@ -93,19 +101,22 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
     setSelectedColor(COLORS[(currentIndex + 1) % COLORS.length]);
   };
 
-  const deleteSubject = (id: string) => {
+  const deleteSubject = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
     if (confirm('Deseja excluir esta disciplina e todos os seus tópicos?')) {
       onUpdateSubjects(subjects.filter(s => s.id !== id));
     }
   };
 
-  const startEditing = (subject: Subject) => {
+  const startEditing = (subject: Subject, e: React.MouseEvent) => {
+    e.stopPropagation();
     setEditingSubjectId(subject.id);
     setEditName(subject.name);
     setEditColor(subject.color);
   };
 
-  const saveEdit = () => {
+  const saveEdit = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
     if (!editName.trim()) return;
     onUpdateSubjects(subjects.map(s => s.id === editingSubjectId ? { ...s, name: editName, color: editColor } : s));
     setEditingSubjectId(null);
@@ -113,21 +124,14 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
 
   const handleAddTopic = (subjectId: string) => {
     if (!newTopicTitle.trim()) return;
-
     const newTopic: Topic = {
       id: crypto.randomUUID(),
       title: newTopicTitle,
       isCompleted: false,
       priority: newTopicPriority
     };
-
-    onUpdateSubjects(subjects.map(s => s.id === subjectId ? {
-      ...s,
-      topics: [...s.topics, newTopic]
-    } : s));
-
+    onUpdateSubjects(subjects.map(s => s.id === subjectId ? { ...s, topics: [...s.topics, newTopic] } : s));
     setNewTopicTitle('');
-    // Keep addingTopicToId set to continue adding if needed, or clear it if desired
   };
 
   const toggleTopic = (subjectId: string, topicId: string) => {
@@ -150,13 +154,10 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
       alert('Por favor, selecione um arquivo PDF válido.');
       return;
     }
-
     setIsProcessing(true);
-
     try {
       const base64 = await fileToBase64(file);
       const extractedData = await geminiService.parseEditalPdf(base64);
-
       if (extractedData && extractedData.length > 0) {
         const newSubjects: Subject[] = extractedData.map((item: any, idx: number) => ({
           id: `extracted-${Date.now()}-${idx}`,
@@ -169,11 +170,10 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
             priority: 'Média'
           }))
         }));
-
         onUpdateSubjects([...subjects, ...newSubjects]);
         alert(`${newSubjects.length} matérias importadas com sucesso!`);
       } else {
-        alert('Não foi possível extrair dados do edital. Tente um arquivo mais claro.');
+        alert('Não foi possível extrair dados do edital.');
       }
     } catch (error) {
       console.error(error);
@@ -188,253 +188,269 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.readAsDataURL(file);
-      reader.onload = () => {
-        const base64String = (reader.result as string).split(',')[1];
-        resolve(base64String);
-      };
+      reader.onload = () => resolve((reader.result as string).split(',')[1]);
       reader.onerror = error => reject(error);
     });
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Disciplinas & Edital</h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400">Gerencie seu conteúdo programático e cores.</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Gerenciamento detalhado do conteúdo programático.</p>
         </div>
 
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 p-1.5 rounded-xl">
-            <span className="text-[10px] font-black uppercase text-slate-400 px-2">Disciplinas:</span>
-            <button onClick={() => { setSortBy('time'); setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc'); }} className={`px-3 py-1 text-[10px] font-bold uppercase rounded-lg transition-all ${sortBy === 'time' ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm' : 'text-slate-400'}`}>
-              Tempo {sortBy === 'time' && (sortOrder === 'desc' ? '↓' : '↑')}
-            </button>
-            <button onClick={() => { setSortBy('questions'); setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc'); }} className={`px-3 py-1 text-[10px] font-bold uppercase rounded-lg transition-all ${sortBy === 'questions' ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm' : 'text-slate-400'}`}>
-              Questões {sortBy === 'questions' && (sortOrder === 'desc' ? '↓' : '↑')}
-            </button>
-          </div>
-          <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 p-1.5 rounded-xl">
-            <span className="text-[10px] font-black uppercase text-slate-400 px-2">Assuntos:</span>
-            <button onClick={() => { setTopicSortOrder(prev => topicSortBy === 'time' ? (prev === 'desc' ? 'asc' : 'desc') : 'desc'); setTopicSortBy('time'); }} className={`px-3 py-1 text-[10px] font-bold uppercase rounded-lg transition-all ${topicSortBy === 'time' ? 'bg-white dark:bg-slate-700 text-purple-600 shadow-sm' : 'text-slate-400'}`}>
-              Tempo {topicSortBy === 'time' && (topicSortOrder === 'desc' ? '↓' : '↑')}
-            </button>
-            <button onClick={() => { setTopicSortOrder(prev => topicSortBy === 'questions' ? (prev === 'desc' ? 'asc' : 'desc') : 'desc'); setTopicSortBy('questions'); }} className={`px-3 py-1 text-[10px] font-bold uppercase rounded-lg transition-all ${topicSortBy === 'questions' ? 'bg-white dark:bg-slate-700 text-purple-600 shadow-sm' : 'text-slate-400'}`}>
-              Questões {topicSortBy === 'questions' && (topicSortOrder === 'desc' ? '↓' : '↑')}
-            </button>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap gap-3 w-full md:w-auto">
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleFileUpload}
-            accept=".pdf"
-            className="hidden"
-          />
+        <div className="flex flex-wrap gap-3 w-full md:w-auto items-center">
+          <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept=".pdf" className="hidden" />
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={isProcessing}
-            className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-xl font-bold transition-all shadow-lg shadow-emerald-500/20 disabled:opacity-50"
+            className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-xl font-bold transition-all shadow-sm shadow-emerald-500/20 disabled:opacity-50 text-xs uppercase tracking-wide"
           >
-            {isProcessing ? '⌛ Processando...' : '📄 Importar Edital (PDF)'}
+            {isProcessing ? '⌛ Processando...' : <><FileText size={16} /> Importar PDF</>}
           </button>
 
-          <div className="flex flex-col gap-2 w-full md:w-auto">
-            <div className="flex gap-2">
-              <input
-                type="text"
-                placeholder="Nova disciplina..."
-                value={newSubjectName}
-                onChange={(e) => setNewSubjectName(e.target.value)}
-                className="flex-1 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-slate-800 dark:text-white min-w-[200px]"
+          <div className="h-8 w-px bg-slate-200 dark:bg-slate-700 mx-2 hidden md:block" />
+
+          <div className="flex gap-2 flex-1 md:flex-none">
+            <input
+              type="text"
+              placeholder="Nova disciplina..."
+              value={newSubjectName}
+              onChange={(e) => setNewSubjectName(e.target.value)}
+              className="px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-slate-800 dark:text-white text-sm min-w-[200px]"
+            />
+            <button onClick={addSubject} className="bg-blue-600 text-white px-3 py-2 rounded-xl hover:bg-blue-700 flex items-center justify-center"><Plus size={20} /></button>
+          </div>
+          <div className="flex gap-1.5 px-1">
+            {COLORS.map(color => (
+              <button
+                key={color}
+                onClick={() => setSelectedColor(color)}
+                className={`w-5 h-5 rounded-full ${color} transition-all ${selectedColor === color ? 'ring-2 ring-offset-2 ring-slate-400 dark:ring-offset-slate-900 scale-110' : 'opacity-60 hover:opacity-100'}`}
               />
-              <button onClick={addSubject} className="bg-blue-600 text-white px-4 py-2 rounded-xl font-bold hover:bg-blue-700">Add</button>
-            </div>
-            <div className="flex gap-1.5 px-1">
-              {COLORS.map(color => (
-                <button
-                  key={color}
-                  onClick={() => setSelectedColor(color)}
-                  className={`w-5 h-5 rounded-full ${color} transition-all ${selectedColor === color ? 'ring-2 ring-offset-2 ring-slate-400 dark:ring-offset-slate-900 scale-110' : 'opacity-60 hover:opacity-100'}`}
-                  title="Selecionar cor"
-                />
-              ))}
-            </div>
+            ))}
           </div>
         </div>
       </div>
 
-      {isProcessing && (
-        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 p-8 rounded-3xl text-center animate-pulse">
-          <div className="text-3xl mb-3">🤖</div>
-          <h3 className="text-lg font-bold text-blue-800 dark:text-blue-300">A Inteligência Artificial está lendo seu edital...</h3>
-          <p className="text-sm text-blue-600 dark:text-blue-400">Isso pode levar alguns segundos dependendo do tamanho do arquivo.</p>
-        </div>
-      )}
+      <div className="bg-white dark:bg-slate-900 rounded-[1.5rem] border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
+                <th className="px-6 py-4 text-[10px] font-bold uppercase text-slate-400 tracking-wider"></th>
+                <th className="px-6 py-4 text-[10px] font-bold uppercase text-slate-400 tracking-wider">Disciplina</th>
+                <th className="px-6 py-4 text-[10px] font-bold uppercase text-slate-400 tracking-wider cursor-pointer hover:text-blue-500" onClick={() => { setSortBy('time'); setSortOrder(o => o === 'desc' ? 'asc' : 'desc'); }}>
+                  Tempo {sortBy === 'time' && (sortOrder === 'desc' ? '↓' : '↑')}
+                </th>
+                <th className="px-6 py-4 text-[10px] font-bold uppercase text-slate-400 tracking-wider cursor-pointer hover:text-blue-500" onClick={() => { setSortBy('questions'); setSortOrder(o => o === 'desc' ? 'asc' : 'desc'); }}>
+                  Questões {sortBy === 'questions' && (sortOrder === 'desc' ? '↓' : '↑')}
+                </th>
+                <th className="px-6 py-4 text-[10px] font-bold uppercase text-slate-400 tracking-wider">Aproveitamento</th>
+                <th className="px-6 py-4 text-[10px] font-bold uppercase text-slate-400 tracking-wider text-right">Ações</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              {sortedSubjects.map(subject => {
+                const stats = getSubjectStats(subject.id);
+                const isExpanded = expandedSubjects.has(subject.id);
 
-      <div className="grid grid-cols-1 gap-6">
-        {sortedSubjects.map(subject => {
-          const stats = getSubjectStats(subject.id);
-          return (
-            <div key={subject.id} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm group">
-              <div className={`h-2 ${subject.color}`} />
-              <div className="p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <div className="flex-1 mr-2">
-                    {editingSubjectId === subject.id ? (
-                      <div className="space-y-3">
-                        <input
-                          type="text"
-                          value={editName}
-                          onChange={(e) => setEditName(e.target.value)}
-                          className="w-full px-2 py-1 bg-slate-50 dark:bg-slate-800 border border-blue-400 rounded-lg text-sm font-bold dark:text-white focus:outline-none"
-                          autoFocus
-                        />
-                        <div className="flex flex-wrap gap-1.5">
-                          {COLORS.map(color => (
-                            <button
-                              key={color}
-                              onClick={() => setEditColor(color)}
-                              className={`w-4 h-4 rounded-full ${color} transition-all ${editColor === color ? 'ring-2 ring-slate-400 scale-110' : 'opacity-60 hover:opacity-100'}`}
-                            />
-                          ))}
+                return (
+                  <React.Fragment key={subject.id}>
+                    <tr
+                      className={`hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer group ${isExpanded ? 'bg-slate-50 dark:bg-slate-800/30' : ''}`}
+                      onClick={() => toggleExpand(subject.id)}
+                    >
+                      <td className="px-6 py-4 w-10">
+                        {isExpanded ? <ChevronDown size={16} className="text-slate-400" /> : <ChevronRight size={16} className="text-slate-400" />}
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-3 h-3 rounded-full ${subject.color}`} />
+                          {editingSubjectId === subject.id ? (
+                            <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
+                              <input
+                                className="px-2 py-1 bg-white dark:bg-slate-900 border rounded text-sm"
+                                value={editName}
+                                onChange={e => setEditName(e.target.value)}
+                                autoFocus
+                              />
+                              <button onClick={(e) => saveEdit(e)} className="text-emerald-500"><CheckCircle size={16} /></button>
+                            </div>
+                          ) : (
+                            <div>
+                              <p className="text-sm font-bold text-slate-800 dark:text-white">{subject.name}</p>
+                              <p className="text-[10px] text-slate-400 uppercase font-medium mt-0.5">{subject.topics.length} tópicos</p>
+                            </div>
+                          )}
                         </div>
-                        <div className="flex gap-2">
-                          <button onClick={saveEdit} className="text-xs font-bold text-emerald-500">Salvar</button>
-                          <button onClick={() => setEditingSubjectId(null)} className="text-xs font-bold text-slate-400">Cancelar</button>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-300">
+                          <Clock size={14} className="text-slate-400" /> {stats.hours}h
                         </div>
-                      </div>
-                    ) : (
-                      <>
-                        <h3 className="text-lg font-bold text-slate-800 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{subject.name}</h3>
-                        <div className="flex items-center gap-3 text-[10px] font-bold text-slate-400 mt-1">
-                          <span title="Tempo Total">⏱️ {stats.hours}h</span>
-                          <span title="Questões Feitas">🎯 {stats.questions}</span>
-                          <span title="Aproveitamento" className={`${stats.accuracy >= 80 ? 'text-emerald-500' : stats.accuracy < 50 && stats.questions > 0 ? 'text-rose-500' : 'text-blue-500'}`}>
-                            {stats.accuracy}%
-                          </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-300">
+                          <Target size={14} className="text-slate-400" /> {stats.questions}
                         </div>
-                        <div className="flex gap-2 mt-2">
-                          <button onClick={() => startEditing(subject)} className="text-[10px] font-bold text-slate-400 hover:text-blue-500 uppercase">Editar</button>
-                          <button onClick={() => deleteSubject(subject.id)} className="text-[10px] font-bold text-slate-400 hover:text-rose-500 uppercase">Excluir</button>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                  <span className="text-[10px] bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-full text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider shrink-0">{subject.topics.length} tópicos</span>
-                </div>
-
-                <div className="space-y-1.5 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-                  {getSortedTopics(subject.id, subject.topics).map(topic => {
-                    // Calculate topic stats
-                    const { hours: tHours, done: tDone, acc: tAcc } = getTopicStats(subject.id, topic.id);
-
-                    return (
-                      <div key={topic.id} className="flex flex-col md:flex-row md:items-center gap-3 p-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-xl transition-colors group/topic border border-transparent hover:border-slate-100 dark:hover:border-slate-800">
-                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                          <input
-                            type="checkbox"
-                            checked={topic.isCompleted}
-                            onChange={() => toggleTopic(subject.id, topic.id)}
-                            className="w-5 h-5 rounded border-slate-300 dark:border-slate-600 dark:bg-slate-700 text-blue-600 cursor-pointer transition-all shrink-0"
-                          />
-                          <p className={`text-sm leading-tight font-medium ${topic.isCompleted ? 'text-slate-400 line-through' : 'text-slate-700 dark:text-slate-300'}`}>
-                            {topic.title}
-                          </p>
-                        </div>
-
-                        <div className="flex items-center gap-3 pl-8 md:pl-0">
-                          {/* Stats Badges */}
-                          <div className="flex items-center gap-2">
-                            <span className="text-[10px] font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-md" title="Tempo Estudado">⏱️ {tHours}h</span>
-                            <span className="text-[10px] font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-md" title="Questões">🎯 {tDone}</span>
-                            {tDone > 0 && (
-                              <span className={`text-[10px] font-bold px-2 py-1 rounded-md ${tAcc >= 80 ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400' : tAcc < 50 ? 'bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400' : 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'}`} title="Aproveitamento">
-                                {tAcc}%
-                              </span>
-                            )}
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <div className="w-16 h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                            <div className={`h-full ${stats.accuracy >= 80 ? 'bg-emerald-500' : stats.accuracy < 50 ? 'bg-rose-500' : 'bg-blue-500'}`} style={{ width: `${stats.accuracy}%` }} />
                           </div>
-
-                          <span className={`text-[9px] uppercase font-black px-1.5 py-0.5 rounded shrink-0 ${topic.priority === 'Alta' ? 'bg-rose-50 dark:bg-rose-900/20 text-rose-500' : topic.priority === 'Média' ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-500' : 'bg-slate-50 dark:bg-slate-800 text-slate-400'}`}>
-                            {topic.priority[0]}
-                          </span>
-                          <button
-                            onClick={() => deleteTopic(subject.id, topic.id)}
-                            className="opacity-0 group-hover/topic:opacity-100 text-[10px] text-slate-300 hover:text-rose-500 transition-all"
-                          >
-                            ✕
+                          <span className="text-xs font-bold text-slate-600 dark:text-slate-400">{stats.accuracy}%</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button onClick={(e) => startEditing(subject, e)} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-slate-400 hover:text-blue-500 transition-colors">
+                            <Edit2 size={14} />
+                          </button>
+                          <button onClick={(e) => deleteSubject(subject.id, e)} className="p-1.5 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg text-slate-400 hover:text-rose-500 transition-colors">
+                            <Trash2 size={14} />
                           </button>
                         </div>
-                      </div>
-                    );
-                  })}
-                  {subject.topics.length === 0 && (
-                    <p className="text-xs text-slate-400 italic py-8 text-center bg-slate-50 dark:bg-slate-800/30 rounded-xl border border-dashed border-slate-200 dark:border-slate-800">
-                      Nenhum tópico cadastrado.
-                    </p>
-                  )}
-                </div>
+                      </td>
+                    </tr>
 
-                <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
-                  {addingTopicToId === subject.id ? (
-                    <div className="space-y-3 animate-in slide-in-from-top-1">
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          placeholder="Nome do assunto..."
-                          value={newTopicTitle}
-                          onChange={(e) => setNewTopicTitle(e.target.value)}
-                          onKeyPress={(e) => e.key === 'Enter' && handleAddTopic(subject.id)}
-                          className="flex-1 text-xs px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 dark:text-white"
-                          autoFocus
-                        />
-                        <select
-                          value={newTopicPriority}
-                          onChange={(e) => setNewTopicPriority(e.target.value as any)}
-                          className="text-[10px] bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg outline-none px-1 dark:text-white"
-                        >
-                          <option value="Alta">Alta</option>
-                          <option value="Média">Média</option>
-                          <option value="Baixa">Baixa</option>
-                        </select>
-                      </div>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => handleAddTopic(subject.id)}
-                          className="flex-1 py-1.5 bg-blue-600 text-white text-[10px] font-bold rounded-lg hover:bg-blue-700 transition-colors"
-                        >
-                          Adicionar
-                        </button>
-                        <button
-                          onClick={() => setAddingTopicToId(null)}
-                          className="px-3 py-1.5 text-slate-400 text-[10px] font-bold"
-                        >
-                          Cancelar
-                        </button>
-                      </div>
+                    {isExpanded && (
+                      <tr>
+                        <td colSpan={6} className="px-0 py-0 bg-slate-50/50 dark:bg-slate-800/20 border-b border-slate-100 dark:border-slate-800">
+                          <div className="p-6 pl-16 grid gap-4">
+                            <div className="flex items-center gap-4 mb-2">
+                              <h4 className="text-xs font-bold uppercase text-slate-400 tracking-wide">Tópicos do Edital</h4>
+                              <div className="flex-1 h-px bg-slate-200 dark:bg-slate-700" />
+                              {addingTopicToId === subject.id ? (
+                                <div className="flex items-center gap-2 animate-in fade-in">
+                                  <input
+                                    className="text-xs px-2 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none"
+                                    placeholder="Nome do tópico..."
+                                    value={newTopicTitle}
+                                    onChange={e => setNewTopicTitle(e.target.value)}
+                                    onKeyPress={e => e.key === 'Enter' && handleAddTopic(subject.id)}
+                                    autoFocus
+                                  />
+                                  <select
+                                    value={newTopicPriority} onChange={e => setNewTopicPriority(e.target.value as any)}
+                                    className="text-xs px-2 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none"
+                                  >
+                                    <option value="Baixa">Baixa</option>
+                                    <option value="Média">Média</option>
+                                    <option value="Alta">Alta</option>
+                                  </select>
+                                  <button onClick={() => handleAddTopic(subject.id)} className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg">Add</button>
+                                  <button onClick={() => setAddingTopicToId(null)} className="text-xs text-slate-400 px-2">X</button>
+                                </div>
+                              ) : (
+                                <button onClick={() => setAddingTopicToId(subject.id)} className="text-[10px] font-bold text-blue-600 uppercase hover:underline">+ Adicionar Tópico</button>
+                              )}
+                            </div>
+
+                            <table className="w-full text-left text-sm">
+                              <thead>
+                                <tr className="text-slate-400 border-b border-slate-200 dark:border-slate-700">
+                                  <th className="py-2 text-[10px] uppercase font-bold w-8"></th>
+                                  <th className="py-2 text-[10px] uppercase font-bold cursor-pointer hover:text-blue-500" onClick={() => { setTopicSortBy('name'); setTopicSortOrder(o => o === 'asc' ? 'desc' : 'asc'); }}>
+                                    Assunto {topicSortBy === 'name' && (topicSortOrder === 'asc' ? '↑' : '↓')}
+                                  </th>
+                                  <th className="py-2 text-[10px] uppercase font-bold cursor-pointer hover:text-blue-500" onClick={() => { setTopicSortBy('priority'); setTopicSortOrder(o => o === 'desc' ? 'asc' : 'desc'); }}>
+                                    Prioridade {topicSortBy === 'priority' && (topicSortOrder === 'desc' ? '↓' : '↑')}
+                                  </th>
+                                  <th className="py-2 text-[10px] uppercase font-bold cursor-pointer hover:text-blue-500" onClick={() => { setTopicSortBy('time'); setTopicSortOrder(o => o === 'desc' ? 'asc' : 'desc'); }}>
+                                    Tempo {topicSortBy === 'time' && (topicSortOrder === 'desc' ? '↓' : '↑')}
+                                  </th>
+                                  <th className="py-2 text-[10px] uppercase font-bold cursor-pointer hover:text-blue-500" onClick={() => { setTopicSortBy('questions'); setTopicSortOrder(o => o === 'desc' ? 'asc' : 'desc'); }}>
+                                    Questões {topicSortBy === 'questions' && (topicSortOrder === 'desc' ? '↓' : '↑')}
+                                  </th>
+                                  <th className="py-2 text-[10px] uppercase font-bold text-right">Ação</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {[...subject.topics].map(topic => ({ topic, stats: getTopicStats(subject.id, topic.id) }))
+                                  .sort((a, b) => {
+                                    if (topicSortBy === 'default') {
+                                      // Default: completion then title
+                                      if (a.topic.isCompleted === b.topic.isCompleted) return a.topic.title.localeCompare(b.topic.title);
+                                      return a.topic.isCompleted ? 1 : -1;
+                                    }
+
+                                    const multiplier = topicSortOrder === 'asc' ? 1 : -1;
+
+                                    if (topicSortBy === 'name') return a.topic.title.localeCompare(b.topic.title) * multiplier;
+                                    if (topicSortBy === 'priority') {
+                                      const pMap = { 'Alta': 3, 'Média': 2, 'Baixa': 1 };
+                                      return (pMap[a.topic.priority] - pMap[b.topic.priority]) * multiplier;
+                                    }
+                                    if (topicSortBy === 'time') return (a.stats.minutes - b.stats.minutes) * multiplier;
+                                    if (topicSortBy === 'questions') return (a.stats.done - b.stats.done) * multiplier;
+
+                                    return 0;
+                                  })
+                                  .map(({ topic, stats: tStats }) => {
+                                    return (
+                                      <tr key={topic.id} className="group/row hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors">
+                                        <td className="py-2">
+                                          <button onClick={() => toggleTopic(subject.id, topic.id)} className={`${topic.isCompleted ? 'text-emerald-500' : 'text-slate-300 hover:text-emerald-500'}`}>
+                                            {topic.isCompleted ? <CheckCircle size={14} /> : <Circle size={14} />}
+                                          </button>
+                                        </td>
+                                        <td className={`py-2 font-medium ${topic.isCompleted ? 'text-slate-400 line-through' : 'text-slate-700 dark:text-slate-300'}`}>
+                                          {topic.title}
+                                        </td>
+                                        <td className="py-2">
+                                          <span className={`text-[9px] uppercase font-bold px-1.5 py-0.5 rounded ${topic.priority === 'Alta' ? 'bg-rose-100 text-rose-600' : topic.priority === 'Média' ? 'bg-amber-100 text-amber-600' : 'bg-slate-100 text-slate-500'}`}>
+                                            {topic.priority}
+                                          </span>
+                                        </td>
+                                        <td className="py-2 text-slate-500 text-xs">
+                                          {tStats.minutes > 0 ? `${tStats.hours}h` : '-'}
+                                        </td>
+                                        <td className="py-2 text-slate-500 text-xs">
+                                          {tStats.done > 0 ? `${tStats.correct}/${tStats.done} (${tStats.acc}%)` : '-'}
+                                        </td>
+                                        <td className="py-2 text-right">
+                                          <button onClick={() => deleteTopic(subject.id, topic.id)} className="text-slate-300 hover:text-rose-500 opacity-0 group-hover/row:opacity-100 transition-opacity">
+                                            <Trash2 size={12} />
+                                          </button>
+                                        </td>
+                                      </tr>
+                                    );
+                                  })}
+                                {subject.topics.length === 0 && (
+                                  <tr>
+                                    <td colSpan={6} className="py-4 text-center text-xs text-slate-400 italic">
+                                      Nenhum tópico cadastrado para esta disciplina.
+                                    </td>
+                                  </tr>
+                                )}
+                              </tbody>
+                            </table>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                );
+              })}
+
+              {subjects.length === 0 && !isProcessing && (
+                <tr>
+                  <td colSpan={6} className="py-12 text-center">
+                    <div className="flex flex-col items-center justify-center opacity-50">
+                      <Bot size={40} className="mb-2 text-slate-400" />
+                      <p className="font-bold text-slate-500">Nenhuma disciplina encontrada</p>
+                      <p className="text-sm text-slate-400">Adicione manualmente ou importe um edital.</p>
                     </div>
-                  ) : (
-                    <button
-                      onClick={() => setAddingTopicToId(subject.id)}
-                      className="w-full py-2 border border-dashed border-slate-300 dark:border-slate-700 text-slate-400 hover:text-blue-500 hover:border-blue-500 dark:hover:border-blue-400 text-xs font-bold rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all"
-                    >
-                      + Adicionar Tópico Manualmente
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-          );
-        })}
-        {subjects.length === 0 && !isProcessing && (
-          <div className="col-span-full flex flex-col items-center justify-center py-20 bg-white dark:bg-slate-900 rounded-3xl border border-dashed border-slate-200 dark:border-slate-800">
-            <div className="text-5xl mb-4">📚</div>
-            <p className="text-slate-500 dark:text-slate-400 font-medium">Sua lista de disciplinas está vazia.</p>
-            <p className="text-xs text-slate-400">Faça upload de um PDF ou adicione manualmente no topo.</p>
-          </div>
-        )}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

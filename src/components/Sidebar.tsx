@@ -20,6 +20,7 @@ interface SidebarProps {
   isReorderMode?: boolean;
   isCollapsed: boolean;
   onToggleCollapse: () => void;
+  onUpdateUser?: (name: string, avatar: string) => void;
 }
 
 interface MenuItem {
@@ -43,8 +44,16 @@ const Sidebar: React.FC<SidebarProps> = ({
   timerSeconds, isTimerActive, timerSubjectId, subjects,
   onToggleTimer, onSetTimerSubject, onResetTimer, onAddSession,
   currentUser, onLogout, isReorderMode = false,
-  isCollapsed = false, onToggleCollapse
+  isCollapsed = false, onToggleCollapse, onUpdateUser
 }) => {
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [editName, setEditName] = useState(currentUser.name);
+  const [editAvatar, setEditAvatar] = useState(currentUser.avatar);
+
+  useEffect(() => {
+    setEditName(currentUser.name);
+    setEditAvatar(currentUser.avatar);
+  }, [currentUser]);
   const [menuItems, setMenuItems] = useState<MenuItem[]>(() => {
     const saved = localStorage.getItem('cp_menu_order');
     if (saved) {
@@ -111,6 +120,14 @@ const Sidebar: React.FC<SidebarProps> = ({
       onToggleTimer();
     }
     onResetTimer();
+    onResetTimer();
+  };
+
+  const handleSaveProfile = () => {
+    if (onUpdateUser && editName.trim()) {
+      onUpdateUser(editName, editAvatar || '🎓');
+      setIsEditingProfile(false);
+    }
   };
 
   return (
@@ -145,13 +162,42 @@ const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       <div className={`mb-6 p-3 bg-slate-50 dark:bg-slate-800/40 rounded-2xl flex items-center gap-3 border border-slate-100 dark:border-slate-700 ${isCollapsed ? 'justify-center' : ''}`}>
-        <div className="w-10 h-10 bg-white dark:bg-slate-700 rounded-xl flex items-center justify-center text-xl shadow-sm shrink-0">
-          {currentUser.avatar}
-        </div>
-        {!isCollapsed && (
-          <div className="flex-1 min-w-0 animate-in fade-in slide-in-from-left-4 duration-300">
-            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 leading-none mb-1">Perfil Ativo</p>
-            <p className="text-xs font-black text-slate-800 dark:text-white truncate">{currentUser.name}</p>
+        {!isEditingProfile || isCollapsed ? (
+          <>
+            <div onClick={() => !isCollapsed && setIsEditingProfile(true)} className="w-10 h-10 bg-white dark:bg-slate-700 rounded-xl flex items-center justify-center text-xl shadow-sm shrink-0 cursor-pointer hover:scale-105 transition-transform">
+              {currentUser.avatar}
+            </div>
+            {!isCollapsed && (
+              <div className="flex-1 min-w-0 animate-in fade-in slide-in-from-left-4 duration-300 cursor-pointer" onClick={() => setIsEditingProfile(true)}>
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 leading-none mb-1">Perfil Ativo</p>
+                <p className="text-xs font-black text-slate-800 dark:text-white truncate">{currentUser.name}</p>
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="w-full space-y-2 animate-in fade-in zoom-in-95 duration-200">
+            <input
+              type="text"
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
+              className="w-full px-2 py-1 text-xs font-bold border rounded-lg dark:bg-slate-700 dark:text-white dark:border-slate-600 focus:ring-2 focus:ring-blue-500 outline-none"
+              placeholder="Seu nome"
+              autoFocus
+            />
+            <div className="flex justify-between items-center">
+              <input
+                type="text"
+                value={editAvatar}
+                onChange={(e) => setEditAvatar(e.target.value)}
+                className="w-10 text-center px-1 py-1 text-sm border rounded-lg dark:bg-slate-700 dark:text-white dark:border-slate-600 focus:ring-2 focus:ring-blue-500 outline-none"
+                placeholder="😎"
+                maxLength={2}
+              />
+              <div className="flex gap-1">
+                <button onClick={() => { setIsEditingProfile(false); setEditName(currentUser.name); setEditAvatar(currentUser.avatar); }} className="text-[10px] text-slate-400 font-bold hover:text-slate-600 p-1">✕</button>
+                <button onClick={handleSaveProfile} className="text-[10px] bg-emerald-500 text-white px-2 py-1 rounded-md font-bold hover:bg-emerald-600">✓</button>
+              </div>
+            </div>
           </div>
         )}
       </div>
@@ -181,7 +227,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           <div className="flex flex-col items-center gap-2">
             <div className={`w-2 h-2 rounded-full ${isTimerActive ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`} />
             <span className="text-[10px] font-mono">{formatTime(timerSeconds)}</span>
-            <button onClick={() => isActive ? onToggleTimer() : onSetTimerSubject(subjects[0]?.id)} className="text-lg">
+            <button onClick={() => isTimerActive ? onToggleTimer() : onSetTimerSubject(subjects[0]?.id)} className="text-lg">
               {isTimerActive ? '⏸️' : '▶️'}
             </button>
           </div>

@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, Cell, LineChart, Line } from 'recharts';
 
-import { Subject, StudySession, Concurso, Simulado } from '../types';
+import { Subject, StudySession, Concurso, Simulado, ActivityType } from '../types';
 import AISuggestions from '../components/dashboard/AISuggestions';
 
 interface DashboardProps {
@@ -15,6 +15,7 @@ interface DashboardProps {
   concursos: Concurso[];
   theme?: 'light' | 'dark';
   onToggleReorderMode?: (isReorder: boolean) => void;
+  onAddSession?: (session: StudySession) => void;
 }
 
 interface WidgetState {
@@ -26,6 +27,7 @@ interface WidgetState {
 
 const DEFAULT_WIDGETS: WidgetState[] = [
   { id: 'general_stats', title: 'Desempenho Geral', isVisible: true, size: 'normal' },
+  { id: 'study_frequency', title: 'Frequência de Estudo', isVisible: true, size: 'normal' },
   { id: 'study_suggestions', title: 'Sugestões Estratégicas', isVisible: true, size: 'normal' },
   { id: 'simulados_summary', title: 'Desempenho em Simulados', isVisible: true, size: 'normal' },
   { id: 'weekly_chart', title: 'Volume de Estudo Semanal', isVisible: true, size: 'normal' },
@@ -65,12 +67,31 @@ const Dashboard: React.FC<DashboardProps> = ({
   onSelectConcursoId,
   concursos,
   theme = 'light',
-  onToggleReorderMode
+  onToggleReorderMode,
+  onAddSession
 }) => {
   const [isEditMode, setIsEditMode] = useState(false);
+  const [showModal, setShowModal] = useState(false);
   const [widgets, setWidgets] = useState<WidgetState[]>(() => {
     const saved = localStorage.getItem('cp_dashboard_layout_v13');
-    return saved ? JSON.parse(saved) : DEFAULT_WIDGETS;
+    // Merge with defaults to ensure new widgets appear
+    if (!saved) return DEFAULT_WIDGETS;
+    const parsed = JSON.parse(saved);
+    // Check if new widget is missing
+    if (!parsed.find((w: any) => w.id === 'study_frequency')) {
+      return [...DEFAULT_WIDGETS];
+    }
+    return parsed;
+  });
+
+  const [formData, setFormData] = useState({
+    subjectId: '',
+    topicId: '',
+    activityType: 'Questões' as ActivityType,
+    duration: '',
+    questionsDone: '',
+    questionsCorrect: '',
+    date: new Date().toISOString().split('T')[0]
   });
 
   const [draggedWidgetIndex, setDraggedWidgetIndex] = useState<number | null>(null);
@@ -110,6 +131,32 @@ const Dashboard: React.FC<DashboardProps> = ({
       }
       return w;
     }));
+  };
+
+  const handleSaveActivity = () => {
+    if (!formData.subjectId || !onAddSession) return;
+
+    onAddSession({
+      id: crypto.randomUUID(),
+      subjectId: formData.subjectId,
+      topicId: formData.topicId || undefined,
+      durationInMinutes: parseInt(formData.duration) || 0,
+      date: new Date(`${formData.date}T12:00:00`).toISOString(),
+      questionsDone: formData.activityType === 'Questões' ? (parseInt(formData.questionsDone) || undefined) : undefined,
+      questionsCorrect: formData.activityType === 'Questões' ? (parseInt(formData.questionsCorrect) || undefined) : undefined,
+      activityType: formData.activityType
+    });
+
+    setShowModal(false);
+    setFormData({
+      subjectId: '',
+      topicId: '',
+      activityType: 'Questões',
+      duration: '',
+      questionsDone: '',
+      questionsCorrect: '',
+      date: new Date().toISOString().split('T')[0]
+    });
   };
 
   const subjectStats = useMemo(() => {
@@ -168,13 +215,53 @@ const Dashboard: React.FC<DashboardProps> = ({
     return reordered.map(d => ({ ...d, h: parseFloat(d.h.toFixed(2)) }));
   }, [sessions]);
 
-  const renderWidgetContent = (id: string) => {
-    const totalDone = subjectStats.questionsData.reduce((acc, s) => acc + s.done, 0);
-    const totalCorrect = subjectStats.questionsData.reduce((acc, s) => acc + s.correct, 0);
-    const globalAccuracy = totalDone > 0 ? Math.round((totalCorrect / totalDone) * 100) : 0;
+  const frequencyData = useMemo(() => {
+    // Generate last 28 days (4 weeks)
+    const today = new Date();
+    const days = [];
+    let streak = 0;
+    let maxStreak = 0;
+    let currentStreak = 0;
 
+    // Calculate streaks
+    const uniqueDays = new Set(sessions.map(s => s.date.split('T')[0]));
+    const sortedDates = Array.from(uniqueDays).sort() as string[];
+
+    // Simple streak calc
+    for (let i = 0; i < sortedDates.length; i++) {
+      const d = new Date(sortedDates[i]);
+      const prev = i > 0 ? new Date(sortedDates[i - 1]) : null;
+      if (prev && (d.getTime() - prev.getTime()) <= (86400000 * 1.5)) { // within 1.5 days approx
+        currentStreak++;
+      } else {
+        currentStreak = 1;
+      }
+      maxStreak = Math.max(maxStreak, currentStreak);
+    }
+
+    // Check if today/yesterday is in list for active streak
+    const todayStr = today.toISOString().split('T')[0];
+    const yestStr = new Date(today.getTime() - 86400000).toISOString().split('T')[0];
+    if (uniqueDays.has(todayStr) || uniqueDays.has(yestStr)) {
+      streak = currentStreak;
+    }
+
+    for (let i = 27; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(d.getDate() - i);
+      const dateStr = d.toISOString().split('T')[0];
+      const hasStudy = sessions.some(s => s.date.startsWith(dateStr));
+      days.push({ date: dateStr, hasStudy, dayName: ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'][d.getDay()] });
+    }
+    return { days, streak };
+  }, [sessions]);
+
+  const renderWidgetContent = (id: string) => {
     switch (id) {
       case 'general_stats':
+        const totalDone = subjectStats.questionsData.reduce((acc, s) => acc + s.done, 0);
+        const totalCorrect = subjectStats.questionsData.reduce((acc, s) => acc + s.correct, 0);
+        const globalAccuracy = totalDone > 0 ? Math.round((totalCorrect / totalDone) * 100) : 0;
         return (
           <div className="mt-2 space-y-4">
             <div>
@@ -183,6 +270,23 @@ const Dashboard: React.FC<DashboardProps> = ({
             </div>
             <div className="w-full h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
               <div className="h-full bg-blue-500 transition-all duration-1000" style={{ width: `${globalAccuracy}%` }} />
+            </div>
+          </div>
+        );
+      case 'study_frequency':
+        return (
+          <div className="mt-2 flex flex-col h-full justify-between">
+            <div className="flex items-end gap-2 mb-4">
+              <span className="text-4xl font-black text-amber-500 leading-none">{frequencyData.streak}</span>
+              <span className="text-[10px] font-black uppercase text-slate-400 mb-1">Dias Seguidos 🔥</span>
+            </div>
+            <div className="flex justify-between gap-1">
+              {frequencyData.days.map((day, i) => (
+                <div key={day.date} className="flex flex-col items-center gap-1 flex-1">
+                  <div className={`w-full aspect-square rounded-md transition-all ${day.hasStudy ? 'bg-emerald-500 shadow-sm shadow-emerald-500/30' : 'bg-slate-100 dark:bg-slate-800'}`} title={`${day.date}: ${day.hasStudy ? 'Estudou' : 'Não estudou'}`} />
+                  {i >= 21 && <span className="text-[6px] font-bold text-slate-300 uppercase">{day.dayName}</span>}
+                </div>
+              ))}
             </div>
           </div>
         );
@@ -293,14 +397,41 @@ const Dashboard: React.FC<DashboardProps> = ({
             <span className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest">Matérias</span>
           </div>
           <div className="flex flex-col">
-            <span className="text-base font-black text-slate-800 dark:text-white leading-none mb-1">{sessions.reduce((acc, s) => acc + (s.questionsDone || 0), 0)}</span>
+            <span className="text-base font-black text-slate-800 dark:text-white leading-none mb-1">{sessions.reduce((acc, s) => {
+              // If specific concurso selected, only count questions if subject belongs to it
+              if (selectedConcursoId !== 'all') {
+                const subjectIds = subjects.map(sub => sub.id);
+                if (!subjectIds.includes(s.subjectId)) return acc;
+              }
+              return acc + (s.questionsDone || 0);
+            }, 0)}</span>
             <span className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest">Questões</span>
+          </div>
+          <div className="flex flex-col">
+            <span className="text-base font-black text-slate-800 dark:text-white leading-none mb-1">
+              {(sessions.reduce((acc, s) => {
+                if (selectedConcursoId !== 'all') {
+                  const subjectIds = subjects.map(sub => sub.id);
+                  if (!subjectIds.includes(s.subjectId)) return acc;
+                }
+                return acc + s.durationInMinutes;
+              }, 0) / 60).toFixed(1)}h
+            </span>
+            <span className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest">Tempo Total</span>
           </div>
         </div>
       </div>
 
       <header className="flex justify-between items-center px-1">
-        <h2 className="text-lg font-black text-slate-800 dark:text-white uppercase tracking-tight">Análise Estratégica 🔥</h2>
+        <div className="flex items-center gap-4">
+          <h2 className="text-lg font-black text-slate-800 dark:text-white uppercase tracking-tight">Análise Estratégica 🔥</h2>
+          <button
+            onClick={() => setShowModal(true)}
+            className="bg-blue-600 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-700 shadow-sm transition-all flex items-center gap-2"
+          >
+            <span>+</span> Adicionar Atividade
+          </button>
+        </div>
         <button onClick={() => {
           setIsEditMode(!isEditMode);
           onToggleReorderMode?.(!isEditMode);
@@ -337,6 +468,85 @@ const Dashboard: React.FC<DashboardProps> = ({
           );
         })}
       </div>
+
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 p-8 relative">
+            <button
+              onClick={() => setShowModal(false)}
+              className="absolute top-6 right-6 text-slate-400 hover:text-rose-500 w-8 h-8 flex items-center justify-center rounded-full bg-slate-50 dark:bg-slate-800 transition-colors"
+            >
+              ✕
+            </button>
+
+            <h3 className="text-xl font-black uppercase tracking-tighter mb-6 dark:text-white">Nova Atividade 📝</h3>
+
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[10px] font-black text-slate-400 uppercase mb-1.5 block">Tipo</label>
+                  <select value={formData.activityType} onChange={(e) => setFormData({ ...formData, activityType: e.target.value as any })} className="w-full p-3 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl outline-none text-sm font-bold dark:text-white ring-1 ring-slate-100 dark:ring-slate-800 focus:ring-blue-500">
+                    <option value="Leitura">Leitura</option>
+                    <option value="Questões">Questões</option>
+                    <option value="Aula">Aula</option>
+                    <option value="Simulado">Simulado</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[10px] font-black text-slate-400 uppercase mb-1.5 block">Data</label>
+                  <input type="date" value={formData.date} onChange={(e) => setFormData({ ...formData, date: e.target.value })} className="w-full p-3 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl outline-none text-sm font-bold dark:text-white ring-1 ring-slate-100 dark:ring-slate-800 focus:ring-blue-500" />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-black text-slate-400 uppercase mb-1.5 block">Disciplina</label>
+                <select value={formData.subjectId} onChange={(e) => setFormData({ ...formData, subjectId: e.target.value, topicId: '' })} className="w-full p-3 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl outline-none text-sm font-bold dark:text-white ring-1 ring-slate-100 dark:ring-slate-800 focus:ring-blue-500">
+                  <option value="">Selecione a matéria...</option>
+                  {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </select>
+              </div>
+
+              {formData.subjectId && (
+                <div className="animate-in fade-in slide-in-from-top-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase mb-1.5 block">Assunto / Tópico</label>
+                  <select value={formData.topicId} onChange={(e) => setFormData({ ...formData, topicId: e.target.value })} className="w-full p-3 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl outline-none text-sm font-bold dark:text-white ring-1 ring-slate-100 dark:ring-slate-800 focus:ring-blue-500">
+                    <option value="">Geral / Outros</option>
+                    {subjects.find(s => s.id === formData.subjectId)?.topics.map(t => (
+                      <option key={t.id} value={t.id}>{t.title}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <div>
+                <label className="text-[10px] font-black text-slate-400 uppercase mb-1.5 block">Tempo Dedicado (min)</label>
+                <input type="number" placeholder="Ex: 45" value={formData.duration} onChange={(e) => setFormData({ ...formData, duration: e.target.value })} className="w-full p-3 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl outline-none text-sm font-bold dark:text-white ring-1 ring-slate-100 dark:ring-slate-800 focus:ring-blue-500" />
+              </div>
+
+              {formData.activityType === 'Questões' && (
+                <div className="grid grid-cols-2 gap-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 animate-in fade-in slide-in-from-top-2">
+                  <div>
+                    <label className="text-[10px] font-black text-slate-400 uppercase mb-1.5 block">Resolvidas</label>
+                    <input type="number" placeholder="0" value={formData.questionsDone} onChange={(e) => setFormData({ ...formData, questionsDone: e.target.value })} className="w-full p-3 bg-white dark:bg-slate-900 border-none rounded-xl outline-none text-sm font-bold dark:text-white shadow-sm" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-black text-slate-400 uppercase mb-1.5 block">Acertos</label>
+                    <input type="number" placeholder="0" value={formData.questionsCorrect} onChange={(e) => setFormData({ ...formData, questionsCorrect: e.target.value })} className="w-full p-3 bg-white dark:bg-slate-900 border-none rounded-xl outline-none text-sm font-bold dark:text-white shadow-sm" />
+                  </div>
+                </div>
+              )}
+
+              <button
+                onClick={handleSaveActivity}
+                disabled={!formData.subjectId}
+                className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-[10px] font-black uppercase shadow-lg shadow-blue-500/20 disabled:opacity-50 disabled:shadow-none active:scale-95 transition-all mt-4"
+              >
+                Salvar Registro
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

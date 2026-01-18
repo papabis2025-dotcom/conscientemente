@@ -27,7 +27,7 @@ const App: React.FC = () => {
     logs, setLogs, theme, toggleTheme,
     lastSaved, isSaving, saveError, filteredSubjects, activeConcurso,
     handleLogout: logout, addSession, addSimulado,
-    deleteSimulado, deleteSession, clearLogs, deleteLog
+    deleteSimulado, deleteSession, clearLogs, deleteLog, updateProfile
   } = useAppData();
 
   const {
@@ -45,11 +45,11 @@ const App: React.FC = () => {
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard':
-        return <Dashboard subjects={filteredSubjects} sessions={sessions} simulados={simulados} activeConcurso={activeConcurso} selectedConcursoId={selectedConcursoId} onSelectConcursoId={setSelectedConcursoId} concursos={concursos} theme={theme} onToggleReorderMode={setIsReorderMode} />;
+        return <Dashboard subjects={filteredSubjects} sessions={sessions} simulados={simulados} activeConcurso={activeConcurso} selectedConcursoId={selectedConcursoId} onSelectConcursoId={setSelectedConcursoId} concursos={concursos} theme={theme} onToggleReorderMode={setIsReorderMode} onAddSession={addSession} />;
       case 'concursos':
         return <ConcursosView concursos={concursos} onUpdateConcursos={setConcursos} onSelectConcurso={(c) => { setSelectedConcursoId(c.id); setActiveTab('dashboard'); }} />;
       case 'subjects':
-        return <SubjectsView subjects={activeConcurso?.subjects || []} onUpdateSubjects={(subs) => setConcursos(concursos.map(c => c.id === selectedConcursoId ? { ...c, subjects: subs } : c))} />;
+        return <SubjectsView subjects={activeConcurso?.subjects || []} sessions={sessions} onUpdateSubjects={(subs) => setConcursos(concursos.map(c => c.id === selectedConcursoId ? { ...c, subjects: subs } : c))} />;
       case 'questions':
         return <QuestionsView subjects={filteredSubjects} sessions={sessions} dailyGoals={dailyGoals} onUpdateDailyGoals={setDailyGoals} onAddSession={addSession} onDeleteSession={deleteSession} />;
       case 'simulados':
@@ -85,7 +85,7 @@ const App: React.FC = () => {
         activeTab={activeTab} setActiveTab={setActiveTab} theme={theme} toggleTheme={toggleTheme}
         timerSeconds={timerSeconds} isTimerActive={isTimerActive} timerSubjectId={timerSubjectId} subjects={filteredSubjects}
         onToggleTimer={toggleTimer} onSetTimerSubject={setTimerSubjectId} onResetTimer={resetTimer}
-        onAddSession={addSession} currentUser={currentUser} onLogout={handleLogout}
+        onAddSession={addSession} currentUser={currentUser} onLogout={handleLogout} onUpdateUser={updateProfile}
         isReorderMode={isReorderMode}
         isCollapsed={isSidebarCollapsed}
         onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}

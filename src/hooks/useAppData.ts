@@ -404,6 +404,17 @@ export const useAppData = () => {
         deleteSession,
         clearLogs,
         deleteLog,
-        addLog
+        addLog,
+        updateProfile: async (name: string, avatar: string) => {
+            if (!currentUser) return;
+            const updated = { ...currentUser, name, avatar };
+            setCurrentUser(updated);
+            try {
+                await api.profiles.update({ name, avatar });
+            } catch (e) {
+                console.error('Error updating profile:', e);
+                // Revert or show error? For now silent fail on UI but log
+            }
+        }
     };
 };

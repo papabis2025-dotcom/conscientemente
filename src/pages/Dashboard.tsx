@@ -197,63 +197,85 @@ const Dashboard: React.FC<DashboardProps> = ({
 
   const weeklyData = useMemo(() => {
     const days = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+    // Initialize map for current week (Sunday to Saturday)
     const dataMap = days.map(day => ({ n: day, h: 0 }));
-    const now = new Date();
-    const startOfWeek = new Date(now);
-    startOfWeek.setDate(now.getDate() - now.getDay());
+
+    const today = new Date();
+    const currentDay = today.getDay(); // 0 (Sun) to 6 (Sat)
+
+    // Calculate start of the week (last Sunday)
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - currentDay);
     startOfWeek.setHours(0, 0, 0, 0);
 
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 7);
+
+    // Filter sessions within this range
     sessions.forEach(s => {
       const sDate = new Date(s.date);
-      if (sDate >= startOfWeek) {
+      // Check if session is within the current week window
+      if (sDate >= startOfWeek && sDate < endOfWeek) {
         const dayIdx = sDate.getDay();
         dataMap[dayIdx].h += (s.durationInMinutes / 60);
       }
     });
 
-    const reordered = [...dataMap.slice(1), dataMap[0]];
-    return reordered.map(d => ({ ...d, h: parseFloat(d.h.toFixed(2)) }));
+    return dataMap.map(d => ({ ...d, h: parseFloat(d.h.toFixed(1)) }));
   }, [sessions]);
 
   const frequencyData = useMemo(() => {
-    // Generate last 28 days (4 weeks)
-    const today = new Date();
-    const days = [];
-    let streak = 0;
-    let maxStreak = 0;
-    let currentStreak = 0;
-
-    // Calculate streaks
+    // Determine current streak
     const uniqueDays = new Set(sessions.map(s => s.date.split('T')[0]));
     const sortedDates = Array.from(uniqueDays).sort() as string[];
 
-    // Simple streak calc
+    let streak = 0;
+    let currentStreak = 0;
+
+    // Calculate streak
     for (let i = 0; i < sortedDates.length; i++) {
       const d = new Date(sortedDates[i]);
+      // Normalize time to noon to avoid DST issues
+      d.setHours(12, 0, 0, 0);
+
       const prev = i > 0 ? new Date(sortedDates[i - 1]) : null;
-      if (prev && (d.getTime() - prev.getTime()) <= (86400000 * 1.5)) { // within 1.5 days approx
-        currentStreak++;
+      if (prev) prev.setHours(12, 0, 0, 0);
+
+      if (prev) {
+        const diffDays = Math.round((d.getTime() - prev.getTime()) / (1000 * 3600 * 24));
+        if (diffDays === 1) {
+          currentStreak++;
+        } else if (diffDays > 1) {
+          currentStreak = 1;
+        }
       } else {
         currentStreak = 1;
       }
-      maxStreak = Math.max(maxStreak, currentStreak);
     }
 
-    // Check if today/yesterday is in list for active streak
-    const todayStr = today.toISOString().split('T')[0];
-    const yestStr = new Date(today.getTime() - 86400000).toISOString().split('T')[0];
+    const todayStr = new Date().toISOString().split('T')[0];
+    const yest = new Date();
+    yest.setDate(yest.getDate() - 1);
+    const yestStr = yest.toISOString().split('T')[0];
+
+    // If analyzed up to today/yesterday, that's the active streak
     if (uniqueDays.has(todayStr) || uniqueDays.has(yestStr)) {
       streak = currentStreak;
+    } else {
+      // Streak broken
+      streak = 0;
     }
 
-    for (let i = 27; i >= 0; i--) {
-      const d = new Date(today);
-      d.setDate(d.getDate() - i);
-      const dateStr = d.toISOString().split('T')[0];
-      const hasStudy = sessions.some(s => s.date.startsWith(dateStr));
-      days.push({ date: dateStr, hasStudy, dayName: ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'][d.getDay()] });
+    // Calculate days studied in last 7 days
+    let last7DaysCount = 0;
+    const now = new Date();
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(now);
+      d.setDate(now.getDate() - i);
+      if (uniqueDays.has(d.toISOString().split('T')[0])) last7DaysCount++;
     }
-    return { days, streak };
+
+    return { streak, last7DaysCount };
   }, [sessions]);
 
   const renderWidgetContent = (id: string) => {
@@ -275,18 +297,18 @@ const Dashboard: React.FC<DashboardProps> = ({
         );
       case 'study_frequency':
         return (
-          <div className="mt-2 flex flex-col h-full justify-between">
-            <div className="flex items-end gap-2 mb-4">
-              <span className="text-4xl font-black text-amber-500 leading-none">{frequencyData.streak}</span>
-              <span className="text-[10px] font-black uppercase text-slate-400 mb-1">Dias Seguidos 🔥</span>
+          <div className="mt-2 flex flex-col h-full justify-between pb-2">
+            <div>
+              <div className="flex items-end gap-2 mb-2">
+                <span className="text-5xl font-black text-amber-500 leading-none">{frequencyData.streak}</span>
+                <span className="text-[10px] font-black uppercase text-slate-400 mb-1.5">Dias Seguidos 🔥</span>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                Você estudou em <strong className="text-blue-600 dark:text-blue-400">{frequencyData.last7DaysCount}</strong> dos últimos 7 dias.
+              </p>
             </div>
-            <div className="flex justify-between gap-1">
-              {frequencyData.days.map((day, i) => (
-                <div key={day.date} className="flex flex-col items-center gap-1 flex-1">
-                  <div className={`w-full aspect-square rounded-md transition-all ${day.hasStudy ? 'bg-emerald-500 shadow-sm shadow-emerald-500/30' : 'bg-slate-100 dark:bg-slate-800'}`} title={`${day.date}: ${day.hasStudy ? 'Estudou' : 'Não estudou'}`} />
-                  {i >= 21 && <span className="text-[6px] font-bold text-slate-300 uppercase">{day.dayName}</span>}
-                </div>
-              ))}
+            <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full mt-4 overflow-hidden">
+              <div className="h-full bg-amber-500" style={{ width: `${(frequencyData.last7DaysCount / 7) * 100}%` }} />
             </div>
           </div>
         );

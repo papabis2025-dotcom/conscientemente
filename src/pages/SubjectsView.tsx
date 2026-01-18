@@ -238,7 +238,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6">
         {sortedSubjects.map(subject => {
           const stats = getSubjectStats(subject.id);
           return (
@@ -290,33 +290,55 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                   <span className="text-[10px] bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-full text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider shrink-0">{subject.topics.length} tópicos</span>
                 </div>
 
-                <div className="space-y-1.5 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-                  {subject.topics.map(topic => (
-                    <div key={topic.id} className="flex items-start gap-3 p-2 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-xl transition-colors group/topic">
-                      <input
-                        type="checkbox"
-                        checked={topic.isCompleted}
-                        onChange={() => toggleTopic(subject.id, topic.id)}
-                        className="mt-0.5 w-5 h-5 rounded border-slate-300 dark:border-slate-600 dark:bg-slate-700 text-blue-600 cursor-pointer transition-all"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <p className={`text-sm leading-tight ${topic.isCompleted ? 'text-slate-400 line-through' : 'text-slate-700 dark:text-slate-300'}`}>
-                          {topic.title}
-                        </p>
+                <div className="space-y-1.5 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                  {subject.topics.map(topic => {
+                    // Calculate topic stats on the fly
+                    const topicSessions = sessions.filter(s => s.topicId === topic.id && s.subjectId === subject.id);
+                    const tMinutes = topicSessions.reduce((acc, s) => acc + s.durationInMinutes, 0);
+                    const tDone = topicSessions.reduce((acc, s) => acc + (s.questionsDone || 0), 0);
+                    const tCorrect = topicSessions.reduce((acc, s) => acc + (s.questionsCorrect || 0), 0);
+                    const tAcc = tDone > 0 ? Math.round((tCorrect / tDone) * 100) : 0;
+                    const tHours = (tMinutes / 60).toFixed(1);
+
+                    return (
+                      <div key={topic.id} className="flex flex-col md:flex-row md:items-center gap-3 p-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-xl transition-colors group/topic border border-transparent hover:border-slate-100 dark:hover:border-slate-800">
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <input
+                            type="checkbox"
+                            checked={topic.isCompleted}
+                            onChange={() => toggleTopic(subject.id, topic.id)}
+                            className="w-5 h-5 rounded border-slate-300 dark:border-slate-600 dark:bg-slate-700 text-blue-600 cursor-pointer transition-all shrink-0"
+                          />
+                          <p className={`text-sm leading-tight font-medium ${topic.isCompleted ? 'text-slate-400 line-through' : 'text-slate-700 dark:text-slate-300'}`}>
+                            {topic.title}
+                          </p>
+                        </div>
+
+                        <div className="flex items-center gap-3 pl-8 md:pl-0">
+                          {/* Stats Badges */}
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-md" title="Tempo Estudado">⏱️ {tHours}h</span>
+                            <span className="text-[10px] font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-md" title="Questões">🎯 {tDone}</span>
+                            {tDone > 0 && (
+                              <span className={`text-[10px] font-bold px-2 py-1 rounded-md ${tAcc >= 80 ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400' : tAcc < 50 ? 'bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400' : 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'}`} title="Aproveitamento">
+                                {tAcc}%
+                              </span>
+                            )}
+                          </div>
+
+                          <span className={`text-[9px] uppercase font-black px-1.5 py-0.5 rounded shrink-0 ${topic.priority === 'Alta' ? 'bg-rose-50 dark:bg-rose-900/20 text-rose-500' : topic.priority === 'Média' ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-500' : 'bg-slate-50 dark:bg-slate-800 text-slate-400'}`}>
+                            {topic.priority[0]}
+                          </span>
+                          <button
+                            onClick={() => deleteTopic(subject.id, topic.id)}
+                            className="opacity-0 group-hover/topic:opacity-100 text-[10px] text-slate-300 hover:text-rose-500 transition-all"
+                          >
+                            ✕
+                          </button>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <span className={`text-[9px] uppercase font-black px-1.5 py-0.5 rounded ${topic.priority === 'Alta' ? 'bg-rose-50 dark:bg-rose-900/20 text-rose-500' : topic.priority === 'Média' ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-500' : 'bg-slate-50 dark:bg-slate-800 text-slate-400'}`}>
-                          {topic.priority[0]}
-                        </span>
-                        <button
-                          onClick={() => deleteTopic(subject.id, topic.id)}
-                          className="opacity-0 group-hover/topic:opacity-100 text-[10px] text-slate-300 hover:text-rose-500 transition-all"
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                   {subject.topics.length === 0 && (
                     <p className="text-xs text-slate-400 italic py-8 text-center bg-slate-50 dark:bg-slate-800/30 rounded-xl border border-dashed border-slate-200 dark:border-slate-800">
                       Nenhum tópico cadastrado.

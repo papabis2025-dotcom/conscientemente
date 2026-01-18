@@ -448,7 +448,20 @@ const Dashboard: React.FC<DashboardProps> = ({
             </select>
           </div>
         </div>
-        <div className="flex gap-10 px-4">
+        <div className="flex gap-6 px-4">
+          <div className="flex flex-col">
+            <span className="text-base font-black text-slate-800 dark:text-white leading-none mb-1">
+              {activeConcurso ? Math.floor((new Date().getTime() - new Date(activeConcurso.startDate).getTime()) / (1000 * 60 * 60 * 24)) : 0}
+            </span>
+            <span className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest">Decorridos</span>
+          </div>
+          <div className="flex flex-col">
+            <span className={`text-base font-black leading-none mb-1 ${activeConcurso?.targetDate ? 'text-rose-500' : 'text-slate-300'}`}>
+              {activeConcurso?.targetDate ? Math.ceil((new Date(activeConcurso.targetDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : '-'}
+            </span>
+            <span className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest">Restantes</span>
+          </div>
+          <div className="w-px h-8 bg-slate-100 dark:bg-slate-800 mx-2" />
           <div className="flex flex-col">
             <span className="text-base font-black text-slate-800 dark:text-white leading-none mb-1">{subjects.length}</span>
             <span className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest">Matérias</span>

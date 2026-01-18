@@ -60,7 +60,7 @@ export const useTimer = () => {
     const resumeTimer = () => setIsActive(true);
     const resetTimer = () => {
         setIsActive(false);
-        setTimeLeft(duration);
+        setTimeLeft(0);
         stopAlarm();
     };
 

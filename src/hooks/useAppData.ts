@@ -413,7 +413,32 @@ export const useAppData = () => {
                 await api.profiles.update({ name, avatar });
             } catch (e) {
                 console.error('Error updating profile:', e);
-                // Revert or show error? For now silent fail on UI but log
+            }
+        },
+        resetAllData: async () => {
+            setIsLoading(true);
+            try {
+                // Clear all data - robust deletion via API loops
+                for (const c of concursos) await api.concursos.delete(c.id);
+                for (const s of sessions) await api.sessions.delete(s.id);
+                for (const s of simulados) await api.simulados.delete(s.id);
+                for (const s of scheduledStudies) await api.schedule.delete(s.id);
+                for (const g of dailyGoals) await api.dailyGoals.upsert({ ...g, questionsTarget: 0 }); // or delete logic
+                await api.logs.clear();
+
+                setConcursos([]);
+                setSessions([]);
+                setSimulados([]);
+                setScheduledStudies([]);
+                setDailyGoals([]);
+                setLogs([]);
+                setLastSaved(new Date().toLocaleTimeString());
+                return true;
+            } catch (e) {
+                console.error("Error resetting data:", e);
+                return false;
+            } finally {
+                setIsLoading(false);
             }
         }
     };

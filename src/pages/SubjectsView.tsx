@@ -25,6 +25,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
 
   const [sortBy, setSortBy] = useState<'default' | 'time' | 'questions'>('default');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [topicSortBy, setTopicSortBy] = useState<'default' | 'time' | 'questions'>('default');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -42,6 +43,16 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
     };
   };
 
+  const getTopicStats = (subjectId: string, topicId: string) => {
+    const topicSessions = sessions.filter(s => s.topicId === topicId && s.subjectId === subjectId);
+    const tMinutes = topicSessions.reduce((acc, s) => acc + s.durationInMinutes, 0);
+    const tDone = topicSessions.reduce((acc, s) => acc + (s.questionsDone || 0), 0);
+    const tCorrect = topicSessions.reduce((acc, s) => acc + (s.questionsCorrect || 0), 0);
+    const tAcc = tDone > 0 ? Math.round((tCorrect / tDone) * 100) : 0;
+    const tHours = (tMinutes / 60).toFixed(1);
+    return { minutes: tMinutes, done: tDone, correct: tCorrect, acc: tAcc, hours: tHours };
+  };
+
   const sortedSubjects = [...subjects].sort((a, b) => {
     if (sortBy === 'default') return 0;
     const statsA = getSubjectStats(a.id);
@@ -53,6 +64,17 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
       return sortOrder === 'desc' ? statsB.questions - statsA.questions : statsA.questions - statsB.questions;
     }
   });
+
+  const getSortedTopics = (subjectId: string, topics: Topic[]) => {
+    if (topicSortBy === 'default') return topics;
+    return [...topics].sort((a, b) => {
+      const statsA = getTopicStats(subjectId, a.id);
+      const statsB = getTopicStats(subjectId, b.id);
+      if (topicSortBy === 'time') return statsB.minutes - statsA.minutes;
+      if (topicSortBy === 'questions') return statsB.done - statsA.done;
+      return 0;
+    });
+  };
 
   const addSubject = () => {
     if (!newSubjectName.trim()) return;
@@ -179,14 +201,25 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
           <p className="text-sm text-slate-500 dark:text-slate-400">Gerencie seu conteúdo programático e cores.</p>
         </div>
 
-        <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 p-1.5 rounded-xl">
-          <span className="text-[10px] font-black uppercase text-slate-400 px-2">Ordenar:</span>
-          <button onClick={() => { setSortBy('time'); setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc'); }} className={`px-3 py-1 text-[10px] font-bold uppercase rounded-lg transition-all ${sortBy === 'time' ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm' : 'text-slate-400'}`}>
-            Tempo {sortBy === 'time' && (sortOrder === 'desc' ? '↓' : '↑')}
-          </button>
-          <button onClick={() => { setSortBy('questions'); setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc'); }} className={`px-3 py-1 text-[10px] font-bold uppercase rounded-lg transition-all ${sortBy === 'questions' ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm' : 'text-slate-400'}`}>
-            Questões {sortBy === 'questions' && (sortOrder === 'desc' ? '↓' : '↑')}
-          </button>
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 p-1.5 rounded-xl">
+            <span className="text-[10px] font-black uppercase text-slate-400 px-2">Disciplinas:</span>
+            <button onClick={() => { setSortBy('time'); setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc'); }} className={`px-3 py-1 text-[10px] font-bold uppercase rounded-lg transition-all ${sortBy === 'time' ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm' : 'text-slate-400'}`}>
+              Tempo {sortBy === 'time' && (sortOrder === 'desc' ? '↓' : '↑')}
+            </button>
+            <button onClick={() => { setSortBy('questions'); setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc'); }} className={`px-3 py-1 text-[10px] font-bold uppercase rounded-lg transition-all ${sortBy === 'questions' ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm' : 'text-slate-400'}`}>
+              Questões {sortBy === 'questions' && (sortOrder === 'desc' ? '↓' : '↑')}
+            </button>
+          </div>
+          <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 p-1.5 rounded-xl">
+            <span className="text-[10px] font-black uppercase text-slate-400 px-2">Assuntos:</span>
+            <button onClick={() => setTopicSortBy('time')} className={`px-3 py-1 text-[10px] font-bold uppercase rounded-lg transition-all ${topicSortBy === 'time' ? 'bg-white dark:bg-slate-700 text-purple-600 shadow-sm' : 'text-slate-400'}`}>
+              Tempo {topicSortBy === 'time' && '↓'}
+            </button>
+            <button onClick={() => setTopicSortBy('questions')} className={`px-3 py-1 text-[10px] font-bold uppercase rounded-lg transition-all ${topicSortBy === 'questions' ? 'bg-white dark:bg-slate-700 text-purple-600 shadow-sm' : 'text-slate-400'}`}>
+              Questões {topicSortBy === 'questions' && '↓'}
+            </button>
+          </div>
         </div>
 
         <div className="flex flex-wrap gap-3 w-full md:w-auto">
@@ -291,14 +324,9 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                 </div>
 
                 <div className="space-y-1.5 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-                  {subject.topics.map(topic => {
-                    // Calculate topic stats on the fly
-                    const topicSessions = sessions.filter(s => s.topicId === topic.id && s.subjectId === subject.id);
-                    const tMinutes = topicSessions.reduce((acc, s) => acc + s.durationInMinutes, 0);
-                    const tDone = topicSessions.reduce((acc, s) => acc + (s.questionsDone || 0), 0);
-                    const tCorrect = topicSessions.reduce((acc, s) => acc + (s.questionsCorrect || 0), 0);
-                    const tAcc = tDone > 0 ? Math.round((tCorrect / tDone) * 100) : 0;
-                    const tHours = (tMinutes / 60).toFixed(1);
+                  {getSortedTopics(subject.id, subject.topics).map(topic => {
+                    // Calculate topic stats
+                    const { hours: tHours, done: tDone, acc: tAcc } = getTopicStats(subject.id, topic.id);
 
                     return (
                       <div key={topic.id} className="flex flex-col md:flex-row md:items-center gap-3 p-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-xl transition-colors group/topic border border-transparent hover:border-slate-100 dark:hover:border-slate-800">

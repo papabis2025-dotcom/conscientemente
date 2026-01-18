@@ -195,6 +195,12 @@ const Dashboard: React.FC<DashboardProps> = ({
     };
   }, [sessions, subjects]);
 
+  // Filter sessions relevant to the current view (active context)
+  const relevantSessions = useMemo(() => {
+    const activeSubjectIds = new Set(subjects.map(s => s.id));
+    return sessions.filter(s => activeSubjectIds.has(s.subjectId));
+  }, [sessions, subjects]);
+
   const weeklyData = useMemo(() => {
     const days = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
     // Initialize map for current week (Sunday to Saturday)
@@ -212,7 +218,7 @@ const Dashboard: React.FC<DashboardProps> = ({
     endOfWeek.setDate(startOfWeek.getDate() + 7);
 
     // Filter sessions within this range
-    sessions.forEach(s => {
+    relevantSessions.forEach(s => {
       const sDate = new Date(s.date);
       // Check if session is within the current week window
       if (sDate >= startOfWeek && sDate < endOfWeek) {
@@ -222,11 +228,11 @@ const Dashboard: React.FC<DashboardProps> = ({
     });
 
     return dataMap.map(d => ({ ...d, h: parseFloat(d.h.toFixed(1)) }));
-  }, [sessions]);
+  }, [relevantSessions]);
 
   const frequencyData = useMemo(() => {
     // Determine current streak
-    const uniqueDays = new Set(sessions.map(s => s.date.split('T')[0]));
+    const uniqueDays = new Set(relevantSessions.map(s => s.date.split('T')[0]));
     const sortedDates = Array.from(uniqueDays).sort() as string[];
 
     let streak = 0;
@@ -276,7 +282,7 @@ const Dashboard: React.FC<DashboardProps> = ({
     }
 
     return { streak, last7DaysCount };
-  }, [sessions]);
+  }, [relevantSessions]);
 
   const renderWidgetContent = (id: string) => {
     switch (id) {

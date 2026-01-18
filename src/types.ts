@@ -33,6 +33,7 @@ export interface Subject {
   id: string;
   name: string;
   color: string;
+  questionsGoal?: number;
   topics: Topic[];
 }
 

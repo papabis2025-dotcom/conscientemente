@@ -2,12 +2,14 @@
 import React, { useRef, useState } from 'react';
 import { supabase } from '../services/supabase';
 import { api } from '../services/api';
+import { useAppData } from '../hooks/useAppData';
 
 interface SettingsViewProps {
   currentUserEmail: string;
 }
 
 const SettingsView: React.FC<SettingsViewProps> = ({ currentUserEmail }) => {
+  const { resetAllData } = useAppData();
   const fileRef = useRef<HTMLInputElement>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
@@ -277,6 +279,29 @@ const SettingsView: React.FC<SettingsViewProps> = ({ currentUserEmail }) => {
             <span className="text-2xl">✅</span>
           </div>
           <p className="text-xs text-slate-500">Seus dados estão sendo salvos automaticamente na nuvem.</p>
+        </div>
+
+        {/* Danger Zone */}
+        <div className="bg-rose-50 dark:bg-rose-900/10 p-8 rounded-[2.5rem] border border-rose-100 dark:border-rose-900/30 shadow-sm space-y-6">
+          <h3 className="font-bold text-lg flex items-center gap-2 text-rose-600 dark:text-rose-400">🚨 Zona de Perigo</h3>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Ações irreversíveis.</p>
+          <button
+            onClick={async () => {
+              if (confirm('⚠️ TEM CERTEZA? Isso apagará TODOS os seus dados (concursos, sessões, simulados) permanentemente.') &&
+                confirm('⛔ Último aviso: Essa ação não pode ser desfeita. Confirmar reset total?')) {
+                const success = await resetAllData();
+                if (success) {
+                  alert('✅ Todos os dados foram apagados. O sistema foi resetado.');
+                  window.location.reload();
+                } else {
+                  alert('Erro ao resetar dados.');
+                }
+              }
+            }}
+            className="w-full bg-rose-600 text-white py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-rose-700 transition-all shadow-lg shadow-rose-500/20 active:scale-95"
+          >
+            🔥 FÁBRICA: Resetar Tudo
+          </button>
         </div>
       </div>
     </div>

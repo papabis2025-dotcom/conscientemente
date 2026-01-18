@@ -15,24 +15,50 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
   const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
   const [targetDate, setTargetDate] = useState('');
 
+  // New Subject State
+  const [newSubjects, setNewSubjects] = useState<{ name: string, goal: number }[]>([]);
+  const [tempSubName, setTempSubName] = useState('');
+  const [tempSubGoal, setTempSubGoal] = useState('');
+
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editFormData, setEditFormData] = useState<Partial<Concurso>>({});
+
+  const handleAddTempSubject = () => {
+    if (!tempSubName.trim()) return;
+    setNewSubjects([...newSubjects, { name: tempSubName, goal: parseInt(tempSubGoal) || 0 }]);
+    setTempSubName('');
+    setTempSubGoal('');
+  };
+
+  const removeTempSubject = (idx: number) => {
+    setNewSubjects(newSubjects.filter((_, i) => i !== idx));
+  };
 
   const addConcurso = () => {
     if (!newConcName.trim() || !banca.trim()) {
       alert("Preencha o nome e a banca do concurso.");
       return;
     }
+
+    const subjectsList = newSubjects.map((s, i) => ({
+      id: crypto.randomUUID(),
+      name: s.name,
+      color: ['bg-blue-500', 'bg-emerald-500', 'bg-violet-500', 'bg-amber-500', 'bg-rose-500', 'bg-cyan-500'][i % 6],
+      questionsGoal: s.goal,
+      topics: []
+    }));
+
     const newConc: Concurso = {
       id: crypto.randomUUID(),
       name: newConcName,
       banca: banca,
       startDate: new Date(startDate).toISOString(),
-      subjects: [],
+      subjects: subjectsList,
       targetDate: targetDate || undefined
     };
     onUpdateConcursos([...concursos, newConc]);
     setNewConcName(''); setBanca(''); setStartDate(new Date().toISOString().split('T')[0]); setTargetDate(''); setIsAdding(false);
+    setNewSubjects([]);
   };
 
   const startEditing = (conc: Concurso) => {
@@ -89,7 +115,7 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
       {isAdding && (
         <div className="bg-white dark:bg-slate-900 p-8 rounded-[3rem] border-2 border-blue-500 shadow-2xl animate-in slide-in-from-top-4 duration-300">
           <h3 className="text-xl font-black text-slate-800 dark:text-white mb-6 uppercase tracking-tight">Novo Projeto de Aprovação</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <div>
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Nome do Concurso</label>
               <input type="text" placeholder="Ex: Receita Federal" value={newConcName} onChange={(e) => setNewConcName(e.target.value)} className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 text-slate-800 dark:text-white" />
@@ -107,7 +133,43 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
               <input type="date" value={targetDate} onChange={(e) => setTargetDate(e.target.value)} className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 text-slate-800 dark:text-white" />
             </div>
           </div>
-          <div className="flex justify-end gap-3 mt-8">
+
+          <div className="bg-slate-50 dark:bg-slate-800/50 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 mb-8">
+            <h4 className="text-sm font-black text-slate-500 uppercase tracking-widest mb-4">Disciplinas & Metas</h4>
+            <div className="flex flex-col md:flex-row gap-3 mb-4">
+              <input
+                type="text"
+                placeholder="Nome da Disciplina (Ex: Direito Constitucional)"
+                value={tempSubName}
+                onChange={e => setTempSubName(e.target.value)}
+                className="flex-1 px-4 py-2 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl"
+                onKeyPress={e => e.key === 'Enter' && handleAddTempSubject()}
+              />
+              <input
+                type="number"
+                placeholder="Meta de Questões"
+                value={tempSubGoal}
+                onChange={e => setTempSubGoal(e.target.value)}
+                className="w-40 px-4 py-2 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl"
+                onKeyPress={e => e.key === 'Enter' && handleAddTempSubject()}
+              />
+              <button onClick={handleAddTempSubject} className="bg-slate-800 dark:bg-white text-white dark:text-slate-900 px-4 py-2 rounded-xl font-bold hover:opacity-90">Adicionar</button>
+            </div>
+
+            {newSubjects.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {newSubjects.map((s, i) => (
+                  <div key={i} className="flex items-center gap-2 bg-white dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
+                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{s.name}</span>
+                    {s.goal > 0 && <span className="text-[10px] bg-blue-100 text-blue-600 px-1.5 rounded font-black">{s.goal} Qs</span>}
+                    <button onClick={() => removeTempSubject(i)} className="text-slate-400 hover:text-rose-500 ml-1">×</button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="flex justify-end gap-3">
             <button onClick={() => setIsAdding(false)} className="px-6 py-3 text-slate-400 font-black uppercase text-xs tracking-widest hover:text-rose-500 transition-colors">Cancelar</button>
             <button onClick={addConcurso} className="bg-blue-600 text-white px-8 py-3 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-blue-700 shadow-lg shadow-blue-500/20 active:scale-95 transition-all">Criar Edital</button>
           </div>

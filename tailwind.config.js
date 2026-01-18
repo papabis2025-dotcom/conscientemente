@@ -20,17 +20,17 @@ export default {
             colors: {
                 // Modern Minimalist Dark Scale (Neutral/Zinc-like)
                 slate: {
-                    50: '#f9fafb',
-                    100: '#f3f4f6',
-                    200: '#e5e7eb',
-                    300: '#d1d5db',
-                    400: '#9ca3af',
-                    500: '#6b7280',
-                    600: '#4b5563',
-                    700: '#374151',
-                    800: '#1c252e', // Lighter Surface
-                    900: '#11181c', // Requested Base
-                    950: '#09090b', // Deepest
+                    50: '#fdfdfd',
+                    100: '#eceef0',
+                    200: '#dfe3e6',
+                    300: '#c1c8cd',
+                    400: '#97a1a7',
+                    500: '#687076',
+                    600: '#434a51',
+                    700: '#2d3339',
+                    800: '#202a33', // Secondary Surface
+                    900: '#182128', // Primary Card Surface
+                    950: '#11181c', // Main Background (User Requested)
                 },
             }
         },

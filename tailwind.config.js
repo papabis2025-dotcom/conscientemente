@@ -8,7 +8,7 @@ export default {
     theme: {
         extend: {
             fontFamily: {
-                sans: ['Inter', 'sans-serif'], // Circular approximation
+                sans: ['Outfit', 'Plus Jakarta Sans', 'Inter', 'sans-serif'], // Modern Geometric
             },
             borderRadius: {
                 'lg': '6px',

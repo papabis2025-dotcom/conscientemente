@@ -7,13 +7,17 @@ interface SidebarProps {
   setActiveTab: (tab: string) => void;
   theme: 'light' | 'dark';
   toggleTheme: () => void;
-  timerSeconds: number;
-  isTimerActive: boolean;
-  timerSubjectId: string;
-  subjects: Subject[];
-  onToggleTimer: () => void;
-  onSetTimerSubject: (id: string) => void;
+  // New Timer Props
+  timeLeft: number;
+  isActive: boolean;
+  isAlarmPlaying: boolean;
+  onStartTimer: (minutes: number) => void;
+  onPauseTimer: () => void;
+  onResumeTimer: () => void;
   onResetTimer: () => void;
+  onStopAlarm: () => void;
+
+  subjects: Subject[]; // Still needed for other things? Maybe not for timer.
   onAddSession: (session: StudySession) => void;
   currentUser: User;
   onLogout: () => void;
@@ -41,14 +45,17 @@ const DEFAULT_MENU_ITEMS: MenuItem[] = [
 
 const Sidebar: React.FC<SidebarProps> = ({
   activeTab, setActiveTab, theme, toggleTheme,
-  timerSeconds, isTimerActive, timerSubjectId, subjects,
-  onToggleTimer, onSetTimerSubject, onResetTimer, onAddSession,
+  timeLeft, isActive, isAlarmPlaying,
+  onStartTimer, onPauseTimer, onResumeTimer, onResetTimer, onStopAlarm,
+  subjects,
+  onAddSession,
   currentUser, onLogout, isReorderMode = false,
   isCollapsed = false, onToggleCollapse, onUpdateUser
 }) => {
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [editName, setEditName] = useState(currentUser.name);
   const [editAvatar, setEditAvatar] = useState(currentUser.avatar);
+  const [inputMinutes, setInputMinutes] = useState(30);
 
   useEffect(() => {
     setEditName(currentUser.name);
@@ -100,27 +107,9 @@ const Sidebar: React.FC<SidebarProps> = ({
   };
 
   const formatTime = (totalSeconds: number) => {
-    const hrs = Math.floor(totalSeconds / 3600);
-    const mins = Math.floor((totalSeconds % 3600) / 60);
+    const mins = Math.floor(totalSeconds / 60);
     const secs = totalSeconds % 60;
-    return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const handleFinish = () => {
-    if (timerSeconds > 0 && timerSubjectId) {
-      onAddSession({
-        id: crypto.randomUUID(),
-        subjectId: timerSubjectId,
-        date: new Date().toISOString(),
-        durationInMinutes: Math.floor(timerSeconds / 60) || 1,
-        isSimulado: false
-      });
-    }
-    if (isTimerActive) {
-      onToggleTimer();
-    }
-    onResetTimer();
-    onResetTimer();
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
   const handleSaveProfile = () => {
@@ -204,32 +193,71 @@ const Sidebar: React.FC<SidebarProps> = ({
 
       <div className="mb-5 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-2xl border border-slate-100 dark:border-slate-700">
         {!isCollapsed ? (
-          <>
-            <select
-              value={timerSubjectId}
-              onChange={(e) => onSetTimerSubject(e.target.value)}
-              className="w-full text-[9px] font-black uppercase tracking-widest bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 outline-none text-blue-600 dark:text-blue-400 mb-2"
-            >
-              <option value="">Cronômetro...</option>
-              {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-            </select>
-            <div className="text-center py-1">
-              <span className={`text-xl font-mono font-bold tabular-nums ${isTimerActive ? 'text-emerald-500' : 'text-slate-400 dark:text-slate-500'}`}>
-                {formatTime(timerSeconds)}
-              </span>
-            </div>
-            <div className="flex gap-1 mt-2">
-              <button onClick={() => timerSubjectId && onToggleTimer()} className={`flex-1 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all ${isTimerActive ? 'bg-amber-500 text-white' : 'bg-blue-700 text-white'}`}>{isTimerActive ? 'Pausar' : 'Iniciar'}</button>
-              <button onClick={handleFinish} className="flex-1 py-1.5 bg-emerald-500 text-white rounded-lg text-[8px] font-black uppercase tracking-widest">Fim</button>
-            </div>
-          </>
+          <div className="flex flex-col gap-2">
+            <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Timer de Foco</span>
+
+            {isAlarmPlaying ? (
+              <button
+                onClick={onStopAlarm}
+                className="w-full py-3 bg-red-500 hover:bg-red-600 text-white font-black uppercase tracking-widest rounded-xl animate-pulse shadow-lg shadow-red-500/30 flex items-center justify-center gap-2"
+              >
+                <span>🔔</span> Parar Alarme
+              </button>
+            ) : (isActive || timeLeft > 0) ? (
+              <>
+                <div className="text-center py-2 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
+                  <span className={`text-2xl font-mono font-bold tabular-nums ${isActive ? 'text-emerald-500' : 'text-slate-400'}`}>
+                    {formatTime(timeLeft)}
+                  </span>
+                </div>
+                <div className="flex gap-1">
+                  <button
+                    onClick={() => isActive ? onPauseTimer() : onResumeTimer()}
+                    className={`flex-1 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${isActive ? 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400' : 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400'}`}
+                  >
+                    {isActive ? 'Pausar' : 'Retomar'}
+                  </button>
+                  <button
+                    onClick={onResetTimer}
+                    className="flex-1 py-2 bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-300 rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-slate-300 dark:hover:bg-slate-600"
+                  >
+                    Resetar
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="flex gap-2">
+                <input
+                  type="number"
+                  min="1"
+                  max="180"
+                  value={inputMinutes}
+                  onChange={(e) => setInputMinutes(parseInt(e.target.value) || 0)}
+                  className="w-16 px-2 text-center font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 dark:text-white"
+                />
+                <button
+                  onClick={() => onStartTimer(inputMinutes)}
+                  className="flex-1 py-2 bg-emerald-500 hover:bg-emerald-600 text-white font-black uppercase tracking-widest rounded-xl shadow-lg shadow-emerald-500/20 transition-all text-[9px]"
+                >
+                  Iniciar
+                </button>
+              </div>
+            )}
+          </div>
         ) : (
           <div className="flex flex-col items-center gap-2">
-            <div className={`w-2 h-2 rounded-full ${isTimerActive ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`} />
-            <span className="text-[10px] font-mono">{formatTime(timerSeconds)}</span>
-            <button onClick={() => isTimerActive ? onToggleTimer() : onSetTimerSubject(subjects[0]?.id)} className="text-lg">
-              {isTimerActive ? '⏸️' : '▶️'}
-            </button>
+            <div className={`w-2 h-2 rounded-full ${isAlarmPlaying ? 'bg-red-500 animate-pulse' : isActive ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`} />
+            <span className="text-[10px] font-mono">{formatTime(timeLeft)}</span>
+            {isAlarmPlaying ? (
+              <button onClick={onStopAlarm} className="text-lg">🔔</button>
+            ) : (
+              <button
+                onClick={() => isActive ? onPauseTimer() : (timeLeft > 0 ? onResumeTimer() : onStartTimer(inputMinutes))}
+                className="text-lg"
+              >
+                {isActive ? '⏸️' : '▶️'}
+              </button>
+            )}
           </div>
         )}
       </div>

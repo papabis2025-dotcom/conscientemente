@@ -4,6 +4,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 
 import { Subject, StudySession, Concurso, Simulado, ActivityType } from '../types';
 import AISuggestions from '../components/dashboard/AISuggestions';
+import TimerWidget from '../components/dashboard/TimerWidget';
 
 interface DashboardProps {
   subjects: Subject[];
@@ -16,6 +17,15 @@ interface DashboardProps {
   theme?: 'light' | 'dark';
   onToggleReorderMode?: (isReorder: boolean) => void;
   onAddSession?: (session: StudySession) => void;
+  // Timer Props
+  timeLeft?: number;
+  isActive?: boolean;
+  isAlarmPlaying?: boolean;
+  onStartTimer?: (minutes: number) => void;
+  onPauseTimer?: () => void;
+  onResumeTimer?: () => void;
+  onResetTimer?: () => void;
+  onStopAlarm?: () => void;
 }
 
 interface WidgetState {
@@ -26,6 +36,7 @@ interface WidgetState {
 }
 
 const DEFAULT_WIDGETS: WidgetState[] = [
+  { id: 'focus_timer', title: 'Timer de Foco 🚀', isVisible: true, size: 'normal' },
   { id: 'general_stats', title: 'Desempenho Geral', isVisible: true, size: 'normal' },
   { id: 'study_frequency', title: 'Frequência de Estudo', isVisible: true, size: 'normal' },
   { id: 'study_suggestions', title: 'Sugestões Estratégicas', isVisible: true, size: 'normal' },
@@ -68,7 +79,10 @@ const Dashboard: React.FC<DashboardProps> = ({
   concursos,
   theme = 'light',
   onToggleReorderMode,
-  onAddSession
+  onAddSession,
+  // Timer Props
+  timeLeft, isActive, isAlarmPlaying,
+  onStartTimer, onPauseTimer, onResumeTimer, onResetTimer, onStopAlarm
 }) => {
   const [isEditMode, setIsEditMode] = useState(false);
   const [showModal, setShowModal] = useState(false);
@@ -286,6 +300,21 @@ const Dashboard: React.FC<DashboardProps> = ({
 
   const renderWidgetContent = (id: string) => {
     switch (id) {
+      case 'focus_timer':
+        return (
+          <div className="h-full pt-2">
+            <TimerWidget
+              timeLeft={timeLeft || 0}
+              isActive={isActive || false}
+              isAlarmPlaying={isAlarmPlaying || false}
+              onStartTimer={onStartTimer || (() => { })}
+              onPauseTimer={onPauseTimer || (() => { })}
+              onResumeTimer={onResumeTimer || (() => { })}
+              onResetTimer={onResetTimer || (() => { })}
+              onStopAlarm={onStopAlarm || (() => { })}
+            />
+          </div>
+        );
       case 'general_stats':
         const totalDone = subjectStats.questionsData.reduce((acc, s) => acc + s.done, 0);
         const totalCorrect = subjectStats.questionsData.reduce((acc, s) => acc + s.correct, 0);

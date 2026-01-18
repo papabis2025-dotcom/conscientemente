@@ -31,21 +31,19 @@ const App: React.FC = () => {
   } = useAppData();
 
   const {
-    timerSeconds, isTimerActive, timerSubjectId,
-    setTimerSubjectId, setTimerSeconds, setIsTimerActive,
-    resetTimer, toggleTimer
+    timeLeft, isActive, isAlarmPlaying,
+    startTimer, pauseTimer, resumeTimer, resetTimer, stopAlarm
   } = useTimer();
 
   const handleLogout = () => {
     logout();
-    setIsTimerActive(false);
-    setTimerSeconds(0);
+    resetTimer();
   };
 
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard':
-        return <Dashboard subjects={filteredSubjects} sessions={sessions} simulados={simulados} activeConcurso={activeConcurso} selectedConcursoId={selectedConcursoId} onSelectConcursoId={setSelectedConcursoId} concursos={concursos} theme={theme} onToggleReorderMode={setIsReorderMode} onAddSession={addSession} />;
+        return <Dashboard subjects={filteredSubjects} sessions={sessions} simulados={simulados} activeConcurso={activeConcurso} selectedConcursoId={selectedConcursoId} onSelectConcursoId={setSelectedConcursoId} concursos={concursos} theme={theme} onToggleReorderMode={setIsReorderMode} onAddSession={addSession} timeLeft={timeLeft} isActive={isActive} isAlarmPlaying={isAlarmPlaying} onStartTimer={startTimer} onPauseTimer={pauseTimer} onResumeTimer={resumeTimer} onResetTimer={resetTimer} onStopAlarm={stopAlarm} />;
       case 'concursos':
         return <ConcursosView concursos={concursos} onUpdateConcursos={setConcursos} onSelectConcurso={(c) => { setSelectedConcursoId(c.id); setActiveTab('dashboard'); }} />;
       case 'subjects':
@@ -83,8 +81,9 @@ const App: React.FC = () => {
     <div className="flex h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-300 overflow-hidden font-sans">
       <Sidebar
         activeTab={activeTab} setActiveTab={setActiveTab} theme={theme} toggleTheme={toggleTheme}
-        timerSeconds={timerSeconds} isTimerActive={isTimerActive} timerSubjectId={timerSubjectId} subjects={filteredSubjects}
-        onToggleTimer={toggleTimer} onSetTimerSubject={setTimerSubjectId} onResetTimer={resetTimer}
+        timeLeft={timeLeft} isActive={isActive} isAlarmPlaying={isAlarmPlaying}
+        onStartTimer={startTimer} onPauseTimer={pauseTimer} onResumeTimer={resumeTimer} onResetTimer={resetTimer} onStopAlarm={stopAlarm}
+        subjects={filteredSubjects}
         onAddSession={addSession} currentUser={currentUser} onLogout={handleLogout} onUpdateUser={updateProfile}
         isReorderMode={isReorderMode}
         isCollapsed={isSidebarCollapsed}

@@ -10,7 +10,15 @@ export const useAppData = () => {
     const [isLoading, setIsLoading] = useState(true);
 
     const [concursos, setConcursos] = useState<Concurso[]>([]);
-    const [selectedConcursoId, setSelectedConcursoId] = useState<string | 'all'>('all');
+    const [selectedConcursoId, setSelectedConcursoIdState] = useState<string | 'all'>(() => {
+        const saved = localStorage.getItem('cp_selected_concurso_id');
+        return saved || 'all';
+    });
+
+    const setSelectedConcursoId = (id: string | 'all') => {
+        setSelectedConcursoIdState(id);
+        localStorage.setItem('cp_selected_concurso_id', id);
+    };
     const [sessions, setSessions] = useState<StudySession[]>([]);
     const [simulados, setSimulados] = useState<Simulado[]>([]);
     const [scheduledStudies, setScheduledStudies] = useState<ScheduledStudy[]>([]);
@@ -21,6 +29,17 @@ export const useAppData = () => {
     const [lastSaved, setLastSaved] = useState<string>('');
     const [isSaving, setIsSaving] = useState(false);
     const [saveError, setSaveError] = useState<string | null>(null);
+
+    // Global Daily Goal (persisted in localStorage for simplicity as per plan)
+    const [globalDailyGoal, setGlobalDailyGoalState] = useState<number>(() => {
+        const saved = localStorage.getItem('cp_global_daily_goal');
+        return saved ? parseInt(saved) : 20; // Default 20
+    });
+
+    const setGlobalDailyGoal = (goal: number) => {
+        setGlobalDailyGoalState(goal);
+        localStorage.setItem('cp_global_daily_goal', goal.toString());
+    };
 
     // Theme logic remains local for now to avoid flickering before auth loads
     const [theme, setTheme] = useState<'light' | 'dark'>(() => {
@@ -72,7 +91,7 @@ export const useAppData = () => {
                     id: session.user.id,
                     name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Estudante',
                     password: '',
-                    avatar: '🎓'
+                    avatar: session.user.user_metadata?.avatar || '🎓'
                 });
             } else {
                 setIsLoading(false);
@@ -85,7 +104,7 @@ export const useAppData = () => {
                     id: session.user.id,
                     name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Estudante',
                     password: '',
-                    avatar: '🎓'
+                    avatar: session.user.user_metadata?.avatar || '🎓'
                 });
             } else {
                 setCurrentUser(null);
@@ -405,12 +424,19 @@ export const useAppData = () => {
         clearLogs,
         deleteLog,
         addLog,
+        globalDailyGoal,
+        setGlobalDailyGoal,
         updateProfile: async (name: string, avatar: string) => {
             if (!currentUser) return;
             const updated = { ...currentUser, name, avatar };
             setCurrentUser(updated);
             try {
+                // Update specific table
                 await api.profiles.update({ name, avatar });
+                // ALSO update auth metadata so it loads correctly on session refresh
+                await supabase.auth.updateUser({
+                    data: { name, avatar }
+                });
             } catch (e) {
                 console.error('Error updating profile:', e);
             }

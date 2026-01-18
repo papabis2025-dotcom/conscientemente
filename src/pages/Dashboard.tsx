@@ -1,6 +1,10 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, Cell, LineChart, Line } from 'recharts';
+import {
+  LineChart, Line, AreaChart, Area, BarChart, Bar,
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
+  PieChart, Pie, LabelList
+} from 'recharts';
 import { Eye, EyeOff, X, Plus, Save, Trash2, Trophy, Target, Calendar, Clock, CheckCircle, AlertTriangle, TrendingUp } from 'lucide-react';
 
 import { Subject, StudySession, Concurso, Simulado, ActivityType } from '../types';
@@ -16,8 +20,9 @@ interface DashboardProps {
   onSelectConcursoId: (id: string | 'all') => void;
   concursos: Concurso[];
   theme?: 'light' | 'dark';
-  onToggleReorderMode?: (isReorder: boolean) => void;
+
   onAddSession?: (session: StudySession) => void;
+  globalDailyGoal?: number;
   // Timer Props
   timeLeft?: number;
   isActive?: boolean;
@@ -80,6 +85,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   theme = 'light',
   onToggleReorderMode,
   onAddSession,
+  globalDailyGoal,
   // Timer Props
   timeLeft, isActive, isAlarmPlaying,
   onStartTimer, onPauseTimer, onResumeTimer, onResetTimer, onStopAlarm
@@ -387,10 +393,17 @@ const Dashboard: React.FC<DashboardProps> = ({
                 <BarChart data={subjectStats.questionsData} margin={{ bottom: 20 }}>
                   <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} strokeOpacity={0.1} />
                   <XAxis dataKey="acronym" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 600, fill: chartTextColor }} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: chartTextColor }} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: chartTextColor }} domain={[0, 'auto']} allowDataOverflow={false} padding={{ top: 20 }} />
                   <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ fontSize: '11px', borderRadius: '12px', border: 'none', backgroundColor: isDarkMode ? '#0f172a' : '#fff' }} />
                   <Bar dataKey="done" radius={[6, 6, 0, 0]} barSize={35}>
                     {subjectStats.questionsData.map((entry, index) => <Cell key={index} fill={entry.hexColor} />)}
+                    <LabelList
+                      dataKey="done"
+                      position="top"
+                      offset={5}
+                      fill={isDarkMode ? '#94a3b8' : '#64748b'}
+                      style={{ fontSize: '11px', fontWeight: 'bold' }}
+                    />
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
@@ -405,10 +418,18 @@ const Dashboard: React.FC<DashboardProps> = ({
                 <BarChart data={subjectStats.timeData} margin={{ bottom: 20 }}>
                   <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} strokeOpacity={0.1} />
                   <XAxis dataKey="acronym" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 600, fill: chartTextColor }} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: chartTextColor }} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: chartTextColor }} domain={[0, 'auto']} allowDataOverflow={false} padding={{ top: 20 }} />
                   <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ fontSize: '11px', borderRadius: '12px', border: 'none', backgroundColor: isDarkMode ? '#0f172a' : '#fff' }} />
                   <Bar dataKey="hours" radius={[6, 6, 0, 0]} barSize={35}>
                     {subjectStats.timeData.map((entry, index) => <Cell key={index} fill={entry.hexColor} />)}
+                    <LabelList
+                      dataKey="hours"
+                      position="top"
+                      offset={5}
+                      formatter={(val: number) => `${val}h`}
+                      fill={isDarkMode ? '#94a3b8' : '#64748b'}
+                      style={{ fontSize: '11px', fontWeight: 'bold' }}
+                    />
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
@@ -477,6 +498,52 @@ const Dashboard: React.FC<DashboardProps> = ({
             </span>
             <span className="text-[10px] font-semibold uppercase text-slate-400 dark:text-slate-500 tracking-wide">Tempo Total</span>
           </div>
+        </div>
+
+        {/* Daily Goal Widget */}
+        <div className="hidden lg:flex flex-col items-end justify-center pl-6 border-l border-slate-100 dark:border-slate-800 ml-auto min-w-[150px]">
+          <span className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest mb-1">Meta Diária</span>
+          <div className="flex items-end gap-2">
+            {(() => {
+              const todayStr = new Date().toISOString().split('T')[0];
+              const doneToday = sessions
+                .filter(s => s.date.startsWith(todayStr) && s.questionsDone !== undefined)
+                .reduce((acc, s) => acc + (s.questionsDone || 0), 0);
+              const goal = globalDailyGoal || 20; // fallback default
+              const remaining = Math.max(0, goal - doneToday);
+
+              if (remaining === 0) {
+                return (
+                  <div className="flex items-center gap-2 bg-emerald-100 dark:bg-emerald-900/20 px-3 py-1.5 rounded-lg animate-in fade-in zoom-in-95 duration-300 border border-emerald-200 dark:border-emerald-800">
+                    <span className="text-base">🏆</span>
+                    <span className="text-[10px] font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-widest leading-none">Meta Diária Batida!</span>
+                  </div>
+                );
+              }
+
+              return (
+                <>
+                  <span className="text-2xl font-black leading-none text-slate-800 dark:text-white">
+                    {remaining}
+                  </span>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase mb-1">Faltam</span>
+                </>
+              );
+            })()}
+          </div>
+          {(() => {
+            const todayStr = new Date().toISOString().split('T')[0];
+            const doneToday = sessions
+              .filter(s => s.date.startsWith(todayStr) && s.questionsDone !== undefined)
+              .reduce((acc, s) => acc + (s.questionsDone || 0), 0);
+            const goal = globalDailyGoal || 20;
+            const pct = Math.min(100, Math.round((doneToday / goal) * 100));
+            return (
+              <div className="w-full flex flex-col items-end">
+                <span className="text-[9px] font-bold text-slate-400 mt-1 uppercase tracking-widest">{doneToday} / {goal} Feitas</span>
+              </div>
+            )
+          })()}
         </div>
       </div>
 

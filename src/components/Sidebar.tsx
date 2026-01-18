@@ -24,6 +24,7 @@ import {
   Check,
   GripVertical
 } from 'lucide-react';
+import logoImg from '../assets/logo.png';
 
 interface SidebarProps {
   activeTab: string;
@@ -154,7 +155,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
       <div className={`mb-6 px-1 flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'}`}>
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-blue-700 rounded-lg flex items-center justify-center text-white font-bold shadow-lg shadow-blue-500/30 text-base shrink-0">G</div>
+          <img src={logoImg} alt="Logo" className="w-8 h-8 rounded-lg shrink-0 object-contain" />
           {!isCollapsed && (
             <div className="animate-in fade-in slide-in-from-left-4 duration-300">
               <h1 className="text-sm font-bold text-slate-800 dark:text-white leading-none tracking-tight">Gabaritando</h1>
@@ -177,8 +178,12 @@ const Sidebar: React.FC<SidebarProps> = ({
       <div className={`mb-6 p-3 bg-slate-50 dark:bg-slate-800/40 rounded-2xl flex items-center gap-3 border border-slate-100 dark:border-slate-700 ${isCollapsed ? 'justify-center' : ''}`}>
         {!isEditingProfile || isCollapsed ? (
           <>
-            <div onClick={() => !isCollapsed && setIsEditingProfile(true)} className="w-10 h-10 bg-white dark:bg-slate-700 rounded-xl flex items-center justify-center text-xl shadow-sm shrink-0 cursor-pointer hover:scale-105 transition-transform text-slate-700 dark:text-slate-200">
-              {currentUser.avatar}
+            <div onClick={() => !isCollapsed && setIsEditingProfile(true)} className="w-10 h-10 bg-white dark:bg-slate-700 rounded-xl flex items-center justify-center text-xl shadow-sm shrink-0 cursor-pointer hover:scale-105 transition-transform text-slate-700 dark:text-slate-200 overflow-hidden">
+              {currentUser.avatar.startsWith('data:') ? (
+                <img src={currentUser.avatar} alt="User" className="w-full h-full object-cover" />
+              ) : (
+                currentUser.avatar
+              )}
             </div>
             {!isCollapsed && (
               <div className="flex-1 min-w-0 animate-in fade-in slide-in-from-left-4 duration-300 cursor-pointer" onClick={() => setIsEditingProfile(true)}>
@@ -189,26 +194,43 @@ const Sidebar: React.FC<SidebarProps> = ({
           </>
         ) : (
           <div className="w-full space-y-2 animate-in fade-in zoom-in-95 duration-200">
-            <input
-              type="text"
-              value={editName}
-              onChange={(e) => setEditName(e.target.value)}
-              className="w-full px-2 py-1 text-xs font-medium border rounded-lg dark:bg-slate-700 dark:text-white dark:border-slate-600 focus:ring-2 focus:ring-blue-500 outline-none"
-              placeholder="Seu nome"
-              autoFocus
-            />
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col gap-2">
               <input
                 type="text"
-                value={editAvatar}
-                onChange={(e) => setEditAvatar(e.target.value)}
-                className="w-10 text-center px-1 py-1 text-sm border rounded-lg dark:bg-slate-700 dark:text-white dark:border-slate-600 focus:ring-2 focus:ring-blue-500 outline-none"
-                placeholder="😎"
-                maxLength={2}
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                className="w-full px-2 py-1 text-xs font-medium border rounded-lg dark:bg-slate-700 dark:text-white dark:border-slate-600 focus:ring-2 focus:ring-blue-500 outline-none"
+                placeholder="Seu nome"
+                autoFocus
               />
-              <div className="flex gap-1">
-                <button onClick={() => { setIsEditingProfile(false); setEditName(currentUser.name); setEditAvatar(currentUser.avatar); }} className="text-slate-400 hover:text-slate-600 p-1"><X size={14} /></button>
-                <button onClick={handleSaveProfile} className="text-emerald-500 hover:text-emerald-600 p-1"><Check size={14} /></button>
+              <div className="flex gap-2 items-center">
+                <div className="relative w-10 h-10 shrink-0">
+                  {editAvatar.startsWith('data:') ? (
+                    <img src={editAvatar} alt="Avatar" className="w-full h-full rounded-lg object-cover border border-slate-200 dark:border-slate-600" />
+                  ) : (
+                    <div className="w-full h-full rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-lg border border-slate-200 dark:border-slate-600">
+                      {editAvatar}
+                    </div>
+                  )}
+                  <label className="absolute -bottom-1 -right-1 bg-blue-500 text-white rounded-full p-0.5 cursor-pointer shadow-sm hover:scale-110 transition-transform" title="Alterar Foto">
+                    <input type="file" accept="image/*" className="hidden" onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                          setEditAvatar(reader.result as string);
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }} />
+                    <Settings size={8} />
+                  </label>
+                </div>
+
+                <div className="flex-1 flex justify-end gap-1">
+                  <button onClick={() => { setIsEditingProfile(false); setEditName(currentUser.name); setEditAvatar(currentUser.avatar); }} className="text-slate-400 hover:text-slate-600 p-1"><X size={14} /></button>
+                  <button onClick={handleSaveProfile} className="text-emerald-500 hover:text-emerald-600 p-1"><Check size={14} /></button>
+                </div>
               </div>
             </div>
           </div>

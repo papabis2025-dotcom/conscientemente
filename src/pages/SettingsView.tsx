@@ -9,7 +9,7 @@ interface SettingsViewProps {
 }
 
 const SettingsView: React.FC<SettingsViewProps> = ({ currentUserEmail }) => {
-  const { resetAllData } = useAppData();
+  const { resetAllData, globalDailyGoal, setGlobalDailyGoal } = useAppData();
   const fileRef = useRef<HTMLInputElement>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
@@ -241,6 +241,24 @@ const SettingsView: React.FC<SettingsViewProps> = ({ currentUserEmail }) => {
               </button>
               {emailMessage && <p className="text-xs font-bold">{emailMessage}</p>}
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Preferências de Estudo */}
+      <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+        <h3 className="font-bold text-lg flex items-center gap-2">🎯 Preferências de Estudo</h3>
+        <div className="space-y-4">
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Meta Diária de Questões</p>
+          <div className="flex items-center gap-4">
+            <input
+              type="number"
+              min="1"
+              value={globalDailyGoal}
+              onChange={(e) => setGlobalDailyGoal(parseInt(e.target.value) || 0)}
+              className="w-32 px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 text-slate-800 dark:text-white font-bold text-lg"
+            />
+            <p className="text-sm text-slate-500 dark:text-slate-400">questões por dia em todas as datas.</p>
           </div>
         </div>
       </div>

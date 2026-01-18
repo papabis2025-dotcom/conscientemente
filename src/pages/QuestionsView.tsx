@@ -128,26 +128,6 @@ const QuestionsView: React.FC<QuestionsViewProps> = ({
           <h2 className="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tight">Performance em Questões 🎯</h2>
           <p className="text-slate-500 dark:text-slate-400">Analise seu rendimento detalhado por matéria e assunto.</p>
         </div>
-
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col min-w-[300px]">
-          <div className="flex justify-between items-center mb-4">
-            <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Meta Diária</span>
-            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="bg-slate-50 dark:bg-slate-800 px-3 py-1 rounded-lg text-xs font-bold text-blue-600 outline-none" />
-          </div>
-          <div className="flex items-end gap-3 mb-4">
-            <div className="flex-1">
-              <label className="text-[9px] font-bold text-slate-400 block mb-1">ALVO</label>
-              <input type="number" value={currentGoal || ''} onChange={(e) => handleSetGoal(e.target.value)} placeholder="0" className="w-full bg-slate-50 dark:bg-slate-800 px-3 py-2 rounded-xl text-lg font-black dark:text-white outline-none" />
-            </div>
-            <div className="text-right">
-              <p className="text-2xl font-black text-slate-800 dark:text-white">{doneToday}</p>
-              <p className="text-[9px] font-bold text-slate-400 uppercase">Resolvidas</p>
-            </div>
-          </div>
-          <div className="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-            <div className={`h-full transition-all duration-700 ${progressPercent >= 100 ? 'bg-emerald-500' : 'bg-blue-500'}`} style={{ width: `${progressPercent}%` }} />
-          </div>
-        </div>
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

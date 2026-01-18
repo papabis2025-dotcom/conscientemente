@@ -11,10 +11,26 @@ export const useTimer = () => {
 
     const timerRef = useRef<number | null>(null);
     const audioRef = useRef<HTMLAudioElement | null>(null);
+    const beepCountRef = useRef(0);
 
     useEffect(() => {
         audioRef.current = new Audio(ALARM_SOUND);
         audioRef.current.volume = 0.5;
+
+        const handleEnded = () => {
+            if (beepCountRef.current < 2) {
+                beepCountRef.current += 1;
+                setTimeout(() => {
+                    audioRef.current?.play().catch(e => console.error("Replay failed", e));
+                }, 300); // 300ms pause between beeps
+            }
+        };
+
+        audioRef.current.addEventListener('ended', handleEnded);
+
+        return () => {
+            audioRef.current?.removeEventListener('ended', handleEnded);
+        };
     }, []);
 
     useEffect(() => {
@@ -37,6 +53,7 @@ export const useTimer = () => {
 
     const playAlarm = () => {
         setIsAlarmPlaying(true);
+        beepCountRef.current = 0;
         audioRef.current?.play().catch(e => console.error("Audio play failed", e));
     };
 
@@ -45,6 +62,7 @@ export const useTimer = () => {
         if (audioRef.current) {
             audioRef.current.pause();
             audioRef.current.currentTime = 0;
+            beepCountRef.current = 3; // Prevent further loops if stopped mid-sequence
         }
     };
 

@@ -26,6 +26,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
   const [sortBy, setSortBy] = useState<'default' | 'time' | 'questions'>('default');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [topicSortBy, setTopicSortBy] = useState<'default' | 'time' | 'questions'>('default');
+  const [topicSortOrder, setTopicSortOrder] = useState<'asc' | 'desc'>('desc');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -70,9 +71,11 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
     return [...topics].sort((a, b) => {
       const statsA = getTopicStats(subjectId, a.id);
       const statsB = getTopicStats(subjectId, b.id);
-      if (topicSortBy === 'time') return statsB.minutes - statsA.minutes;
-      if (topicSortBy === 'questions') return statsB.done - statsA.done;
-      return 0;
+
+      const valA = topicSortBy === 'time' ? statsA.minutes : statsA.done;
+      const valB = topicSortBy === 'time' ? statsB.minutes : statsB.done;
+
+      return topicSortOrder === 'desc' ? valB - valA : valA - valB;
     });
   };
 
@@ -213,11 +216,11 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
           </div>
           <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 p-1.5 rounded-xl">
             <span className="text-[10px] font-black uppercase text-slate-400 px-2">Assuntos:</span>
-            <button onClick={() => setTopicSortBy('time')} className={`px-3 py-1 text-[10px] font-bold uppercase rounded-lg transition-all ${topicSortBy === 'time' ? 'bg-white dark:bg-slate-700 text-purple-600 shadow-sm' : 'text-slate-400'}`}>
-              Tempo {topicSortBy === 'time' && '↓'}
+            <button onClick={() => { setTopicSortOrder(prev => topicSortBy === 'time' ? (prev === 'desc' ? 'asc' : 'desc') : 'desc'); setTopicSortBy('time'); }} className={`px-3 py-1 text-[10px] font-bold uppercase rounded-lg transition-all ${topicSortBy === 'time' ? 'bg-white dark:bg-slate-700 text-purple-600 shadow-sm' : 'text-slate-400'}`}>
+              Tempo {topicSortBy === 'time' && (topicSortOrder === 'desc' ? '↓' : '↑')}
             </button>
-            <button onClick={() => setTopicSortBy('questions')} className={`px-3 py-1 text-[10px] font-bold uppercase rounded-lg transition-all ${topicSortBy === 'questions' ? 'bg-white dark:bg-slate-700 text-purple-600 shadow-sm' : 'text-slate-400'}`}>
-              Questões {topicSortBy === 'questions' && '↓'}
+            <button onClick={() => { setTopicSortOrder(prev => topicSortBy === 'questions' ? (prev === 'desc' ? 'asc' : 'desc') : 'desc'); setTopicSortBy('questions'); }} className={`px-3 py-1 text-[10px] font-bold uppercase rounded-lg transition-all ${topicSortBy === 'questions' ? 'bg-white dark:bg-slate-700 text-purple-600 shadow-sm' : 'text-slate-400'}`}>
+              Questões {topicSortBy === 'questions' && (topicSortOrder === 'desc' ? '↓' : '↑')}
             </button>
           </div>
         </div>

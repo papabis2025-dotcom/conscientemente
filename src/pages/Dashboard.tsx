@@ -305,51 +305,45 @@ const Dashboard: React.FC<DashboardProps> = ({
       case 'general_stats':
         const totalDone = subjectStats.questionsData.reduce((acc, s) => acc + s.done, 0);
         const totalCorrect = subjectStats.questionsData.reduce((acc, s) => acc + s.correct, 0);
-        const globalAccuracy = totalDone > 0 ? Math.round((totalCorrect / totalDone) * 100) : 0;
-        return (
-          <div className="mt-1 flex flex-col h-full overflow-hidden">
-            <div className="shrink-0 mb-2">
-              <div className="flex items-baseline gap-1.5 mb-1">
-                <span className="text-3xl font-bold text-slate-800 dark:text-white leading-none">{globalAccuracy}%</span>
-                <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wide">Global</span>
+        <div className="mt-4 flex flex-col h-full justify-center">
+          <div className="flex items-center justify-center mb-6">
+            <div className="relative flex items-center justify-center w-32 h-32">
+              <svg className="transform -rotate-90 w-full h-full">
+                <circle
+                  cx="64"
+                  cy="64"
+                  r="56"
+                  stroke="currentColor"
+                  strokeWidth="12"
+                  fill="transparent"
+                  className="text-slate-100 dark:text-slate-800"
+                />
+                <circle
+                  cx="64"
+                  cy="64"
+                  r="56"
+                  stroke="currentColor"
+                  strokeWidth="12"
+                  fill="transparent"
+                  strokeDasharray={351.86}
+                  strokeDashoffset={351.86 - (351.86 * globalAccuracy) / 100}
+                  className="text-blue-500 transition-all duration-1000 ease-out"
+                  strokeLinecap="round"
+                />
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span className="text-3xl font-bold text-slate-800 dark:text-white">{globalAccuracy}%</span>
+                <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wide">Acertos</span>
               </div>
-              <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                <div className="h-full bg-blue-500 transition-all duration-1000" style={{ width: `${globalAccuracy}%` }} />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2 flex-1 min-h-0">
-              {subjectStats.best && (
-                <div className="bg-emerald-50 dark:bg-emerald-900/10 p-2 rounded-xl border border-emerald-100 dark:border-emerald-900/30 flex flex-col justify-center h-full min-h-0">
-                  <div className="flex items-center gap-1 mb-0.5">
-                    <Trophy size={10} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
-                    <span className="text-[8px] font-black uppercase text-emerald-600 dark:text-emerald-400 tracking-wider">Melhor</span>
-                  </div>
-                  <div className="line-clamp-2 text-[10px] leading-tight font-bold text-emerald-900 dark:text-emerald-100 break-words" title={subjectStats.best.name}>
-                    {subjectStats.best.name}
-                  </div>
-                  <div className="text-[9px] font-bold text-emerald-600/80 dark:text-emerald-400/80 mt-0.5">
-                    {subjectStats.best.accuracy}%
-                  </div>
-                </div>
-              )}
-              {subjectStats.worst && (
-                <div className="bg-rose-50 dark:bg-rose-900/10 p-2 rounded-xl border border-rose-100 dark:border-rose-900/30 flex flex-col justify-center h-full min-h-0">
-                  <div className="flex items-center gap-1 mb-0.5">
-                    <Target size={10} className="text-rose-600 dark:text-rose-400 shrink-0" />
-                    <span className="text-[8px] font-black uppercase text-rose-600 dark:text-rose-400 tracking-wider">Atenção</span>
-                  </div>
-                  <div className="line-clamp-2 text-[10px] leading-tight font-bold text-rose-900 dark:text-rose-100 break-words" title={subjectStats.worst.name}>
-                    {subjectStats.worst.name}
-                  </div>
-                  <div className="text-[9px] font-bold text-rose-600/80 dark:text-rose-400/80 mt-0.5">
-                    {subjectStats.worst.accuracy}%
-                  </div>
-                </div>
-              )}
             </div>
           </div>
-        );
+
+          <div className="text-center px-4">
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+              Média global de desempenho em todas as disciplinas estudadas.
+            </p>
+          </div>
+        </div>
       case 'study_frequency':
         return (
           <div className="mt-2 flex flex-col h-full justify-between pb-2">

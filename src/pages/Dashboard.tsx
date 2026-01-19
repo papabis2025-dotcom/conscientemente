@@ -318,25 +318,33 @@ const Dashboard: React.FC<DashboardProps> = ({
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-3 h-full max-h-[100px]">
               {subjectStats.best && (
-                <div className="bg-emerald-50 dark:bg-emerald-900/10 p-2 rounded-xl border border-emerald-100 dark:border-emerald-900/30">
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <Trophy size={12} className="text-emerald-600 dark:text-emerald-400" />
-                    <span className="text-[9px] font-bold uppercase text-emerald-600 dark:text-emerald-400">Melhor</span>
+                <div className="bg-emerald-50 dark:bg-emerald-900/10 p-2.5 rounded-2xl border border-emerald-100 dark:border-emerald-900/30 flex flex-col justify-between h-full">
+                  <div className="flex items-center gap-1.5 mb-0.5">
+                    <Trophy size={12} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    <span className="text-[9px] font-black uppercase text-emerald-600 dark:text-emerald-400 tracking-wider">Melhor</span>
                   </div>
-                  <div className="truncate text-xs font-bold text-emerald-900 dark:text-emerald-100" title={subjectStats.best.name}>{subjectStats.best.name}</div>
-                  <div className="text-[10px] font-semibold text-emerald-600/70 dark:text-emerald-400/70">{subjectStats.best.accuracy}% acertos</div>
+                  <div className="line-clamp-2 text-[11px] leading-tight font-bold text-emerald-900 dark:text-emerald-100" title={subjectStats.best.name}>
+                    {subjectStats.best.name}
+                  </div>
+                  <div className="text-[10px] font-bold text-emerald-600/80 dark:text-emerald-400/80 mt-1">
+                    {subjectStats.best.accuracy}% acertos
+                  </div>
                 </div>
               )}
               {subjectStats.worst && (
-                <div className="bg-rose-50 dark:bg-rose-900/10 p-2 rounded-xl border border-rose-100 dark:border-rose-900/30">
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <Target size={12} className="text-rose-600 dark:text-rose-400" />
-                    <span className="text-[9px] font-bold uppercase text-rose-600 dark:text-rose-400">Atenção</span>
+                <div className="bg-rose-50 dark:bg-rose-900/10 p-2.5 rounded-2xl border border-rose-100 dark:border-rose-900/30 flex flex-col justify-between h-full">
+                  <div className="flex items-center gap-1.5 mb-0.5">
+                    <Target size={12} className="text-rose-600 dark:text-rose-400 shrink-0" />
+                    <span className="text-[9px] font-black uppercase text-rose-600 dark:text-rose-400 tracking-wider">Atenção</span>
                   </div>
-                  <div className="truncate text-xs font-bold text-rose-900 dark:text-rose-100" title={subjectStats.worst.name}>{subjectStats.worst.name}</div>
-                  <div className="text-[10px] font-semibold text-rose-600/70 dark:text-rose-400/70">{subjectStats.worst.accuracy}% acertos</div>
+                  <div className="line-clamp-2 text-[11px] leading-tight font-bold text-rose-900 dark:text-rose-100" title={subjectStats.worst.name}>
+                    {subjectStats.worst.name}
+                  </div>
+                  <div className="text-[10px] font-bold text-rose-600/80 dark:text-rose-400/80 mt-1">
+                    {subjectStats.worst.accuracy}% acertos
+                  </div>
                 </div>
               )}
             </div>

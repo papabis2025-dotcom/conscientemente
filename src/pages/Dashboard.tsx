@@ -49,6 +49,7 @@ const DEFAULT_WIDGETS: WidgetState[] = [
   { id: 'weekly_chart', title: 'Volume de Estudo Semanal', isVisible: true, size: 'normal' },
   { id: 'questions_by_subject', title: 'Questões por Disciplina', isVisible: true, size: 'wide' },
   { id: 'time_by_subject', title: 'Tempo por Disciplina (Horas)', isVisible: true, size: 'wide' },
+  { id: 'performance_by_subject', title: 'Desempenho por Disciplina', isVisible: true, size: 'wide' },
 ];
 
 import { getColorHex } from '../utils/colors';
@@ -80,7 +81,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   const [isEditMode, setIsEditMode] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [widgets, setWidgets] = useState<WidgetState[]>(() => {
-    const saved = localStorage.getItem('cp_dashboard_layout_v13');
+    const saved = localStorage.getItem('cp_dashboard_layout_v14');
     // Merge with defaults to ensure new widgets appear
     if (!saved) return DEFAULT_WIDGETS;
     const parsed = JSON.parse(saved);
@@ -88,8 +89,11 @@ const Dashboard: React.FC<DashboardProps> = ({
     const filtered = parsed.filter((w: any) => w.id !== 'focus_timer');
 
     // Check if new widget is missing
-    if (!filtered.find((w: any) => w.id === 'study_frequency')) {
-      return [...DEFAULT_WIDGETS];
+    const existingIds = new Set(filtered.map((w: any) => w.id));
+    const missingWidgets = DEFAULT_WIDGETS.filter(w => !existingIds.has(w.id));
+
+    if (missingWidgets.length > 0) {
+      return [...filtered, ...missingWidgets];
     }
     return filtered;
   });
@@ -109,7 +113,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   const isDarkMode = theme === 'dark';
   const chartTextColor = isDarkMode ? '#94a3b8' : '#64748b';
 
-  useEffect(() => { localStorage.setItem('cp_dashboard_layout_v13', JSON.stringify(widgets)); }, [widgets]);
+  useEffect(() => { localStorage.setItem('cp_dashboard_layout_v14', JSON.stringify(widgets)); }, [widgets]);
 
   const handleDragStart = (index: number) => {
     setDraggedWidgetIndex(index);
@@ -200,6 +204,7 @@ const Dashboard: React.FC<DashboardProps> = ({
       all: list,
       questionsData: list.filter(s => s.done > 0).sort((a, b) => b.done - a.done),
       timeData: list.filter(s => s.minutes > 0).sort((a, b) => b.minutes - a.minutes),
+      performanceData: list.filter(s => s.done > 0).sort((a, b) => b.accuracy - a.accuracy),
       best: [...list].filter(s => s.done > 0).sort((a, b) => b.accuracy - a.accuracy)[0] || null,
       worst: list.filter(s => s.done > 0).length > 0 ? [...list].filter(s => s.done > 0).sort((a, b) => a.accuracy - b.accuracy)[0] : null
     };
@@ -421,6 +426,34 @@ const Dashboard: React.FC<DashboardProps> = ({
                 </BarChart>
               </ResponsiveContainer>
             ) : <div className="h-full flex items-center justify-center text-xs text-slate-400">Sem dados</div>}
+          </div>
+        );
+      case 'performance_by_subject':
+        return (
+          <div className="h-64 w-full mt-2" style={{ minHeight: '256px' }}>
+            {subjectStats.performanceData.length > 0 ? (
+              <ResponsiveContainer width="99%" height="100%">
+                <BarChart data={subjectStats.performanceData} margin={{ bottom: 20 }}>
+                  <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} strokeOpacity={0.1} />
+                  <XAxis dataKey="acronym" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 600, fill: chartTextColor }} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: chartTextColor }} domain={[0, 100]} padding={{ top: 20 }} />
+                  <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ fontSize: '11px', borderRadius: '12px', border: 'none', backgroundColor: isDarkMode ? '#0f172a' : '#fff' }} />
+                  <Bar dataKey="accuracy" radius={[6, 6, 0, 0]} barSize={35}>
+                    {subjectStats.performanceData.map((entry, index) => (
+                      <Cell key={index} fill={entry.accuracy >= 80 ? '#10b981' : entry.accuracy >= 50 ? '#3b82f6' : '#f43f5e'} />
+                    ))}
+                    <LabelList
+                      dataKey="accuracy"
+                      position="top"
+                      offset={5}
+                      formatter={(val: number) => `${val}%`}
+                      fill={isDarkMode ? '#94a3b8' : '#64748b'}
+                      style={{ fontSize: '11px', fontWeight: 'bold' }}
+                    />
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            ) : <div className="h-full flex items-center justify-center text-xs text-slate-400">Sem dados de desempenho</div>}
           </div>
         );
       default: return null;

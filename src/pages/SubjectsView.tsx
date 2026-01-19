@@ -32,6 +32,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
   const [editingSubjectId, setEditingSubjectId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [editColor, setEditColor] = useState('');
+  const [editQuestionsGoal, setEditQuestionsGoal] = useState<number | ''>('');
 
   // Expanded rows state
   const [expandedSubjects, setExpandedSubjects] = useState<Set<string>>(new Set());
@@ -83,7 +84,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
   const sortedSubjects = [...subjects].sort((a, b) => {
     if (sortBy === 'default') return 0;
     if (sortBy === 'name') {
-      const compare = a.name.localeCompare(b.name);
+      const compare = a.name.localeCompare(b.name, undefined, { numeric: true });
       return sortOrder === 'asc' ? compare : -compare;
     }
     if (sortBy === 'meta') {
@@ -123,12 +124,18 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
     setEditingSubjectId(subject.id);
     setEditName(subject.name);
     setEditColor(subject.color);
+    setEditQuestionsGoal(subject.questionsGoal || '');
   };
 
   const saveEdit = (e?: React.MouseEvent) => {
     e?.stopPropagation();
     if (!editName.trim()) return;
-    onUpdateSubjects(subjects.map(s => s.id === editingSubjectId ? { ...s, name: editName, color: editColor } : s));
+    onUpdateSubjects(subjects.map(s => s.id === editingSubjectId ? {
+      ...s,
+      name: editName,
+      color: editColor,
+      questionsGoal: editQuestionsGoal === '' ? undefined : Number(editQuestionsGoal)
+    } : s));
     setEditingSubjectId(null);
   };
 
@@ -273,7 +280,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                 </th>
                 <th className="px-6 py-4 text-[10px] font-bold uppercase text-slate-400 tracking-wider">Aproveitamento</th>
                 <th className="px-6 py-4 text-[10px] font-bold uppercase text-slate-400 tracking-wider cursor-pointer hover:text-blue-500" onClick={() => { setSortBy('meta'); setSortOrder(o => o === 'desc' ? 'asc' : 'desc'); }}>
-                  Meta {sortBy === 'meta' && (sortOrder === 'desc' ? '↓' : '↑')}
+                  Edital {sortBy === 'meta' && (sortOrder === 'desc' ? '↓' : '↑')}
                 </th>
                 <th className="px-6 py-4 text-[10px] font-bold uppercase text-slate-400 tracking-wider">Peso</th>
                 <th className="px-6 py-4 text-[10px] font-bold uppercase text-slate-400 tracking-wider text-right">Ações</th>
@@ -351,8 +358,18 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-300">
-                          {subject.questionsGoal ? <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded text-xs font-bold">{subject.questionsGoal} Qs</span> : '-'}
+                        <div className="flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-300" onClick={e => editingSubjectId === subject.id && e.stopPropagation()}>
+                          {editingSubjectId === subject.id ? (
+                            <input
+                              type="number"
+                              placeholder="Qtd"
+                              className="w-16 px-2 py-1 bg-white dark:bg-slate-900 border rounded text-sm"
+                              value={editQuestionsGoal}
+                              onChange={e => setEditQuestionsGoal(e.target.value === '' ? '' : Number(e.target.value))}
+                            />
+                          ) : (
+                            subject.questionsGoal ? <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded text-xs font-bold">{subject.questionsGoal} Qs</span> : '-'
+                          )}
                         </div>
                       </td>
                       <td className="px-6 py-4">
@@ -429,13 +446,13 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                                   .sort((a, b) => {
                                     if (topicSortBy === 'default') {
                                       // Default: completion then title
-                                      if (a.topic.isCompleted === b.topic.isCompleted) return a.topic.title.localeCompare(b.topic.title);
+                                      if (a.topic.isCompleted === b.topic.isCompleted) return a.topic.title.localeCompare(b.topic.title, undefined, { numeric: true });
                                       return a.topic.isCompleted ? 1 : -1;
                                     }
 
                                     const multiplier = topicSortOrder === 'asc' ? 1 : -1;
 
-                                    if (topicSortBy === 'name') return a.topic.title.localeCompare(b.topic.title) * multiplier;
+                                    if (topicSortBy === 'name') return a.topic.title.localeCompare(b.topic.title, undefined, { numeric: true }) * multiplier;
                                     if (topicSortBy === 'priority') {
                                       const pMap = { 'Alta': 3, 'Média': 2, 'Baixa': 1 };
                                       return (pMap[a.topic.priority] - pMap[b.topic.priority]) * multiplier;

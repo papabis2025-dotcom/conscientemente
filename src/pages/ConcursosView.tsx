@@ -55,9 +55,9 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
       id: crypto.randomUUID(),
       name: newConcName,
       banca: banca,
-      startDate: new Date(startDate).toISOString(),
+      startDate: new Date(`${startDate}T12:00:00`).toISOString(),
       subjects: subjectsList,
-      targetDate: targetDate || undefined
+      targetDate: targetDate ? new Date(`${targetDate}T12:00:00`).toISOString() : undefined
     };
     onUpdateConcursos([...concursos, newConc]);
     setNewConcName(''); setBanca(''); setStartDate(new Date().toISOString().split('T')[0]); setTargetDate(''); setIsAdding(false);
@@ -83,8 +83,8 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
           ...c,
           name: editFormData.name || c.name,
           banca: editFormData.banca || c.banca,
-          startDate: editFormData.startDate ? new Date(editFormData.startDate).toISOString() : c.startDate,
-          targetDate: editFormData.targetDate ? new Date(editFormData.targetDate).toISOString() : undefined
+          startDate: editFormData.startDate ? new Date(`${editFormData.startDate}T12:00:00`).toISOString() : c.startDate,
+          targetDate: editFormData.targetDate ? new Date(`${editFormData.targetDate}T12:00:00`).toISOString() : undefined
         };
       }
       return c;

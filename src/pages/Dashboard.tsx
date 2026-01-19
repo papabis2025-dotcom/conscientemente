@@ -307,43 +307,43 @@ const Dashboard: React.FC<DashboardProps> = ({
         const totalCorrect = subjectStats.questionsData.reduce((acc, s) => acc + s.correct, 0);
         const globalAccuracy = totalDone > 0 ? Math.round((totalCorrect / totalDone) * 100) : 0;
         return (
-          <div className="mt-2 flex flex-col h-full justify-between pb-1">
-            <div>
-              <div className="flex items-end gap-2 mb-2">
-                <span className="text-4xl font-bold text-slate-800 dark:text-white leading-none">{globalAccuracy}%</span>
-                <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-1">Global</span>
+          <div className="mt-1 flex flex-col h-full overflow-hidden">
+            <div className="shrink-0 mb-2">
+              <div className="flex items-baseline gap-1.5 mb-1">
+                <span className="text-3xl font-bold text-slate-800 dark:text-white leading-none">{globalAccuracy}%</span>
+                <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wide">Global</span>
               </div>
-              <div className="w-full h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden mb-4">
+              <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                 <div className="h-full bg-blue-500 transition-all duration-1000" style={{ width: `${globalAccuracy}%` }} />
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 flex-1 min-h-0">
+            <div className="grid grid-cols-2 gap-2 flex-1 min-h-0">
               {subjectStats.best && (
-                <div className="bg-emerald-50 dark:bg-emerald-900/10 p-2.5 rounded-2xl border border-emerald-100 dark:border-emerald-900/30 flex flex-col justify-between h-full">
-                  <div className="flex items-center gap-1.5 mb-0.5">
-                    <Trophy size={12} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
-                    <span className="text-[9px] font-black uppercase text-emerald-600 dark:text-emerald-400 tracking-wider">Melhor</span>
+                <div className="bg-emerald-50 dark:bg-emerald-900/10 p-2 rounded-xl border border-emerald-100 dark:border-emerald-900/30 flex flex-col justify-center h-full min-h-0">
+                  <div className="flex items-center gap-1 mb-0.5">
+                    <Trophy size={10} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    <span className="text-[8px] font-black uppercase text-emerald-600 dark:text-emerald-400 tracking-wider">Melhor</span>
                   </div>
-                  <div className="line-clamp-2 text-[11px] leading-tight font-bold text-emerald-900 dark:text-emerald-100" title={subjectStats.best.name}>
+                  <div className="line-clamp-2 text-[10px] leading-tight font-bold text-emerald-900 dark:text-emerald-100 break-words" title={subjectStats.best.name}>
                     {subjectStats.best.name}
                   </div>
-                  <div className="text-[10px] font-bold text-emerald-600/80 dark:text-emerald-400/80 mt-1">
-                    {subjectStats.best.accuracy}% acertos
+                  <div className="text-[9px] font-bold text-emerald-600/80 dark:text-emerald-400/80 mt-0.5">
+                    {subjectStats.best.accuracy}%
                   </div>
                 </div>
               )}
               {subjectStats.worst && (
-                <div className="bg-rose-50 dark:bg-rose-900/10 p-2.5 rounded-2xl border border-rose-100 dark:border-rose-900/30 flex flex-col justify-between h-full">
-                  <div className="flex items-center gap-1.5 mb-0.5">
-                    <Target size={12} className="text-rose-600 dark:text-rose-400 shrink-0" />
-                    <span className="text-[9px] font-black uppercase text-rose-600 dark:text-rose-400 tracking-wider">Atenção</span>
+                <div className="bg-rose-50 dark:bg-rose-900/10 p-2 rounded-xl border border-rose-100 dark:border-rose-900/30 flex flex-col justify-center h-full min-h-0">
+                  <div className="flex items-center gap-1 mb-0.5">
+                    <Target size={10} className="text-rose-600 dark:text-rose-400 shrink-0" />
+                    <span className="text-[8px] font-black uppercase text-rose-600 dark:text-rose-400 tracking-wider">Atenção</span>
                   </div>
-                  <div className="line-clamp-2 text-[11px] leading-tight font-bold text-rose-900 dark:text-rose-100" title={subjectStats.worst.name}>
+                  <div className="line-clamp-2 text-[10px] leading-tight font-bold text-rose-900 dark:text-rose-100 break-words" title={subjectStats.worst.name}>
                     {subjectStats.worst.name}
                   </div>
-                  <div className="text-[10px] font-bold text-rose-600/80 dark:text-rose-400/80 mt-1">
-                    {subjectStats.worst.accuracy}% acertos
+                  <div className="text-[9px] font-bold text-rose-600/80 dark:text-rose-400/80 mt-0.5">
+                    {subjectStats.worst.accuracy}%
                   </div>
                 </div>
               )}

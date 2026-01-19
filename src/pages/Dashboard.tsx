@@ -5,7 +5,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
   PieChart, Pie, LabelList
 } from 'recharts';
-import { Eye, EyeOff, X, Plus, Save, Trash2, Trophy, Target, Calendar, Clock, CheckCircle, AlertTriangle, TrendingUp } from 'lucide-react';
+import { Eye, EyeOff, X, Plus, Save, Trash2, Trophy, Target, Calendar, Clock, CheckCircle, AlertTriangle, TrendingUp, Maximize2, Minimize2 } from 'lucide-react';
 
 import { Subject, StudySession, Concurso, Simulado, ActivityType } from '../types';
 import AISuggestions from '../components/dashboard/AISuggestions';
@@ -109,6 +109,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   });
 
   const [draggedWidgetIndex, setDraggedWidgetIndex] = useState<number | null>(null);
+  const [fullscreenWidgetId, setFullscreenWidgetId] = useState<string | null>(null);
 
   const isDarkMode = theme === 'dark';
   const chartTextColor = isDarkMode ? '#94a3b8' : '#64748b';
@@ -306,13 +307,38 @@ const Dashboard: React.FC<DashboardProps> = ({
         const totalCorrect = subjectStats.questionsData.reduce((acc, s) => acc + s.correct, 0);
         const globalAccuracy = totalDone > 0 ? Math.round((totalCorrect / totalDone) * 100) : 0;
         return (
-          <div className="mt-2 space-y-4">
+          <div className="mt-2 flex flex-col h-full justify-between pb-1">
             <div>
-              <p className="text-4xl font-bold text-slate-800 dark:text-white leading-none mb-1">{globalAccuracy}%</p>
-              <p className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide">Aproveitamento Global</p>
+              <div className="flex items-end gap-2 mb-2">
+                <span className="text-4xl font-bold text-slate-800 dark:text-white leading-none">{globalAccuracy}%</span>
+                <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-1">Global</span>
+              </div>
+              <div className="w-full h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden mb-4">
+                <div className="h-full bg-blue-500 transition-all duration-1000" style={{ width: `${globalAccuracy}%` }} />
+              </div>
             </div>
-            <div className="w-full h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-              <div className="h-full bg-blue-500 transition-all duration-1000" style={{ width: `${globalAccuracy}%` }} />
+
+            <div className="grid grid-cols-2 gap-2">
+              {subjectStats.best && (
+                <div className="bg-emerald-50 dark:bg-emerald-900/10 p-2 rounded-xl border border-emerald-100 dark:border-emerald-900/30">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <Trophy size={12} className="text-emerald-600 dark:text-emerald-400" />
+                    <span className="text-[9px] font-bold uppercase text-emerald-600 dark:text-emerald-400">Melhor</span>
+                  </div>
+                  <div className="truncate text-xs font-bold text-emerald-900 dark:text-emerald-100" title={subjectStats.best.name}>{subjectStats.best.name}</div>
+                  <div className="text-[10px] font-semibold text-emerald-600/70 dark:text-emerald-400/70">{subjectStats.best.accuracy}% acertos</div>
+                </div>
+              )}
+              {subjectStats.worst && (
+                <div className="bg-rose-50 dark:bg-rose-900/10 p-2 rounded-xl border border-rose-100 dark:border-rose-900/30">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <Target size={12} className="text-rose-600 dark:text-rose-400" />
+                    <span className="text-[9px] font-bold uppercase text-rose-600 dark:text-rose-400">Atenção</span>
+                  </div>
+                  <div className="truncate text-xs font-bold text-rose-900 dark:text-rose-100" title={subjectStats.worst.name}>{subjectStats.worst.name}</div>
+                  <div className="text-[10px] font-semibold text-rose-600/70 dark:text-rose-400/70">{subjectStats.worst.accuracy}% acertos</div>
+                </div>
+              )}
             </div>
           </div>
         );
@@ -343,7 +369,13 @@ const Dashboard: React.FC<DashboardProps> = ({
             acc.push({ subjectName: s.name, type: 'info', message: `Pouco estudo em ${s.name}. Que tal um ciclo hoje?` });
           }
           return acc;
-        }, [] as any[]);
+        }, [] as any[])
+          .sort((a, b) => {
+            const priority = { warning: 3, info: 2, success: 1 };
+            return (priority[b.type as keyof typeof priority] || 0) - (priority[a.type as keyof typeof priority] || 0);
+          })
+          .slice(0, 3);
+
         return <AISuggestions suggestions={suggestions} />;
       case 'simulados_summary':
         const simDone = simulados.reduce((acc, s) => acc + s.results.reduce((a, r) => a + r.done, 0), 0);
@@ -440,7 +472,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                   <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ fontSize: '11px', borderRadius: '12px', border: 'none', backgroundColor: isDarkMode ? '#0f172a' : '#fff' }} />
                   <Bar dataKey="accuracy" radius={[6, 6, 0, 0]} barSize={35}>
                     {subjectStats.performanceData.map((entry, index) => (
-                      <Cell key={index} fill={entry.accuracy >= 80 ? '#10b981' : entry.accuracy >= 50 ? '#3b82f6' : '#f43f5e'} />
+                      <Cell key={index} fill={entry.hexColor} />
                     ))}
                     <LabelList
                       dataKey="accuracy"
@@ -601,18 +633,64 @@ const Dashboard: React.FC<DashboardProps> = ({
             >
               <div className="flex justify-between items-center mb-3">
                 <h4 className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wide">{widget.title}</h4>
-                {isEditMode && (
-                  <div className="flex gap-2">
-                    <button onClick={() => cycleSize(widget.id)} className="bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-lg text-[9px] font-bold uppercase tracking-tight text-slate-500">Tam: {widget.size}</button>
-                    <button onClick={() => setWidgets(prev => prev.map(w => w.id === widget.id ? { ...w, isVisible: !w.isVisible } : w))} className="text-slate-500 hover:text-blue-500">{widget.isVisible ? <Eye size={16} /> : <EyeOff size={16} />}</button>
-                  </div>
-                )}
+                <div className="flex gap-2 items-center">
+                  {!isEditMode && ['weekly_chart', 'questions_by_subject', 'time_by_subject', 'performance_by_subject'].includes(widget.id) && (
+                    <button
+                      onClick={() => setFullscreenWidgetId(widget.id)}
+                      className="text-slate-400 hover:text-blue-500 transition-colors p-1"
+                      title="Expandir Gráfico"
+                    >
+                      <Maximize2 size={14} />
+                    </button>
+                  )}
+                  {isEditMode && (
+                    <div className="flex gap-2">
+                      <button onClick={() => cycleSize(widget.id)} className="bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-lg text-[9px] font-bold uppercase tracking-tight text-slate-500">Tam: {widget.size}</button>
+                      <button onClick={() => setWidgets(prev => prev.map(w => w.id === widget.id ? { ...w, isVisible: !w.isVisible } : w))} className="text-slate-500 hover:text-blue-500">{widget.isVisible ? <Eye size={16} /> : <EyeOff size={16} />}</button>
+                    </div>
+                  )}
+                </div>
               </div>
               {renderWidgetContent(widget.id)}
             </div>
           );
         })}
       </div>
+
+      {fullscreenWidgetId && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/90 backdrop-blur-md p-6 animate-in fade-in duration-300">
+          <div className="bg-white dark:bg-slate-900 w-full h-full max-w-6xl max-h-[90vh] rounded-[2.5rem] shadow-2xl p-8 relative flex flex-col">
+            <div className="flex justify-between items-center mb-6 shrink-0">
+              <h3 className="text-2xl font-bold text-slate-800 dark:text-white uppercase tracking-tight">
+                {widgets.find(w => w.id === fullscreenWidgetId)?.title}
+              </h3>
+              <button
+                onClick={() => setFullscreenWidgetId(null)}
+                className="w-10 h-10 flex items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-all"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="flex-1 min-h-0 w-full">
+              {/* Hack to ensure responsive container works in fullscreen */}
+              {(() => {
+                const content = renderWidgetContent(fullscreenWidgetId);
+                // We need to clone the element to potentially override styles or ensure it takes full height
+                // But renderWidgetContent returns a div with fixed/min height. 
+                // We'll wrap it in a div that forces 100% height and overrides the child's min-height via CSS if needed, 
+                // or we rely on the ResponsiveContainer to adapt if the parent has size.
+                // The original renderWidgetContent returns a Div with height classes. We need to strip that or wrap it.
+                // Actually, ResponsiveContainer needs a defined parent height.
+                return (
+                  <div className="w-full h-full [&>div]:!h-full [&>div]:!min-h-0">
+                    {content}
+                  </div>
+                )
+              })()}
+            </div>
+          </div>
+        </div>
+      )}
 
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">

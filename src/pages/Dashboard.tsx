@@ -318,7 +318,7 @@ const Dashboard: React.FC<DashboardProps> = ({
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 h-full max-h-[100px]">
+            <div className="grid grid-cols-2 gap-3 flex-1 min-h-0">
               {subjectStats.best && (
                 <div className="bg-emerald-50 dark:bg-emerald-900/10 p-2.5 rounded-2xl border border-emerald-100 dark:border-emerald-900/30 flex flex-col justify-between h-full">
                   <div className="flex items-center gap-1.5 mb-0.5">

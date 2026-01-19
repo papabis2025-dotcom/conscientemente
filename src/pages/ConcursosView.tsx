@@ -16,18 +16,20 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
   const [targetDate, setTargetDate] = useState('');
 
   // New Subject State
-  const [newSubjects, setNewSubjects] = useState<{ name: string, goal: number }[]>([]);
+  const [newSubjects, setNewSubjects] = useState<{ name: string, goal: number, weight: number }[]>([]);
   const [tempSubName, setTempSubName] = useState('');
   const [tempSubGoal, setTempSubGoal] = useState('');
+  const [tempSubWeight, setTempSubWeight] = useState('1');
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editFormData, setEditFormData] = useState<Partial<Concurso>>({});
 
   const handleAddTempSubject = () => {
     if (!tempSubName.trim()) return;
-    setNewSubjects([...newSubjects, { name: tempSubName, goal: parseInt(tempSubGoal) || 0 }]);
+    setNewSubjects([...newSubjects, { name: tempSubName, goal: parseInt(tempSubGoal) || 0, weight: parseFloat(tempSubWeight) || 1 }]);
     setTempSubName('');
     setTempSubGoal('');
+    setTempSubWeight('1');
   };
 
   const removeTempSubject = (idx: number) => {
@@ -45,6 +47,7 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
       name: s.name,
       color: ['bg-blue-500', 'bg-emerald-500', 'bg-violet-500', 'bg-amber-500', 'bg-rose-500', 'bg-cyan-500'][i % 6],
       questionsGoal: s.goal,
+      weight: s.weight,
       topics: []
     }));
 
@@ -153,6 +156,18 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
                 className="w-40 px-4 py-2 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl"
                 onKeyPress={e => e.key === 'Enter' && handleAddTempSubject()}
               />
+              <div className="flex items-center gap-2 bg-white dark:bg-slate-800 px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl">
+                <span className="text-[10px] font-bold uppercase text-slate-400">Peso</span>
+                <input
+                  type="number"
+                  value={tempSubWeight}
+                  onChange={e => setTempSubWeight(e.target.value)}
+                  className="w-12 bg-transparent outline-none font-bold text-center text-sm"
+                  step="0.5"
+                  min="1"
+                  onKeyPress={e => e.key === 'Enter' && handleAddTempSubject()}
+                />
+              </div>
               <button onClick={handleAddTempSubject} className="bg-slate-800 dark:bg-white text-white dark:text-slate-900 px-4 py-2 rounded-xl font-bold hover:opacity-90">Adicionar</button>
             </div>
 
@@ -162,6 +177,7 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
                   <div key={i} className="flex items-center gap-2 bg-white dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
                     <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{s.name}</span>
                     {s.goal > 0 && <span className="text-[10px] bg-blue-100 text-blue-600 px-1.5 rounded font-black">{s.goal} Qs</span>}
+                    {s.weight > 1 && <span className="text-[10px] bg-amber-100 text-amber-600 px-1.5 rounded font-black">{s.weight}x</span>}
                     <button onClick={() => removeTempSubject(i)} className="text-slate-400 hover:text-rose-500 ml-1">×</button>
                   </div>
                 ))}

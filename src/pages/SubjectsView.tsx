@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { Subject, Topic, StudySession } from '../types';
 import { geminiService } from '../services/geminiService';
 import { COLORS } from '../constants';
+import { getColorHex, getBadgeStyle } from '../utils/colors';
 import {
   ChevronDown,
   ChevronRight,
@@ -40,7 +41,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
   const [newTopicTitle, setNewTopicTitle] = useState('');
   const [newTopicPriority, setNewTopicPriority] = useState<'Baixa' | 'Média' | 'Alta'>('Média');
 
-  const [sortBy, setSortBy] = useState<'default' | 'time' | 'questions'>('default');
+  const [sortBy, setSortBy] = useState<'default' | 'time' | 'questions' | 'name' | 'meta'>('default');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
   const [topicSortBy, setTopicSortBy] = useState<'default' | 'priority' | 'time' | 'questions' | 'name'>('default');
@@ -81,6 +82,15 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
 
   const sortedSubjects = [...subjects].sort((a, b) => {
     if (sortBy === 'default') return 0;
+    if (sortBy === 'name') {
+      const compare = a.name.localeCompare(b.name);
+      return sortOrder === 'asc' ? compare : -compare;
+    }
+    if (sortBy === 'meta') {
+      const metaA = a.questionsGoal || 0;
+      const metaB = b.questionsGoal || 0;
+      return sortOrder === 'desc' ? metaB - metaA : metaA - metaB;
+    }
     const statsA = getSubjectStats(a.id);
     const statsB = getSubjectStats(b.id);
     if (sortBy === 'time') return sortOrder === 'desc' ? statsB.hours - statsA.hours : statsA.hours - statsB.hours;
@@ -223,14 +233,25 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
             />
             <button onClick={addSubject} className="bg-blue-600 text-white px-3 py-2 rounded-xl hover:bg-blue-700 flex items-center justify-center"><Plus size={20} /></button>
           </div>
-          <div className="flex gap-1.5 px-1">
-            {COLORS.map(color => (
+          <div className="flex gap-1.5 px-1 items-center">
+            {COLORS.slice(0, 5).map(color => (
               <button
                 key={color}
                 onClick={() => setSelectedColor(color)}
-                className={`w-5 h-5 rounded-full ${color} transition-all ${selectedColor === color ? 'ring-2 ring-offset-2 ring-slate-400 dark:ring-offset-slate-900 scale-110' : 'opacity-60 hover:opacity-100'}`}
+                className={`w-5 h-5 rounded-full transition-all ${selectedColor === color ? 'ring-2 ring-offset-2 ring-slate-400 dark:ring-offset-slate-900 scale-110' : 'opacity-60 hover:opacity-100'} ${getBadgeStyle(color).className}`}
+                style={getBadgeStyle(color).style}
               />
             ))}
+            <div className="relative flex items-center justify-center w-6 h-6 rounded-full overflow-hidden border border-slate-200 dark:border-slate-700 hover:ring-2 hover:ring-blue-500 transition-all ml-1 cursor-pointer">
+              <input
+                type="color"
+                value={getColorHex(selectedColor)}
+                onChange={(e) => setSelectedColor(e.target.value)}
+                className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[150%] h-[150%] p-0 border-0 cursor-pointer"
+                title="Cor personalizada"
+              />
+              <span className="pointer-events-none text-[8px] font-bold text-slate-500">+</span>
+            </div>
           </div>
         </div>
       </div>
@@ -241,7 +262,9 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
             <thead>
               <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
                 <th className="px-6 py-4 text-[10px] font-bold uppercase text-slate-400 tracking-wider"></th>
-                <th className="px-6 py-4 text-[10px] font-bold uppercase text-slate-400 tracking-wider">Disciplina</th>
+                <th className="px-6 py-4 text-[10px] font-bold uppercase text-slate-400 tracking-wider cursor-pointer hover:text-blue-500" onClick={() => { setSortBy('name'); setSortOrder(o => o === 'asc' ? 'desc' : 'asc'); }}>
+                  Disciplina {sortBy === 'name' && (sortOrder === 'asc' ? '↓' : '↑')}
+                </th>
                 <th className="px-6 py-4 text-[10px] font-bold uppercase text-slate-400 tracking-wider cursor-pointer hover:text-blue-500" onClick={() => { setSortBy('time'); setSortOrder(o => o === 'desc' ? 'asc' : 'desc'); }}>
                   Tempo {sortBy === 'time' && (sortOrder === 'desc' ? '↓' : '↑')}
                 </th>
@@ -249,6 +272,10 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                   Questões {sortBy === 'questions' && (sortOrder === 'desc' ? '↓' : '↑')}
                 </th>
                 <th className="px-6 py-4 text-[10px] font-bold uppercase text-slate-400 tracking-wider">Aproveitamento</th>
+                <th className="px-6 py-4 text-[10px] font-bold uppercase text-slate-400 tracking-wider cursor-pointer hover:text-blue-500" onClick={() => { setSortBy('meta'); setSortOrder(o => o === 'desc' ? 'asc' : 'desc'); }}>
+                  Meta {sortBy === 'meta' && (sortOrder === 'desc' ? '↓' : '↑')}
+                </th>
+                <th className="px-6 py-4 text-[10px] font-bold uppercase text-slate-400 tracking-wider">Peso</th>
                 <th className="px-6 py-4 text-[10px] font-bold uppercase text-slate-400 tracking-wider text-right">Ações</th>
               </tr>
             </thead>
@@ -268,16 +295,34 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className={`w-3 h-3 rounded-full ${subject.color}`} />
+                          <div className={`w-3 h-3 rounded-full ${getBadgeStyle(subject.color).className}`} style={getBadgeStyle(subject.color).style} />
                           {editingSubjectId === subject.id ? (
-                            <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
-                              <input
-                                className="px-2 py-1 bg-white dark:bg-slate-900 border rounded text-sm"
-                                value={editName}
-                                onChange={e => setEditName(e.target.value)}
-                                autoFocus
-                              />
-                              <button onClick={(e) => saveEdit(e)} className="text-emerald-500"><CheckCircle size={16} /></button>
+                            <div className="flex flex-col gap-2" onClick={e => e.stopPropagation()}>
+                              <div className="flex items-center gap-2">
+                                <input
+                                  className="px-2 py-1 bg-white dark:bg-slate-900 border rounded text-sm"
+                                  value={editName}
+                                  onChange={e => setEditName(e.target.value)}
+                                  autoFocus
+                                />
+                                <button onClick={(e) => saveEdit(e)} className="text-emerald-500"><CheckCircle size={16} /></button>
+                              </div>
+                              <div className="flex gap-1 items-center">
+                                {COLORS.slice(0, 5).map(color => (
+                                  <button
+                                    key={color}
+                                    onClick={() => setEditColor(color)}
+                                    className={`w-3 h-3 rounded-full transition-all ${editColor === color ? 'ring-2 ring-offset-1 ring-slate-400 scale-110' : 'opacity-40 hover:opacity-100'} ${getBadgeStyle(color).className}`}
+                                    style={getBadgeStyle(color).style}
+                                  />
+                                ))}
+                                <input
+                                  type="color"
+                                  value={getColorHex(editColor)}
+                                  onChange={(e) => setEditColor(e.target.value)}
+                                  className="w-4 h-4 p-0 border-0 rounded-full overflow-hidden cursor-pointer ml-1"
+                                />
+                              </div>
                             </div>
                           ) : (
                             <div>
@@ -305,6 +350,16 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                           <span className="text-xs font-bold text-slate-600 dark:text-slate-400">{stats.accuracy}%</span>
                         </div>
                       </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-300">
+                          {subject.questionsGoal ? <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded text-xs font-bold">{subject.questionsGoal} Qs</span> : '-'}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-300">
+                          {subject.weight ? <span className="bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded text-xs font-bold">{subject.weight}x</span> : '-'}
+                        </div>
+                      </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button onClick={(e) => startEditing(subject, e)} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-slate-400 hover:text-blue-500 transition-colors">
@@ -319,7 +374,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
 
                     {isExpanded && (
                       <tr>
-                        <td colSpan={6} className="px-0 py-0 bg-slate-50/50 dark:bg-slate-800/20 border-b border-slate-100 dark:border-slate-800">
+                        <td colSpan={8} className="px-0 py-0 bg-slate-50/50 dark:bg-slate-800/20 border-b border-slate-100 dark:border-slate-800">
                           <div className="p-6 pl-16 grid gap-4">
                             <div className="flex items-center gap-4 mb-2">
                               <h4 className="text-xs font-bold uppercase text-slate-400 tracking-wide">Tópicos do Edital</h4>
@@ -439,7 +494,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
 
               {subjects.length === 0 && !isProcessing && (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center">
+                  <td colSpan={8} className="py-12 text-center">
                     <div className="flex flex-col items-center justify-center opacity-50">
                       <Bot size={40} className="mb-2 text-slate-400" />
                       <p className="font-bold text-slate-500">Nenhuma disciplina encontrada</p>

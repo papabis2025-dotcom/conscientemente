@@ -34,6 +34,7 @@ export interface Subject {
   name: string;
   color: string;
   questionsGoal?: number;
+  weight?: number;
   topics: Topic[];
 }
 

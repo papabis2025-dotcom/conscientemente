@@ -1,6 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { Subject, StudySession, DailyGoal } from '../types';
+import { getBadgeStyle } from '../utils/colors';
 
 interface QuestionsViewProps {
   subjects: Subject[];
@@ -181,7 +182,7 @@ const QuestionsView: React.FC<QuestionsViewProps> = ({
               ) : performanceHierarchy.map(subject => (
                 <div key={subject.id} className="space-y-4">
                   <div className="flex items-center gap-3">
-                    <div className={`h-6 w-1 rounded-full ${subject.color}`} />
+                    <div className={`h-6 w-1 rounded-full ${getBadgeStyle(subject.color).className}`} style={getBadgeStyle(subject.color).style} />
                     <h4 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">{subject.name}</h4>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 ml-4">
@@ -214,7 +215,7 @@ const QuestionsView: React.FC<QuestionsViewProps> = ({
                 return (
                   <div key={log.id} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800 group">
                     <div className="flex items-center gap-4">
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-[10px] text-white ${sub?.color || 'bg-slate-500'}`}>{acc}%</div>
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-[10px] text-white ${getBadgeStyle(sub?.color || 'bg-slate-500').className}`} style={getBadgeStyle(sub?.color || 'bg-slate-500').style}>{acc}%</div>
                       <div>
                         <h5 className="text-xs font-bold text-slate-700 dark:text-white truncate max-w-[150px]">{sub?.name}</h5>
                         <p className="text-[9px] text-slate-400 font-bold uppercase">{log.questionsDone} Q • {new Date(log.date).toLocaleDateString()}</p>

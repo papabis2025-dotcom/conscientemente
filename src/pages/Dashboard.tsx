@@ -51,20 +51,7 @@ const DEFAULT_WIDGETS: WidgetState[] = [
   { id: 'time_by_subject', title: 'Tempo por Disciplina (Horas)', isVisible: true, size: 'wide' },
 ];
 
-const tailwindToHex = (twColor: string) => {
-  const mapping: Record<string, string> = {
-    'bg-blue-500': '#3b82f6',
-    'bg-purple-500': '#a855f7',
-    'bg-emerald-500': '#10b981',
-    'bg-amber-500': '#f59e0b',
-    'bg-rose-500': '#f43f5e',
-    'bg-indigo-500': '#6366f1',
-    'bg-cyan-500': '#06b6d4',
-    'bg-orange-500': '#f97316',
-    'bg-slate-500': '#64748b'
-  };
-  return mapping[twColor] || '#3b82f6';
-};
+import { getColorHex } from '../utils/colors';
 
 const getAcronym = (name: string) => {
   const words = name.trim().split(/\s+/);
@@ -205,7 +192,7 @@ const Dashboard: React.FC<DashboardProps> = ({
         ...s,
         accuracy: s.done > 0 ? Math.round((s.correct / s.done) * 100) : 0,
         hours: parseFloat((s.minutes / 60).toFixed(2)),
-        hexColor: tailwindToHex(s.colorClass),
+        hexColor: getColorHex(s.colorClass),
         acronym: getAcronym(s.name)
       }));
 

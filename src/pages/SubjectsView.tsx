@@ -16,7 +16,8 @@ import {
   Target,
   TrendingUp,
   CheckCircle,
-  Circle
+  Circle,
+  AlertTriangle
 } from 'lucide-react';
 
 interface SubjectsViewProps {
@@ -33,6 +34,12 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
   const [editName, setEditName] = useState('');
   const [editColor, setEditColor] = useState('');
   const [editQuestionsGoal, setEditQuestionsGoal] = useState<number | ''>('');
+
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{ isOpen: boolean; id: string | null; name: string }>({
+    isOpen: false,
+    id: null,
+    name: ''
+  });
 
   // Expanded rows state
   const [expandedSubjects, setExpandedSubjects] = useState<Set<string>>(new Set());
@@ -114,9 +121,11 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
 
   const deleteSubject = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (confirm('Deseja excluir esta disciplina e todos os seus tópicos?')) {
-      onUpdateSubjects(subjects.filter(s => s.id !== id));
-    }
+    // Replaced with custom modal
+    setDeleteConfirmation({ isOpen: true, id, name: subjects.find(s => s.id === id)?.name || '' });
+    // if (confirm('Deseja excluir esta disciplina e todos os seus tópicos?')) {
+    //   onUpdateSubjects(subjects.filter(s => s.id !== id));
+    // }
   };
 
   const startEditing = (subject: Subject, e: React.MouseEvent) => {
@@ -525,6 +534,45 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
         </div>
       </div>
     </div>
+
+       {
+    deleteConfirmation.isOpen && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+        <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 p-6 border border-slate-200 dark:border-slate-800">
+          <div className="flex flex-col items-center text-center">
+            <div className="w-12 h-12 bg-rose-100 dark:bg-rose-900/30 rounded-full flex items-center justify-center text-rose-600 dark:text-rose-400 mb-4">
+              <AlertTriangle size={24} />
+            </div>
+            <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-2">Excluir Disciplina?</h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
+              Tem certeza que deseja excluir <strong>{deleteConfirmation.name}</strong>?<br />
+              Todos os tópicos e histórico associado serão removidos.
+            </p>
+            <div className="flex gap-3 w-full">
+              <button
+                onClick={() => setDeleteConfirmation({ isOpen: false, id: null, name: '' })}
+                className="flex-1 py-3 rounded-xl font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all text-xs uppercase"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => {
+                  if (deleteConfirmation.id) {
+                    onUpdateSubjects(subjects.filter(s => s.id !== deleteConfirmation.id));
+                    setDeleteConfirmation({ isOpen: false, id: null, name: '' });
+                  }
+                }}
+                className="flex-1 py-3 rounded-xl font-bold bg-rose-500 hover:bg-rose-600 text-white transition-all text-xs uppercase shadow-lg shadow-rose-500/20"
+              >
+                Sim, Excluir
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+    </div >
   );
 };
 

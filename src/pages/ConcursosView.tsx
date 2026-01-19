@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { AlertTriangle, X } from 'lucide-react';
 import { Concurso } from '../types';
 
 interface ConcursosViewProps {
@@ -23,6 +24,12 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editFormData, setEditFormData] = useState<Partial<Concurso>>({});
+
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{ isOpen: boolean; id: string | null; name: string }>({
+    isOpen: false,
+    id: null,
+    name: ''
+  });
 
   const handleAddTempSubject = () => {
     if (!tempSubName.trim()) return;
@@ -241,7 +248,7 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
                     title="Editar Concurso"
                   >✎</button>
                   <button
-                    onClick={() => confirm("Excluir este concurso?") && onUpdateConcursos(concursos.filter(c => c.id !== conc.id))}
+                    onClick={() => setDeleteConfirmation({ isOpen: true, id: conc.id, name: conc.name })}
                     className="text-slate-200 hover:text-rose-500 transition-colors p-2"
                     title="Excluir Concurso"
                   >🗑️</button>
@@ -302,6 +309,42 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
           </div>
         )}
       </div>
+
+      {deleteConfirmation.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 p-6 border border-slate-200 dark:border-slate-800">
+            <div className="flex flex-col items-center text-center">
+              <div className="w-12 h-12 bg-rose-100 dark:bg-rose-900/30 rounded-full flex items-center justify-center text-rose-600 dark:text-rose-400 mb-4">
+                <AlertTriangle size={24} />
+              </div>
+              <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-2">Excluir Edital?</h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
+                Tem certeza que deseja excluir <strong>{deleteConfirmation.name}</strong>? <br />
+                Esta ação não pode ser desfeita.
+              </p>
+              <div className="flex gap-3 w-full">
+                <button
+                  onClick={() => setDeleteConfirmation({ isOpen: false, id: null, name: '' })}
+                  className="flex-1 py-3 rounded-xl font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all text-xs uppercase"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={() => {
+                    if (deleteConfirmation.id) {
+                      onUpdateConcursos(concursos.filter(c => c.id !== deleteConfirmation.id));
+                      setDeleteConfirmation({ isOpen: false, id: null, name: '' });
+                    }
+                  }}
+                  className="flex-1 py-3 rounded-xl font-bold bg-rose-500 hover:bg-rose-600 text-white transition-all text-xs uppercase shadow-lg shadow-rose-500/20"
+                >
+                  Sim, Excluir
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

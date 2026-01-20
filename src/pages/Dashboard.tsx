@@ -33,6 +33,7 @@ interface DashboardProps {
   onResetTimer?: () => void;
   onStopAlarm?: () => void;
   studyTasks?: { id: string, subjectId: string, subjectName: string, done: boolean, date: string }[];
+  onUpdateTasks?: (tasks: { id: string, subjectId: string, subjectName: string, topicId?: string, topicName?: string, done: boolean, date: string }[]) => void;
 }
 
 interface WidgetState {
@@ -86,11 +87,23 @@ const Dashboard: React.FC<DashboardProps> = ({
   // Timer Props
   timeLeft, isActive, isAlarmPlaying,
   onStartTimer, onPauseTimer, onResumeTimer, onResetTimer, onStopAlarm,
-  studyTasks = []
+  studyTasks = [],
+  onUpdateTasks
 }) => {
   const [isEditMode, setIsEditMode] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [activeAnalysisTab, setActiveAnalysisTab] = useState<'questions' | 'time' | 'performance'>('questions');
+
+  const handleToggleTask = (taskId: string) => {
+    if (!onUpdateTasks) return;
+    const newTasks = studyTasks.map(t => {
+      if (t.id === taskId) {
+        return { ...t, done: !t.done };
+      }
+      return t;
+    });
+    onUpdateTasks(newTasks);
+  };
   const [widgets, setWidgets] = useState<WidgetState[]>(() => {
     const saved = localStorage.getItem('cp_dashboard_layout_v15');
     // Merge with defaults to ensure new widgets appear
@@ -443,7 +456,11 @@ const Dashboard: React.FC<DashboardProps> = ({
                 </div>
               ) : (
                 studyTasks.filter(t => t.date === new Date().toISOString().split('T')[0]).map(task => (
-                  <div key={task.id} className={`flex items-center gap-3 p-3 rounded-xl border transition-all duration-300 ${task.done ? 'bg-slate-50 dark:bg-slate-800/40 border-slate-100 dark:border-slate-800 opacity-60' : 'bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-700'}`}>
+                  <div
+                    key={task.id}
+                    onClick={() => handleToggleTask(task.id)}
+                    className={`flex items-center gap-3 p-3 rounded-xl border transition-all duration-300 cursor-pointer ${task.done ? 'bg-slate-50 dark:bg-slate-800/40 border-slate-100 dark:border-slate-800 opacity-60' : 'bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-700'}`}
+                  >
                     <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${task.done ? 'bg-emerald-500 border-emerald-500' : 'border-slate-300 dark:border-slate-600'}`}>
                       {task.done && <Check size={10} className="text-white" />}
                     </div>
@@ -623,6 +640,26 @@ const Dashboard: React.FC<DashboardProps> = ({
           <div className="flex flex-col">
             <span className="text-base font-bold text-slate-800 dark:text-white leading-none mb-1">{subjects.length}</span>
             <span className="text-[10px] font-semibold uppercase text-slate-400 dark:text-slate-500 tracking-wide">Matérias</span>
+          </div>
+          <div className="flex flex-col">
+            <span className="text-base font-bold text-slate-800 dark:text-white leading-none mb-1">
+              {(() => {
+                let totalTopics = 0;
+                let coveredTopics = 0;
+
+                subjects.forEach(sub => {
+                  totalTopics += sub.topics.length;
+                  if (sub.topics.length > 0) {
+                    coveredTopics += sub.topics.filter(t =>
+                      sessions.some(s => s.subjectId === sub.id && s.topicId === t.id)
+                    ).length;
+                  }
+                });
+
+                return totalTopics > 0 ? Math.round((coveredTopics / totalTopics) * 100) : 0;
+              })()}%
+            </span>
+            <span className="text-[10px] font-semibold uppercase text-slate-400 dark:text-slate-500 tracking-wide">Edital</span>
           </div>
           <div className="flex flex-col">
             <span className="text-base font-bold text-slate-800 dark:text-white leading-none mb-1">{sessions.reduce((acc, s) => {

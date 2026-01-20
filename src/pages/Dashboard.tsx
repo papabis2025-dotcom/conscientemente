@@ -5,7 +5,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
   PieChart, Pie, LabelList
 } from 'recharts';
-import { Eye, EyeOff, X, Plus, Save, Trash2, Trophy, Target, Calendar, Clock, CheckCircle, AlertTriangle, TrendingUp, Maximize2, Minimize2 } from 'lucide-react';
+import { Eye, EyeOff, X, Plus, Save, Trash2, Trophy, Target, Calendar, Clock, CheckCircle, AlertTriangle, TrendingUp, Maximize2, Minimize2, Check } from 'lucide-react';
 
 import { Subject, StudySession, Concurso, Simulado, ActivityType } from '../types';
 import AISuggestions from '../components/dashboard/AISuggestions';
@@ -32,6 +32,7 @@ interface DashboardProps {
   onResumeTimer?: () => void;
   onResetTimer?: () => void;
   onStopAlarm?: () => void;
+  studyTasks?: { id: string, subjectId: string, subjectName: string, done: boolean, date: string }[];
 }
 
 interface WidgetState {
@@ -42,14 +43,11 @@ interface WidgetState {
 }
 
 const DEFAULT_WIDGETS: WidgetState[] = [
-  { id: 'general_stats', title: 'Desempenho Geral', isVisible: true, size: 'normal' },
+  { id: 'general_stats', title: 'Desempenho Geral', isVisible: true, size: 'wide' },
   { id: 'study_frequency', title: 'Frequência de Estudo', isVisible: true, size: 'normal' },
-  { id: 'study_suggestions', title: 'Sugestões Estratégicas', isVisible: true, size: 'normal' },
-  { id: 'simulados_summary', title: 'Desempenho em Simulados', isVisible: true, size: 'normal' },
+  { id: 'study_tasks', title: 'Tarefas de Hoje', isVisible: true, size: 'normal' },
   { id: 'weekly_chart', title: 'Volume de Estudo Semanal', isVisible: true, size: 'normal' },
-  { id: 'questions_by_subject', title: 'Questões por Disciplina', isVisible: true, size: 'wide' },
-  { id: 'time_by_subject', title: 'Tempo por Disciplina (Horas)', isVisible: true, size: 'wide' },
-  { id: 'performance_by_subject', title: 'Desempenho por Disciplina', isVisible: true, size: 'wide' },
+  { id: 'unified_subject_analysis', title: 'Análise por Disciplina', isVisible: true, size: 'wide' },
 ];
 
 import { getColorHex } from '../utils/colors';
@@ -60,6 +58,17 @@ const getAcronym = (name: string) => {
     return words.filter(w => w.length > 2).map(w => w[0]).join('').toUpperCase();
   }
   return name.substring(0, 4).toUpperCase();
+};
+const getPerformanceColor = (percentage: number) => {
+  if (percentage < 50) return 'text-red-500';
+  if (percentage < 75) return 'text-amber-500';
+  return 'text-emerald-500';
+};
+
+const getPerformanceColorHex = (percentage: number) => {
+  if (percentage < 50) return '#ef4444';
+  if (percentage < 75) return '#f59e0b';
+  return '#10b981';
 };
 
 const Dashboard: React.FC<DashboardProps> = ({
@@ -76,19 +85,23 @@ const Dashboard: React.FC<DashboardProps> = ({
   globalDailyGoal,
   // Timer Props
   timeLeft, isActive, isAlarmPlaying,
-  onStartTimer, onPauseTimer, onResumeTimer, onResetTimer, onStopAlarm
+  onStartTimer, onPauseTimer, onResumeTimer, onResetTimer, onStopAlarm,
+  studyTasks = []
 }) => {
   const [isEditMode, setIsEditMode] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [activeAnalysisTab, setActiveAnalysisTab] = useState<'questions' | 'time' | 'performance'>('questions');
   const [widgets, setWidgets] = useState<WidgetState[]>(() => {
-    const saved = localStorage.getItem('cp_dashboard_layout_v14');
+    const saved = localStorage.getItem('cp_dashboard_layout_v15');
     // Merge with defaults to ensure new widgets appear
     if (!saved) return DEFAULT_WIDGETS;
     const parsed = JSON.parse(saved);
-    // Remove focus_timer if present
-    const filtered = parsed.filter((w: any) => w.id !== 'focus_timer');
 
-    // Check if new widget is missing
+    // Remove legacy widgets explicitly
+    const legacyIds = ['focus_timer', 'study_suggestions', 'questions_by_subject', 'time_by_subject', 'performance_by_subject'];
+    const filtered = parsed.filter((w: any) => !legacyIds.includes(w.id));
+
+    // Check if new unified widget is missing and add it
     const existingIds = new Set(filtered.map((w: any) => w.id));
     const missingWidgets = DEFAULT_WIDGETS.filter(w => !existingIds.has(w.id));
 
@@ -114,7 +127,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   const isDarkMode = theme === 'dark';
   const chartTextColor = isDarkMode ? '#94a3b8' : '#64748b';
 
-  useEffect(() => { localStorage.setItem('cp_dashboard_layout_v14', JSON.stringify(widgets)); }, [widgets]);
+  useEffect(() => { localStorage.setItem('cp_dashboard_layout_v15', JSON.stringify(widgets)); }, [widgets]);
 
   const handleDragStart = (index: number) => {
     setDraggedWidgetIndex(index);
@@ -217,6 +230,14 @@ const Dashboard: React.FC<DashboardProps> = ({
     return sessions.filter(s => activeSubjectIds.has(s.subjectId));
   }, [sessions, subjects]);
 
+  const progress = useMemo(() => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    const done = sessions
+      .filter(s => s.date.startsWith(todayStr) && s.questionsDone !== undefined)
+      .reduce((acc, s) => acc + (s.questionsDone || 0), 0);
+    return { total: done, goal: globalDailyGoal || 20 };
+  }, [sessions, globalDailyGoal]);
+
   const weeklyData = useMemo(() => {
     const days = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
     // Initialize map for current week (Sunday to Saturday)
@@ -305,44 +326,87 @@ const Dashboard: React.FC<DashboardProps> = ({
       case 'general_stats':
         const totalDone = subjectStats.questionsData.reduce((acc, s) => acc + s.done, 0);
         const totalCorrect = subjectStats.questionsData.reduce((acc, s) => acc + s.correct, 0);
-
         const globalAccuracy = totalDone > 0 ? Math.round((totalCorrect / totalDone) * 100) : 0;
+
+        const simDone = simulados.reduce((acc, s) => acc + s.results.reduce((a, r) => a + r.done, 0), 0);
+        const simCorrect = simulados.reduce((acc, s) => acc + s.results.reduce((a, r) => a + r.correct, 0), 0);
+        const simAccuracy = simDone > 0 ? Math.round((simCorrect / simDone) * 100) : 0;
+
+        const globalColor = getPerformanceColor(globalAccuracy);
+        const globalColorHex = getPerformanceColorHex(globalAccuracy);
+        const simColor = getPerformanceColor(simAccuracy);
+        const simColorHex = getPerformanceColorHex(simAccuracy);
+
         return (
-          <div className="flex flex-col items-center justify-center h-full">
-            <div className="relative w-32 h-32 mb-4">
-              <svg className="w-full h-full" viewBox="0 0 128 128">
-                <circle
-                  cx="64"
-                  cy="64"
-                  r="56"
-                  stroke="currentColor"
-                  strokeWidth="12"
-                  fill="transparent"
-                  className="text-slate-100 dark:text-slate-800"
-                />
-                <circle
-                  cx="64"
-                  cy="64"
-                  r="56"
-                  stroke="currentColor"
-                  strokeWidth="12"
-                  fill="transparent"
-                  strokeDasharray={351.86}
-                  strokeDashoffset={351.86 - (351.86 * globalAccuracy) / 100}
-                  className="text-blue-500 transition-all duration-1000 ease-out"
-                  strokeLinecap="round"
-                />
-              </svg>
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-3xl font-bold text-slate-800 dark:text-white">{globalAccuracy}%</span>
-                <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wide">Acertos</span>
+          <div className="flex flex-row items-center justify-around h-full gap-2 px-2">
+            {/* General Stats */}
+            <div className="flex flex-col items-center justify-center flex-1 h-full">
+              <div className="relative w-full h-full max-w-[140px] max-h-[140px] flex items-center justify-center">
+                <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="40"
+                    stroke="currentColor"
+                    strokeWidth="12"
+                    fill="transparent"
+                    className="text-slate-100 dark:text-slate-800"
+                  />
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="40"
+                    stroke="currentColor"
+                    strokeWidth="12"
+                    fill="transparent"
+                    strokeDasharray={251.2}
+                    strokeDashoffset={251.2 - (251.2 * globalAccuracy) / 100}
+                    className={`${globalColor} transition-all duration-1000 ease-out`}
+                    strokeLinecap="round"
+                    style={{ color: globalColorHex }}
+                  />
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span className={`text-2xl font-black ${globalColor}`} style={{ color: globalColorHex }}>{globalAccuracy}%</span>
+                </div>
               </div>
+              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wide mt-[-5px]">Geral</p>
             </div>
 
-            <div className="text-center px-4">
-              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                Média global de desempenho em todas as disciplinas estudadas.
-              </p>
+
+
+            {/* Simulado Stats */}
+            <div className="flex flex-col items-center justify-center flex-1 h-full">
+              <div className="relative w-full h-full max-w-[140px] max-h-[140px] flex items-center justify-center">
+                <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="40"
+                    stroke="currentColor"
+                    strokeWidth="12"
+                    fill="transparent"
+                    className="text-slate-100 dark:text-slate-800"
+                  />
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="40"
+                    stroke="currentColor"
+                    strokeWidth="12"
+                    fill="transparent"
+                    strokeDasharray={251.2}
+                    strokeDashoffset={251.2 - (251.2 * simAccuracy) / 100}
+                    className={`${simColor} transition-all duration-1000 ease-out`}
+                    strokeLinecap="round"
+                    style={{ color: simColorHex }}
+                  />
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span className={`text-2xl font-black ${simColor}`} style={{ color: simColorHex }}>{simAccuracy}%</span>
+                </div>
+              </div>
+              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wide mt-[-5px]">Simulados</p>
             </div>
           </div>
         );
@@ -361,42 +425,46 @@ const Dashboard: React.FC<DashboardProps> = ({
             <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full mt-4 overflow-hidden">
               <div className="h-full bg-amber-500" style={{ width: `${(frequencyData.last7DaysCount / 7) * 100}%` }} />
             </div>
-          </div>
-        );
-      case 'study_suggestions':
-        const suggestions = subjectStats.all.reduce((acc, s) => {
-          if (s.done > 10 && s.accuracy < 60) {
-            acc.push({ subjectName: s.name, type: 'warning', message: `Base fraca em ${s.name} (${s.accuracy}%). Revise a teoria antes de mais questões.` });
-          } else if (s.done > 20 && s.accuracy > 85) {
-            acc.push({ subjectName: s.name, type: 'success', message: `Dominando ${s.name}! Considere reduzir frequência e priorizar outras.` });
-          } else if (s.minutes < 60 && s.done < 5) {
-            acc.push({ subjectName: s.name, type: 'info', message: `Pouco estudo em ${s.name}. Que tal um ciclo hoje?` });
-          }
-          return acc;
-        }, [] as any[])
-          .sort((a, b) => {
-            const priority = { warning: 3, info: 2, success: 1 };
-            return (priority[b.type as keyof typeof priority] || 0) - (priority[a.type as keyof typeof priority] || 0);
-          })
-          .slice(0, 3);
 
-        return <AISuggestions suggestions={suggestions} />;
-      case 'simulados_summary':
-        const simDone = simulados.reduce((acc, s) => acc + s.results.reduce((a, r) => a + r.done, 0), 0);
-        const simCorrect = simulados.reduce((acc, s) => acc + s.results.reduce((a, r) => a + r.correct, 0), 0);
-        const simAccuracy = simDone > 0 ? Math.round((simCorrect / simDone) * 100) : 0;
-        return (
-          <div className="mt-2 space-y-4">
-            <div>
-              <p className="text-4xl font-bold text-emerald-500 leading-none mb-1">{simAccuracy}%</p>
-              <p className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide">Média em Simulados</p>
-            </div>
-            <div className="w-full h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-              <div className="h-full bg-emerald-500 transition-all duration-1000" style={{ width: `${simAccuracy}%` }} />
-            </div>
-            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">{simulados.length} simulados realizados</p>
+            {/* Pending Study Plan Tasks */}
+
           </div>
         );
+      case 'study_tasks':
+        return (
+          <div className="flex flex-col h-full relative overflow-hidden group/container">
+            <div className="flex-1 overflow-y-auto custom-scrollbar space-y-2 pr-1">
+              {studyTasks.filter(t => t.date === new Date().toISOString().split('T')[0]).length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full opacity-60 space-y-2">
+                  <div className="w-10 h-10 rounded-full bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-lg shadow-sm">🎉</div>
+                  <div className="text-center">
+                    <p className="text-[10px] font-bold text-slate-600 dark:text-slate-300">Tudo em dia!</p>
+                  </div>
+                </div>
+              ) : (
+                studyTasks.filter(t => t.date === new Date().toISOString().split('T')[0]).map(task => (
+                  <div key={task.id} className={`flex items-center gap-3 p-3 rounded-xl border transition-all duration-300 ${task.done ? 'bg-slate-50 dark:bg-slate-800/40 border-slate-100 dark:border-slate-800 opacity-60' : 'bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-700'}`}>
+                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${task.done ? 'bg-emerald-500 border-emerald-500' : 'border-slate-300 dark:border-slate-600'}`}>
+                      {task.done && <Check size={10} className="text-white" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-[10px] font-bold truncate leading-tight ${task.done ? 'text-slate-500 line-through' : 'text-slate-700 dark:text-slate-200'}`}>
+                        {task.subjectName}
+                      </p>
+                      {task.topicName && <p className="text-[9px] text-slate-400 truncate mt-0.5">{task.topicName}</p>}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Total badge */}
+            <div className="absolute bottom-0 right-0 bg-blue-600 text-white text-[9px] font-bold px-2 py-1 rounded-tl-xl shadow-sm z-10 opacity-0 group-hover/container:opacity-100 transition-all pointer-events-none translate-y-full group-hover/container:translate-y-0">
+              {studyTasks.filter(t => t.date === new Date().toISOString().split('T')[0] && !t.done).length} Pendentes
+            </div>
+          </div>
+        );
+
       case 'weekly_chart':
         return (
           <div className="h-48 w-full mt-2" style={{ minHeight: '192px' }}>
@@ -413,88 +481,113 @@ const Dashboard: React.FC<DashboardProps> = ({
             ) : <div className="h-full flex items-center justify-center text-xs text-slate-400">Sem dados de estudo na semana</div>}
           </div>
         );
-      case 'questions_by_subject':
+      case 'unified_subject_analysis':
         return (
-          <div className="h-64 w-full mt-2" style={{ minHeight: '256px' }}>
-            {subjectStats.questionsData.length > 0 ? (
-              <ResponsiveContainer width="99%" height="100%">
-                <BarChart data={subjectStats.questionsData} margin={{ bottom: 20 }}>
-                  <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} strokeOpacity={0.1} />
-                  <XAxis dataKey="acronym" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 600, fill: chartTextColor }} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: chartTextColor }} domain={[0, 'auto']} allowDataOverflow={false} padding={{ top: 20 }} />
-                  <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ fontSize: '11px', borderRadius: '12px', border: 'none', backgroundColor: isDarkMode ? '#0f172a' : '#fff' }} />
-                  <Bar dataKey="done" radius={[6, 6, 0, 0]} barSize={35}>
-                    {subjectStats.questionsData.map((entry, index) => <Cell key={index} fill={entry.hexColor} />)}
-                    <LabelList
-                      dataKey="done"
-                      position="top"
-                      offset={5}
-                      fill={isDarkMode ? '#94a3b8' : '#64748b'}
-                      style={{ fontSize: '11px', fontWeight: 'bold' }}
-                    />
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            ) : <div className="h-full flex items-center justify-center text-xs text-slate-400">Sem questões resolvidas</div>}
-          </div>
-        );
-      case 'time_by_subject':
-        return (
-          <div className="h-64 w-full mt-2" style={{ minHeight: '256px' }}>
-            {subjectStats.timeData.length > 0 ? (
-              <ResponsiveContainer width="99%" height="100%">
-                <BarChart data={subjectStats.timeData} margin={{ bottom: 20 }}>
-                  <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} strokeOpacity={0.1} />
-                  <XAxis dataKey="acronym" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 600, fill: chartTextColor }} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: chartTextColor }} domain={[0, 'auto']} allowDataOverflow={false} padding={{ top: 20 }} />
-                  <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ fontSize: '11px', borderRadius: '12px', border: 'none', backgroundColor: isDarkMode ? '#0f172a' : '#fff' }} />
-                  <Bar dataKey="hours" radius={[6, 6, 0, 0]} barSize={35}>
-                    {subjectStats.timeData.map((entry, index) => <Cell key={index} fill={entry.hexColor} />)}
-                    <LabelList
-                      dataKey="hours"
-                      position="top"
-                      offset={5}
-                      formatter={(val: number) => `${val}h`}
-                      fill={isDarkMode ? '#94a3b8' : '#64748b'}
-                      style={{ fontSize: '11px', fontWeight: 'bold' }}
-                    />
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            ) : <div className="h-full flex items-center justify-center text-xs text-slate-400">Sem dados</div>}
-          </div>
-        );
-      case 'performance_by_subject':
-        return (
-          <div className="h-64 w-full mt-2" style={{ minHeight: '256px' }}>
-            {subjectStats.performanceData.length > 0 ? (
-              <ResponsiveContainer width="99%" height="100%">
-                <BarChart data={subjectStats.performanceData} margin={{ bottom: 20 }}>
-                  <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} strokeOpacity={0.1} />
-                  <XAxis dataKey="acronym" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 600, fill: chartTextColor }} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: chartTextColor }} domain={[0, 100]} padding={{ top: 20 }} />
-                  <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ fontSize: '11px', borderRadius: '12px', border: 'none', backgroundColor: isDarkMode ? '#0f172a' : '#fff' }} />
-                  <Bar dataKey="accuracy" radius={[6, 6, 0, 0]} barSize={35}>
-                    {subjectStats.performanceData.map((entry, index) => (
-                      <Cell key={index} fill={entry.hexColor} />
-                    ))}
-                    <LabelList
-                      dataKey="accuracy"
-                      position="top"
-                      offset={5}
-                      formatter={(val: number) => `${val}%`}
-                      fill={isDarkMode ? '#94a3b8' : '#64748b'}
-                      style={{ fontSize: '11px', fontWeight: 'bold' }}
-                    />
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            ) : <div className="h-full flex items-center justify-center text-xs text-slate-400">Sem dados de desempenho</div>}
+          <div className="flex flex-col h-full bg-white dark:bg-slate-900 rounded-2xl overflow-hidden relative">
+            {/* Header / Tabs */}
+            <div className="flex items-center gap-1 p-2 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
+              <button
+                onClick={() => setActiveAnalysisTab('questions')}
+                className={`flex-1 py-1 px-2 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-all ${activeAnalysisTab === 'questions' ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm' : 'text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+              >
+                Questões
+              </button>
+              <button
+                onClick={() => setActiveAnalysisTab('time')}
+                className={`flex-1 py-1 px-2 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-all ${activeAnalysisTab === 'time' ? 'bg-white dark:bg-slate-700 text-purple-600 shadow-sm' : 'text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+              >
+                Tempo
+              </button>
+              <button
+                onClick={() => setActiveAnalysisTab('performance')}
+                className={`flex-1 py-1 px-2 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-all ${activeAnalysisTab === 'performance' ? 'bg-white dark:bg-slate-700 text-emerald-600 shadow-sm' : 'text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+              >
+                Desempenho
+              </button>
+            </div>
+
+            {/* Content Area */}
+            <div className="flex-1 w-full p-2" style={{ minHeight: '220px' }}>
+              {activeAnalysisTab === 'questions' && (
+                subjectStats.questionsData.length > 0 ? (
+                  <ResponsiveContainer width="99%" height="100%">
+                    <BarChart data={subjectStats.questionsData} margin={{ bottom: 20 }}>
+                      <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} strokeOpacity={0.1} />
+                      <XAxis dataKey="acronym" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 600, fill: chartTextColor }} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: chartTextColor }} domain={[0, 'auto']} allowDataOverflow={false} padding={{ top: 20 }} />
+                      <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ fontSize: '11px', borderRadius: '12px', border: 'none', backgroundColor: isDarkMode ? '#0f172a' : '#fff' }} />
+                      <Bar dataKey="done" radius={[6, 6, 0, 0]} barSize={35} animationDuration={500}>
+                        {subjectStats.questionsData.map((entry, index) => <Cell key={index} fill={entry.hexColor} />)}
+                        <LabelList
+                          dataKey="done"
+                          position="top"
+                          offset={5}
+                          fill={isDarkMode ? '#94a3b8' : '#64748b'}
+                          style={{ fontSize: '11px', fontWeight: 'bold' }}
+                        />
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : <div className="h-full flex items-center justify-center text-xs text-slate-400">Sem questões resolvidas</div>
+              )}
+
+              {activeAnalysisTab === 'time' && (
+                subjectStats.timeData.length > 0 ? (
+                  <ResponsiveContainer width="99%" height="100%">
+                    <BarChart data={subjectStats.timeData} margin={{ bottom: 20 }}>
+                      <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} strokeOpacity={0.1} />
+                      <XAxis dataKey="acronym" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 600, fill: chartTextColor }} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: chartTextColor }} domain={[0, 'auto']} allowDataOverflow={false} padding={{ top: 20 }} />
+                      <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ fontSize: '11px', borderRadius: '12px', border: 'none', backgroundColor: isDarkMode ? '#0f172a' : '#fff' }} />
+                      <Bar dataKey="hours" radius={[6, 6, 0, 0]} barSize={35} animationDuration={500}>
+                        {subjectStats.timeData.map((entry, index) => <Cell key={index} fill={entry.hexColor} />)}
+                        <LabelList
+                          dataKey="hours"
+                          position="top"
+                          offset={5}
+                          formatter={(val: number) => `${val}h`}
+                          fill={isDarkMode ? '#94a3b8' : '#64748b'}
+                          style={{ fontSize: '11px', fontWeight: 'bold' }}
+                        />
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : <div className="h-full flex items-center justify-center text-xs text-slate-400">Sem dados de tempo</div>
+              )}
+
+              {activeAnalysisTab === 'performance' && (
+                subjectStats.performanceData.length > 0 ? (
+                  <ResponsiveContainer width="99%" height="100%">
+                    <BarChart data={subjectStats.performanceData} margin={{ bottom: 20 }}>
+                      <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} strokeOpacity={0.1} />
+                      <XAxis dataKey="acronym" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 600, fill: chartTextColor }} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: chartTextColor }} domain={[0, 100]} padding={{ top: 20 }} />
+                      <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ fontSize: '11px', borderRadius: '12px', border: 'none', backgroundColor: isDarkMode ? '#0f172a' : '#fff' }} />
+                      <Bar dataKey="accuracy" radius={[6, 6, 0, 0]} barSize={35} animationDuration={500}>
+                        {subjectStats.performanceData.map((entry, index) => (
+                          <Cell key={index} fill={entry.hexColor} />
+                        ))}
+                        <LabelList
+                          dataKey="accuracy"
+                          position="top"
+                          offset={5}
+                          formatter={(val: number) => `${val}%`}
+                          fill={isDarkMode ? '#94a3b8' : '#64748b'}
+                          style={{ fontSize: '11px', fontWeight: 'bold' }}
+                        />
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : <div className="h-full flex items-center justify-center text-xs text-slate-400">Sem dados de desempenho</div>
+              )}
+            </div>
           </div>
         );
       default: return null;
     }
   };
+
+
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -543,6 +636,10 @@ const Dashboard: React.FC<DashboardProps> = ({
             <span className="text-[10px] font-semibold uppercase text-slate-400 dark:text-slate-500 tracking-wide">Questões</span>
           </div>
           <div className="flex flex-col">
+            <span className="text-base font-bold text-slate-800 dark:text-white leading-none mb-1 text-center">{simulados.length}</span>
+            <span className="text-[10px] font-semibold uppercase text-slate-400 dark:text-slate-500 tracking-wide text-center">Simulados</span>
+          </div>
+          <div className="flex flex-col">
             <span className="text-base font-bold text-slate-800 dark:text-white leading-none mb-1">
               {(sessions.reduce((acc, s) => {
                 if (selectedConcursoId !== 'all') {
@@ -571,7 +668,6 @@ const Dashboard: React.FC<DashboardProps> = ({
               if (remaining === 0) {
                 return (
                   <div className="flex items-center gap-2 bg-emerald-100 dark:bg-emerald-900/20 px-3 py-1.5 rounded-lg animate-in fade-in zoom-in-95 duration-300 border border-emerald-200 dark:border-emerald-800">
-                    <span className="text-base">🏆</span>
                     <span className="text-[10px] font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-widest leading-none">Meta Diária Batida!</span>
                   </div>
                 );
@@ -605,13 +701,14 @@ const Dashboard: React.FC<DashboardProps> = ({
 
       <header className="flex justify-between items-center px-1">
         <div className="flex items-center gap-4">
-          <h2 className="text-lg font-bold text-slate-800 dark:text-white uppercase tracking-tight flex items-center gap-2">Análise Estratégica <TrendingUp size={20} className="text-blue-500" /></h2>
+
           <button
             onClick={() => setShowModal(true)}
             className="bg-blue-600 text-white px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wide hover:bg-blue-700 shadow-sm transition-all flex items-center gap-2"
           >
             <Plus size={14} /> Adicionar Atividade
           </button>
+
         </div>
         <button onClick={() => {
           setIsEditMode(!isEditMode);

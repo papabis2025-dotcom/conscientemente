@@ -41,6 +41,17 @@ export const useAppData = () => {
         localStorage.setItem('cp_global_daily_goal', goal.toString());
     };
 
+    // Study Plan Tasks State
+    const [studyTasks, setStudyTasks] = useState<{ id: string, subjectId: string, subjectName: string, topicId?: string, topicName?: string, done: boolean, date: string }[]>(() => {
+        const saved = localStorage.getItem('cp_study_tasks');
+        return saved ? JSON.parse(saved) : [];
+    });
+
+    const updateStudyTasks = (tasks: { id: string, subjectId: string, subjectName: string, topicId?: string, topicName?: string, done: boolean, date: string }[]) => {
+        setStudyTasks(tasks);
+        localStorage.setItem('cp_study_tasks', JSON.stringify(tasks));
+    };
+
     // Theme logic remains local for now to avoid flickering before auth loads
     const [theme, setTheme] = useState<'light' | 'dark'>(() => {
         const saved = localStorage.getItem('cp_theme');
@@ -138,16 +149,20 @@ export const useAppData = () => {
 
     const activeConcurso = useMemo(() => concursos.find(c => c.id === selectedConcursoId), [concursos, selectedConcursoId]);
 
+    const allSubjects = useMemo(() => {
+        const allSubs = concursos.flatMap(c => c.subjects);
+        // Unique by ID to avoid duplicates if any (though rare in this schema)
+        const uniqueMap = new Map();
+        allSubs.forEach(s => uniqueMap.set(s.id, s));
+        return Array.from(uniqueMap.values());
+    }, [concursos]);
+
     const filteredSubjects = useMemo(() => {
         if (selectedConcursoId === 'all') {
-            const allSubs = concursos.flatMap(c => c.subjects);
-            // Unique by ID
-            const uniqueMap = new Map();
-            allSubs.forEach(s => uniqueMap.set(s.id, s));
-            return Array.from(uniqueMap.values());
+            return allSubjects;
         }
         return activeConcurso?.subjects || [];
-    }, [concursos, selectedConcursoId, activeConcurso]);
+    }, [selectedConcursoId, activeConcurso, allSubjects]);
 
     const toggleTheme = () => setTheme(theme === 'light' ? 'dark' : 'light');
 
@@ -414,6 +429,7 @@ export const useAppData = () => {
         theme, toggleTheme,
         lastSaved, isSaving, saveError,
         filteredSubjects,
+        allSubjects,
         activeConcurso,
         handleManualSave,
         handleLogout,
@@ -426,6 +442,8 @@ export const useAppData = () => {
         addLog,
         globalDailyGoal,
         setGlobalDailyGoal,
+        studyTasks,
+        setStudyTasks: updateStudyTasks,
         updateProfile: async (name: string, avatar: string) => {
             if (!currentUser) return;
             const updated = { ...currentUser, name, avatar };

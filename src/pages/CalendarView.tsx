@@ -1,9 +1,11 @@
 
 import React, { useState, useMemo } from 'react';
 import { Subject, ScheduledStudy, Topic, ActivityType, StudySession } from '../types';
+import { getBadgeStyle } from '../utils/colors';
 
 interface CalendarViewProps {
-  subjects: Subject[];
+  subjects: Subject[]; // For dropdown (filtered)
+  allSubjects?: Subject[]; // For lookup (global)
   scheduledStudies: ScheduledStudy[];
   onUpdateSchedule: (studies: ScheduledStudy[]) => void;
   onDelete: (id: string) => void;
@@ -12,11 +14,14 @@ interface CalendarViewProps {
 
 type ViewMode = 'semanal' | 'mensal' | 'semestral' | 'anual';
 
-const CalendarView: React.FC<CalendarViewProps> = ({ subjects, scheduledStudies, onUpdateSchedule, onDelete, onAddSession }) => {
+const CalendarView: React.FC<CalendarViewProps> = ({ subjects, allSubjects, scheduledStudies, onUpdateSchedule, onDelete, onAddSession }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<ViewMode>('mensal');
   const [selectedDayKey, setSelectedDayKey] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
+
+  // Use allSubjects for lookup if available, otherwise fallback to subjects
+  const lookupSubjects = allSubjects || subjects;
 
   const [formData, setFormData] = useState({
     subjectId: '',
@@ -34,7 +39,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ subjects, scheduledStudies,
   ];
 
   const daysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
-  const firstDayOfMonth = (year: number, month: number) => new Date(year, month, 1).getDay();
+  const firstDayOfMonth = (year, month: number) => new Date(year, month, 1).getDay();
 
   const handleNavigate = (direction: number) => {
     const newDate = new Date(currentDate);
@@ -54,15 +59,6 @@ const CalendarView: React.FC<CalendarViewProps> = ({ subjects, scheduledStudies,
   const handleDayClick = (dayKey: string) => {
     setSelectedDayKey(dayKey);
     setShowModal(true);
-    setFormData({
-      subjectId: '',
-      topicId: '',
-      activityType: 'Leitura',
-      duration: '',
-      questionsDone: '',
-      questionsCorrect: '',
-      notes: ''
-    });
   };
 
   const handleSave = () => {
@@ -131,7 +127,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ subjects, scheduledStudies,
           <div className="grid grid-cols-1 md:grid-cols-7 gap-4 auto-rows-fr">
             {weekDays.map(date => {
               const key = getDayKey(date);
-              const tasks = scheduledStudies.filter(s => s.date === key);
+              const tasks = scheduledStudies.filter(s => (s.date && (s.date === key || s.date.split('T')[0] === key)));
               const isToday = new Date().toDateString() === date.toDateString();
               return (
                 <div key={key} onClick={() => handleDayClick(key)} className={`bg-white dark:bg-slate-900 p-4 rounded-3xl border ${isToday ? 'border-blue-400 shadow-lg' : 'border-slate-100 dark:border-slate-800'} min-h-[350px] flex flex-col cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all`}>
@@ -141,11 +137,12 @@ const CalendarView: React.FC<CalendarViewProps> = ({ subjects, scheduledStudies,
                   </div>
                   <div className="space-y-2 flex-1 overflow-y-auto custom-scrollbar pr-1">
                     {tasks.map(task => {
-                      const sub = subjects.find(s => s.id === task.subjectId);
+                      const sub = lookupSubjects.find(s => s.id === task.subjectId);
+                      const { style, className } = sub ? getBadgeStyle(sub.color) : { style: {}, className: 'bg-slate-400 text-white' };
                       return (
-                        <div key={task.id} className={`p-3 rounded-2xl text-[10px] text-white font-bold border border-white/10 ${sub?.color || 'bg-slate-500'}`}>
-                          <span className="opacity-70">{getActivityIcon(task.activityType)} {task.activityType}</span>
-                          <p className="truncate font-black">{sub?.name}</p>
+                        <div key={task.id} style={style} className={`p-3 rounded-2xl text-[10px] font-bold border border-white/10 ${className}`}>
+                          <span className="opacity-70 flex items-center gap-1">{getActivityIcon(task.activityType)} {task.activityType}</span>
+                          <p className="truncate font-black">{sub ? sub.name : 'Disciplina Removida'}</p>
                         </div>
                       );
                     })}
@@ -175,17 +172,21 @@ const CalendarView: React.FC<CalendarViewProps> = ({ subjects, scheduledStudies,
                 const day = i + 1;
                 const date = new Date(year, month, day);
                 const key = getDayKey(date);
-                const tasks = scheduledStudies.filter(s => s.date === key);
+                const tasks = scheduledStudies.filter(s => (s.date && (s.date === key || s.date.split('T')[0] === key)));
                 const isToday = new Date().toDateString() === date.toDateString();
                 return (
                   <div key={day} onClick={() => handleDayClick(key)} className="p-2 border-r border-b border-slate-100 dark:border-slate-800 hover:bg-blue-50/30 dark:hover:bg-blue-900/10 cursor-pointer transition-all flex flex-col">
                     <span className={`text-xs font-bold w-6 h-6 flex items-center justify-center rounded-full ${isToday ? 'bg-blue-600 text-white' : 'text-slate-400'}`}>{day}</span>
                     <div className="mt-1 space-y-1 overflow-y-auto">
-                      {tasks.map(t => (
-                        <div key={t.id} className={`px-1.5 py-0.5 rounded text-[8px] text-white font-bold truncate ${subjects.find(s => s.id === t.subjectId)?.color || 'bg-slate-500'}`}>
-                          {t.activityType === 'Simulado' ? '📋 ' : ''}{subjects.find(s => s.id === t.subjectId)?.name}
-                        </div>
-                      ))}
+                      {tasks.map(t => {
+                        const sub = lookupSubjects.find(s => s.id === t.subjectId);
+                        const { style, className } = sub ? getBadgeStyle(sub.color) : { style: {}, className: 'bg-slate-400 text-white' };
+                        return (
+                          <div key={t.id} style={style} className={`px-1.5 py-0.5 rounded text-[8px] font-bold truncate ${className}`}>
+                            {t.activityType === 'Simulado' ? '📋 ' : ''}{sub ? sub.name : 'Disciplina Removida'}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 );
@@ -239,7 +240,9 @@ const CalendarView: React.FC<CalendarViewProps> = ({ subjects, scheduledStudies,
                   <div key={task.id} className="p-4 bg-white dark:bg-slate-900 rounded-[1.5rem] border border-slate-200 dark:border-slate-700 group relative">
                     <button onClick={() => handleDelete(task.id)} className="absolute top-2 right-2 text-slate-300 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-all">✕</button>
                     <p className="text-[8px] font-black uppercase text-blue-600 mb-1">{task.activityType}</p>
-                    <h5 className="text-xs font-bold dark:text-white truncate">{subjects.find(s => s.id === task.subjectId)?.name}</h5>
+                    <h5 className="text-xs font-bold dark:text-white truncate">
+                      {lookupSubjects.find(s => s.id === task.subjectId)?.name || <span className="text-rose-400 italic">Desconhecida</span>}
+                    </h5>
                     {task.questionsDone !== undefined && (
                       <p className="text-[9px] text-slate-400 mt-1 font-bold">{task.questionsCorrect}/{task.questionsDone} Questões</p>
                     )}

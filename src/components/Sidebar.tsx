@@ -49,6 +49,7 @@ interface SidebarProps {
   isCollapsed: boolean;
   onToggleCollapse: () => void;
   onUpdateUser?: (name: string, avatar: string) => void;
+  studyTasks: { id: string, subjectId: string, subjectName: string, done: boolean, date: string }[];
 }
 
 interface MenuItem {
@@ -64,7 +65,7 @@ const DEFAULT_MENU_ITEMS: MenuItem[] = [
   { id: 'questions', label: 'Questões', icon: Target },
   { id: 'simulados', label: 'Simulados', icon: FileSpreadsheet },
   { id: 'calendar', label: 'Planner', icon: Calendar },
-  { id: 'ai-coach', label: 'IA Mentor', icon: Brain },
+  { id: 'study_plan', label: 'Plano de Estudos', icon: Brain },
 ];
 
 const Sidebar: React.FC<SidebarProps> = ({
@@ -74,7 +75,8 @@ const Sidebar: React.FC<SidebarProps> = ({
   subjects,
   onAddSession,
   currentUser, onLogout, isReorderMode = false,
-  isCollapsed = false, onToggleCollapse, onUpdateUser
+  isCollapsed = false, onToggleCollapse, onUpdateUser,
+  studyTasks
 }) => {
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [editName, setEditName] = useState(currentUser.name);
@@ -85,12 +87,23 @@ const Sidebar: React.FC<SidebarProps> = ({
     setEditName(currentUser.name);
     setEditAvatar(currentUser.avatar);
   }, [currentUser]);
+
   const [menuItems, setMenuItems] = useState<MenuItem[]>(() => {
     const saved = localStorage.getItem('cp_menu_order');
     if (saved) {
       try {
         const savedIds = JSON.parse(saved);
-        return savedIds.map((id: string) => DEFAULT_MENU_ITEMS.find(item => item.id === id)!).filter(Boolean);
+        // Recover saved items that still exist in defaults
+        const currentItems = savedIds
+          .map((id: string) => DEFAULT_MENU_ITEMS.find(item => item.id === id))
+          .filter(Boolean) as MenuItem[];
+
+        // Find any default items that are missing from the saved list (e.g. new features)
+        const missingItems = DEFAULT_MENU_ITEMS.filter(
+          defaultItem => !currentItems.some(savedItem => savedItem.id === defaultItem.id)
+        );
+
+        return [...currentItems, ...missingItems];
       } catch {
         return DEFAULT_MENU_ITEMS;
       }
@@ -238,7 +251,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       <div className="mb-5 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-2xl border border-slate-100 dark:border-slate-700">
-        {!isCollapsed ? (
+        {!isCollapsed && (
           <div className="flex flex-col gap-2">
             <span className="text-[10px] font-semibold text-slate-400">Timer de Foco</span>
 
@@ -291,21 +304,6 @@ const Sidebar: React.FC<SidebarProps> = ({
               </div>
             )}
           </div>
-        ) : (
-          <div className="flex flex-col items-center gap-2">
-            <div className={`w-2 h-2 rounded-full ${isAlarmPlaying ? 'bg-red-500 animate-pulse' : isActive ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`} />
-            <span className="text-[10px] font-mono">{formatTime(timeLeft)}</span>
-            {isAlarmPlaying ? (
-              <button onClick={onStopAlarm} className="text-red-500"><Bell size={18} /></button>
-            ) : (
-              <button
-                onClick={() => isActive ? onPauseTimer() : (timeLeft > 0 ? onResumeTimer() : onStartTimer(inputMinutes))}
-                className="text-slate-600 dark:text-slate-400 hover:text-blue-500"
-              >
-                {isActive ? <Pause size={18} /> : <Play size={18} />}
-              </button>
-            )}
-          </div>
         )}
       </div>
 
@@ -338,7 +336,23 @@ const Sidebar: React.FC<SidebarProps> = ({
           >
             {isReorderMode && !isCollapsed && <GripVertical size={14} className="opacity-50" />}
             <span className={`${isCollapsed ? '' : ''}`}><item.icon size={20} /></span>
-            {!isCollapsed && <span className="text-sm">{item.label}</span>}
+            {!isCollapsed && (
+              <span className="text-sm flex items-center gap-2">
+                {item.label}
+                {item.id === 'study_plan' && studyTasks.some(t => {
+                  const today = new Date().toISOString().split('T')[0];
+                  return t.date === today && !t.done;
+                }) && (
+                    <span className="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)] animate-pulse" />
+                  )}
+              </span>
+            )}
+            {isCollapsed && item.id === 'study_plan' && studyTasks.some(t => {
+              const today = new Date().toISOString().split('T')[0];
+              return t.date === today && !t.done;
+            }) && (
+                <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)] animate-pulse" />
+              )}
           </button>
         ))}
 
@@ -365,7 +379,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           {!isCollapsed && <span className="text-sm">Sair</span>}
         </button>
       </div>
-    </div>
+    </div >
   );
 };
 

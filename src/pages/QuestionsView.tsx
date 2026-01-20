@@ -206,27 +206,7 @@ const QuestionsView: React.FC<QuestionsViewProps> = ({
             </div>
           </div>
 
-          <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm">
-            <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-6">🕒 Últimas Sessões</h3>
-            <div className="space-y-3">
-              {recentLogs.map(log => {
-                const sub = subjects.find(s => s.id === log.subjectId);
-                const acc = Math.round(((log.questionsCorrect || 0) / (log.questionsDone || 1)) * 100);
-                return (
-                  <div key={log.id} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800 group">
-                    <div className="flex items-center gap-4">
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-[10px] text-white ${getBadgeStyle(sub?.color || 'bg-slate-500').className}`} style={getBadgeStyle(sub?.color || 'bg-slate-500').style}>{acc}%</div>
-                      <div>
-                        <h5 className="text-xs font-bold text-slate-700 dark:text-white truncate max-w-[150px]">{sub?.name}</h5>
-                        <p className="text-[9px] text-slate-400 font-bold uppercase">{log.questionsDone} Q • {new Date(log.date).toLocaleDateString()}</p>
-                      </div>
-                    </div>
-                    <button onClick={() => onDeleteSession(log.id)} className="p-2 text-slate-200 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-all">🗑️</button>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+
         </div>
       </div>
     </div>

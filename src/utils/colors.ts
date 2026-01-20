@@ -22,9 +22,27 @@ export const getColorHex = (colorIdentifier: string): string => {
     return tailwindColors[colorIdentifier] || '#3b82f6';
 };
 
+// Helper to determine if text should be dark or light
+const getContrastTextClass = (hexColor: string): string => {
+    const hex = hexColor.replace('#', '');
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+    const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+    return (yiq >= 128) ? 'text-slate-900' : 'text-white';
+};
+
 export const getBadgeStyle = (colorIdentifier: string) => {
-    if (colorIdentifier.startsWith('#')) {
-        return { style: { backgroundColor: colorIdentifier }, className: '' };
+    let hex = colorIdentifier;
+    // Resolve tailwind class to hex for calculation
+    if (!colorIdentifier.startsWith('#')) {
+        hex = tailwindColors[colorIdentifier] || '#64748b'; // Default to slate-500 if unknown, or safe fallback
     }
-    return { style: {}, className: colorIdentifier };
+
+    const textClass = getContrastTextClass(hex);
+
+    if (colorIdentifier.startsWith('#')) {
+        return { style: { backgroundColor: colorIdentifier }, className: textClass };
+    }
+    return { style: {}, className: `${colorIdentifier} ${textClass}` };
 };

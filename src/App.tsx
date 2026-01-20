@@ -2,11 +2,11 @@ import React, { useState } from 'react';
 import Sidebar from './components/Sidebar';
 import Dashboard from './pages/Dashboard';
 import SubjectsView from './pages/SubjectsView';
-import AICoach from './pages/AICoach';
+import StudyPlan from './pages/StudyPlan';
+import SimuladosView from './pages/SimuladosView';
 import ConcursosView from './pages/ConcursosView';
 import CalendarView from './pages/CalendarView';
 import QuestionsView from './pages/QuestionsView';
-import SimuladosView from './pages/SimuladosView';
 import SettingsView from './pages/SettingsView';
 import LogView from './pages/LogView';
 import LoginView from './pages/LoginView';
@@ -25,10 +25,13 @@ const App: React.FC = () => {
     sessions, setSessions, simulados, setSimulados,
     scheduledStudies, setScheduledStudies, deleteScheduledStudy, dailyGoals, setDailyGoals,
     logs, setLogs, theme, toggleTheme,
-    lastSaved, isSaving, saveError, filteredSubjects, activeConcurso,
+    lastSaved, isSaving, saveError,
+    filteredSubjects,
+    allSubjects,
+    activeConcurso,
     handleLogout: logout, addSession, addSimulado,
     deleteSimulado, deleteSession, clearLogs, deleteLog, updateProfile,
-    globalDailyGoal // Destructured here
+    globalDailyGoal, studyTasks, setStudyTasks
   } = useAppData();
 
   const {
@@ -44,7 +47,7 @@ const App: React.FC = () => {
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard':
-        return <Dashboard subjects={filteredSubjects} sessions={sessions} simulados={simulados} activeConcurso={activeConcurso} selectedConcursoId={selectedConcursoId} onSelectConcursoId={setSelectedConcursoId} concursos={concursos} theme={theme} onToggleReorderMode={setIsReorderMode} onAddSession={addSession} globalDailyGoal={globalDailyGoal} timeLeft={timeLeft} isActive={isActive} isAlarmPlaying={isAlarmPlaying} onStartTimer={startTimer} onPauseTimer={pauseTimer} onResumeTimer={resumeTimer} onResetTimer={resetTimer} onStopAlarm={stopAlarm} />;
+        return <Dashboard subjects={filteredSubjects} sessions={sessions} simulados={simulados} activeConcurso={activeConcurso} selectedConcursoId={selectedConcursoId} onSelectConcursoId={setSelectedConcursoId} concursos={concursos} theme={theme} onToggleReorderMode={setIsReorderMode} onAddSession={addSession} globalDailyGoal={globalDailyGoal} studyTasks={studyTasks} timeLeft={timeLeft} isActive={isActive} isAlarmPlaying={isAlarmPlaying} onStartTimer={startTimer} onPauseTimer={pauseTimer} onResumeTimer={resumeTimer} onResetTimer={resetTimer} onStopAlarm={stopAlarm} />;
       case 'concursos':
         return <ConcursosView concursos={concursos} onUpdateConcursos={setConcursos} onSelectConcurso={(c) => { setSelectedConcursoId(c.id); setActiveTab('dashboard'); }} />;
       case 'subjects':
@@ -54,14 +57,21 @@ const App: React.FC = () => {
       case 'simulados':
         return <SimuladosView subjects={filteredSubjects} simulados={simulados} onAddSimulado={addSimulado} onDeleteSimulado={deleteSimulado} />;
       case 'calendar':
-        return <CalendarView subjects={filteredSubjects} scheduledStudies={scheduledStudies} onUpdateSchedule={setScheduledStudies} onDelete={deleteScheduledStudy} onAddSession={addSession} />;
-      case 'ai-coach':
-        return <AICoach onImportPlan={(aiSubs) => {
-          const newConc: Concurso = { id: crypto.randomUUID(), name: "Plano IA", banca: "Sugerida", startDate: new Date().toISOString(), subjects: aiSubs };
-          setConcursos([...concursos, newConc]);
-          setSelectedConcursoId(newConc.id);
-          setActiveTab('subjects');
-        }} />;
+        return <CalendarView
+          subjects={filteredSubjects}
+          allSubjects={allSubjects}
+          scheduledStudies={scheduledStudies}
+          onUpdateSchedule={setScheduledStudies}
+          onDelete={deleteScheduledStudy}
+          onAddSession={addSession}
+        />;
+      case 'study_plan':
+        return <StudyPlan
+          subjects={filteredSubjects}
+          sessions={sessions}
+          studyTasks={studyTasks}
+          onUpdateTasks={setStudyTasks}
+        />;
       case 'settings':
         return <SettingsView currentUserEmail={currentUser?.email || ''} />;
       case 'logs': return <LogView logs={logs} onClearLogs={clearLogs} onDeleteLog={deleteLog} />;
@@ -89,6 +99,7 @@ const App: React.FC = () => {
         isReorderMode={isReorderMode}
         isCollapsed={isSidebarCollapsed}
         onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+        studyTasks={studyTasks}
       />
       <main className="flex-1 overflow-y-auto p-4 relative">
         <div className="max-w-[1440px] mx-auto pb-10">{renderContent()}</div>

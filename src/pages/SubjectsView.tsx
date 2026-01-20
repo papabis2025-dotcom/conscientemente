@@ -57,6 +57,10 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Topic editing state
+  const [editingTopicId, setEditingTopicId] = useState<string | null>(null);
+  const [editTopicTitle, setEditTopicTitle] = useState('');
+
   const toggleExpand = (id: string) => {
     const newSet = new Set(expandedSubjects);
     if (newSet.has(id)) newSet.delete(id);
@@ -172,6 +176,26 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
       ...s,
       topics: s.topics.filter(t => t.id !== topicId)
     } : s));
+  };
+
+  const startEditingTopic = (topic: Topic) => {
+    setEditingTopicId(topic.id);
+    setEditTopicTitle(topic.title);
+  };
+
+  const saveTopicEdit = (subjectId: string, topicId: string) => {
+    if (!editTopicTitle.trim()) return;
+    onUpdateSubjects(subjects.map(s => s.id === subjectId ? {
+      ...s,
+      topics: s.topics.map(t => t.id === topicId ? { ...t, title: editTopicTitle } : t)
+    } : s));
+    setEditingTopicId(null);
+    setEditTopicTitle('');
+  };
+
+  const cancelTopicEdit = () => {
+    setEditingTopicId(null);
+    setEditTopicTitle('');
   };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -480,7 +504,26 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                                           </button>
                                         </td>
                                         <td className={`py-2 font-medium ${topic.isCompleted ? 'text-slate-400 line-through' : 'text-slate-700 dark:text-slate-300'}`}>
-                                          {topic.title}
+                                          {editingTopicId === topic.id ? (
+                                            <div className="flex items-center gap-2">
+                                              <input
+                                                className="px-2 py-1 bg-white dark:bg-slate-900 border rounded text-xs w-full outline-none focus:ring-1 focus:ring-blue-500"
+                                                value={editTopicTitle}
+                                                onChange={e => setEditTopicTitle(e.target.value)}
+                                                autoFocus
+                                                onKeyDown={(e) => {
+                                                  if (e.key === 'Enter') saveTopicEdit(subject.id, topic.id);
+                                                  if (e.key === 'Escape') cancelTopicEdit();
+                                                }}
+                                                onClick={e => e.stopPropagation()}
+                                              />
+                                              <button onClick={() => saveTopicEdit(subject.id, topic.id)} className="text-emerald-500 hover:text-emerald-600">
+                                                <CheckCircle size={14} />
+                                              </button>
+                                            </div>
+                                          ) : (
+                                            topic.title
+                                          )}
                                         </td>
                                         <td className="py-2">
                                           <span className={`text-[9px] uppercase font-bold px-1.5 py-0.5 rounded ${topic.priority === 'Alta' ? 'bg-rose-100 text-rose-600' : topic.priority === 'Média' ? 'bg-amber-100 text-amber-600' : 'bg-slate-100 text-slate-500'}`}>
@@ -494,9 +537,14 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                                           {tStats.done > 0 ? `${tStats.correct}/${tStats.done} (${tStats.acc}%)` : '-'}
                                         </td>
                                         <td className="py-2 text-right">
-                                          <button onClick={() => deleteTopic(subject.id, topic.id)} className="text-slate-300 hover:text-rose-500 opacity-0 group-hover/row:opacity-100 transition-opacity">
-                                            <Trash2 size={12} />
-                                          </button>
+                                          <div className="flex items-center justify-end gap-2 opacity-0 group-hover/row:opacity-100 transition-opacity">
+                                            <button onClick={() => startEditingTopic(topic)} className="text-slate-300 hover:text-blue-500">
+                                              <Edit2 size={12} />
+                                            </button>
+                                            <button onClick={() => deleteTopic(subject.id, topic.id)} className="text-slate-300 hover:text-rose-500">
+                                              <Trash2 size={12} />
+                                            </button>
+                                          </div>
                                         </td>
                                       </tr>
                                     );

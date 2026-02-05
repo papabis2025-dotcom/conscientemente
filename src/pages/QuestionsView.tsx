@@ -90,6 +90,10 @@ const QuestionsView: React.FC<QuestionsViewProps> = ({
       const subject = subjects.find(sub => sub.id === s.subjectId);
       if (!subject) return;
 
+      // Strict Filter: Only count 'Questões' type activities for performance stats
+      // Strict Filter: Only exclude explicit non-question types (Legacy data might be undefined)
+      if (s.activityType && s.activityType !== 'Questões' && s.activityType !== 'Simulado') return;
+
       if (!subjectMap[subject.id]) {
         subjectMap[subject.id] = { name: subject.name, color: subject.color, topics: {} };
       }

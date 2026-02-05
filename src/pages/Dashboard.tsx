@@ -45,7 +45,7 @@ interface WidgetState {
 
 const DEFAULT_WIDGETS: WidgetState[] = [
   { id: 'general_stats', title: 'Desempenho Geral', isVisible: true, size: 'wide' },
-  { id: 'study_frequency', title: 'Frequência de Estudo', isVisible: true, size: 'normal' },
+  { id: 'study_frequency', title: 'Informações e Metas', isVisible: true, size: 'normal' },
   { id: 'study_tasks', title: 'Tarefas de Hoje', isVisible: true, size: 'normal' },
   { id: 'weekly_chart', title: 'Volume de Estudo', isVisible: true, size: 'normal' },
   { id: 'unified_subject_analysis', title: 'Análise por Disciplina', isVisible: true, size: 'wide' },
@@ -483,18 +483,52 @@ const Dashboard: React.FC<DashboardProps> = ({
         );
       case 'study_frequency':
         return (
-          <div className="flex flex-col h-full justify-between py-1">
-            <div>
+          <div className="flex flex-col h-full justify-between py-2">
+            {/* Frequency Section */}
+            <div className="mb-3">
               <div className="flex items-end gap-2 mb-1">
-                <span className="text-4xl font-bold text-amber-500 leading-none">{frequencyData.streak}</span>
-                <span className="text-[9px] font-semibold uppercase text-slate-400 mb-1">Dias Seguidos</span>
+                <span className="text-3xl font-bold text-amber-500 leading-none">{frequencyData.streak}</span>
+                <span className="text-[9px] font-semibold uppercase text-slate-400 mb-0.5">Dias Seguidos</span>
               </div>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+              <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
                 Você estudou em <strong className="text-blue-600 dark:text-blue-400">{frequencyData.last7DaysCount}</strong> dos últimos 7 dias.
               </p>
+              <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full mt-2 overflow-hidden">
+                <div className="h-full bg-amber-500" style={{ width: `${(frequencyData.last7DaysCount / 7) * 100}%` }} />
+              </div>
             </div>
-            <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full mt-3 overflow-hidden">
-              <div className="h-full bg-amber-500" style={{ width: `${(frequencyData.last7DaysCount / 7) * 100}%` }} />
+
+            {/* Daily Goal Section */}
+            <div className="border-t border-slate-100 dark:border-slate-800 pt-3">
+              {(() => {
+                const todayStr = new Date().toISOString().split('T')[0];
+                const doneToday = sessions
+                  .filter(s => s.date.startsWith(todayStr) && s.questionsDone !== undefined)
+                  .reduce((acc, s) => acc + (s.questionsDone || 0), 0);
+                const goal = globalDailyGoal || 20;
+                const remaining = Math.max(0, goal - doneToday);
+                const pct = Math.min(100, Math.round((doneToday / goal) * 100));
+
+                return (
+                  <>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wide">Meta Diária</span>
+                      <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400">{doneToday} / {goal} Questões</span>
+                    </div>
+                    <div className="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-emerald-500 to-emerald-600 transition-all duration-500"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                    {remaining === 0 && (
+                      <div className="flex items-center justify-center gap-1.5 mt-2 bg-emerald-100 dark:bg-emerald-900/20 px-2 py-1 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                        <span className="text-[9px] font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-wide">Meta Batida! 🎉</span>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
             </div>
           </div>
         );
@@ -540,20 +574,22 @@ const Dashboard: React.FC<DashboardProps> = ({
       case 'weekly_chart':
         return (
           <div className="flex flex-col h-full">
-            {/* Tabs: Tempo / Questões */}
-            <div className="flex items-center gap-1 mb-2 bg-slate-50 dark:bg-slate-800/50 p-1 rounded-lg self-end">
-              <button
-                onClick={() => setActiveWeeklyTab('hours')}
-                className={`py-1 px-3 rounded-md text-[10px] font-bold uppercase tracking-wide transition-all ${activeWeeklyTab === 'hours' ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm' : 'text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
-              >
-                Tempo
-              </button>
-              <button
-                onClick={() => setActiveWeeklyTab('questions')}
-                className={`py-1 px-3 rounded-md text-[10px] font-bold uppercase tracking-wide transition-all ${activeWeeklyTab === 'questions' ? 'bg-white dark:bg-slate-700 text-purple-600 shadow-sm' : 'text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
-              >
-                Questões
-              </button>
+            {/* Tabs: Tempo / Questões - Aligned to Right */}
+            <div className="flex justify-end mb-2">
+              <div className="flex items-center gap-1 bg-slate-50 dark:bg-slate-800/50 p-1 rounded-lg">
+                <button
+                  onClick={() => setActiveWeeklyTab('hours')}
+                  className={`py-1 px-3 rounded-md text-[10px] font-bold uppercase tracking-wide transition-all ${activeWeeklyTab === 'hours' ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm' : 'text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+                >
+                  Tempo
+                </button>
+                <button
+                  onClick={() => setActiveWeeklyTab('questions')}
+                  className={`py-1 px-3 rounded-md text-[10px] font-bold uppercase tracking-wide transition-all ${activeWeeklyTab === 'questions' ? 'bg-white dark:bg-slate-700 text-purple-600 shadow-sm' : 'text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+                >
+                  Questões
+                </button>
+              </div>
             </div>
 
             {/* Period Filter Buttons */}
@@ -642,7 +678,7 @@ const Dashboard: React.FC<DashboardProps> = ({
             <div className="flex-1 w-full px-3 pt-2 pb-3" style={{ minHeight: '280px' }}>
               {activeAnalysisTab === 'questions' && (
                 subjectStats.questionsData.length > 0 ? (
-                  <ResponsiveContainer width="99%" height="100%">
+                  <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={subjectStats.questionsData} margin={{ top: 10, right: 5, bottom: 20, left: 5 }}>
                       <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} strokeOpacity={0.1} />
                       <XAxis dataKey="acronym" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 600, fill: chartTextColor }} />
@@ -665,7 +701,7 @@ const Dashboard: React.FC<DashboardProps> = ({
 
               {activeAnalysisTab === 'time' && (
                 subjectStats.timeData.length > 0 ? (
-                  <ResponsiveContainer width="99%" height="100%">
+                  <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={subjectStats.timeData} margin={{ top: 10, right: 5, bottom: 20, left: 5 }}>
                       <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} strokeOpacity={0.1} />
                       <XAxis dataKey="acronym" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 600, fill: chartTextColor }} />
@@ -689,7 +725,7 @@ const Dashboard: React.FC<DashboardProps> = ({
 
               {activeAnalysisTab === 'performance' && (
                 subjectStats.performanceData.length > 0 ? (
-                  <ResponsiveContainer width="99%" height="100%">
+                  <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={subjectStats.performanceData} margin={{ top: 10, right: 5, bottom: 20, left: 5 }}>
                       <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} strokeOpacity={0.1} />
                       <XAxis dataKey="acronym" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 600, fill: chartTextColor }} />
@@ -805,50 +841,6 @@ const Dashboard: React.FC<DashboardProps> = ({
           </div>
         </div>
 
-        {/* Daily Goal Widget */}
-        <div className="hidden lg:flex flex-col items-end justify-center pl-6 border-l border-slate-100 dark:border-slate-800 ml-auto min-w-[150px]">
-          <span className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest mb-1">Meta Diária</span>
-          <div className="flex items-end gap-2">
-            {(() => {
-              const todayStr = new Date().toISOString().split('T')[0];
-              const doneToday = sessions
-                .filter(s => s.date.startsWith(todayStr) && s.questionsDone !== undefined)
-                .reduce((acc, s) => acc + (s.questionsDone || 0), 0);
-              const goal = globalDailyGoal || 20; // fallback default
-              const remaining = Math.max(0, goal - doneToday);
-
-              if (remaining === 0) {
-                return (
-                  <div className="flex items-center gap-2 bg-emerald-100 dark:bg-emerald-900/20 px-3 py-1.5 rounded-lg animate-in fade-in zoom-in-95 duration-300 border border-emerald-200 dark:border-emerald-800">
-                    <span className="text-[10px] font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-widest leading-none">Meta Diária Batida!</span>
-                  </div>
-                );
-              }
-
-              return (
-                <>
-                  <span className="text-2xl font-black leading-none text-slate-800 dark:text-white">
-                    {remaining}
-                  </span>
-                  <span className="text-[10px] font-bold text-slate-400 uppercase mb-1">Faltam</span>
-                </>
-              );
-            })()}
-          </div>
-          {(() => {
-            const todayStr = new Date().toISOString().split('T')[0];
-            const doneToday = sessions
-              .filter(s => s.date.startsWith(todayStr) && s.questionsDone !== undefined)
-              .reduce((acc, s) => acc + (s.questionsDone || 0), 0);
-            const goal = globalDailyGoal || 20;
-            const pct = Math.min(100, Math.round((doneToday / goal) * 100));
-            return (
-              <div className="w-full flex flex-col items-end">
-                <span className="text-[9px] font-bold text-slate-400 mt-1 uppercase tracking-widest">{doneToday} / {goal} Feitas</span>
-              </div>
-            )
-          })()}
-        </div>
       </div>
 
       <header className="flex justify-between items-center px-1">

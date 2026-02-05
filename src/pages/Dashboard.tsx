@@ -675,11 +675,11 @@ const Dashboard: React.FC<DashboardProps> = ({
             </div>
 
             {/* Content Area */}
-            <div className="flex-1 w-full px-2 pt-2 pb-6" style={{ minHeight: '280px' }}>
+            <div className="flex-1 w-full px-2 pt-2 pb-8 min-h-0">
               {activeAnalysisTab === 'questions' && (
                 subjectStats.questionsData.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={subjectStats.questionsData} margin={{ top: 5, right: 0, bottom: 25, left: 0 }}>
+                    <BarChart data={subjectStats.questionsData} margin={{ top: 5, right: 0, bottom: 30, left: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} strokeOpacity={0.1} />
                       <XAxis dataKey="acronym" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 600, fill: chartTextColor }} />
                       <YAxis width={30} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: chartTextColor }} domain={[0, 'auto']} allowDataOverflow={false} padding={{ top: 20 }} />
@@ -702,7 +702,7 @@ const Dashboard: React.FC<DashboardProps> = ({
               {activeAnalysisTab === 'time' && (
                 subjectStats.timeData.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={subjectStats.timeData} margin={{ top: 5, right: 0, bottom: 25, left: 0 }}>
+                    <BarChart data={subjectStats.timeData} margin={{ top: 5, right: 0, bottom: 30, left: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} strokeOpacity={0.1} />
                       <XAxis dataKey="acronym" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 600, fill: chartTextColor }} />
                       <YAxis width={30} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: chartTextColor }} domain={[0, 'auto']} allowDataOverflow={false} padding={{ top: 20 }} />
@@ -726,7 +726,7 @@ const Dashboard: React.FC<DashboardProps> = ({
               {activeAnalysisTab === 'performance' && (
                 subjectStats.performanceData.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={subjectStats.performanceData} margin={{ top: 5, right: 0, bottom: 25, left: 0 }}>
+                    <BarChart data={subjectStats.performanceData} margin={{ top: 5, right: 0, bottom: 30, left: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} strokeOpacity={0.1} />
                       <XAxis dataKey="acronym" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 600, fill: chartTextColor }} />
                       <YAxis width={30} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: chartTextColor }} domain={[0, 100]} padding={{ top: 20 }} />

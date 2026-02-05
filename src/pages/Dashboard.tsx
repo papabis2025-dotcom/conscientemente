@@ -47,7 +47,7 @@ const DEFAULT_WIDGETS: WidgetState[] = [
   { id: 'general_stats', title: 'Desempenho Geral', isVisible: true, size: 'wide' },
   { id: 'study_frequency', title: 'Frequência de Estudo', isVisible: true, size: 'normal' },
   { id: 'study_tasks', title: 'Tarefas de Hoje', isVisible: true, size: 'normal' },
-  { id: 'weekly_chart', title: 'Volume de Estudo Semanal', isVisible: true, size: 'normal' },
+  { id: 'weekly_chart', title: 'Volume de Estudo', isVisible: true, size: 'normal' },
   { id: 'unified_subject_analysis', title: 'Análise por Disciplina', isVisible: true, size: 'wide' },
 ];
 
@@ -256,20 +256,20 @@ const Dashboard: React.FC<DashboardProps> = ({
 
   const { weeklyData, weeklyQuestionsData } = useMemo(() => {
     const today = new Date();
-    
+
     if (activeWeeklyPeriod === 'weekly') {
       // Weekly view: Last 7 days
       const days = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
       const dataMap = days.map(day => ({ n: day, h: 0, q: 0 }));
       const currentDay = today.getDay();
-      
+
       const startOfWeek = new Date(today);
       startOfWeek.setDate(today.getDate() - currentDay);
       startOfWeek.setHours(0, 0, 0, 0);
-      
+
       const endOfWeek = new Date(startOfWeek);
       endOfWeek.setDate(startOfWeek.getDate() + 7);
-      
+
       relevantSessions.forEach(s => {
         const sDate = new Date(s.date);
         if (sDate >= startOfWeek && sDate < endOfWeek) {
@@ -278,27 +278,27 @@ const Dashboard: React.FC<DashboardProps> = ({
           dataMap[dayIdx].q += (s.questionsDone || 0);
         }
       });
-      
+
       const finalData = dataMap.map(d => ({ ...d, h: parseFloat(d.h.toFixed(1)) }));
       return { weeklyData: finalData, weeklyQuestionsData: finalData };
-    } 
-    
+    }
+
     else if (activeWeeklyPeriod === 'monthly') {
       // Monthly view: Weeks of current month
       const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
       const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-      
+
       // Calculate number of weeks in month
       const firstDayOfWeek = startOfMonth.getDay();
       const daysInMonth = endOfMonth.getDate();
       const weeksInMonth = Math.ceil((daysInMonth + firstDayOfWeek) / 7);
-      
-      const dataMap = Array.from({ length: weeksInMonth }, (_, i) => ({ 
-        n: `Sem ${i + 1}`, 
-        h: 0, 
-        q: 0 
+
+      const dataMap = Array.from({ length: weeksInMonth }, (_, i) => ({
+        n: `Sem ${i + 1}`,
+        h: 0,
+        q: 0
       }));
-      
+
       relevantSessions.forEach(s => {
         const sDate = new Date(s.date);
         if (sDate >= startOfMonth && sDate <= endOfMonth) {
@@ -310,17 +310,17 @@ const Dashboard: React.FC<DashboardProps> = ({
           }
         }
       });
-      
+
       const finalData = dataMap.map(d => ({ ...d, h: parseFloat(d.h.toFixed(1)) }));
       return { weeklyData: finalData, weeklyQuestionsData: finalData };
-    } 
-    
+    }
+
     else {
       // Annual view: Months of current year
       const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
       const dataMap = months.map(month => ({ n: month, h: 0, q: 0 }));
       const currentYear = today.getFullYear();
-      
+
       relevantSessions.forEach(s => {
         const sDate = new Date(s.date);
         if (sDate.getFullYear() === currentYear) {
@@ -329,7 +329,7 @@ const Dashboard: React.FC<DashboardProps> = ({
           dataMap[monthIdx].q += (s.questionsDone || 0);
         }
       });
-      
+
       const finalData = dataMap.map(d => ({ ...d, h: parseFloat(d.h.toFixed(1)) }));
       return { weeklyData: finalData, weeklyQuestionsData: finalData };
     }
@@ -406,17 +406,17 @@ const Dashboard: React.FC<DashboardProps> = ({
         const simColorHex = getPerformanceColorHex(simAccuracy);
 
         return (
-          <div className="flex flex-row items-center justify-around h-full gap-2 px-2">
+          <div className="flex flex-row items-center justify-around h-full gap-3 px-3">
             {/* General Stats */}
-            <div className="flex flex-col items-center justify-center flex-1 h-full">
-              <div className="relative w-full h-full max-w-[140px] max-h-[140px] flex items-center justify-center">
+            <div className="flex flex-col items-center justify-center flex-1">
+              <div className="relative w-[110px] h-[110px] flex items-center justify-center">
                 <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
                   <circle
                     cx="50"
                     cy="50"
                     r="40"
                     stroke="currentColor"
-                    strokeWidth="12"
+                    strokeWidth="10"
                     fill="transparent"
                     className="text-slate-100 dark:text-slate-800"
                   />
@@ -425,7 +425,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                     cy="50"
                     r="40"
                     stroke="currentColor"
-                    strokeWidth="12"
+                    strokeWidth="10"
                     fill="transparent"
                     strokeDasharray={251.2}
                     strokeDashoffset={251.2 - (251.2 * globalAccuracy) / 100}
@@ -438,21 +438,19 @@ const Dashboard: React.FC<DashboardProps> = ({
                   <span className={`text-2xl font-black ${globalColor}`} style={{ color: globalColorHex }}>{globalAccuracy}%</span>
                 </div>
               </div>
-              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wide mt-[-5px]">Geral</p>
+              <p className="text-[9px] font-bold text-slate-500 uppercase tracking-wide mt-1">Geral</p>
             </div>
 
-
-
             {/* Simulado Stats */}
-            <div className="flex flex-col items-center justify-center flex-1 h-full">
-              <div className="relative w-full h-full max-w-[140px] max-h-[140px] flex items-center justify-center">
+            <div className="flex flex-col items-center justify-center flex-1">
+              <div className="relative w-[110px] h-[110px] flex items-center justify-center">
                 <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
                   <circle
                     cx="50"
                     cy="50"
                     r="40"
                     stroke="currentColor"
-                    strokeWidth="12"
+                    strokeWidth="10"
                     fill="transparent"
                     className="text-slate-100 dark:text-slate-800"
                   />
@@ -461,7 +459,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                     cy="50"
                     r="40"
                     stroke="currentColor"
-                    strokeWidth="12"
+                    strokeWidth="10"
                     fill="transparent"
                     strokeDasharray={251.2}
                     strokeDashoffset={251.2 - (251.2 * simAccuracy) / 100}
@@ -474,37 +472,34 @@ const Dashboard: React.FC<DashboardProps> = ({
                   <span className={`text-2xl font-black ${simColor}`} style={{ color: simColorHex }}>{simAccuracy}%</span>
                 </div>
               </div>
-              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wide mt-[-5px]">Simulados</p>
+              <p className="text-[9px] font-bold text-slate-500 uppercase tracking-wide mt-1">Simulados</p>
             </div>
           </div>
         );
       case 'study_frequency':
         return (
-          <div className="mt-2 flex flex-col h-full justify-between pb-2">
+          <div className="flex flex-col h-full justify-between py-1">
             <div>
-              <div className="flex items-end gap-2 mb-2">
-                <span className="text-5xl font-bold text-amber-500 leading-none">{frequencyData.streak}</span>
-                <span className="text-[10px] font-semibold uppercase text-slate-400 mb-1.5 ">Dias Seguidos</span>
+              <div className="flex items-end gap-2 mb-1">
+                <span className="text-4xl font-bold text-amber-500 leading-none">{frequencyData.streak}</span>
+                <span className="text-[9px] font-semibold uppercase text-slate-400 mb-1">Dias Seguidos</span>
               </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
                 Você estudou em <strong className="text-blue-600 dark:text-blue-400">{frequencyData.last7DaysCount}</strong> dos últimos 7 dias.
               </p>
             </div>
-            <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full mt-4 overflow-hidden">
+            <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full mt-3 overflow-hidden">
               <div className="h-full bg-amber-500" style={{ width: `${(frequencyData.last7DaysCount / 7) * 100}%` }} />
             </div>
-
-            {/* Pending Study Plan Tasks */}
-
           </div>
         );
       case 'study_tasks':
         return (
           <div className="flex flex-col h-full relative overflow-hidden group/container">
-            <div className="flex-1 overflow-y-auto custom-scrollbar space-y-2 pr-1">
+            <div className="flex-1 overflow-y-auto custom-scrollbar space-y-1.5 pr-1">
               {studyTasks.filter(t => t.date === new Date().toISOString().split('T')[0]).length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full opacity-60 space-y-2">
-                  <div className="w-10 h-10 rounded-full bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-lg shadow-sm">🎉</div>
+                <div className="flex flex-col items-center justify-center h-full opacity-60 space-y-1.5">
+                  <div className="w-9 h-9 rounded-full bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-base shadow-sm">🎉</div>
                   <div className="text-center">
                     <p className="text-[10px] font-bold text-slate-600 dark:text-slate-300">Tudo em dia!</p>
                   </div>
@@ -514,7 +509,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                   <div
                     key={task.id}
                     onClick={() => handleToggleTask(task.id)}
-                    className={`flex items-center gap-3 p-3 rounded-xl border transition-all duration-300 cursor-pointer ${task.done ? 'bg-slate-50 dark:bg-slate-800/40 border-slate-100 dark:border-slate-800 opacity-60' : 'bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-700'}`}
+                    className={`flex items-center gap-2.5 p-2.5 rounded-xl border transition-all duration-300 cursor-pointer ${task.done ? 'bg-slate-50 dark:bg-slate-800/40 border-slate-100 dark:border-slate-800 opacity-60' : 'bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-700'}`}
                   >
                     <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${task.done ? 'bg-emerald-500 border-emerald-500' : 'border-slate-300 dark:border-slate-600'}`}>
                       {task.done && <Check size={10} className="text-white" />}
@@ -523,7 +518,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                       <p className={`text-[10px] font-bold truncate leading-tight ${task.done ? 'text-slate-500 line-through' : 'text-slate-700 dark:text-slate-200'}`}>
                         {task.subjectName}
                       </p>
-                      {task.topicName && <p className="text-[9px] text-slate-400 truncate mt-0.5">{task.topicName}</p>}
+                      {task.topicName && <p className="text-[8px] text-slate-400 truncate mt-0.5">{task.topicName}</p>}
                     </div>
                   </div>
                 ))
@@ -531,7 +526,7 @@ const Dashboard: React.FC<DashboardProps> = ({
             </div>
 
             {/* Total badge */}
-            <div className="absolute bottom-0 right-0 bg-blue-600 text-white text-[9px] font-bold px-2 py-1 rounded-tl-xl shadow-sm z-10 opacity-0 group-hover/container:opacity-100 transition-all pointer-events-none translate-y-full group-hover/container:translate-y-0">
+            <div className="absolute bottom-0 right-0 bg-blue-600 text-white text-[8px] font-bold px-2 py-0.5 rounded-tl-xl shadow-sm z-10 opacity-0 group-hover/container:opacity-100 transition-all pointer-events-none translate-y-full group-hover/container:translate-y-0">
               {studyTasks.filter(t => t.date === new Date().toISOString().split('T')[0] && !t.done).length} Pendentes
             </div>
           </div>
@@ -639,7 +634,7 @@ const Dashboard: React.FC<DashboardProps> = ({
             </div>
 
             {/* Content Area */}
-            <div className="flex-1 w-full p-2" style={{ minHeight: '220px' }}>
+            <div className="flex-1 w-full px-3 pt-2 pb-3" style={{ minHeight: '280px' }}>
               {activeAnalysisTab === 'questions' && (
                 subjectStats.questionsData.length > 0 ? (
                   <ResponsiveContainer width="99%" height="100%">
@@ -886,22 +881,32 @@ const Dashboard: React.FC<DashboardProps> = ({
         </button>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 auto-rows-auto">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 auto-rows-auto">
         {widgets.map((widget, index) => {
           if (!widget.isVisible && !isEditMode) return null;
           const sizeClass = widget.size === 'full' ? 'md:col-span-3' : widget.size === 'wide' ? 'md:col-span-2' : 'md:col-span-1';
-          return (
 
+          // Define heights for different widgets
+          const heightClass = (() => {
+            if (widget.id === 'general_stats') return 'h-[180px]';
+            if (widget.id === 'study_frequency') return 'h-[180px]';
+            if (widget.id === 'study_tasks') return 'h-[180px]';
+            if (widget.id === 'weekly_chart') return 'h-[380px]';
+            if (widget.id === 'unified_subject_analysis') return 'h-[380px]';
+            return 'h-auto';
+          })();
+
+          return (
             <div
               key={widget.id}
               draggable={isEditMode}
               onDragStart={() => handleDragStart(index)}
               onDragOver={(e) => handleDragOver(e, index)}
               onDragEnd={handleDragEnd}
-              className={`${sizeClass} ${widget.isVisible ? 'opacity-100' : 'opacity-40'} bg-white dark:bg-slate-900 p-5 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-sm relative group hover:shadow-md transition-all duration-300 ${isEditMode ? 'cursor-move ring-2 ring-emerald-500/20' : ''} ${draggedWidgetIndex === index ? 'opacity-50 scale-95' : ''}`}
+              className={`${sizeClass} ${heightClass} ${widget.isVisible ? 'opacity-100' : 'opacity-40'} bg-white dark:bg-slate-900 p-4 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-sm relative group hover:shadow-md transition-all duration-300 ${isEditMode ? 'cursor-move ring-2 ring-emerald-500/20' : ''} ${draggedWidgetIndex === index ? 'opacity-50 scale-95' : ''}`}
             >
-              <div className="flex justify-between items-center mb-3">
-                <h4 className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wide">{widget.title}</h4>
+              <div className="flex justify-between items-center mb-2">
+                <h4 className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wide">{widget.title}</h4>
                 <div className="flex gap-2 items-center">
                   {!isEditMode && ['weekly_chart', 'questions_by_subject', 'time_by_subject', 'performance_by_subject'].includes(widget.id) && (
                     <button

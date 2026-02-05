@@ -94,6 +94,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   const [showModal, setShowModal] = useState(false);
   const [activeAnalysisTab, setActiveAnalysisTab] = useState<'questions' | 'time' | 'performance'>('questions');
   const [activeWeeklyTab, setActiveWeeklyTab] = useState<'hours' | 'questions'>('hours');
+  const [activeWeeklyPeriod, setActiveWeeklyPeriod] = useState<'weekly' | 'monthly' | 'annual'>('weekly');
 
   const handleToggleTask = (taskId: string) => {
     if (!onUpdateTasks) return;
@@ -254,35 +255,85 @@ const Dashboard: React.FC<DashboardProps> = ({
   }, [sessions, globalDailyGoal]);
 
   const { weeklyData, weeklyQuestionsData } = useMemo(() => {
-    const days = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-    // Initialize map for current week (Sunday to Saturday)
-    const dataMap = days.map(day => ({ n: day, h: 0, q: 0 }));
-
     const today = new Date();
-    const currentDay = today.getDay(); // 0 (Sun) to 6 (Sat)
-
-    // Calculate start of the week (last Sunday)
-    const startOfWeek = new Date(today);
-    startOfWeek.setDate(today.getDate() - currentDay);
-    startOfWeek.setHours(0, 0, 0, 0);
-
-    const endOfWeek = new Date(startOfWeek);
-    endOfWeek.setDate(startOfWeek.getDate() + 7);
-
-    // Filter sessions within this range
-    relevantSessions.forEach(s => {
-      const sDate = new Date(s.date);
-      // Check if session is within the current week window
-      if (sDate >= startOfWeek && sDate < endOfWeek) {
-        const dayIdx = sDate.getDay();
-        dataMap[dayIdx].h += (s.durationInMinutes / 60);
-        dataMap[dayIdx].q += (s.questionsDone || 0);
-      }
-    });
-
-    const finalData = dataMap.map(d => ({ ...d, h: parseFloat(d.h.toFixed(1)) }));
-    return { weeklyData: finalData, weeklyQuestionsData: finalData };
-  }, [relevantSessions]);
+    
+    if (activeWeeklyPeriod === 'weekly') {
+      // Weekly view: Last 7 days
+      const days = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+      const dataMap = days.map(day => ({ n: day, h: 0, q: 0 }));
+      const currentDay = today.getDay();
+      
+      const startOfWeek = new Date(today);
+      startOfWeek.setDate(today.getDate() - currentDay);
+      startOfWeek.setHours(0, 0, 0, 0);
+      
+      const endOfWeek = new Date(startOfWeek);
+      endOfWeek.setDate(startOfWeek.getDate() + 7);
+      
+      relevantSessions.forEach(s => {
+        const sDate = new Date(s.date);
+        if (sDate >= startOfWeek && sDate < endOfWeek) {
+          const dayIdx = sDate.getDay();
+          dataMap[dayIdx].h += (s.durationInMinutes / 60);
+          dataMap[dayIdx].q += (s.questionsDone || 0);
+        }
+      });
+      
+      const finalData = dataMap.map(d => ({ ...d, h: parseFloat(d.h.toFixed(1)) }));
+      return { weeklyData: finalData, weeklyQuestionsData: finalData };
+    } 
+    
+    else if (activeWeeklyPeriod === 'monthly') {
+      // Monthly view: Weeks of current month
+      const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+      const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      
+      // Calculate number of weeks in month
+      const firstDayOfWeek = startOfMonth.getDay();
+      const daysInMonth = endOfMonth.getDate();
+      const weeksInMonth = Math.ceil((daysInMonth + firstDayOfWeek) / 7);
+      
+      const dataMap = Array.from({ length: weeksInMonth }, (_, i) => ({ 
+        n: `Sem ${i + 1}`, 
+        h: 0, 
+        q: 0 
+      }));
+      
+      relevantSessions.forEach(s => {
+        const sDate = new Date(s.date);
+        if (sDate >= startOfMonth && sDate <= endOfMonth) {
+          const dayOfMonth = sDate.getDate();
+          const weekIndex = Math.floor((dayOfMonth - 1 + firstDayOfWeek) / 7);
+          if (weekIndex < weeksInMonth) {
+            dataMap[weekIndex].h += (s.durationInMinutes / 60);
+            dataMap[weekIndex].q += (s.questionsDone || 0);
+          }
+        }
+      });
+      
+      const finalData = dataMap.map(d => ({ ...d, h: parseFloat(d.h.toFixed(1)) }));
+      return { weeklyData: finalData, weeklyQuestionsData: finalData };
+    } 
+    
+    else {
+      // Annual view: Months of current year
+      const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+      const dataMap = months.map(month => ({ n: month, h: 0, q: 0 }));
+      const currentYear = today.getFullYear();
+      
+      relevantSessions.forEach(s => {
+        const sDate = new Date(s.date);
+        if (sDate.getFullYear() === currentYear) {
+          const monthIdx = sDate.getMonth();
+          dataMap[monthIdx].h += (s.durationInMinutes / 60);
+          dataMap[monthIdx].q += (s.questionsDone || 0);
+        }
+      });
+      
+      const finalData = dataMap.map(d => ({ ...d, h: parseFloat(d.h.toFixed(1)) }));
+      return { weeklyData: finalData, weeklyQuestionsData: finalData };
+    }
+  }, [relevantSessions, activeWeeklyPeriod]);
 
   const frequencyData = useMemo(() => {
     // Determine current streak
@@ -489,6 +540,7 @@ const Dashboard: React.FC<DashboardProps> = ({
       case 'weekly_chart':
         return (
           <div className="flex flex-col h-full">
+            {/* Tabs: Tempo / Questões */}
             <div className="flex items-center gap-1 mb-2 bg-slate-50 dark:bg-slate-800/50 p-1 rounded-lg self-end">
               <button
                 onClick={() => setActiveWeeklyTab('hours')}
@@ -501,6 +553,28 @@ const Dashboard: React.FC<DashboardProps> = ({
                 className={`py-1 px-3 rounded-md text-[10px] font-bold uppercase tracking-wide transition-all ${activeWeeklyTab === 'questions' ? 'bg-white dark:bg-slate-700 text-purple-600 shadow-sm' : 'text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
               >
                 Questões
+              </button>
+            </div>
+
+            {/* Period Filter Buttons */}
+            <div className="flex items-center gap-1 mb-3 bg-slate-50 dark:bg-slate-800/50 p-1 rounded-lg">
+              <button
+                onClick={() => setActiveWeeklyPeriod('weekly')}
+                className={`flex-1 py-1 px-2 rounded-md text-[9px] font-bold uppercase tracking-wide transition-all ${activeWeeklyPeriod === 'weekly' ? 'bg-white dark:bg-slate-700 text-emerald-600 shadow-sm' : 'text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+              >
+                Semanal
+              </button>
+              <button
+                onClick={() => setActiveWeeklyPeriod('monthly')}
+                className={`flex-1 py-1 px-2 rounded-md text-[9px] font-bold uppercase tracking-wide transition-all ${activeWeeklyPeriod === 'monthly' ? 'bg-white dark:bg-slate-700 text-emerald-600 shadow-sm' : 'text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+              >
+                Mensal
+              </button>
+              <button
+                onClick={() => setActiveWeeklyPeriod('annual')}
+                className={`flex-1 py-1 px-2 rounded-md text-[9px] font-bold uppercase tracking-wide transition-all ${activeWeeklyPeriod === 'annual' ? 'bg-white dark:bg-slate-700 text-emerald-600 shadow-sm' : 'text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+              >
+                Anual
               </button>
             </div>
 

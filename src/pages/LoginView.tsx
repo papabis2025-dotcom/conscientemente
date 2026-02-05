@@ -53,8 +53,10 @@ const LoginView: React.FC<LoginViewProps> = () => {
       console.error('Auth error:', err);
       const errorMessage = err.message || 'Ocorreu um erro. Tente novamente.';
 
-      // Translate common Supabase errors to Portuguese
-      if (errorMessage.includes('Invalid login credentials')) {
+      // Handle network/CORS errors specifically
+      if (err.name === 'AuthRetryableFetchError' || errorMessage.includes('Failed to fetch')) {
+        setError('Erro de conexão com servidor. Verifique: internet, firewall, antivírus ou VPN/proxy.');
+      } else if (errorMessage.includes('Invalid login credentials')) {
         setError('E-mail ou senha incorretos.');
       } else if (errorMessage.includes('Email not confirmed')) {
         setError('Por favor, confirme seu e-mail antes de fazer login.');
@@ -89,7 +91,13 @@ const LoginView: React.FC<LoginViewProps> = () => {
       setSuccessMsg('Link de recuperação enviado! Verifique seu e-mail (inclusive spam).');
     } catch (err: any) {
       console.error('Password reset error:', err);
-      setError(err.message || 'Erro ao enviar e-mail de recuperação.');
+
+      // Handle network errors
+      if (err.name === 'AuthRetryableFetchError' || err.message?.includes('Failed to fetch')) {
+        setError('Erro de conexão. Verifique: internet, firewall, antivírus ou VPN/proxy.');
+      } else {
+        setError(err.message || 'Erro ao enviar e-mail de recuperação.');
+      }
     } finally {
       setLoading(false);
     }

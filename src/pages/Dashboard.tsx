@@ -488,8 +488,6 @@ const Dashboard: React.FC<DashboardProps> = ({
 
       case 'weekly_chart':
         return (
-      case 'weekly_chart':
-        return (
           <div className="flex flex-col h-full">
             <div className="flex items-center gap-1 mb-2 bg-slate-50 dark:bg-slate-800/50 p-1 rounded-lg self-end">
               <button

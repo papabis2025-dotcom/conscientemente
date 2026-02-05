@@ -93,6 +93,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   const [isEditMode, setIsEditMode] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [activeAnalysisTab, setActiveAnalysisTab] = useState<'questions' | 'time' | 'performance'>('questions');
+  const [activeWeeklyTab, setActiveWeeklyTab] = useState<'hours' | 'questions'>('hours');
 
   const handleToggleTask = (taskId: string) => {
     if (!onUpdateTasks) return;
@@ -104,6 +105,7 @@ const Dashboard: React.FC<DashboardProps> = ({
     });
     onUpdateTasks(newTasks);
   };
+
   const [widgets, setWidgets] = useState<WidgetState[]>(() => {
     const saved = localStorage.getItem('cp_dashboard_layout_v15');
     // Merge with defaults to ensure new widgets appear
@@ -251,10 +253,10 @@ const Dashboard: React.FC<DashboardProps> = ({
     return { total: done, goal: globalDailyGoal || 20 };
   }, [sessions, globalDailyGoal]);
 
-  const weeklyData = useMemo(() => {
+  const { weeklyData, weeklyQuestionsData } = useMemo(() => {
     const days = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
     // Initialize map for current week (Sunday to Saturday)
-    const dataMap = days.map(day => ({ n: day, h: 0 }));
+    const dataMap = days.map(day => ({ n: day, h: 0, q: 0 }));
 
     const today = new Date();
     const currentDay = today.getDay(); // 0 (Sun) to 6 (Sat)
@@ -274,10 +276,12 @@ const Dashboard: React.FC<DashboardProps> = ({
       if (sDate >= startOfWeek && sDate < endOfWeek) {
         const dayIdx = sDate.getDay();
         dataMap[dayIdx].h += (s.durationInMinutes / 60);
+        dataMap[dayIdx].q += (s.questionsDone || 0);
       }
     });
 
-    return dataMap.map(d => ({ ...d, h: parseFloat(d.h.toFixed(1)) }));
+    const finalData = dataMap.map(d => ({ ...d, h: parseFloat(d.h.toFixed(1)) }));
+    return { weeklyData: finalData, weeklyQuestionsData: finalData };
   }, [relevantSessions]);
 
   const frequencyData = useMemo(() => {
@@ -484,18 +488,57 @@ const Dashboard: React.FC<DashboardProps> = ({
 
       case 'weekly_chart':
         return (
-          <div className="h-48 w-full mt-2" style={{ minHeight: '192px' }}>
-            {weeklyData.some(d => d.h > 0) ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={weeklyData}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
-                  <XAxis dataKey="n" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 600, fill: chartTextColor }} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: chartTextColor }} />
-                  <Tooltip contentStyle={{ fontSize: '11px', borderRadius: '12px', border: 'none', backgroundColor: isDarkMode ? '#0f172a' : '#fff', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }} />
-                  <Area type="monotone" dataKey="h" stroke="#2563eb" fill="#2563eb22" strokeWidth={3} />
-                </AreaChart>
-              </ResponsiveContainer>
-            ) : <div className="h-full flex items-center justify-center text-xs text-slate-400">Sem dados de estudo na semana</div>}
+      case 'weekly_chart':
+        return (
+          <div className="flex flex-col h-full">
+            <div className="flex items-center gap-1 mb-2 bg-slate-50 dark:bg-slate-800/50 p-1 rounded-lg self-end">
+              <button
+                onClick={() => setActiveWeeklyTab('hours')}
+                className={`py-1 px-3 rounded-md text-[10px] font-bold uppercase tracking-wide transition-all ${activeWeeklyTab === 'hours' ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm' : 'text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+              >
+                Tempo
+              </button>
+              <button
+                onClick={() => setActiveWeeklyTab('questions')}
+                className={`py-1 px-3 rounded-md text-[10px] font-bold uppercase tracking-wide transition-all ${activeWeeklyTab === 'questions' ? 'bg-white dark:bg-slate-700 text-purple-600 shadow-sm' : 'text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+              >
+                Questões
+              </button>
+            </div>
+
+            <div className="flex-1 w-full min-h-0">
+              {activeWeeklyTab === 'hours' ? (
+                weeklyData.some(d => d.h > 0) ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={weeklyData}>
+                      <defs>
+                        <linearGradient id="colorH" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                          <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
+                      <XAxis dataKey="n" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 600, fill: chartTextColor }} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: chartTextColor }} />
+                      <Tooltip contentStyle={{ fontSize: '11px', borderRadius: '12px', border: 'none', backgroundColor: isDarkMode ? '#0f172a' : '#fff', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }} formatter={(val: any) => `${val}h`} />
+                      <Area type="monotone" dataKey="h" stroke="#3b82f6" fill="url(#colorH)" strokeWidth={3} />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                ) : <div className="h-full flex items-center justify-center text-xs text-slate-400">Sem dados de tempo</div>
+              ) : (
+                weeklyQuestionsData.some(d => d.q > 0) ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={weeklyQuestionsData}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
+                      <XAxis dataKey="n" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 600, fill: chartTextColor }} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: chartTextColor }} />
+                      <Tooltip contentStyle={{ fontSize: '11px', borderRadius: '12px', border: 'none', backgroundColor: isDarkMode ? '#0f172a' : '#fff', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }} formatter={(val: any) => `${val} q`} />
+                      <Bar dataKey="q" fill="#a855f7" radius={[4, 4, 0, 0]} barSize={20} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : <div className="h-full flex items-center justify-center text-xs text-slate-400">Sem questões feitas</div>
+              )}
+            </div>
           </div>
         );
       case 'unified_subject_analysis':

@@ -108,7 +108,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   };
 
   const [widgets, setWidgets] = useState<WidgetState[]>(() => {
-    const saved = localStorage.getItem('cp_dashboard_layout_v15');
+    const saved = localStorage.getItem('cp_dashboard_layout_v16');
     // Merge with defaults to ensure new widgets appear
     if (!saved) return DEFAULT_WIDGETS;
     const parsed = JSON.parse(saved);
@@ -124,7 +124,12 @@ const Dashboard: React.FC<DashboardProps> = ({
     if (missingWidgets.length > 0) {
       return [...filtered, ...missingWidgets];
     }
-    return filtered;
+
+    // Update widget titles from defaults to ensure latest names
+    return filtered.map((w: any) => {
+      const defaultWidget = DEFAULT_WIDGETS.find(dw => dw.id === w.id);
+      return defaultWidget ? { ...w, title: defaultWidget.title } : w;
+    });
   });
 
   const [formData, setFormData] = useState({
@@ -143,7 +148,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   const isDarkMode = theme === 'dark';
   const chartTextColor = isDarkMode ? '#94a3b8' : '#64748b';
 
-  useEffect(() => { localStorage.setItem('cp_dashboard_layout_v15', JSON.stringify(widgets)); }, [widgets]);
+  useEffect(() => { localStorage.setItem('cp_dashboard_layout_v16', JSON.stringify(widgets)); }, [widgets]);
 
   const handleDragStart = (index: number) => {
     setDraggedWidgetIndex(index);
@@ -638,7 +643,7 @@ const Dashboard: React.FC<DashboardProps> = ({
               {activeAnalysisTab === 'questions' && (
                 subjectStats.questionsData.length > 0 ? (
                   <ResponsiveContainer width="99%" height="100%">
-                    <BarChart data={subjectStats.questionsData} margin={{ bottom: 20 }}>
+                    <BarChart data={subjectStats.questionsData} margin={{ top: 10, right: 5, bottom: 20, left: 5 }}>
                       <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} strokeOpacity={0.1} />
                       <XAxis dataKey="acronym" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 600, fill: chartTextColor }} />
                       <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: chartTextColor }} domain={[0, 'auto']} allowDataOverflow={false} padding={{ top: 20 }} />
@@ -661,7 +666,7 @@ const Dashboard: React.FC<DashboardProps> = ({
               {activeAnalysisTab === 'time' && (
                 subjectStats.timeData.length > 0 ? (
                   <ResponsiveContainer width="99%" height="100%">
-                    <BarChart data={subjectStats.timeData} margin={{ bottom: 20 }}>
+                    <BarChart data={subjectStats.timeData} margin={{ top: 10, right: 5, bottom: 20, left: 5 }}>
                       <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} strokeOpacity={0.1} />
                       <XAxis dataKey="acronym" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 600, fill: chartTextColor }} />
                       <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: chartTextColor }} domain={[0, 'auto']} allowDataOverflow={false} padding={{ top: 20 }} />
@@ -685,7 +690,7 @@ const Dashboard: React.FC<DashboardProps> = ({
               {activeAnalysisTab === 'performance' && (
                 subjectStats.performanceData.length > 0 ? (
                   <ResponsiveContainer width="99%" height="100%">
-                    <BarChart data={subjectStats.performanceData} margin={{ bottom: 20 }}>
+                    <BarChart data={subjectStats.performanceData} margin={{ top: 10, right: 5, bottom: 20, left: 5 }}>
                       <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} strokeOpacity={0.1} />
                       <XAxis dataKey="acronym" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 600, fill: chartTextColor }} />
                       <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: chartTextColor }} domain={[0, 100]} padding={{ top: 20 }} />

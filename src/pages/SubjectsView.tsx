@@ -89,7 +89,16 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
     const tCorrect = topicSessions.reduce((acc, s) => acc + (s.questionsCorrect || 0), 0);
     const tAcc = tDone > 0 ? Math.round((tCorrect / tDone) * 100) : 0;
     const tHours = (tMinutes / 60).toFixed(1);
-    return { minutes: tMinutes, done: tDone, correct: tCorrect, acc: tAcc, hours: tHours };
+
+    // Calculate last study date
+    let lastStudyDate = '';
+    if (topicSessions.length > 0) {
+      const sortedSessions = [...topicSessions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      const lastDate = new Date(sortedSessions[0].date);
+      lastStudyDate = lastDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+    }
+
+    return { minutes: tMinutes, done: tDone, correct: tCorrect, acc: tAcc, hours: tHours, lastStudyDate };
   };
 
   const sortedSubjects = [...subjects].sort((a, b) => {
@@ -462,8 +471,8 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                                   <th className="py-2 text-[10px] uppercase font-bold cursor-pointer hover:text-blue-500" onClick={() => { setTopicSortBy('name'); setTopicSortOrder(o => o === 'asc' ? 'desc' : 'asc'); }}>
                                     Assunto {topicSortBy === 'name' && (topicSortOrder === 'asc' ? '↑' : '↓')}
                                   </th>
-                                  <th className="py-2 text-[10px] uppercase font-bold cursor-pointer hover:text-blue-500" onClick={() => { setTopicSortBy('priority'); setTopicSortOrder(o => o === 'desc' ? 'asc' : 'desc'); }}>
-                                    Prioridade {topicSortBy === 'priority' && (topicSortOrder === 'desc' ? '↓' : '↑')}
+                                  <th className="py-2 text-[10px] uppercase font-bold cursor-pointer hover:text-blue-500" onClick={() => { setTopicSortBy('lastStudy'); setTopicSortOrder(o => o === 'desc' ? 'asc' : 'desc'); }}>
+                                    Último Estudo {topicSortBy === 'lastStudy' && (topicSortOrder === 'desc' ? '↓' : '↑')}
                                   </th>
                                   <th className="py-2 text-[10px] uppercase font-bold cursor-pointer hover:text-blue-500" onClick={() => { setTopicSortBy('time'); setTopicSortOrder(o => o === 'desc' ? 'asc' : 'desc'); }}>
                                     Tempo {topicSortBy === 'time' && (topicSortOrder === 'desc' ? '↓' : '↑')}
@@ -486,9 +495,10 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                                     const multiplier = topicSortOrder === 'asc' ? 1 : -1;
 
                                     if (topicSortBy === 'name') return a.topic.title.localeCompare(b.topic.title, undefined, { numeric: true }) * multiplier;
-                                    if (topicSortBy === 'priority') {
-                                      const pMap = { 'Alta': 3, 'Média': 2, 'Baixa': 1 };
-                                      return (pMap[a.topic.priority] - pMap[b.topic.priority]) * multiplier;
+                                    if (topicSortBy === 'lastStudy') {
+                                      const aDate = a.stats.lastStudyDate ? new Date(a.stats.lastStudyDate).getTime() : 0;
+                                      const bDate = b.stats.lastStudyDate ? new Date(b.stats.lastStudyDate).getTime() : 0;
+                                      return (aDate - bDate) * multiplier;
                                     }
                                     if (topicSortBy === 'time') return (a.stats.minutes - b.stats.minutes) * multiplier;
                                     if (topicSortBy === 'questions') return (a.stats.done - b.stats.done) * multiplier;
@@ -525,10 +535,8 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                                             topic.title
                                           )}
                                         </td>
-                                        <td className="py-2">
-                                          <span className={`text-[9px] uppercase font-bold px-1.5 py-0.5 rounded ${topic.priority === 'Alta' ? 'bg-rose-100 text-rose-600' : topic.priority === 'Média' ? 'bg-amber-100 text-amber-600' : 'bg-slate-100 text-slate-500'}`}>
-                                            {topic.priority}
-                                          </span>
+                                        <td className="py-2 text-slate-500 text-xs">
+                                          {tStats.lastStudyDate || '-'}
                                         </td>
                                         <td className="py-2 text-slate-500 text-xs">
                                           {tStats.minutes > 0 ? `${tStats.hours}h` : '-'}

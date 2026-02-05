@@ -23,23 +23,46 @@ const LoginView: React.FC<LoginViewProps> = () => {
     setSuccessMsg('');
     setLoading(true);
 
+    console.log('Login attempt:', { email, isRegistering });
+
     try {
       if (isRegistering) {
-        const { error: signUpError } = await supabase.auth.signUp({
+        console.log('Attempting sign up...');
+        const { data, error: signUpError } = await supabase.auth.signUp({
           email,
           password,
         });
+        console.log('Sign up response:', { data, error: signUpError });
         if (signUpError) throw signUpError;
         setSuccessMsg('Verifique seu e-mail para confirmar o cadastro!');
       } else {
-        const { error: signInError } = await supabase.auth.signInWithPassword({
+        console.log('Attempting sign in...');
+        const { data, error: signInError } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
+        console.log('Sign in response:', { data, error: signInError });
         if (signInError) throw signInError;
+
+        // If successful, show success message briefly
+        if (data.session) {
+          setSuccessMsg('Login bem-sucedido! Redirecionando...');
+        }
       }
     } catch (err: any) {
-      setError(err.message || 'Ocorreu um erro. Tente novamente.');
+      console.error('Auth error:', err);
+      const errorMessage = err.message || 'Ocorreu um erro. Tente novamente.';
+
+      // Translate common Supabase errors to Portuguese
+      if (errorMessage.includes('Invalid login credentials')) {
+        setError('E-mail ou senha incorretos.');
+      } else if (errorMessage.includes('Email not confirmed')) {
+        setError('Por favor, confirme seu e-mail antes de fazer login.');
+      } else if (errorMessage.includes('User already registered')) {
+        setError('Este e-mail já está cadastrado. Faça login.');
+      } else {
+        setError(errorMessage);
+      }
     } finally {
       setLoading(false);
     }
@@ -55,13 +78,17 @@ const LoginView: React.FC<LoginViewProps> = () => {
     setSuccessMsg('');
     setLoading(true);
 
+    console.log('Password reset attempt for:', email);
+
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/reset-password`,
       });
+      console.log('Password reset response:', { data, error });
       if (error) throw error;
-      setSuccessMsg('Link de recuperação enviado! Verifique seu e-mail.');
+      setSuccessMsg('Link de recuperação enviado! Verifique seu e-mail (inclusive spam).');
     } catch (err: any) {
+      console.error('Password reset error:', err);
       setError(err.message || 'Erro ao enviar e-mail de recuperação.');
     } finally {
       setLoading(false);

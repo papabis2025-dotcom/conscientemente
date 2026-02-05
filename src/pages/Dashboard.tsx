@@ -483,7 +483,7 @@ const Dashboard: React.FC<DashboardProps> = ({
         );
       case 'study_frequency':
         return (
-          <div className="flex flex-col h-full justify-between py-1 px-1">
+          <div className="flex flex-col h-full justify-between py-2 px-2">
             {/* Frequency Section - Compacted */}
             <div className="flex-1 flex flex-col justify-center min-h-0">
               <div className="flex items-end gap-2 mb-1">
@@ -511,20 +511,22 @@ const Dashboard: React.FC<DashboardProps> = ({
 
                 return (
                   <>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wide">Meta Diária</span>
-                      <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400">{doneToday} / {goal} Questões</span>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Meta Diária</span>
+                      <span className="text-[10px] font-bold text-slate-600 dark:text-slate-300">{doneToday} / {goal}</span>
                     </div>
-                    <div className="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                    <div className="w-full h-3 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden mb-1">
                       <div
                         className="h-full bg-gradient-to-r from-emerald-500 to-emerald-600 transition-all duration-500"
                         style={{ width: `${pct}%` }}
                       />
                     </div>
-                    {remaining === 0 && (
-                      <div className="flex items-center justify-center gap-1.5 mt-2 bg-emerald-100 dark:bg-emerald-900/20 px-2 py-1 rounded-lg border border-emerald-200 dark:border-emerald-800">
-                        <span className="text-[9px] font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-wide">Meta Batida! 🎉</span>
+                    {remaining === 0 ? (
+                      <div className="flex items-center justify-center bg-emerald-50 dark:bg-emerald-900/10 py-1 rounded border border-emerald-100 dark:border-emerald-800/30">
+                        <span className="text-[9px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wide">Meta Batida!</span>
                       </div>
+                    ) : (
+                      <p className="text-[9px] text-right text-slate-400 font-medium">Faltam {remaining} questões</p>
                     )}
                   </>
                 );
@@ -675,11 +677,11 @@ const Dashboard: React.FC<DashboardProps> = ({
             </div>
 
             {/* Content Area */}
-            <div className="flex-1 w-full px-2 pt-2 pb-8 min-h-0">
+            <div className="flex-1 w-full px-2 pt-2 pb-2 min-h-0">
               {activeAnalysisTab === 'questions' && (
                 subjectStats.questionsData.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={subjectStats.questionsData} margin={{ top: 5, right: 0, bottom: 30, left: 0 }}>
+                    <BarChart data={subjectStats.questionsData} margin={{ top: 5, right: 0, bottom: 10, left: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} strokeOpacity={0.1} />
                       <XAxis dataKey="acronym" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 600, fill: chartTextColor }} />
                       <YAxis width={30} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: chartTextColor }} domain={[0, 'auto']} allowDataOverflow={false} padding={{ top: 20 }} />
@@ -702,7 +704,7 @@ const Dashboard: React.FC<DashboardProps> = ({
               {activeAnalysisTab === 'time' && (
                 subjectStats.timeData.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={subjectStats.timeData} margin={{ top: 5, right: 0, bottom: 30, left: 0 }}>
+                    <BarChart data={subjectStats.timeData} margin={{ top: 5, right: 0, bottom: 10, left: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} strokeOpacity={0.1} />
                       <XAxis dataKey="acronym" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 600, fill: chartTextColor }} />
                       <YAxis width={30} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: chartTextColor }} domain={[0, 'auto']} allowDataOverflow={false} padding={{ top: 20 }} />
@@ -726,7 +728,7 @@ const Dashboard: React.FC<DashboardProps> = ({
               {activeAnalysisTab === 'performance' && (
                 subjectStats.performanceData.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={subjectStats.performanceData} margin={{ top: 5, right: 0, bottom: 30, left: 0 }}>
+                    <BarChart data={subjectStats.performanceData} margin={{ top: 5, right: 0, bottom: 10, left: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} strokeOpacity={0.1} />
                       <XAxis dataKey="acronym" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 600, fill: chartTextColor }} />
                       <YAxis width={30} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: chartTextColor }} domain={[0, 100]} padding={{ top: 20 }} />

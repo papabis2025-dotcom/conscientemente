@@ -29,6 +29,50 @@ const StudyPlan: React.FC<StudyPlanProps> = ({ subjects, sessions, studyTasks, o
         if (tasksForToday.length === 0 && subjects.length > 0) {
             console.log("Generating study plan for", today);
 
+            // 1. Check for REVIEW tasks (7 days or 30 days ago)
+            const reviewTasks: any[] = [];
+            const todayDate = new Date();
+            todayDate.setHours(0, 0, 0, 0);
+
+            subjects.forEach(sub => {
+                sub.topics.forEach(topic => {
+                    // Find last session for this topic
+                    const topicSessions = sessions.filter(s => s.subjectId === sub.id && s.topicId === topic.id);
+                    if (topicSessions.length > 0) {
+                        const sortedSessions = [...topicSessions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+                        const lastDate = new Date(sortedSessions[0].date);
+                        lastDate.setHours(0, 0, 0, 0);
+
+                        // Calculate diff in days
+                        const diffTime = Math.abs(todayDate.getTime() - lastDate.getTime());
+                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                        // Check for 7 or 30 days (allow margin of error +/- 0.5 to handle timezones perfectly, but exact day match is best)
+                        // Actually, let's look for exact 7 or 30 days ago matches roughly
+                        if (diffDays === 7 || diffDays === 30) {
+                            reviewTasks.push({
+                                id: crypto.randomUUID(),
+                                subjectId: sub.id,
+                                subjectName: `Revisão: ${sub.name}`, // Distinct name
+                                topicId: topic.id,
+                                topicName: `Revisão de ${diffDays} dias: ${topic.title}`,
+                                done: false,
+                                date: today,
+                                isReview: true // Internal flag
+                            });
+                        }
+                    }
+                });
+            });
+
+            // Stick to max 1 review task for now to not overwhelm? Or take all? 
+            // User asked: "uma tarefa por dia apenas e mais uma revisão, se houver alguma prevista"
+            // So: 1 Regular Task + 1 Review Task (if any).
+
+            const selectedReviewTask = reviewTasks.length > 0 ? reviewTasks[0] : null; // Take the first one found
+
+
+            // 2. Generate ONE regular study task
             // Calculate scores for each subject
             const rankedSubjects = subjects.map(sub => {
                 // 1. Weight (Peso) - Default to 1 if not set
@@ -54,17 +98,19 @@ const StudyPlan: React.FC<StudyPlanProps> = ({ subjects, sessions, studyTasks, o
                 return { sub, score, accuracy, hours, totalDone };
             });
 
-            // Sort by score descending and take top 2
-            const topSubjects = rankedSubjects.sort((a, b) => b.score - a.score).slice(0, 2);
+            // Sort by score descending and take top 1
+            const topSubject = rankedSubjects.sort((a, b) => b.score - a.score)[0];
 
-            const newTasks = topSubjects.map(item => {
-                const subjectTopics = item.sub.topics || [];
+            let newRegularTask = null;
+
+            if (topSubject) {
+                const subjectTopics = topSubject.sub.topics || [];
                 let selectedTopic: { id: string, title: string } | undefined;
 
                 if (subjectTopics.length > 0) {
                     // Get stats per topic
                     const topicStats = subjectTopics.map(topic => {
-                        const topicSessions = sessions.filter(s => s.subjectId === item.sub.id && s.topicId === topic.id);
+                        const topicSessions = sessions.filter(s => s.subjectId === topSubject.sub.id && s.topicId === topic.id);
                         const tDone = topicSessions.reduce((acc, s) => acc + (s.questionsDone || 0), 0);
                         const tCorrect = topicSessions.reduce((acc, s) => acc + (s.questionsCorrect || 0), 0);
                         const tAccuracy = tDone > 0 ? (tCorrect / tDone) * 100 : 0;
@@ -84,20 +130,24 @@ const StudyPlan: React.FC<StudyPlanProps> = ({ subjects, sessions, studyTasks, o
                     }
                 }
 
-                return {
+                newRegularTask = {
                     id: crypto.randomUUID(),
-                    subjectId: item.sub.id,
-                    subjectName: item.sub.name,
+                    subjectId: topSubject.sub.id,
+                    subjectName: topSubject.sub.name,
                     topicId: selectedTopic?.id,
                     topicName: selectedTopic?.title,
                     done: false,
                     date: today
                 };
-            });
+            }
+
+            const tasksToadd = [];
+            if (newRegularTask) tasksToadd.push(newRegularTask);
+            if (selectedReviewTask) tasksToadd.push(selectedReviewTask);
 
             // Append new tasks to state.
             const otherTasks = studyTasks.filter(t => t.date !== today);
-            onUpdateTasks([...otherTasks, ...newTasks]);
+            onUpdateTasks([...otherTasks, ...tasksToadd]);
         }
     }, [subjects, sessions, studyTasks]); // Removed onUpdateTasks from dep array to avoid infinite loop if it changes, though it should be stable.
 

@@ -92,13 +92,27 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
 
     // Calculate last study date
     let lastStudyDate = '';
+    let review7dDate = '';
+    let review30dDate = '';
+
     if (topicSessions.length > 0) {
       const sortedSessions = [...topicSessions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
       const lastDate = new Date(sortedSessions[0].date);
-      lastStudyDate = lastDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+
+      const formatDate = (date: Date) => date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' });
+
+      lastStudyDate = formatDate(lastDate);
+
+      const d7 = new Date(lastDate);
+      d7.setDate(d7.getDate() + 7);
+      review7dDate = formatDate(d7);
+
+      const d30 = new Date(lastDate);
+      d30.setDate(d30.getDate() + 30);
+      review30dDate = formatDate(d30);
     }
 
-    return { minutes: tMinutes, done: tDone, correct: tCorrect, acc: tAcc, hours: tHours, lastStudyDate };
+    return { minutes: tMinutes, done: tDone, correct: tCorrect, acc: tAcc, hours: tHours, lastStudyDate, review7dDate, review30dDate };
   };
 
   const sortedSubjects = [...subjects].sort((a, b) => {
@@ -474,6 +488,12 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                                   <th className="py-2 text-[10px] uppercase font-bold cursor-pointer hover:text-blue-500" onClick={() => { setTopicSortBy('lastStudy'); setTopicSortOrder(o => o === 'desc' ? 'asc' : 'desc'); }}>
                                     Último Estudo {topicSortBy === 'lastStudy' && (topicSortOrder === 'desc' ? '↓' : '↑')}
                                   </th>
+                                  <th className="py-2 text-[10px] uppercase font-bold text-slate-400">
+                                    Rev. 7d
+                                  </th>
+                                  <th className="py-2 text-[10px] uppercase font-bold text-slate-400">
+                                    Rev. 30d
+                                  </th>
                                   <th className="py-2 text-[10px] uppercase font-bold cursor-pointer hover:text-blue-500" onClick={() => { setTopicSortBy('time'); setTopicSortOrder(o => o === 'desc' ? 'asc' : 'desc'); }}>
                                     Tempo {topicSortBy === 'time' && (topicSortOrder === 'desc' ? '↓' : '↑')}
                                   </th>
@@ -537,6 +557,12 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                                         </td>
                                         <td className="py-2 text-slate-500 text-xs">
                                           {tStats.lastStudyDate || '-'}
+                                        </td>
+                                        <td className="py-2 text-xs font-medium text-slate-400">
+                                          {tStats.review7dDate || '-'}
+                                        </td>
+                                        <td className="py-2 text-xs font-medium text-slate-400">
+                                          {tStats.review30dDate || '-'}
                                         </td>
                                         <td className="py-2 text-slate-500 text-xs">
                                           {tStats.minutes > 0 ? `${tStats.hours}h` : '-'}

@@ -81,20 +81,26 @@ const LoginView: React.FC<LoginViewProps> = () => {
     setLoading(true);
 
     console.log('Password reset attempt for:', email);
+    const redirectUrl = `${window.location.origin}/reset-password`;
+    console.log('Redirect URL:', redirectUrl);
 
     try {
       const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
+        redirectTo: redirectUrl,
       });
       console.log('Password reset response:', { data, error });
+
       if (error) throw error;
+
       setSuccessMsg('Link de recuperação enviado! Verifique seu e-mail (inclusive spam).');
     } catch (err: any) {
-      console.error('Password reset error:', err);
+      console.error('Password reset error - Full details:', err);
 
       // Handle network errors
       if (err.name === 'AuthRetryableFetchError' || err.message?.includes('Failed to fetch')) {
-        setError('Erro de conexão. Verifique: internet, firewall, antivírus ou VPN/proxy.');
+        setError('Erro de conexão. Verifique se o projeto Supabase está ativo e se há internet.');
+      } else if (err.status === 429) {
+        setError('Muitas tentativas. Aguarde um momento.');
       } else {
         setError(err.message || 'Erro ao enviar e-mail de recuperação.');
       }

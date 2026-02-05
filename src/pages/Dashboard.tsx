@@ -483,11 +483,11 @@ const Dashboard: React.FC<DashboardProps> = ({
         );
       case 'study_frequency':
         return (
-          <div className="flex flex-col h-full justify-between py-2">
-            {/* Frequency Section */}
-            <div className="mb-3">
+          <div className="flex flex-col h-full justify-between py-1 px-1">
+            {/* Frequency Section - Compacted */}
+            <div className="flex-1 flex flex-col justify-center min-h-0">
               <div className="flex items-end gap-2 mb-1">
-                <span className="text-3xl font-bold text-amber-500 leading-none">{frequencyData.streak}</span>
+                <span className="text-2xl font-bold text-amber-500 leading-none">{frequencyData.streak}</span>
                 <span className="text-[9px] font-semibold uppercase text-slate-400 mb-0.5">Dias Seguidos</span>
               </div>
               <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
@@ -498,8 +498,8 @@ const Dashboard: React.FC<DashboardProps> = ({
               </div>
             </div>
 
-            {/* Daily Goal Section */}
-            <div className="border-t border-slate-100 dark:border-slate-800 pt-3">
+            {/* Daily Goal Section - With more space */}
+            <div className="border-t border-slate-100 dark:border-slate-800 pt-2 mt-1">
               {(() => {
                 const todayStr = new Date().toISOString().split('T')[0];
                 const doneToday = sessions

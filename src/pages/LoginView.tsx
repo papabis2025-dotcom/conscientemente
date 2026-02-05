@@ -45,6 +45,29 @@ const LoginView: React.FC<LoginViewProps> = () => {
     }
   };
 
+  const handleForgotPassword = async () => {
+    if (!email) {
+      setError('Por favor, insira seu e-mail primeiro.');
+      return;
+    }
+
+    setError('');
+    setSuccessMsg('');
+    setLoading(true);
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) throw error;
+      setSuccessMsg('Link de recuperação enviado! Verifique seu e-mail.');
+    } catch (err: any) {
+      setError(err.message || 'Erro ao enviar e-mail de recuperação.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
 
 
   return (
@@ -107,7 +130,7 @@ const LoginView: React.FC<LoginViewProps> = () => {
                 <div className="flex justify-between items-center">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Senha</label>
                   {!isRegistering && (
-                    <button type="button" className="text-[9px] font-black text-blue-600 uppercase hover:underline">Esqueci a senha</button>
+                    <button type="button" onClick={handleForgotPassword} className="text-[9px] font-black text-blue-600 uppercase hover:underline">Esqueci a senha</button>
                   )}
                 </div>
                 <input

@@ -139,7 +139,10 @@ const Dashboard: React.FC<DashboardProps> = ({
     duration: '',
     questionsDone: '',
     questionsCorrect: '',
-    date: new Date().toISOString().split('T')[0]
+    date: (() => {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    })()
   });
 
   const [draggedWidgetIndex, setDraggedWidgetIndex] = useState<number | null>(null);
@@ -252,7 +255,12 @@ const Dashboard: React.FC<DashboardProps> = ({
   }, [sessions, subjects]);
 
   const progress = useMemo(() => {
-    const todayStr = new Date().toISOString().split('T')[0];
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    const todayStr = `${year}-${month}-${day}`;
+
     const done = sessions
       .filter(s => s.date.startsWith(todayStr) && s.questionsDone !== undefined)
       .reduce((acc, s) => acc + (s.questionsDone || 0), 0);
@@ -369,7 +377,11 @@ const Dashboard: React.FC<DashboardProps> = ({
       }
     }
 
-    const todayStr = new Date().toISOString().split('T')[0];
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    const todayStr = `${year}-${month}-${day}`;
     const yest = new Date();
     yest.setDate(yest.getDate() - 1);
     const yestStr = yest.toISOString().split('T')[0];
@@ -501,7 +513,12 @@ const Dashboard: React.FC<DashboardProps> = ({
             {/* Daily Goal Section - With more space */}
             <div className="border-t border-slate-100 dark:border-slate-800 pt-2 mt-1">
               {(() => {
-                const todayStr = new Date().toISOString().split('T')[0];
+                const today = new Date();
+                const year = today.getFullYear();
+                const month = String(today.getMonth() + 1).padStart(2, '0');
+                const day = String(today.getDate()).padStart(2, '0');
+                const todayStr = `${year}-${month}-${day}`;
+
                 const doneToday = sessions
                   .filter(s => s.date.startsWith(todayStr) && s.questionsDone !== undefined)
                   .reduce((acc, s) => acc + (s.questionsDone || 0), 0);
@@ -538,32 +555,40 @@ const Dashboard: React.FC<DashboardProps> = ({
         return (
           <div className="flex flex-col h-full relative overflow-hidden group/container">
             <div className="flex-1 overflow-y-auto custom-scrollbar space-y-1.5 pr-1">
-              {studyTasks.filter(t => t.date === new Date().toISOString().split('T')[0]).length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full opacity-60 space-y-1.5">
-                  <div className="w-9 h-9 rounded-full bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-base shadow-sm">🎉</div>
-                  <div className="text-center">
-                    <p className="text-[10px] font-bold text-slate-600 dark:text-slate-300">Tudo em dia!</p>
-                  </div>
-                </div>
-              ) : (
-                studyTasks.filter(t => t.date === new Date().toISOString().split('T')[0]).map(task => (
-                  <div
-                    key={task.id}
-                    onClick={() => handleToggleTask(task.id)}
-                    className={`flex items-center gap-2.5 p-2.5 rounded-xl border transition-all duration-300 cursor-pointer ${task.done ? 'bg-slate-50 dark:bg-slate-800/40 border-slate-100 dark:border-slate-800 opacity-60' : 'bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-700'}`}
-                  >
-                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${task.done ? 'bg-emerald-500 border-emerald-500' : 'border-slate-300 dark:border-slate-600'}`}>
-                      {task.done && <Check size={10} className="text-white" />}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className={`text-[10px] font-bold truncate leading-tight ${task.done ? 'text-slate-500 line-through' : 'text-slate-700 dark:text-slate-200'}`}>
-                        {task.subjectName}
-                      </p>
-                      {task.topicName && <p className="text-[8px] text-slate-400 truncate mt-0.5">{task.topicName}</p>}
+              {(() => {
+                const today = new Date();
+                const year = today.getFullYear();
+                const month = String(today.getMonth() + 1).padStart(2, '0');
+                const day = String(today.getDate()).padStart(2, '0');
+                const todayStr = `${year}-${month}-${day}`;
+
+                return studyTasks.filter(t => t.date === todayStr).length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-full opacity-60 space-y-1.5">
+                    <div className="w-9 h-9 rounded-full bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-base shadow-sm">🎉</div>
+                    <div className="text-center">
+                      <p className="text-[10px] font-bold text-slate-600 dark:text-slate-300">Tudo em dia!</p>
                     </div>
                   </div>
-                ))
-              )}
+                ) : (
+                  studyTasks.filter(t => t.date === todayStr).map(task => (
+                    <div
+                      key={task.id}
+                      onClick={() => handleToggleTask(task.id)}
+                      className={`flex items-center gap-2.5 p-2.5 rounded-xl border transition-all duration-300 cursor-pointer ${task.done ? 'bg-slate-50 dark:bg-slate-800/40 border-slate-100 dark:border-slate-800 opacity-60' : 'bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-700'}`}
+                    >
+                      <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${task.done ? 'bg-emerald-500 border-emerald-500' : 'border-slate-300 dark:border-slate-600'}`}>
+                        {task.done && <Check size={10} className="text-white" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-[10px] font-bold truncate leading-tight ${task.done ? 'text-slate-500 line-through' : 'text-slate-700 dark:text-slate-200'}`}>
+                          {task.subjectName}
+                        </p>
+                        {task.topicName && <p className="text-[8px] text-slate-400 truncate mt-0.5">{task.topicName}</p>}
+                      </div>
+                    </div>
+                  ))
+                );
+              })()}
             </div>
 
             {/* Total badge */}

@@ -13,6 +13,12 @@ const SettingsView: React.FC<SettingsViewProps> = ({ currentUserEmail }) => {
   const fileRef = useRef<HTMLInputElement>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
+  const [localDailyGoal, setLocalDailyGoal] = useState(globalDailyGoal);
+
+  // Update local state when global state changes (e.g. initial load)
+  React.useEffect(() => {
+    setLocalDailyGoal(globalDailyGoal);
+  }, [globalDailyGoal]);
 
   // Password change
   const [currentPassword, setCurrentPassword] = useState('');

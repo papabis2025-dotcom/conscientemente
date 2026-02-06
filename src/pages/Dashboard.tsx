@@ -526,6 +526,12 @@ const Dashboard: React.FC<DashboardProps> = ({
                 const remaining = Math.max(0, goal - doneToday);
                 const pct = Math.min(100, Math.round((doneToday / goal) * 100));
 
+                const getProgressColor = (p: number) => {
+                  if (p >= 100) return 'from-emerald-500 to-emerald-600';
+                  if (p >= 50) return 'from-amber-500 to-amber-600';
+                  return 'from-red-500 to-red-600';
+                };
+
                 return (
                   <>
                     <div className="flex items-center justify-between mb-1.5">
@@ -534,7 +540,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                     </div>
                     <div className="w-full h-3 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden mb-1">
                       <div
-                        className="h-full bg-gradient-to-r from-emerald-500 to-emerald-600 transition-all duration-500"
+                        className={`h-full bg-gradient-to-r ${getProgressColor(pct)} transition-all duration-500`}
                         style={{ width: `${pct}%` }}
                       />
                     </div>

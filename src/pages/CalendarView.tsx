@@ -208,7 +208,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ subjects, allSubjects, sche
     <div className="space-y-6 animate-in fade-in duration-500">
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div>
-          <h2 className="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tight">Planner de Estudos 📅</h2>
+          <h2 className="text-2xl text-slate-800 dark:text-white">Planner de Estudos</h2>
           <p className="text-slate-500 dark:text-slate-400">Gerencie sua rotina diária e acompanhe seu progresso.</p>
         </div>
 

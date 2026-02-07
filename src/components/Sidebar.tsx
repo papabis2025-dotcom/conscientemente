@@ -171,37 +171,33 @@ const Sidebar: React.FC<SidebarProps> = ({
           <img src={logoImg} alt="Logo" className="w-8 h-8 rounded-lg shrink-0 object-contain" />
           {!isCollapsed && (
             <div className="animate-in fade-in slide-in-from-left-4 duration-300">
-              <h1 className="text-sm font-bold text-slate-800 dark:text-white leading-none tracking-tight">Gabaritando</h1>
-              <p className="text-[10px] font-medium text-blue-600 tracking-wide">Questões</p>
+              <h1 className="text-sm font-bold text-slate-800 dark:text-white leading-none tracking-tight">Legis</h1>
+              <p className="text-[10px] font-medium text-blue-600 tracking-wide">Pro</p>
             </div>
           )}
         </div>
 
         {!isCollapsed && (
-          <button
+          <div
             onClick={toggleTheme}
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 dark:text-slate-500 hover:text-blue-500 transition-all"
+            className={`w-12 h-6 rounded-full cursor-pointer transition-colors duration-300 p-1 flex items-center ${theme === 'dark' ? 'bg-blue-600 justify-end' : 'bg-slate-300 justify-start'}`}
             title={theme === 'light' ? 'Mudar para Escuro' : 'Mudar para Claro'}
           >
-            {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
-          </button>
+            <div className="w-4 h-4 rounded-full bg-white shadow-sm flex items-center justify-center">
+              {theme === 'dark' ? <Moon size={10} className="text-blue-600" /> : <Sun size={10} className="text-amber-500" />}
+            </div>
+          </div>
         )}
       </div>
 
       <div className={`mb-6 p-3 bg-slate-50 dark:bg-slate-800/40 rounded-2xl flex items-center gap-3 border border-slate-100 dark:border-slate-700 ${isCollapsed ? 'justify-center' : ''}`}>
         {!isEditingProfile || isCollapsed ? (
           <>
-            <div onClick={() => !isCollapsed && setIsEditingProfile(true)} className="w-10 h-10 bg-white dark:bg-slate-700 rounded-xl flex items-center justify-center text-xl shadow-sm shrink-0 cursor-pointer hover:scale-105 transition-transform text-slate-700 dark:text-slate-200 overflow-hidden">
-              {currentUser.avatar.startsWith('data:') ? (
-                <img src={currentUser.avatar} alt="User" className="w-full h-full object-cover" />
-              ) : (
-                currentUser.avatar
-              )}
-            </div>
+            {/* Profile Picture Removed */}
             {!isCollapsed && (
               <div className="flex-1 min-w-0 animate-in fade-in slide-in-from-left-4 duration-300 cursor-pointer" onClick={() => setIsEditingProfile(true)}>
-                <p className="text-[10px] font-semibold text-slate-400 leading-none mb-1">Perfil Ativo</p>
-                <p className="text-sm font-bold text-slate-800 dark:text-white truncate">{currentUser.name}</p>
+                <p className="text-[10px] font-semibold text-slate-400 leading-none mb-1">Bem-vindo,</p>
+                <p className="text-lg font-bold text-slate-800 dark:text-white truncate">{currentUser.name}</p>
               </div>
             )}
           </>
@@ -217,28 +213,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                 autoFocus
               />
               <div className="flex gap-2 items-center">
-                <div className="relative w-10 h-10 shrink-0">
-                  {editAvatar.startsWith('data:') ? (
-                    <img src={editAvatar} alt="Avatar" className="w-full h-full rounded-lg object-cover border border-slate-200 dark:border-slate-600" />
-                  ) : (
-                    <div className="w-full h-full rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-lg border border-slate-200 dark:border-slate-600">
-                      {editAvatar}
-                    </div>
-                  )}
-                  <label className="absolute -bottom-1 -right-1 bg-blue-500 text-white rounded-full p-0.5 cursor-pointer shadow-sm hover:scale-110 transition-transform" title="Alterar Foto">
-                    <input type="file" accept="image/*" className="hidden" onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        const reader = new FileReader();
-                        reader.onloadend = () => {
-                          setEditAvatar(reader.result as string);
-                        };
-                        reader.readAsDataURL(file);
-                      }
-                    }} />
-                    <Settings size={8} />
-                  </label>
-                </div>
+                {/* Avatar selection removed */}
 
                 <div className="flex-1 flex justify-end gap-1">
                   <button onClick={() => { setIsEditingProfile(false); setEditName(currentUser.name); setEditAvatar(currentUser.avatar); }} className="text-slate-400 hover:text-slate-600 p-1"><X size={14} /></button>

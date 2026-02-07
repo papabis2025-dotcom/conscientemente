@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Subject, Topic, StudySession } from '../types';
-import { geminiService } from '../services/geminiService';
+
 import { COLORS } from '../constants';
 import { getColorHex, getBadgeStyle } from '../utils/colors';
 import {
@@ -11,8 +11,8 @@ import {
   Edit2,
   Plus,
   FileText,
-  Bot,
   Clock,
+  Bot,
   Target,
   TrendingUp,
   CheckCircle,
@@ -34,6 +34,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
   const [editName, setEditName] = useState('');
   const [editColor, setEditColor] = useState('');
   const [editQuestionsGoal, setEditQuestionsGoal] = useState<number | ''>('');
+  const [editWeight, setEditWeight] = useState<number | ''>('');
 
   const [deleteConfirmation, setDeleteConfirmation] = useState<{ isOpen: boolean; id: string | null; name: string }>({
     isOpen: false,
@@ -52,10 +53,12 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
   const [sortBy, setSortBy] = useState<'default' | 'time' | 'questions' | 'name' | 'meta'>('default');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
-  const [topicSortBy, setTopicSortBy] = useState<'default' | 'priority' | 'time' | 'questions' | 'name'>('default');
-  const [topicSortOrder, setTopicSortOrder] = useState<'asc' | 'desc'>('desc');
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
+
+
+
+  const [topicSortBy, setTopicSortBy] = useState<'default' | 'priority' | 'time' | 'questions' | 'name' | 'lastStudy'>('default');
+  const [topicSortOrder, setTopicSortOrder] = useState<'asc' | 'desc'>('desc');
 
   // Topic editing state
   const [editingTopicId, setEditingTopicId] = useState<string | null>(null);
@@ -82,8 +85,8 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
     };
   };
 
-  const getTopicStats = (subjectId: string, topicId: string) => {
-    const topicSessions = sessions.filter(s => s.topicId === topicId && s.subjectId === subjectId);
+  const getTopicStats = (subjectId: string, topicId: string | null) => {
+    const topicSessions = sessions.filter(s => (topicId ? s.topicId === topicId : !s.topicId) && s.subjectId === subjectId);
     const tMinutes = topicSessions.reduce((acc, s) => acc + s.durationInMinutes, 0);
     const tDone = topicSessions.reduce((acc, s) => acc + (s.questionsDone || 0), 0);
     const tCorrect = topicSessions.reduce((acc, s) => acc + (s.questionsCorrect || 0), 0);
@@ -161,6 +164,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
     setEditName(subject.name);
     setEditColor(subject.color);
     setEditQuestionsGoal(subject.questionsGoal || '');
+    setEditWeight(subject.weight || '');
   };
 
   const saveEdit = (e?: React.MouseEvent) => {
@@ -170,7 +174,8 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
       ...s,
       name: editName,
       color: editColor,
-      questionsGoal: editQuestionsGoal === '' ? undefined : Number(editQuestionsGoal)
+      questionsGoal: editQuestionsGoal === '' ? undefined : Number(editQuestionsGoal),
+      weight: editWeight === '' ? undefined : Number(editWeight)
     } : s));
     setEditingSubjectId(null);
   };
@@ -221,68 +226,18 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
     setEditTopicTitle('');
   };
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file || file.type !== 'application/pdf') {
-      alert('Por favor, selecione um arquivo PDF válido.');
-      return;
-    }
-    setIsProcessing(true);
-    try {
-      const base64 = await fileToBase64(file);
-      const extractedData = await geminiService.parseEditalPdf(base64);
-      if (extractedData && extractedData.length > 0) {
-        const newSubjects: Subject[] = extractedData.map((item: any, idx: number) => ({
-          id: `extracted-${Date.now()}-${idx}`,
-          name: item.subjectName,
-          color: COLORS[idx % COLORS.length],
-          topics: item.topics.map((t: string, tIdx: number) => ({
-            id: `extracted-t-${Date.now()}-${idx}-${tIdx}`,
-            title: t,
-            isCompleted: false,
-            priority: 'Média'
-          }))
-        }));
-        onUpdateSubjects([...subjects, ...newSubjects]);
-        alert(`${newSubjects.length} matérias importadas com sucesso!`);
-      } else {
-        alert('Não foi possível extrair dados do edital.');
-      }
-    } catch (error) {
-      console.error(error);
-      alert('Erro ao processar o arquivo.');
-    } finally {
-      setIsProcessing(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-    }
-  };
 
-  const fileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve((reader.result as string).split(',')[1]);
-      reader.onerror = error => reject(error);
-    });
-  };
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Disciplinas & Edital</h2>
+          <h2 className="text-2xl text-slate-800 dark:text-white">Disciplinas</h2>
           <p className="text-sm text-slate-500 dark:text-slate-400">Gerenciamento detalhado do conteúdo programático.</p>
         </div>
 
         <div className="flex flex-wrap gap-3 w-full md:w-auto items-center">
-          <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept=".pdf" className="hidden" />
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isProcessing}
-            className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-xl font-bold transition-all shadow-sm shadow-emerald-500/20 disabled:opacity-50 text-xs uppercase tracking-wide"
-          >
-            {isProcessing ? '⌛ Processando...' : <><FileText size={16} /> Importar PDF</>}
-          </button>
+
 
           <div className="h-8 w-px bg-slate-200 dark:bg-slate-700 mx-2 hidden md:block" />
 
@@ -429,8 +384,19 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-300">
-                          {subject.weight ? <span className="bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded text-xs font-bold">{subject.weight}x</span> : '-'}
+                        <div className="flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-300" onClick={e => editingSubjectId === subject.id && e.stopPropagation()}>
+                          {editingSubjectId === subject.id ? (
+                            <input
+                              type="number"
+                              placeholder="Peso"
+                              className="w-16 px-2 py-1 bg-white dark:bg-slate-900 border rounded text-sm"
+                              value={editWeight}
+                              onChange={e => setEditWeight(e.target.value === '' ? '' : Number(e.target.value))}
+                              step="0.1"
+                            />
+                          ) : (
+                            subject.weight ? <span className="bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded text-xs font-bold">{subject.weight}x</span> : '-'
+                          )}
                         </div>
                       </td>
                       <td className="px-6 py-4 text-right">
@@ -481,8 +447,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                             <table className="w-full text-left text-sm">
                               <thead>
                                 <tr className="text-slate-400 border-b border-slate-200 dark:border-slate-700">
-                                  <th className="py-2 text-[10px] uppercase font-bold w-8"></th>
-                                  <th className="py-2 text-[10px] uppercase font-bold cursor-pointer hover:text-blue-500" onClick={() => { setTopicSortBy('name'); setTopicSortOrder(o => o === 'asc' ? 'desc' : 'asc'); }}>
+                                  <th className="py-2 pl-4 text-[10px] uppercase font-bold cursor-pointer hover:text-blue-500" onClick={() => { setTopicSortBy('name'); setTopicSortOrder(o => o === 'asc' ? 'desc' : 'asc'); }}>
                                     Assunto {topicSortBy === 'name' && (topicSortOrder === 'asc' ? '↑' : '↓')}
                                   </th>
                                   <th className="py-2 text-[10px] uppercase font-bold cursor-pointer hover:text-blue-500" onClick={() => { setTopicSortBy('lastStudy'); setTopicSortOrder(o => o === 'desc' ? 'asc' : 'desc'); }}>
@@ -504,6 +469,36 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                                 </tr>
                               </thead>
                               <tbody>
+                                {/* Tópico Geral / Fixo */}
+                                {(() => {
+                                  const stats = getTopicStats(subject.id, null);
+                                  return (
+                                    <tr className="bg-slate-50/50 dark:bg-slate-800/10 border-b border-slate-100 dark:border-slate-800/30">
+                                      <td className="py-2 font-bold pl-4" style={{ color: getColorHex(subject.color) }}>
+                                        Geral / Outros <span className="text-[10px] font-normal opacity-70 ml-1 text-slate-500 dark:text-slate-400">(Revisão Geral)</span>
+                                      </td>
+                                      <td className="py-2 text-slate-500 text-xs text-center">
+                                        {stats.lastStudyDate || '-'}
+                                      </td>
+                                      <td className="py-2 text-xs font-medium text-slate-400 text-center">
+                                        {stats.review7dDate || '-'}
+                                      </td>
+                                      <td className="py-2 text-xs font-medium text-slate-400 text-center">
+                                        {stats.review30dDate || '-'}
+                                      </td>
+                                      <td className="py-2 text-slate-500 text-xs text-center">
+                                        {stats.minutes > 0 ? `${stats.hours}h` : '-'}
+                                      </td>
+                                      <td className="py-2 text-slate-500 text-xs text-center">
+                                        {stats.done > 0 ? `${stats.correct}/${stats.done} (${stats.acc}%)` : '-'}
+                                      </td>
+                                      <td className="py-2 text-right">
+                                        {/* No delete/edit actions for fixed topic */}
+                                      </td>
+                                    </tr>
+                                  );
+                                })()}
+
                                 {[...subject.topics].map(topic => ({ topic, stats: getTopicStats(subject.id, topic.id) }))
                                   .sort((a, b) => {
                                     if (topicSortBy === 'default') {
@@ -528,12 +523,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                                   .map(({ topic, stats: tStats }) => {
                                     return (
                                       <tr key={topic.id} className="group/row hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors">
-                                        <td className="py-2">
-                                          <button onClick={() => toggleTopic(subject.id, topic.id)} className={`${topic.isCompleted ? 'text-emerald-500' : 'text-slate-300 hover:text-emerald-500'}`}>
-                                            {topic.isCompleted ? <CheckCircle size={14} /> : <Circle size={14} />}
-                                          </button>
-                                        </td>
-                                        <td className={`py-2 font-medium ${topic.isCompleted ? 'text-slate-400 line-through' : 'text-slate-700 dark:text-slate-300'}`}>
+                                        <td className={`py-2 pl-4 font-bold ${topic.isCompleted ? 'text-slate-400 line-through' : 'text-slate-700 dark:text-slate-300'}`}>
                                           {editingTopicId === topic.id ? (
                                             <div className="flex items-center gap-2">
                                               <input

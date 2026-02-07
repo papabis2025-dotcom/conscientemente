@@ -8,7 +8,7 @@ export default {
     theme: {
         extend: {
             fontFamily: {
-                sans: ['Outfit', 'Plus Jakarta Sans', 'Inter', 'sans-serif'], // Modern Geometric
+                sans: ['Comfortaa', 'cursive', 'sans-serif'], // Minimalist Rounded
             },
             borderRadius: {
                 'lg': '6px',

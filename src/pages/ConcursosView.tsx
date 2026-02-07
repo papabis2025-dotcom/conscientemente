@@ -111,7 +111,7 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tight">Meus Editais 🏆</h2>
+          <h2 className="text-2xl text-slate-800 dark:text-white">Meus Editais</h2>
           <p className="text-slate-500 dark:text-slate-400">Gerencie suas metas e prazos estratégicos.</p>
         </div>
         <button

@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { User } from '../types';
 import { supabase } from '../services/supabase';
+import logoImg from '../assets/logo.png';
 
 interface LoginViewProps {
   users: User[]; // Kept for interface compatibility but ignored
@@ -121,8 +122,8 @@ const LoginView: React.FC<LoginViewProps> = () => {
         </div>
 
         <div className="relative z-10 text-white max-w-md">
-          <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center text-blue-700 font-black text-3xl mb-8 shadow-2xl">G</div>
-          <h1 className="text-4xl lg:text-5xl font-black uppercase tracking-tighter mb-4 leading-tight">Gabaritando Questões</h1>
+          <img src={logoImg} alt="Legis Pro Logo" className="w-48 h-48 object-contain mb-8 drop-shadow-2xl" />
+          <h1 className="text-4xl lg:text-5xl font-black uppercase tracking-tighter mb-4 leading-tight">Legis Pro</h1>
           <p className="text-blue-100 text-lg font-medium mb-8 leading-relaxed">
             A plataforma definitiva para quem busca a aprovação. Planeje, execute e analise sua evolução com inteligência.
           </p>
@@ -141,8 +142,8 @@ const LoginView: React.FC<LoginViewProps> = () => {
       <div className="flex-1 flex items-center justify-center p-6 md:p-12 lg:p-24 bg-white dark:bg-slate-950">
         <div className="w-full max-w-sm space-y-8">
           <div className="md:hidden flex flex-col items-center mb-10">
-            <div className="w-12 h-12 bg-blue-700 rounded-xl flex items-center justify-center text-white font-black text-xl mb-4 shadow-xl shadow-blue-500/20">G</div>
-            <h2 className="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Gabaritando Questões</h2>
+            <img src={logoImg} alt="Legis Pro Logo" className="w-24 h-24 object-contain mb-4 drop-shadow-xl" />
+            <h2 className="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Legis Pro</h2>
           </div>
 
           <div className="space-y-2">

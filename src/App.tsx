@@ -112,7 +112,7 @@ const App: React.FC = () => {
           </span>
         </div>
         <div className="uppercase font-bold tracking-widest text-slate-400 dark:text-slate-500">
-          Gabaritando Questões - {activeConcurso ? activeConcurso.name : 'Visão Global'}
+          Legis Pro - {activeConcurso ? activeConcurso.name : 'Visão Global'}
         </div>
       </footer>
     </div>

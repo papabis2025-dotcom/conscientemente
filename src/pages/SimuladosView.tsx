@@ -58,7 +58,7 @@ const SimuladosView: React.FC<SimuladosViewProps> = ({ subjects, simulados, onAd
     <div className="space-y-8 animate-in fade-in duration-500">
       <header className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tight">Simulados Completos 📝</h2>
+          <h2 className="text-2xl text-slate-800 dark:text-white">Simulados Completos</h2>
           <p className="text-slate-500 dark:text-slate-400">Avalie seu desempenho global em condições de prova.</p>
         </div>
         <button

@@ -90,9 +90,11 @@ const QuestionsView: React.FC<QuestionsViewProps> = ({
       const subject = subjects.find(sub => sub.id === s.subjectId);
       if (!subject) return;
 
-      // Strict Filter: Only count 'Questões' type activities for performance stats
-      // Strict Filter: Only exclude explicit non-question types (Legacy data might be undefined)
-      if (s.activityType && s.activityType !== 'Questões' && s.activityType !== 'Simulado') return;
+      // Strict Filter: Only count 'Questões' or 'Simulado' type activities for performance stats
+      const validTypes = ['Questões', 'Simulado'];
+      if (s.activityType && !validTypes.includes(s.activityType)) return;
+      // Also filter out any session without questionsDone
+      if (s.questionsDone === undefined || s.questionsDone === null || s.questionsDone === 0) return;
 
       if (!subjectMap[subject.id]) {
         subjectMap[subject.id] = { name: subject.name, color: subject.color, topics: {} };
@@ -130,7 +132,7 @@ const QuestionsView: React.FC<QuestionsViewProps> = ({
     <div className="space-y-8 animate-in fade-in duration-500">
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div>
-          <h2 className="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tight">Performance em Questões 🎯</h2>
+          <h2 className="text-2xl text-slate-800 dark:text-white">Performance em Questões</h2>
           <p className="text-slate-500 dark:text-slate-400">Analise seu rendimento detalhado por matéria e assunto.</p>
         </div>
       </header>
@@ -139,7 +141,6 @@ const QuestionsView: React.FC<QuestionsViewProps> = ({
         {/* Form Column */}
         <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-xl space-y-6 self-start">
           <div className="flex items-center gap-2 mb-2">
-            <span className="bg-blue-100 dark:bg-blue-900/40 text-blue-600 p-2 rounded-xl">✍️</span>
             <h3 className="font-bold text-slate-800 dark:text-white">Registrar Performance</h3>
           </div>
 
@@ -179,7 +180,7 @@ const QuestionsView: React.FC<QuestionsViewProps> = ({
         {/* Data Column */}
         <div className="lg:col-span-2 space-y-8">
           <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm">
-            <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-6">📊 Performance Hierárquica</h3>
+            <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-6">Performance Hierárquica</h3>
             <div className="space-y-8 max-h-[500px] overflow-y-auto pr-4 custom-scrollbar">
               {performanceHierarchy.length === 0 ? (
                 <div className="py-20 text-center opacity-30 uppercase text-xs font-black tracking-widest">Sem dados registrados</div>

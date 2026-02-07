@@ -3,6 +3,8 @@ import React, { useEffect, useMemo } from 'react';
 import { CheckCircle, Circle, Calendar, Trophy, Lightbulb, Target } from 'lucide-react';
 import { Subject, StudySession } from '../types';
 
+import AISuggestions from '../components/dashboard/AISuggestions';
+
 interface StudyPlanProps {
     subjects: Subject[];
     sessions: StudySession[];
@@ -172,11 +174,69 @@ const StudyPlan: React.FC<StudyPlanProps> = ({ subjects, sessions, studyTasks, o
         return Math.round((done / todaysTasks.length) * 100);
     }, [todaysTasks]);
 
+    const generatedSuggestions = useMemo(() => {
+        const suggs: { subjectName: string; message: string; type: 'warning' | 'info' | 'success' }[] = [];
+
+        // 1. Check for low performance subjects (< 60%)
+        subjects.forEach(sub => {
+            const subSessions = sessions.filter(s => s.subjectId === sub.id && (s.activityType === 'Questões' || s.activityType === 'Simulado'));
+            const totalDone = subSessions.reduce((acc, s) => acc + (s.questionsDone || 0), 0);
+            const totalCorrect = subSessions.reduce((acc, s) => acc + (s.questionsCorrect || 0), 0);
+
+            if (totalDone >= 10) {
+                const accuracy = (totalCorrect / totalDone) * 100;
+                if (accuracy < 60) {
+                    suggs.push({
+                        subjectName: sub.name,
+                        message: `Atenção! Sua taxa de acerto está em ${Math.round(accuracy)}%. Recomendamos revisar a teoria antes de prosseguir com mais questões.`,
+                        type: 'warning'
+                    });
+                } else if (accuracy > 85 && totalDone > 50) {
+                    suggs.push({
+                        subjectName: sub.name,
+                        message: `Excelente domínio! (${Math.round(accuracy)}%). Considere aumentar o nível de dificuldade ou focar em outras matérias.`,
+                        type: 'success'
+                    });
+                }
+            } else if (totalDone === 0) {
+                suggs.push({
+                    subjectName: sub.name,
+                    message: "Você ainda não iniciou os estudos práticos desta disciplina. Que tal fazer algumas questões hoje?",
+                    type: 'info'
+                });
+            }
+        });
+
+        // 2. Check for syllabus coverage gaps
+        const leastCoveredSubject = [...subjects].sort((a, b) => {
+            const getCoverage = (sub: Subject) => {
+                const covered = sub.topics.filter(t => sessions.some(s => s.subjectId === sub.id && s.topicId === t.id)).length;
+                return sub.topics.length > 0 ? covered / sub.topics.length : 0;
+            };
+            return getCoverage(a) - getCoverage(b);
+        })[0];
+
+        if (leastCoveredSubject) {
+            suggs.push({
+                subjectName: leastCoveredSubject.name,
+                message: "Esta é a disciplina com menor cobertura do edital até agora. Priorize novos tópicos dela.",
+                type: 'info'
+            });
+        }
+
+        // Return a mix, prioritize warnings
+        return suggs.sort((a, b) => {
+            if (a.type === 'warning' && b.type !== 'warning') return -1;
+            if (a.type !== 'warning' && b.type === 'warning') return 1;
+            return 0;
+        }).slice(0, 5);
+    }, [subjects, sessions]);
+
     return (
         <div className="space-y-8 animate-in fade-in duration-500 pb-10">
             <header>
-                <h2 className="text-3xl font-black text-slate-800 dark:text-white uppercase tracking-tighter mb-2 flex items-center gap-3">
-                    Plano de Estudos <Target className="text-blue-500" size={28} />
+                <h2 className="text-2xl text-slate-800 dark:text-white mb-2 flex items-center gap-3">
+                    Plano de Estudos
                 </h2>
                 <p className="text-slate-500 dark:text-slate-400 font-medium max-w-2xl">
                     Sua rotina diária otimizada pela IA. Focamos no que você mais precisa evoluir hoje.
@@ -246,50 +306,9 @@ const StudyPlan: React.FC<StudyPlanProps> = ({ subjects, sessions, studyTasks, o
                     <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden">
                         <div className="relative z-10">
                             <h3 className="text-lg font-black text-slate-800 dark:text-white uppercase tracking-tight mb-4 flex items-center gap-2">
-                                Progresso do Edital 📊
+                                Sugestões da IA 🤖
                             </h3>
-                            <div className="space-y-5">
-                                {subjects.map(sub => {
-                                    // Calculate topic coverage
-                                    const totalTopics = sub.topics.length;
-                                    let coveredTopics = 0;
-
-                                    if (totalTopics > 0) {
-                                        coveredTopics = sub.topics.filter(t => {
-                                            // Check if any session exists for this topic
-                                            return sessions.some(s => s.subjectId === sub.id && s.topicId === t.id);
-                                        }).length;
-                                    }
-
-                                    const coverage = totalTopics > 0 ? Math.round((coveredTopics / totalTopics) * 100) : 0;
-                                    return { ...sub, coverage, coveredTopics, totalTopics };
-                                })
-                                    .sort((a, b) => a.coverage - b.coverage)
-                                    .map(sub => (
-                                        <div key={sub.id} className="relative">
-                                            <div className="flex justify-between items-start mb-1.5 gap-2">
-                                                <span className="text-xs font-bold text-slate-700 dark:text-slate-300 leading-tight" title={sub.name}>
-                                                    {sub.name}
-                                                </span>
-                                                <span className="text-[10px] font-black text-blue-600 dark:text-blue-400 shrink-0">
-                                                    {sub.coverage}%
-                                                </span>
-                                            </div>
-                                            <div className="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden mb-1">
-                                                <div
-                                                    className={`h-full rounded-full transition-all duration-1000 ${sub.coverage === 100 ? 'bg-emerald-500' : 'bg-blue-500'}`}
-                                                    style={{ width: `${sub.coverage}%` }}
-                                                />
-                                            </div>
-                                            <p className="text-[9px] text-slate-400 text-right font-medium">
-                                                {sub.coveredTopics} de {sub.totalTopics} tópicos estudados
-                                            </p>
-                                        </div>
-                                    ))}
-                                {subjects.length === 0 && (
-                                    <p className="text-center text-xs text-slate-400 py-4">Nenhuma disciplina cadastrada.</p>
-                                )}
-                            </div>
+                            <AISuggestions suggestions={generatedSuggestions} />
                         </div>
                     </div>
                 </div>

@@ -271,24 +271,27 @@ const Dashboard: React.FC<DashboardProps> = ({
     const today = new Date();
 
     if (activeWeeklyPeriod === 'weekly') {
-      // Weekly view: Last 7 days
+      // Weekly view: Rolling last 7 days
       const days = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-      const dataMap = days.map(day => ({ n: day, h: 0, q: 0 }));
-      const currentDay = today.getDay();
 
-      const startOfWeek = new Date(today);
-      startOfWeek.setDate(today.getDate() - currentDay);
-      startOfWeek.setHours(0, 0, 0, 0);
-
-      const endOfWeek = new Date(startOfWeek);
-      endOfWeek.setDate(startOfWeek.getDate() + 7);
+      const dataMap = [];
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(today);
+        d.setDate(today.getDate() - i);
+        dataMap.push({
+          n: days[d.getDay()],
+          h: 0,
+          q: 0,
+          dateStr: d.toDateString() // Use Key for matching strings
+        });
+      }
 
       relevantSessions.forEach(s => {
         const sDate = new Date(s.date);
-        if (sDate >= startOfWeek && sDate < endOfWeek) {
-          const dayIdx = sDate.getDay();
-          dataMap[dayIdx].h += (s.durationInMinutes / 60);
-          dataMap[dayIdx].q += (s.questionsDone || 0);
+        const match = dataMap.find(d => d.dateStr === sDate.toDateString());
+        if (match) {
+          match.h += (s.durationInMinutes / 60);
+          match.q += (s.questionsDone || 0);
         }
       });
 

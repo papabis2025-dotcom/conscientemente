@@ -836,26 +836,7 @@ const Dashboard: React.FC<DashboardProps> = ({
             <span className="text-base font-bold text-slate-800 dark:text-white leading-none mb-1">{subjects.length}</span>
             <span className="text-[10px] font-semibold uppercase text-slate-400 dark:text-slate-500 tracking-wide">Matérias</span>
           </div>
-          <div className="flex flex-col">
-            <span className="text-base font-bold text-slate-800 dark:text-white leading-none mb-1">
-              {(() => {
-                let totalTopics = 0;
-                let coveredTopics = 0;
 
-                subjects.forEach(sub => {
-                  totalTopics += sub.topics.length;
-                  if (sub.topics.length > 0) {
-                    coveredTopics += sub.topics.filter(t =>
-                      sessions.some(s => s.subjectId === sub.id && s.topicId === t.id)
-                    ).length;
-                  }
-                });
-
-                return totalTopics > 0 ? Math.round((coveredTopics / totalTopics) * 100) : 0;
-              })()}%
-            </span>
-            <span className="text-[10px] font-semibold uppercase text-slate-400 dark:text-slate-500 tracking-wide">Edital</span>
-          </div>
           <div className="flex flex-col">
             <span className="text-base font-bold text-slate-800 dark:text-white leading-none mb-1">{sessions.reduce((acc, s) => {
               // If specific concurso selected, only count questions if subject belongs to it

@@ -62,10 +62,8 @@ const DEFAULT_MENU_ITEMS: MenuItem[] = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'concursos', label: 'Meus Editais', icon: GraduationCap },
   { id: 'subjects', label: 'Disciplinas', icon: Library },
-  { id: 'questions', label: 'Questões', icon: Target },
   { id: 'simulados', label: 'Simulados', icon: FileSpreadsheet },
   { id: 'calendar', label: 'Planner', icon: Calendar },
-  { id: 'study_plan', label: 'Plano de Estudos', icon: Brain },
 ];
 
 const Sidebar: React.FC<SidebarProps> = ({
@@ -331,23 +329,17 @@ const Sidebar: React.FC<SidebarProps> = ({
           </button>
         ))}
 
-        <button
-          onClick={() => setActiveTab('logs')}
-          className={`w-full flex items-center ${isCollapsed ? 'justify-center px-1' : 'gap-3 px-3'} py-2.5 rounded-xl transition-all ${activeTab === 'logs'
-            ? 'bg-blue-600 text-white font-semibold shadow-md shadow-blue-500/20'
-            : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 font-medium'
-            }`}
-          title={isCollapsed ? 'Logs' : ''}
-        >
-          <span className=""><ChartNoAxesColumn size={20} /></span>
-          {!isCollapsed && <span className="text-sm">Logs</span>}
-        </button>
+
       </nav>
 
       <div className="pt-3 mt-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
         <button onClick={() => setActiveTab('settings')} className={`w-full flex items-center ${isCollapsed ? 'justify-center px-1' : 'gap-3 px-3'} py-2 rounded-xl transition-colors ${activeTab === 'settings' ? 'text-blue-700 bg-blue-50 dark:bg-blue-900/10 font-semibold' : 'text-slate-500 hover:text-slate-800 dark:hover:text-white font-medium'}`} title="Ajustes">
           <Settings size={20} />
           {!isCollapsed && <span className="text-sm">Ajustes</span>}
+        </button>
+        <button onClick={() => setActiveTab('logs')} className={`w-full flex items-center ${isCollapsed ? 'justify-center px-1' : 'gap-3 px-3'} py-2 rounded-xl transition-colors ${activeTab === 'logs' ? 'text-blue-700 bg-blue-50 dark:bg-blue-900/10 font-semibold' : 'text-slate-500 hover:text-slate-800 dark:hover:text-white font-medium'}`} title="Logs">
+          <ChartNoAxesColumn size={20} />
+          {!isCollapsed && <span className="text-sm">Logs</span>}
         </button>
         <button onClick={onLogout} className={`w-full flex items-center ${isCollapsed ? 'justify-center px-1' : 'gap-3 px-3'} py-2 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/10 rounded-xl transition-colors font-medium`} title="Sair">
           <LogOut size={20} />

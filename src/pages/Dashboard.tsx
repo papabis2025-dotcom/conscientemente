@@ -8,6 +8,7 @@ import {
 import { Eye, EyeOff, X, Plus, Save, Trash2, Trophy, Target, Calendar, Clock, CheckCircle, AlertTriangle, TrendingUp, Maximize2, Minimize2, Check } from 'lucide-react';
 
 import { Subject, StudySession, Concurso, Simulado, ActivityType, ScheduledStudy } from '../types';
+import { getColorHex } from '../utils/colors';
 import AISuggestions from '../components/dashboard/AISuggestions';
 import TimerWidget from '../components/dashboard/TimerWidget';
 
@@ -35,6 +36,7 @@ interface DashboardProps {
   studyTasks?: { id: string, subjectId: string, subjectName: string, done: boolean, date: string }[];
   onUpdateTasks?: (tasks: { id: string, subjectId: string, subjectName: string, topicId?: string, topicName?: string, done: boolean, date: string }[]) => void;
   scheduledStudies?: ScheduledStudy[];
+  onToggleReorderMode?: (isReorder: boolean) => void;
 }
 
 interface WidgetState {
@@ -52,8 +54,6 @@ const DEFAULT_WIDGETS: WidgetState[] = [
   { id: 'activity_calendar', title: 'Calendário de Atividades', isVisible: true, size: 'wide' },
   { id: 'unified_subject_analysis', title: 'Análise por Disciplina', isVisible: true, size: 'wide' },
 ];
-
-import { getColorHex } from '../utils/colors';
 
 const getAcronym = (name: string) => {
   const words = name.trim().split(/\s+/);

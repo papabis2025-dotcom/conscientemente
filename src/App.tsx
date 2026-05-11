@@ -11,7 +11,7 @@ import SettingsView from './pages/SettingsView';
 import LogView from './pages/LogView';
 import StatisticsView from './pages/StatisticsView';
 import LoginView from './pages/LoginView';
-import { Concurso, ActivityType, StudySession } from './types.ts';
+import { Concurso, ActivityType, StudySession } from './types';
 import { useAppData } from './hooks/useAppData';
 import { useTimer } from './hooks/useTimer';
 import { Plus, Clock, Save, X } from 'lucide-react';

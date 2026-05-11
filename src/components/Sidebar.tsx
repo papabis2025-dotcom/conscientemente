@@ -12,6 +12,7 @@ import {
   Settings,
   LogOut,
   ChartNoAxesColumn,
+  BarChart2,
   Sun,
   Moon,
   ChevronLeft,
@@ -62,6 +63,7 @@ const DEFAULT_MENU_ITEMS: MenuItem[] = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'concursos', label: 'Meus Editais', icon: GraduationCap },
   { id: 'subjects', label: 'Disciplinas', icon: Library },
+  { id: 'statistics', label: 'Análise Estatística', icon: BarChart2 },
   { id: 'simulados', label: 'Simulados', icon: FileSpreadsheet },
   { id: 'calendar', label: 'Planner', icon: Calendar },
 ];

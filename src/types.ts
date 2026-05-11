@@ -33,8 +33,8 @@ export interface Subject {
   id: string;
   name: string;
   color: string;
-  questionsGoal?: number;
-  weight?: number;
+  questionsGoal?: number;  // Previsto no Edital
+  weight?: number;          // Peso Total
   topics: Topic[];
 }
 

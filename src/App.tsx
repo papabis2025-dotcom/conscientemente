@@ -9,6 +9,7 @@ import CalendarView from './pages/CalendarView';
 import QuestionsView from './pages/QuestionsView';
 import SettingsView from './pages/SettingsView';
 import LogView from './pages/LogView';
+import StatisticsView from './pages/StatisticsView';
 import LoginView from './pages/LoginView';
 import { Concurso } from './types.ts';
 import { useAppData } from './hooks/useAppData';
@@ -72,6 +73,8 @@ const App: React.FC = () => {
           studyTasks={studyTasks}
           onUpdateTasks={setStudyTasks}
         />;
+      case 'statistics':
+        return <StatisticsView subjects={filteredSubjects} sessions={sessions} />;
       case 'settings':
         return <SettingsView currentUserEmail={currentUser?.email || ''} />;
       case 'logs': return <LogView logs={logs} onClearLogs={clearLogs} onDeleteLog={deleteLog} />;

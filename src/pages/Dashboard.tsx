@@ -547,11 +547,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                         style={{ width: `${pct}%` }}
                       />
                     </div>
-                    {remaining === 0 ? (
-                      <div className="flex items-center justify-center bg-emerald-50 dark:bg-emerald-900/10 py-1 rounded border border-emerald-100 dark:border-emerald-800/30">
-                        <span className="text-[9px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wide">Meta Batida!</span>
-                      </div>
-                    ) : (
+                    {remaining > 0 && (
                       <p className="text-[9px] text-right text-zinc-400 font-medium">Faltam {remaining} questões</p>
                     )}
                   </>

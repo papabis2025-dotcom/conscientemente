@@ -354,73 +354,58 @@ const Dashboard: React.FC<DashboardProps> = ({
         const simColorHex = getPerformanceColorHex(simAccuracy);
 
         return (
-          <div className="flex flex-row items-center justify-around h-full gap-2 px-2">
+          <div className="flex flex-row items-stretch justify-around h-full gap-4 px-4 py-2">
             {/* General Stats */}
-            <div className="flex flex-col items-center justify-center flex-1">
-              <div className="relative w-[88px] h-[88px] flex items-center justify-center">
-                <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                  <circle
-                    cx="50"
-                    cy="50"
-                    r="40"
-                    stroke="currentColor"
-                    strokeWidth="10"
-                    fill="transparent"
-                    className="text-zinc-100 dark:text-zinc-800"
-                  />
-                  <circle
-                    cx="50"
-                    cy="50"
-                    r="40"
-                    stroke="currentColor"
-                    strokeWidth="10"
-                    fill="transparent"
-                    strokeDasharray={251.2}
-                    strokeDashoffset={251.2 - (251.2 * globalAccuracy) / 100}
-                    className={`${globalColor} transition-all duration-1000 ease-out`}
-                    strokeLinecap="round"
-                    style={{ color: globalColorHex }}
-                  />
-                </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className={`text-lg font-black ${globalColor}`} style={{ color: globalColorHex }}>{globalAccuracy}%</span>
+            <div className="flex flex-col items-center justify-center flex-1 gap-2">
+              <div className="relative w-full flex-1 min-h-0 flex items-center justify-center">
+                <div className="relative w-full h-full max-w-[140px] max-h-[140px]">
+                  <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="40" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-zinc-100 dark:text-zinc-800" />
+                    <circle
+                      cx="50" cy="50" r="40"
+                      stroke="currentColor" strokeWidth="8" fill="transparent"
+                      strokeDasharray={251.2}
+                      strokeDashoffset={251.2 - (251.2 * globalAccuracy) / 100}
+                      className={`${globalColor} transition-all duration-1000 ease-out`}
+                      strokeLinecap="round"
+                      style={{ color: globalColorHex }}
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <span className={`text-2xl font-black leading-none ${globalColor}`} style={{ color: globalColorHex }}>{globalAccuracy}%</span>
+                    <span className="text-[9px] text-zinc-400 font-semibold mt-1">{totalDone} q</span>
+                  </div>
                 </div>
               </div>
-              <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-wide mt-1">Geral</p>
+              <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest shrink-0">Questões</p>
             </div>
 
+            {/* Divider */}
+            <div className="w-px bg-zinc-100 dark:bg-zinc-800 self-stretch my-2 shrink-0" />
+
             {/* Simulado Stats */}
-            <div className="flex flex-col items-center justify-center flex-1">
-              <div className="relative w-[88px] h-[88px] flex items-center justify-center">
-                <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                  <circle
-                    cx="50"
-                    cy="50"
-                    r="40"
-                    stroke="currentColor"
-                    strokeWidth="10"
-                    fill="transparent"
-                    className="text-zinc-100 dark:text-zinc-800"
-                  />
-                  <circle
-                    cx="50"
-                    cy="50"
-                    r="40"
-                    stroke="currentColor"
-                    strokeWidth="10"
-                    fill="transparent"
-                    strokeDasharray={251.2}
-                    strokeDashoffset={251.2 - (251.2 * simAccuracy) / 100}
-                    className={`${simColor} transition-all duration-1000 ease-out`}
-                    strokeLinecap="round"
-                    style={{ color: simColorHex }}
-                  />
-                </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className={`text-lg font-black ${simColor}`} style={{ color: simColorHex }}>{simAccuracy}%</span>
+            <div className="flex flex-col items-center justify-center flex-1 gap-2">
+              <div className="relative w-full flex-1 min-h-0 flex items-center justify-center">
+                <div className="relative w-full h-full max-w-[140px] max-h-[140px]">
+                  <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="40" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-zinc-100 dark:text-zinc-800" />
+                    <circle
+                      cx="50" cy="50" r="40"
+                      stroke="currentColor" strokeWidth="8" fill="transparent"
+                      strokeDasharray={251.2}
+                      strokeDashoffset={251.2 - (251.2 * simAccuracy) / 100}
+                      className={`${simColor} transition-all duration-1000 ease-out`}
+                      strokeLinecap="round"
+                      style={{ color: simColorHex }}
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <span className={`text-2xl font-black leading-none ${simColor}`} style={{ color: simColorHex }}>{simAccuracy}%</span>
+                    <span className="text-[9px] text-zinc-400 font-semibold mt-1">{simDone} q</span>
+                  </div>
                 </div>
               </div>
-              <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-wide mt-1">Simulados</p>
+              <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest shrink-0">Simulados</p>
             </div>
           </div>
         );

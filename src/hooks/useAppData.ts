@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Subject, StudySession, Concurso, ScheduledStudy, DailyGoal, LogEntry, User, Simulado } from '../types';
-import { INITIAL_CONCURSOS } from '../constants';
 import { supabase } from '../services/supabase';
 import { api } from '../services/api';
 

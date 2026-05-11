@@ -1,15 +1,14 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import {
-  LineChart, Line, AreaChart, Area, BarChart, Bar,
+  AreaChart, Area, BarChart, Bar,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
-  PieChart, Pie, LabelList
+  LabelList
 } from 'recharts';
-import { Eye, EyeOff, X, Save, Trash2, Trophy, Target, Clock, CheckCircle, AlertTriangle, TrendingUp, Maximize2, Minimize2, Check } from 'lucide-react';
+import { Eye, EyeOff, X, Trophy, Maximize2 } from 'lucide-react';
 
-import { Subject, StudySession, Concurso, Simulado, ActivityType, ScheduledStudy } from '../types';
+import { Subject, StudySession, Concurso, Simulado, ScheduledStudy } from '../types';
 import { getColorHex } from '../utils/colors';
-import TimerWidget from '../components/dashboard/TimerWidget';
 
 interface DashboardProps {
   subjects: Subject[];
@@ -99,6 +98,9 @@ const Dashboard: React.FC<DashboardProps> = ({
   const [draggedWidgetIndex, setDraggedWidgetIndex] = useState<number | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [fullscreenWidgetId, setFullscreenWidgetId] = useState<string | null>(null);
+  const [activeWeeklyPeriod, setActiveWeeklyPeriod] = useState<'weekly' | 'monthly' | 'annual'>('weekly');
+  const [activeWeeklyTab, setActiveWeeklyTab] = useState<'hours' | 'questions'>('hours');
+  const [activeAnalysisTab, setActiveAnalysisTab] = useState<'questions' | 'time' | 'performance'>('questions');
 
   const isDarkMode = theme === 'dark';
   const chartTextColor = isDarkMode ? '#94a3b8' : '#64748b';

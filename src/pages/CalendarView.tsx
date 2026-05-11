@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
-import { Subject, ScheduledStudy, Topic, ActivityType, StudySession } from '../types';
+import { Subject, ScheduledStudy, ActivityType, StudySession } from '../types';
 import { getBadgeStyle } from '../utils/colors';
 // No lucide-react icons used in this file
 

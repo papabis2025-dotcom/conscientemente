@@ -23,9 +23,7 @@ const StudyPlan: React.FC<StudyPlanProps> = ({ subjects, sessions, studyTasks, o
         if (tasksForToday.length > 0 && tasksForToday.some(t => !t.topicId)) {
             console.log("Found legacy tasks without topics. clearing to regenerate...");
             tasksForToday = []; // valid for this scope to trigger generation
-            // We also need to remove them from the persistent state so they don't come back
-            const otherTasks = studyTasks.filter(t => t.date !== today);
-            // We will setStudyTasks later, but for now we proceed as if empty
+            // Cleanup will happen below when otherTasks is reconstructed
         }
 
         if (tasksForToday.length === 0 && subjects.length > 0) {

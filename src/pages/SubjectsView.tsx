@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { Subject, Topic, StudySession, Concurso } from '../types';
 
 import { COLORS } from '../constants';
@@ -6,14 +6,14 @@ import { getColorHex, getBadgeStyle } from '../utils/colors';
 import {
   ChevronDown,
   ChevronRight,
-  MoreHorizontal,
   Trash2,
   Edit2,
   Plus,
   Clock,
   CheckCircle,
   AlertTriangle,
-  Trophy
+  Trophy,
+  Bot
 } from 'lucide-react';
 
 interface SubjectsViewProps {
@@ -28,7 +28,6 @@ interface SubjectsViewProps {
 const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdateSubjects, selectedConcursoId, onSelectConcursoId, concursos }) => {
   const [newSubjectName, setNewSubjectName] = useState('');
   const [selectedColor, setSelectedColor] = useState(COLORS[0]);
-  const [isProcessing, setIsProcessing] = useState(false);
   const [editingSubjectId, setEditingSubjectId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [editColor, setEditColor] = useState('');
@@ -269,44 +268,42 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
         </div>
       </header>
 
-        <div className="flex flex-wrap gap-3 w-full md:w-auto items-center">
+      <div className="flex flex-wrap gap-3 w-full md:w-auto items-center">
+        <div className="h-8 w-px bg-zinc-200 dark:bg-zinc-700 mx-2 hidden md:block" />
 
-
-          <div className="h-8 w-px bg-zinc-200 dark:bg-zinc-700 mx-2 hidden md:block" />
-
-          {selectedConcursoId === 'all' ? (
-             <div className="bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800 px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2">
-                <AlertTriangle size={16} /> Selecione um edital para adicionar disciplinas
-             </div>
-          ) : (
-            <>
-              <div className="flex flex-col gap-2 w-full">
-                <div className="flex gap-2 flex-1 md:flex-none">
-                  <input
-                    type="text"
-                    placeholder="Nova disciplina..."
-                    value={newSubjectName}
-                    onChange={(e) => setNewSubjectName(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && addSubject()}
-                    className="px-4 py-2 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl focus:ring-2 focus:ring-zinc-500 outline-none text-zinc-800 dark:text-white text-sm min-w-[180px]"
-                  />
-                  <input
-                    type="number"
-                    placeholder="Prev. Edital"
-                    value={newQuestionsGoal}
-                    onChange={(e) => setNewQuestionsGoal(e.target.value === '' ? '' : Number(e.target.value))}
-                    className="px-3 py-2 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl focus:ring-2 focus:ring-zinc-500 outline-none text-zinc-800 dark:text-white text-sm w-28"
-                  />
-                  <input
-                    type="number"
-                    placeholder="Peso"
-                    step="0.1"
-                    value={newWeight}
-                    onChange={(e) => setNewWeight(e.target.value === '' ? '' : Number(e.target.value))}
-                    className="px-3 py-2 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl focus:ring-2 focus:ring-zinc-500 outline-none text-zinc-800 dark:text-white text-sm w-24"
-                  />
-                  <button onClick={addSubject} className="bg-zinc-900 dark:bg-zinc-700 text-white px-3 py-2 rounded-xl hover:bg-zinc-800 dark:hover:bg-zinc-600 flex items-center justify-center"><Plus size={20} /></button>
-                </div>
+        {selectedConcursoId === 'all' ? (
+           <div className="bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800 px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2">
+              <AlertTriangle size={16} /> Selecione um edital para adicionar disciplinas
+           </div>
+        ) : (
+          <>
+            <div className="flex flex-col gap-2 w-full">
+              <div className="flex gap-2 flex-1 md:flex-none">
+                <input
+                  type="text"
+                  placeholder="Nova disciplina..."
+                  value={newSubjectName}
+                  onChange={(e) => setNewSubjectName(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && addSubject()}
+                  className="px-4 py-2 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl focus:ring-2 focus:ring-zinc-500 outline-none text-zinc-800 dark:text-white text-sm min-w-[180px]"
+                />
+                <input
+                  type="number"
+                  placeholder="Prev. Edital"
+                  value={newQuestionsGoal}
+                  onChange={(e) => setNewQuestionsGoal(e.target.value === '' ? '' : Number(e.target.value))}
+                  className="px-3 py-2 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl focus:ring-2 focus:ring-zinc-500 outline-none text-zinc-800 dark:text-white text-sm w-28"
+                />
+                <input
+                  type="number"
+                  placeholder="Peso"
+                  step="0.1"
+                  value={newWeight}
+                  onChange={(e) => setNewWeight(e.target.value === '' ? '' : Number(e.target.value))}
+                  className="px-3 py-2 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl focus:ring-2 focus:ring-zinc-500 outline-none text-zinc-800 dark:text-white text-sm w-24"
+                />
+                <button onClick={addSubject} className="bg-zinc-900 dark:bg-zinc-700 text-white px-3 py-2 rounded-xl hover:bg-zinc-800 dark:hover:bg-zinc-600 flex items-center justify-center"><Plus size={20} /></button>
+              </div>
               <div className="flex flex-wrap gap-1.5 px-1 items-center max-w-[240px]">
                 {COLORS.map(color => (
                   <button
@@ -326,11 +323,10 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                   />
                   <span className="pointer-events-none text-[8px] font-bold text-zinc-500">+</span>
                 </div>
-                </div>
               </div>
-            </>
-          )}
-        </div>
+            </div>
+          </>
+        )}
       </div>
 
       <div className="bg-white dark:bg-zinc-900 rounded-[1.5rem] border border-zinc-200 dark:border-zinc-800 overflow-hidden shadow-sm">
@@ -655,7 +651,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                 );
               })}
 
-              {subjects.length === 0 && !isProcessing && (
+              {subjects.length === 0 && (
                 <tr>
                   <td colSpan={8} className="py-12 text-center">
                     <div className="flex flex-col items-center justify-center opacity-50">

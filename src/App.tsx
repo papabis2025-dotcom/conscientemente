@@ -103,6 +103,7 @@ const App: React.FC = () => {
         isCollapsed={isSidebarCollapsed}
         onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
         studyTasks={studyTasks}
+        sessions={sessions}
       />
       <main className="flex-1 overflow-y-auto p-4 relative">
         <div className="max-w-[1440px] mx-auto pb-10">{renderContent()}</div>

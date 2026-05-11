@@ -334,27 +334,27 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
 
       <div className="bg-white dark:bg-zinc-900 rounded-[1.5rem] border border-zinc-200 dark:border-zinc-800 overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+          <table className="w-full text-left border-collapse table-fixed">
             <thead>
               <tr className="border-b border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-800/50">
-                <th className="px-6 py-4 text-[10px] font-bold uppercase text-zinc-400 tracking-wider"></th>
-                <th className="px-6 py-4 text-[10px] font-bold uppercase text-zinc-400 tracking-wider cursor-pointer hover:text-zinc-900 dark:text-zinc-300" onClick={() => { setSortBy('name'); setSortOrder(o => o === 'asc' ? 'desc' : 'asc'); }}>
+                <th className="w-8 px-4 py-4 text-[10px] font-bold uppercase text-zinc-400 tracking-wider"></th>
+                <th className="px-4 py-4 text-[10px] font-bold uppercase text-zinc-400 tracking-wider cursor-pointer hover:text-zinc-900 dark:text-zinc-300" onClick={() => { setSortBy('name'); setSortOrder(o => o === 'asc' ? 'desc' : 'asc'); }}>
                   Disciplina {sortBy === 'name' && (sortOrder === 'asc' ? '↓' : '↑')}
                 </th>
-                <th className="px-6 py-4 text-[10px] font-bold uppercase text-zinc-400 tracking-wider cursor-pointer hover:text-zinc-900 dark:text-zinc-300" onClick={() => { setSortBy('time'); setSortOrder(o => o === 'desc' ? 'asc' : 'desc'); }}>
+                <th className="w-32 px-4 py-4 text-[10px] font-bold uppercase text-zinc-400 tracking-wider cursor-pointer hover:text-zinc-900 dark:text-zinc-300" onClick={() => { setSortBy('time'); setSortOrder(o => o === 'desc' ? 'asc' : 'desc'); }}>
                   Tempo {sortBy === 'time' && (sortOrder === 'desc' ? '↓' : '↑')}
                 </th>
-                <th className="px-6 py-4 text-[10px] font-bold uppercase text-zinc-400 tracking-wider cursor-pointer hover:text-zinc-900 dark:text-zinc-300" onClick={() => { setSortBy('questions'); setSortOrder(o => o === 'desc' ? 'asc' : 'desc'); }}>
+                <th className="w-32 px-4 py-4 text-[10px] font-bold uppercase text-zinc-400 tracking-wider cursor-pointer hover:text-zinc-900 dark:text-zinc-300" onClick={() => { setSortBy('questions'); setSortOrder(o => o === 'desc' ? 'asc' : 'desc'); }}>
                   Questões {sortBy === 'questions' && (sortOrder === 'desc' ? '↓' : '↑')}
                 </th>
-                <th className="px-6 py-4 text-[10px] font-bold uppercase text-zinc-400 tracking-wider cursor-pointer hover:text-zinc-900 dark:text-zinc-300" onClick={() => { setSortBy('accuracy'); setSortOrder(o => o === 'desc' ? 'asc' : 'desc'); }}>
+                <th className="w-40 px-4 py-4 text-[10px] font-bold uppercase text-zinc-400 tracking-wider cursor-pointer hover:text-zinc-900 dark:text-zinc-300" onClick={() => { setSortBy('accuracy'); setSortOrder(o => o === 'desc' ? 'asc' : 'desc'); }}>
                   Aproveitamento {sortBy === 'accuracy' && (sortOrder === 'desc' ? '↓' : '↑')}
                 </th>
-                <th className="px-6 py-4 text-[10px] font-bold uppercase text-zinc-400 tracking-wider text-right">Ações</th>
-                <th className="px-6 py-4 text-[10px] font-bold uppercase text-zinc-400 tracking-wider border-l border-zinc-100 dark:border-zinc-800 cursor-pointer hover:text-zinc-900 dark:text-zinc-300" onClick={() => { setSortBy('questionsGoal'); setSortOrder(o => o === 'desc' ? 'asc' : 'desc'); }}>
+                <th className="w-32 px-4 py-4 text-[10px] font-bold uppercase text-zinc-400 tracking-wider text-right">Ações</th>
+                <th className="w-36 px-4 py-4 text-[10px] font-bold uppercase text-zinc-400 tracking-wider cursor-pointer hover:text-zinc-900 dark:text-zinc-300" onClick={() => { setSortBy('questionsGoal'); setSortOrder(o => o === 'desc' ? 'asc' : 'desc'); }}>
                   Prev. no Edital {sortBy === 'questionsGoal' && (sortOrder === 'desc' ? '↓' : '↑')}
                 </th>
-                <th className="px-6 py-4 text-[10px] font-bold uppercase text-zinc-400 tracking-wider cursor-pointer hover:text-zinc-900 dark:text-zinc-300" onClick={() => { setSortBy('weight'); setSortOrder(o => o === 'desc' ? 'asc' : 'desc'); }}>
+                <th className="w-32 px-4 py-4 text-[10px] font-bold uppercase text-zinc-400 tracking-wider cursor-pointer hover:text-zinc-900 dark:text-zinc-300" onClick={() => { setSortBy('weight'); setSortOrder(o => o === 'desc' ? 'asc' : 'desc'); }}>
                   Peso Total {sortBy === 'weight' && (sortOrder === 'desc' ? '↓' : '↑')}
                 </th>
               </tr>
@@ -441,7 +441,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                         </div>
                       </td>
                       {/* Previsto no Edital */}
-                      <td className="px-6 py-4 border-l border-zinc-100 dark:border-zinc-800" onClick={e => editingSubjectId === subject.id && e.stopPropagation()}>
+                      <td className="px-4 py-4" onClick={e => editingSubjectId === subject.id && e.stopPropagation()}>
                         {editingSubjectId === subject.id ? (
                           <input
                             type="number"

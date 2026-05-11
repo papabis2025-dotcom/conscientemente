@@ -23,7 +23,9 @@ import {
   Bell,
   X,
   Check,
-  GripVertical
+  GripVertical,
+  Clock,
+  Trophy
 } from 'lucide-react';
 import logoImg from '../assets/logo.png';
 
@@ -51,6 +53,7 @@ interface SidebarProps {
   onToggleCollapse: () => void;
   onUpdateUser?: (name: string, avatar: string) => void;
   studyTasks: { id: string, subjectId: string, subjectName: string, done: boolean, date: string }[];
+  sessions: StudySession[];
 }
 
 interface MenuItem {
@@ -76,12 +79,18 @@ const Sidebar: React.FC<SidebarProps> = ({
   onAddSession,
   currentUser, onLogout, isReorderMode = false,
   isCollapsed = false, onToggleCollapse, onUpdateUser,
-  studyTasks
+  studyTasks,
+  sessions
 }) => {
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [editName, setEditName] = useState(currentUser.name);
   const [editAvatar, setEditAvatar] = useState(currentUser.avatar);
-  const [inputMinutes, setInputMinutes] = useState(30);
+
+  // Stats calculation
+  const totalQuestions = sessions.reduce((acc, s) => acc + (s.questionsDone || 0), 0);
+  const totalMinutes = sessions.reduce((acc, s) => acc + s.durationInMinutes, 0);
+  const totalHours = (totalMinutes / 60).toFixed(1);
+
 
   useEffect(() => {
     setEditName(currentUser.name);
@@ -226,58 +235,32 @@ const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       <div className="mb-5 bg-zinc-50 dark:bg-zinc-800/50 p-3 rounded-2xl border border-zinc-100 dark:border-zinc-700">
-        {!isCollapsed && (
-          <div className="flex flex-col gap-2">
-            <span className="text-[10px] font-semibold text-zinc-400">Timer de Foco</span>
-
-            {isAlarmPlaying ? (
-              <button
-                onClick={onStopAlarm}
-                className="w-full py-3 bg-red-500 hover:bg-red-600 text-white font-bold rounded-xl animate-pulse shadow-lg shadow-red-500/30 flex items-center justify-center gap-2 text-xs uppercase tracking-wide"
-              >
-                <Bell size={16} /> Parar Alarme
-              </button>
-            ) : (isActive || timeLeft > 0) ? (
-              <>
-                <div className="text-center py-2 bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700">
-                  <span className={`text-2xl font-mono font-bold tabular-nums ${isActive ? 'text-emerald-500' : 'text-zinc-400'}`}>
-                    {formatTime(timeLeft)}
-                  </span>
+        {!isCollapsed ? (
+          <div className="space-y-3">
+            <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Progresso Geral</span>
+            
+            <div className="grid grid-cols-2 gap-2">
+              <div className="bg-white dark:bg-zinc-800 p-2.5 rounded-xl border border-zinc-100 dark:border-zinc-700">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <Trophy size={12} className="text-amber-500" />
+                  <span className="text-[9px] font-bold text-zinc-500 uppercase">Questões</span>
                 </div>
-                <div className="flex gap-1">
-                  <button
-                    onClick={() => isActive ? onPauseTimer() : onResumeTimer()}
-                    className={`flex-1 py-2 rounded-lg text-[9px] font-bold uppercase tracking-wide transition-all flex items-center justify-center gap-1 ${isActive ? 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400' : 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400'}`}
-                  >
-                    {isActive ? <Pause size={12} /> : <Play size={12} />}
-                    {isActive ? 'Pausar' : 'Retomar'}
-                  </button>
-                  <button
-                    onClick={onResetTimer}
-                    className="flex-1 py-2 bg-zinc-200 dark:bg-zinc-700 text-zinc-500 dark:text-zinc-300 rounded-lg text-[9px] font-bold uppercase tracking-wide hover:bg-zinc-300 dark:hover:bg-zinc-600 flex items-center justify-center gap-1"
-                  >
-                    <RotateCcw size={12} /> Resetar
-                  </button>
-                </div>
-              </>
-            ) : (
-              <div className="flex gap-2">
-                <input
-                  type="number"
-                  min="1"
-                  max="180"
-                  value={inputMinutes}
-                  onChange={(e) => setInputMinutes(parseInt(e.target.value) || 0)}
-                  className="w-16 px-2 text-center font-bold bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 dark:text-white text-sm"
-                />
-                <button
-                  onClick={() => onStartTimer(inputMinutes)}
-                  className="flex-1 py-2 bg-emerald-500 hover:bg-emerald-600 text-white font-bold uppercase tracking-wide rounded-xl shadow-lg shadow-emerald-500/20 transition-all text-[9px] flex items-center justify-center gap-1"
-                >
-                  <Play size={12} /> Iniciar
-                </button>
+                <p className="text-lg font-black text-zinc-800 dark:text-white leading-none">{totalQuestions}</p>
               </div>
-            )}
+
+              <div className="bg-white dark:bg-zinc-800 p-2.5 rounded-xl border border-zinc-100 dark:border-zinc-700">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <Clock size={12} className="text-blue-500" />
+                  <span className="text-[9px] font-bold text-zinc-500 uppercase">Horas</span>
+                </div>
+                <p className="text-lg font-black text-zinc-800 dark:text-white leading-none">{totalHours}<span className="text-[10px] font-bold ml-0.5">h</span></p>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center gap-3">
+             <Trophy size={16} className="text-amber-500" />
+             <Clock size={16} className="text-blue-500" />
           </div>
         )}
       </div>

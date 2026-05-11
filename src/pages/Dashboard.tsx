@@ -48,6 +48,7 @@ const DEFAULT_WIDGETS: WidgetState[] = [
   { id: 'study_frequency', title: 'Informações e Metas', isVisible: true, size: 'normal' },
   { id: 'study_tasks', title: 'Revisões Pendentes', isVisible: true, size: 'normal' },
   { id: 'weekly_chart', title: 'Volume de Estudo', isVisible: true, size: 'normal' },
+  { id: 'activity_calendar', title: 'Calendário de Atividades', isVisible: true, size: 'normal' },
   { id: 'unified_subject_analysis', title: 'Análise por Disciplina', isVisible: true, size: 'wide' },
 ];
 
@@ -696,6 +697,61 @@ const Dashboard: React.FC<DashboardProps> = ({
             </div>
           </div>
         );
+      case 'activity_calendar': {
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = today.getMonth();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const firstDayOfMonth = new Date(year, month, 1).getDay();
+        const monthName = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"][month];
+
+        const days = Array.from({ length: daysInMonth }, (_, i) => {
+          const date = new Date(year, month, i + 1);
+          const dateStr = date.toISOString().split('T')[0];
+          const daySessions = sessions.filter(s => s.date.startsWith(dateStr));
+          const daySubjects = Array.from(new Set(daySessions.map(s => s.subjectId)))
+            .map(id => subjects.find(sub => sub.id === id))
+            .filter(Boolean);
+
+          return {
+            day: i + 1,
+            subjects: daySubjects,
+            isToday: date.toDateString() === today.toDateString()
+          };
+        });
+
+        return (
+          <div className="flex flex-col h-full">
+            <div className="flex justify-between items-center mb-2 px-1">
+              <span className="text-[10px] font-black uppercase text-zinc-400 tracking-widest">{monthName} {year}</span>
+              <div className="flex gap-1">
+                {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((d, i) => (
+                  <span key={i} className="w-6 text-center text-[8px] font-bold text-zinc-300">{d}</span>
+                ))}
+              </div>
+            </div>
+            <div className="grid grid-cols-7 gap-1 flex-1">
+              {Array.from({ length: firstDayOfMonth }).map((_, i) => (
+                <div key={`empty-${i}`} className="aspect-square" />
+              ))}
+              {days.map(d => (
+                <div key={d.day} className={`aspect-square rounded-lg flex flex-col items-center justify-center relative overflow-hidden group border ${d.isToday ? 'border-zinc-400 dark:border-zinc-500 bg-zinc-50 dark:bg-zinc-800' : 'border-zinc-100 dark:border-zinc-800/50'}`}>
+                  <span className={`text-[9px] font-bold z-10 ${d.isToday ? 'text-zinc-900 dark:text-zinc-100' : 'text-zinc-400'}`}>{d.day}</span>
+                  <div className="absolute inset-0 flex flex-wrap gap-0.5 p-0.5 opacity-40">
+                    {d.subjects.map(sub => (
+                      <div key={sub.id} className="flex-1 min-w-[30%] h-full" style={{ backgroundColor: getColorHex(sub.color) }} />
+                    ))}
+                  </div>
+                  {d.subjects.length > 0 && (
+                    <div className="absolute bottom-1 w-1 h-1 rounded-full bg-zinc-900 dark:bg-zinc-100 opacity-20" />
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      }
+
       case 'unified_subject_analysis':
         return (
           <div className="flex flex-col h-full bg-white dark:bg-zinc-900 rounded-2xl overflow-hidden relative">

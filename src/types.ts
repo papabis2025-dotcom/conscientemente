@@ -83,6 +83,7 @@ export interface ScheduledStudy {
   durationInMinutes?: number;
   questionsDone?: number;
   questionsCorrect?: number;
+  status?: 'planejado' | 'realizado';
 }
 
 export interface DailyGoal {

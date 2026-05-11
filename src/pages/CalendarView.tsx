@@ -85,7 +85,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({ subjects, allSubjects, sche
         notes: formData.notes,
         durationInMinutes: parseInt(formData.duration) || undefined,
         questionsDone: formData.activityType === 'Questões' ? (parseInt(formData.questionsDone) || undefined) : undefined,
-        questionsCorrect: formData.activityType === 'Questões' ? (parseInt(formData.questionsCorrect) || undefined) : undefined
+        questionsCorrect: formData.activityType === 'Questões' ? (parseInt(formData.questionsCorrect) || undefined) : undefined,
+        status: 'planejado'
       };
       onUpdateSchedule([...scheduledStudies, newEntry]);
     }
@@ -140,9 +141,25 @@ const CalendarView: React.FC<CalendarViewProps> = ({ subjects, allSubjects, sche
                       const sub = lookupSubjects.find(s => s.id === task.subjectId);
                       const { style, className } = sub ? getBadgeStyle(sub.color) : { style: {}, className: 'bg-zinc-400 text-white' };
                       return (
-                        <div key={task.id} style={style} className={`p-4 rounded-2xl text-xs font-bold border border-white/10 ${className}`}>
+                        <div 
+                          key={task.id} 
+                          style={{ ...style, opacity: task.status === 'realizado' ? 0.4 : 1 }} 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const newStudies = scheduledStudies.map(s => 
+                              s.id === task.id ? { ...s, status: s.status === 'realizado' ? 'planejado' : 'realizado' } : s
+                            );
+                            onUpdateSchedule(newStudies);
+                          }}
+                          className={`p-4 rounded-2xl text-xs font-bold border border-white/10 ${className} cursor-pointer transition-all hover:scale-[1.02] active:scale-95`}
+                        >
                           <span className="opacity-70 flex items-center gap-1">{getActivityIcon(task.activityType)} {task.activityType}</span>
                           <p className="truncate font-black">{sub ? sub.name : 'Disciplina Removida'}</p>
+                          {task.topicId && sub && (
+                            <p className="text-[10px] opacity-80 mt-0.5 line-clamp-1 font-medium italic">
+                              {sub.topics.find(t => t.id === task.topicId)?.title || 'Assunto não encontrado'}
+                            </p>
+                          )}
                         </div>
                       );
                     })}
@@ -182,8 +199,26 @@ const CalendarView: React.FC<CalendarViewProps> = ({ subjects, allSubjects, sche
                         const sub = lookupSubjects.find(s => s.id === t.subjectId);
                         const { style, className } = sub ? getBadgeStyle(sub.color) : { style: {}, className: 'bg-zinc-400 text-white' };
                         return (
-                          <div key={t.id} style={style} className={`px-2 py-1.5 rounded-lg text-[10px] leading-tight font-bold line-clamp-2 ${className}`}>
-                            {t.activityType === 'Simulado' ? '📋 ' : ''}{sub ? sub.name : 'Disciplina Removida'}
+                          <div 
+                            key={t.id} 
+                            style={{ ...style, opacity: t.status === 'realizado' ? 0.4 : 1 }} 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const newStudies = scheduledStudies.map(s => 
+                                s.id === t.id ? { ...s, status: s.status === 'realizado' ? 'planejado' : 'realizado' } : s
+                              );
+                              onUpdateSchedule(newStudies);
+                            }}
+                            className={`px-2 py-1.5 rounded-lg text-[10px] leading-tight font-bold line-clamp-2 ${className} cursor-pointer transition-all hover:scale-[1.02] active:scale-95`}
+                          >
+                            <div className="flex flex-col gap-0.5">
+                              <span className="truncate">{t.activityType === 'Simulado' ? '📋 ' : ''}{sub ? sub.name : 'Disciplina Removida'}</span>
+                              {t.topicId && sub && (
+                                <span className="text-[8px] opacity-80 font-medium line-clamp-1 italic">
+                                  {sub.topics.find(top => top.id === t.topicId)?.title}
+                                </span>
+                              )}
+                            </div>
                           </div>
                         );
                       })}

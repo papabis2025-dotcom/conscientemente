@@ -679,31 +679,31 @@ const Dashboard: React.FC<DashboardProps> = ({
 
       case 'unified_subject_analysis':
         return (
-          <div className="flex flex-col h-full bg-white dark:bg-zinc-900 rounded-2xl overflow-hidden relative">
+          <div className="flex flex-col h-full">
             {/* Header / Tabs */}
-            <div className="flex items-center gap-1 p-2 bg-zinc-50 dark:bg-zinc-800/50 border-b border-zinc-100 dark:border-zinc-800">
+            <div className="flex items-center gap-1 mb-2 bg-zinc-50 dark:bg-zinc-800/50 p-1 rounded-lg shrink-0">
               <button
                 onClick={() => setActiveAnalysisTab('questions')}
-                className={`flex-1 py-1 px-2 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-all ${activeAnalysisTab === 'questions' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-sm' : 'text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}
+                className={`flex-1 py-1 px-2 rounded-md text-[10px] font-bold uppercase tracking-wide transition-all ${activeAnalysisTab === 'questions' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-sm' : 'text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}
               >
                 Questões
               </button>
               <button
                 onClick={() => setActiveAnalysisTab('time')}
-                className={`flex-1 py-1 px-2 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-all ${activeAnalysisTab === 'time' ? 'bg-white dark:bg-zinc-700 text-purple-600 shadow-sm' : 'text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}
+                className={`flex-1 py-1 px-2 rounded-md text-[10px] font-bold uppercase tracking-wide transition-all ${activeAnalysisTab === 'time' ? 'bg-white dark:bg-zinc-700 text-purple-600 shadow-sm' : 'text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}
               >
                 Tempo
               </button>
               <button
                 onClick={() => setActiveAnalysisTab('performance')}
-                className={`flex-1 py-1 px-2 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-all ${activeAnalysisTab === 'performance' ? 'bg-white dark:bg-zinc-700 text-emerald-600 shadow-sm' : 'text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}
+                className={`flex-1 py-1 px-2 rounded-md text-[10px] font-bold uppercase tracking-wide transition-all ${activeAnalysisTab === 'performance' ? 'bg-white dark:bg-zinc-700 text-emerald-600 shadow-sm' : 'text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}
               >
                 Desempenho
               </button>
             </div>
 
             {/* Content Area */}
-            <div className="flex-1 w-full px-2 pt-2 pb-2 min-h-0">
+            <div className="flex-1 min-h-0 w-full">
               {activeAnalysisTab === 'questions' && (
                 subjectStats.questionsData.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
@@ -821,9 +821,9 @@ const Dashboard: React.FC<DashboardProps> = ({
 
           // Define heights for different widgets
           const heightClass = (() => {
-            if (widget.id === 'general_stats') return 'h-[200px]';
-            if (widget.id === 'study_frequency') return 'h-[200px]';
-            if (widget.id === 'study_tasks') return 'h-[200px]';
+            if (widget.id === 'general_stats') return 'h-[220px]';
+            if (widget.id === 'study_frequency') return 'h-[220px]';
+            if (widget.id === 'study_tasks') return 'h-[220px]';
             if (widget.id === 'weekly_chart') return 'h-[360px]';
             if (widget.id === 'activity_calendar') return 'h-[360px]';
             if (widget.id === 'unified_subject_analysis') return 'h-[360px]';
@@ -837,10 +837,10 @@ const Dashboard: React.FC<DashboardProps> = ({
               onDragStart={() => handleDragStart(index)}
               onDragOver={(e) => handleDragOver(e, index)}
               onDragEnd={handleDragEnd}
-              className={`${sizeClass} ${heightClass} ${widget.isVisible ? 'opacity-100' : 'opacity-40'} bg-white dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm relative group hover:shadow-md transition-all duration-300 ${isEditMode ? 'cursor-move ring-2 ring-emerald-500/20' : ''} ${draggedWidgetIndex === index ? 'opacity-50 scale-95' : ''}`}
+              className={`${sizeClass} ${heightClass} ${widget.isVisible ? 'opacity-100' : 'opacity-40'} bg-white dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm relative group hover:shadow-md transition-all duration-300 flex flex-col ${isEditMode ? 'cursor-move ring-2 ring-emerald-500/20' : ''} ${draggedWidgetIndex === index ? 'opacity-50 scale-95' : ''}`}
             >
-              <div className="flex justify-between items-center mb-3">
-                <h4 className="text-[11px] font-black text-zinc-800 dark:text-zinc-200 uppercase tracking-widest bg-zinc-50 dark:bg-zinc-800/50 px-3 py-1 rounded-full">{widget.title}</h4>
+              <div className="flex justify-between items-center mb-3 shrink-0">
+                <h4 className="text-[10px] font-black text-zinc-800 dark:text-zinc-200 uppercase tracking-widest bg-zinc-50 dark:bg-zinc-800/50 px-2.5 py-1 rounded-full">{widget.title}</h4>
                 <div className="flex gap-2 items-center">
                   {!isEditMode && ['weekly_chart', 'activity_calendar', 'unified_subject_analysis'].includes(widget.id) && (
                     <button
@@ -848,7 +848,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                       className="text-zinc-400 hover:text-zinc-900 dark:text-zinc-300 transition-colors p-1"
                       title="Expandir Gráfico"
                     >
-                      <Maximize2 size={14} />
+                      <Maximize2 size={13} />
                     </button>
                   )}
                   {isEditMode && (
@@ -859,7 +859,9 @@ const Dashboard: React.FC<DashboardProps> = ({
                   )}
                 </div>
               </div>
-              {renderWidgetContent(widget.id)}
+              <div className="flex-1 min-h-0 overflow-hidden">
+                {renderWidgetContent(widget.id)}
+              </div>
             </div>
           );
         })}

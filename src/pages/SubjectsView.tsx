@@ -250,23 +250,28 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 px-1">
         <div>
-          <div className="flex items-center gap-3 mb-1">
-            <h2 className="text-2xl text-zinc-800 dark:text-white font-bold">Disciplinas</h2>
-            {concursos && onSelectConcursoId && (
-              <select
-                value={selectedConcursoId}
-                onChange={(e) => onSelectConcursoId(e.target.value)}
-                className="bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100 rounded-lg px-2 py-1 outline-none text-sm font-bold cursor-pointer"
-              >
-                <option value="all">Visão Global</option>
-                {concursos.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
-            )}
-          </div>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">Gerenciamento detalhado do conteúdo programático.</p>
+          <h2 className="text-2xl font-black text-zinc-800 dark:text-white tracking-tight uppercase">Disciplinas</h2>
+          <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">Gerenciamento detalhado do conteúdo programático.</p>
         </div>
+
+        <div className="flex flex-wrap gap-3 items-center">
+          {concursos && onSelectConcursoId && (
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl px-4 py-2 flex items-center gap-3 shadow-sm">
+               <Trophy size={16} className="text-amber-500" />
+               <select
+                  value={selectedConcursoId}
+                  onChange={(e) => onSelectConcursoId(e.target.value)}
+                  className="bg-transparent border-none outline-none text-xs font-black text-zinc-800 dark:text-white cursor-pointer w-32 uppercase tracking-wide"
+               >
+                  <option value="all">Visão Global</option>
+                  {concursos.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+               </select>
+            </div>
+          )}
+        </div>
+      </header>
 
         <div className="flex flex-wrap gap-3 w-full md:w-auto items-center">
 

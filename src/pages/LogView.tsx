@@ -14,10 +14,10 @@ const LogView: React.FC<LogViewProps> = ({ logs, onClearLogs, onDeleteLog }) => 
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <header className="flex justify-between items-center">
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 px-1">
         <div>
-          <h2 className="text-2xl font-black text-zinc-800 dark:text-white uppercase tracking-tight">Registro de Atividades 📋</h2>
-          <p className="text-zinc-500 dark:text-zinc-400">Histórico técnico de alterações e eventos do sistema.</p>
+          <h2 className="text-2xl font-black text-zinc-800 dark:text-white tracking-tight uppercase">Registro de Atividades</h2>
+          <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">Histórico técnico de alterações e eventos do sistema.</p>
         </div>
         <button
           onClick={() => confirm('Limpar todos os logs?') && onClearLogs()}

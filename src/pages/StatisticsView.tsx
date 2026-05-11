@@ -96,13 +96,13 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions }) =
     </th>;
 
   return (
-    <div className="space-y-5 animate-in fade-in duration-500 pb-10">
-      <div>
-        <h2 className="text-2xl font-bold text-zinc-800 dark:text-white mb-1">Análise Estatística</h2>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">
-          Clique em uma disciplina para expandir os assuntos. Prioridade baseada principalmente no aproveitamento (60%) + peso (30%) + volume de questões (10%).
-        </p>
-      </div>
+    <div className="space-y-6 animate-in fade-in duration-500 pb-10">
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 px-1">
+        <div>
+          <h2 className="text-2xl font-black text-zinc-800 dark:text-white tracking-tight uppercase">Análise Estatística</h2>
+          <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">Prioridade baseada no aproveitamento (60%) + peso (30%) + volume de questões (10%).</p>
+        </div>
+      </header>
 
       <div className="overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-700">
         <table className="w-full text-sm border-collapse bg-white dark:bg-zinc-900">

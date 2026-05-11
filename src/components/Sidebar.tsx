@@ -54,6 +54,7 @@ interface SidebarProps {
   onUpdateUser?: (name: string, avatar: string) => void;
   studyTasks: { id: string, subjectId: string, subjectName: string, done: boolean, date: string }[];
   sessions: StudySession[];
+  onOpenAddModal?: () => void;
 }
 
 interface MenuItem {
@@ -80,7 +81,8 @@ const Sidebar: React.FC<SidebarProps> = ({
   currentUser, onLogout, isReorderMode = false,
   isCollapsed = false, onToggleCollapse, onUpdateUser,
   studyTasks,
-  sessions
+  sessions,
+  onOpenAddModal
 }) => {
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [editName, setEditName] = useState(currentUser.name);
@@ -233,6 +235,14 @@ const Sidebar: React.FC<SidebarProps> = ({
           </div>
         )}
       </div>
+      
+      <button 
+        onClick={onOpenAddModal}
+        className={`mb-4 w-full flex items-center ${isCollapsed ? 'justify-center p-2' : 'gap-3 p-4'} bg-zinc-900 dark:bg-zinc-700 text-white rounded-[1.5rem] shadow-lg hover:bg-zinc-800 dark:hover:bg-zinc-600 transition-all active:scale-95 group overflow-hidden relative`}
+      >
+        <Plus size={isCollapsed ? 24 : 20} className={isCollapsed ? '' : 'shrink-0'} />
+        {!isCollapsed && <span className="text-xs font-black uppercase tracking-widest">Adicionar Atividade</span>}
+      </button>
 
       <div className="mb-5 bg-zinc-50 dark:bg-zinc-800/50 p-3 rounded-2xl border border-zinc-100 dark:border-zinc-700">
         {!isCollapsed ? (

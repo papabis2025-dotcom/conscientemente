@@ -48,7 +48,7 @@ const DEFAULT_WIDGETS: WidgetState[] = [
   { id: 'general_stats', title: 'Desempenho Geral', isVisible: true, size: 'wide' },
   { id: 'study_frequency', title: 'Informações e Metas', isVisible: true, size: 'normal' },
   { id: 'study_tasks', title: 'Revisões Pendentes', isVisible: true, size: 'normal' },
-  { id: 'weekly_chart', title: 'Volume de Estudo', isVisible: true, size: 'normal' },
+  { id: 'weekly_chart', title: 'Volume de Estudo', isVisible: true, size: 'wide' },
   { id: 'activity_calendar', title: 'Calendário de Atividades', isVisible: true, size: 'wide' },
   { id: 'unified_subject_analysis', title: 'Análise por Disciplina', isVisible: true, size: 'wide' },
 ];
@@ -93,68 +93,18 @@ const Dashboard: React.FC<DashboardProps> = ({
   onUpdateTasks,
   scheduledStudies = []
 }) => {
-  const [isEditMode, setIsEditMode] = useState(false);
-  const [showModal, setShowModal] = useState(false);
-  const [activeAnalysisTab, setActiveAnalysisTab] = useState<'questions' | 'time' | 'performance'>('questions');
-  const [activeWeeklyTab, setActiveWeeklyTab] = useState<'hours' | 'questions'>('hours');
-  const [activeWeeklyPeriod, setActiveWeeklyPeriod] = useState<'weekly' | 'monthly' | 'annual'>('weekly');
-
-  const handleToggleTask = (taskId: string) => {
-    if (!onUpdateTasks) return;
-    const newTasks = studyTasks.map(t => {
-      if (t.id === taskId) {
-        return { ...t, done: !t.done };
-      }
-      return t;
-    });
-    onUpdateTasks(newTasks);
-  };
-
   const [widgets, setWidgets] = useState<WidgetState[]>(() => {
-    const saved = localStorage.getItem('cp_dashboard_layout_v18');
-    // Merge with defaults to ensure new widgets appear
-    if (!saved) return DEFAULT_WIDGETS;
-    const parsed = JSON.parse(saved);
-
-    // Remove legacy widgets explicitly
-    const legacyIds = ['focus_timer', 'study_suggestions', 'questions_by_subject', 'time_by_subject', 'performance_by_subject'];
-    const filtered = parsed.filter((w: any) => !legacyIds.includes(w.id));
-
-    // Check if new unified widget is missing and add it
-    const existingIds = new Set(filtered.map((w: any) => w.id));
-    const missingWidgets = DEFAULT_WIDGETS.filter(w => !existingIds.has(w.id));
-
-    if (missingWidgets.length > 0) {
-      return [...filtered, ...missingWidgets];
-    }
-
-    // Update widget titles from defaults to ensure latest names
-    return filtered.map((w: any) => {
-      const defaultWidget = DEFAULT_WIDGETS.find(dw => dw.id === w.id);
-      return defaultWidget ? { ...w, title: defaultWidget.title } : w;
-    });
+    const saved = localStorage.getItem('cp_dashboard_layout_v19');
+    return saved ? JSON.parse(saved) : DEFAULT_WIDGETS;
   });
-
-  const [formData, setFormData] = useState({
-    subjectId: '',
-    topicId: '',
-    activityType: 'Questões' as ActivityType,
-    duration: '',
-    questionsDone: '',
-    questionsCorrect: '',
-    date: (() => {
-      const d = new Date();
-      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    })()
-  });
-
   const [draggedWidgetIndex, setDraggedWidgetIndex] = useState<number | null>(null);
+  const [isEditMode, setIsEditMode] = useState(false);
   const [fullscreenWidgetId, setFullscreenWidgetId] = useState<string | null>(null);
 
   const isDarkMode = theme === 'dark';
   const chartTextColor = isDarkMode ? '#94a3b8' : '#64748b';
 
-  useEffect(() => { localStorage.setItem('cp_dashboard_layout_v18', JSON.stringify(widgets)); }, [widgets]);
+  useEffect(() => { localStorage.setItem('cp_dashboard_layout_v19', JSON.stringify(widgets)); }, [widgets]);
 
   const handleDragStart = (index: number) => {
     setDraggedWidgetIndex(index);
@@ -186,32 +136,6 @@ const Dashboard: React.FC<DashboardProps> = ({
       }
       return w;
     }));
-  };
-
-  const handleSaveActivity = () => {
-    if (!formData.subjectId || !onAddSession) return;
-
-    onAddSession({
-      id: crypto.randomUUID(),
-      subjectId: formData.subjectId,
-      topicId: formData.topicId || undefined,
-      durationInMinutes: parseInt(formData.duration) || 0,
-      date: new Date(`${formData.date}T12:00:00`).toISOString(),
-      questionsDone: formData.activityType === 'Questões' ? (parseInt(formData.questionsDone) || undefined) : undefined,
-      questionsCorrect: formData.activityType === 'Questões' ? (parseInt(formData.questionsCorrect) || undefined) : undefined,
-      activityType: formData.activityType
-    });
-
-    setShowModal(false);
-    setFormData({
-      subjectId: '',
-      topicId: '',
-      activityType: 'Questões',
-      duration: '',
-      questionsDone: '',
-      questionsCorrect: '',
-      date: new Date().toISOString().split('T')[0]
-    });
   };
 
   const subjectStats = useMemo(() => {
@@ -859,36 +783,34 @@ const Dashboard: React.FC<DashboardProps> = ({
   };
 
 
+    return (
+    <div className="space-y-6 animate-in fade-in duration-500 pb-10">
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 px-1">
+        <div>
+          <h2 className="text-2xl font-black text-zinc-800 dark:text-white tracking-tight uppercase">Dashboard</h2>
+          <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">Bem-vindo de volta! Aqui está o resumo do seu desempenho.</p>
+        </div>
 
-  return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      <header className="flex justify-between items-center px-1">
         <div className="flex items-center gap-4">
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-1.5 flex items-center gap-2 shadow-sm">
-             <Trophy size={14} className="text-zinc-900 dark:text-zinc-300" />
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl px-4 py-2 flex items-center gap-3 shadow-sm">
+             <Trophy size={16} className="text-amber-500" />
              <select
                 value={selectedConcursoId}
                 onChange={(e) => onSelectConcursoId(e.target.value)}
-                className="bg-transparent border-none outline-none text-xs font-bold text-zinc-800 dark:text-white cursor-pointer w-32"
+                className="bg-transparent border-none outline-none text-xs font-black text-zinc-800 dark:text-white cursor-pointer w-32 uppercase tracking-wide"
              >
                 <option value="all">Visão Global</option>
                 {concursos.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
              </select>
           </div>
           
-          <button
-            onClick={() => setShowModal(true)}
-            className="bg-zinc-900 dark:bg-zinc-700 text-white px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wide hover:bg-zinc-800 dark:hover:bg-zinc-600 shadow-sm transition-all flex items-center gap-2"
-          >
-            <Plus size={14} /> Adicionar Atividade
+          <button onClick={() => {
+            setIsEditMode(!isEditMode);
+            onToggleReorderMode?.(!isEditMode);
+          }} className={`px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${isEditMode ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50'}`}>
+            {isEditMode ? 'Salvar Painel' : 'Ajustar Layout'}
           </button>
         </div>
-        <button onClick={() => {
-          setIsEditMode(!isEditMode);
-          onToggleReorderMode?.(!isEditMode);
-        }} className={`px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wide transition-all ${isEditMode ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50'}`}>
-          {isEditMode ? 'Salvar Painel' : 'Ajustar Layout'}
-        </button>
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 auto-rows-auto">
@@ -901,8 +823,9 @@ const Dashboard: React.FC<DashboardProps> = ({
             if (widget.id === 'general_stats') return 'h-[180px]';
             if (widget.id === 'study_frequency') return 'h-[180px]';
             if (widget.id === 'study_tasks') return 'h-[180px]';
-            if (widget.id === 'weekly_chart') return 'h-[380px]';
-            if (widget.id === 'unified_subject_analysis') return 'h-[380px]';
+            if (widget.id === 'weekly_chart') return 'h-[400px]';
+            if (widget.id === 'activity_calendar') return 'h-[400px]';
+            if (widget.id === 'unified_subject_analysis') return 'h-[400px]';
             return 'h-auto';
           })();
 
@@ -913,10 +836,10 @@ const Dashboard: React.FC<DashboardProps> = ({
               onDragStart={() => handleDragStart(index)}
               onDragOver={(e) => handleDragOver(e, index)}
               onDragEnd={handleDragEnd}
-              className={`${sizeClass} ${heightClass} ${widget.isVisible ? 'opacity-100' : 'opacity-40'} bg-white dark:bg-zinc-900 p-4 rounded-[2rem] border border-zinc-200 dark:border-zinc-800 shadow-sm relative group hover:shadow-md transition-all duration-300 ${isEditMode ? 'cursor-move ring-2 ring-emerald-500/20' : ''} ${draggedWidgetIndex === index ? 'opacity-50 scale-95' : ''}`}
+              className={`${sizeClass} ${heightClass} ${widget.isVisible ? 'opacity-100' : 'opacity-40'} bg-white dark:bg-zinc-900 p-6 rounded-[2.5rem] border border-zinc-200 dark:border-zinc-800 shadow-sm relative group hover:shadow-md transition-all duration-300 ${isEditMode ? 'cursor-move ring-2 ring-emerald-500/20' : ''} ${draggedWidgetIndex === index ? 'opacity-50 scale-95' : ''}`}
             >
-              <div className="flex justify-between items-center mb-2">
-                <h4 className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wide">{widget.title}</h4>
+              <div className="flex justify-between items-center mb-6">
+                <h4 className="text-[11px] font-black text-zinc-800 dark:text-zinc-200 uppercase tracking-widest bg-zinc-50 dark:bg-zinc-800/50 px-3 py-1 rounded-full">{widget.title}</h4>
                 <div className="flex gap-2 items-center">
                   {!isEditMode && ['weekly_chart', 'questions_by_subject', 'time_by_subject', 'performance_by_subject'].includes(widget.id) && (
                     <button
@@ -945,7 +868,7 @@ const Dashboard: React.FC<DashboardProps> = ({
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-zinc-950/90 backdrop-blur-md p-6 animate-in fade-in duration-300">
           <div className="bg-white dark:bg-zinc-900 w-full h-full max-w-6xl max-h-[90vh] rounded-[2.5rem] shadow-2xl p-8 relative flex flex-col">
             <div className="flex justify-between items-center mb-6 shrink-0">
-              <h3 className="text-2xl font-bold text-zinc-800 dark:text-white uppercase tracking-tight">
+              <h3 className="text-2xl font-black text-zinc-800 dark:text-white uppercase tracking-tight">
                 {widgets.find(w => w.id === fullscreenWidgetId)?.title}
               </h3>
               <button
@@ -956,100 +879,9 @@ const Dashboard: React.FC<DashboardProps> = ({
               </button>
             </div>
             <div className="flex-1 min-h-0 w-full">
-              {/* Hack to ensure responsive container works in fullscreen */}
-              {(() => {
-                const content = renderWidgetContent(fullscreenWidgetId);
-                // We need to clone the element to potentially override styles or ensure it takes full height
-                // But renderWidgetContent returns a div with fixed/min height. 
-                // We'll wrap it in a div that forces 100% height and overrides the child's min-height via CSS if needed, 
-                // or we rely on the ResponsiveContainer to adapt if the parent has size.
-                // The original renderWidgetContent returns a Div with height classes. We need to strip that or wrap it.
-                // Actually, ResponsiveContainer needs a defined parent height.
-                return (
-                  <div className="w-full h-full [&>div]:!h-full [&>div]:!min-h-0">
-                    {content}
-                  </div>
-                )
-              })()}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/80 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-zinc-900 w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 p-8 relative">
-            <button
-              onClick={() => setShowModal(false)}
-              className="absolute top-6 right-6 text-zinc-400 hover:text-rose-500 w-8 h-8 flex items-center justify-center rounded-full bg-zinc-50 dark:bg-zinc-800 transition-colors"
-            >
-              <X size={18} />
-            </button>
-
-            <h3 className="text-xl font-bold uppercase tracking-tight mb-6 dark:text-white flex items-center gap-2">Nova Atividade <Clock size={20} className="text-zinc-900 dark:text-zinc-300" /></h3>
-
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-[10px] font-bold text-zinc-400 uppercase mb-1.5 block">Tipo</label>
-                  <select value={formData.activityType} onChange={(e) => setFormData({ ...formData, activityType: e.target.value as any })} className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 border-none rounded-2xl outline-none text-sm font-bold dark:text-white ring-1 ring-zinc-100 dark:ring-zinc-800 focus:ring-zinc-500">
-                    <option value="Leitura">Leitura</option>
-                    <option value="Questões">Questões</option>
-                    <option value="Aula">Aula</option>
-                    <option value="Simulado">Simulado</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold text-zinc-400 uppercase mb-1.5 block">Data</label>
-                  <input type="date" value={formData.date} onChange={(e) => setFormData({ ...formData, date: e.target.value })} className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 border-none rounded-2xl outline-none text-sm font-bold dark:text-white ring-1 ring-zinc-100 dark:ring-zinc-800 focus:ring-zinc-500" />
-                </div>
+              <div className="w-full h-full [&>div]:!h-full [&>div]:!min-h-0">
+                {renderWidgetContent(fullscreenWidgetId)}
               </div>
-
-              <div>
-                <label className="text-[10px] font-bold text-zinc-400 uppercase mb-1.5 block">Disciplina</label>
-                <select value={formData.subjectId} onChange={(e) => setFormData({ ...formData, subjectId: e.target.value, topicId: '' })} className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 border-none rounded-2xl outline-none text-sm font-bold dark:text-white ring-1 ring-zinc-100 dark:ring-zinc-800 focus:ring-zinc-500">
-                  <option value="">Selecione a matéria...</option>
-                  {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                </select>
-              </div>
-
-              {formData.subjectId && (
-                <div className="animate-in fade-in slide-in-from-top-2">
-                  <label className="text-[10px] font-bold text-zinc-400 uppercase mb-1.5 block">Assunto / Tópico</label>
-                  <select value={formData.topicId} onChange={(e) => setFormData({ ...formData, topicId: e.target.value })} className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 border-none rounded-2xl outline-none text-sm font-bold dark:text-white ring-1 ring-zinc-100 dark:ring-zinc-800 focus:ring-zinc-500">
-                    <option value="">Geral / Outros</option>
-                    {subjects.find(s => s.id === formData.subjectId)?.topics.map(t => (
-                      <option key={t.id} value={t.id}>{t.title}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              <div>
-                <label className="text-[10px] font-bold text-zinc-400 uppercase mb-1.5 block">Tempo Dedicado (min)</label>
-                <input type="number" placeholder="Ex: 45" value={formData.duration} onChange={(e) => setFormData({ ...formData, duration: e.target.value })} className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 border-none rounded-2xl outline-none text-sm font-bold dark:text-white ring-1 ring-zinc-100 dark:ring-zinc-800 focus:ring-zinc-500" />
-              </div>
-
-              {formData.activityType === 'Questões' && (
-                <div className="grid grid-cols-2 gap-4 p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl border border-dashed border-zinc-200 dark:border-zinc-800 animate-in fade-in slide-in-from-top-2">
-                  <div>
-                    <label className="text-[10px] font-bold text-zinc-400 uppercase mb-1.5 block">Resolvidas</label>
-                    <input type="number" placeholder="0" value={formData.questionsDone} onChange={(e) => setFormData({ ...formData, questionsDone: e.target.value })} className="w-full p-3 bg-white dark:bg-zinc-900 border-none rounded-xl outline-none text-sm font-bold dark:text-white shadow-sm" />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-bold text-zinc-400 uppercase mb-1.5 block">Acertos</label>
-                    <input type="number" placeholder="0" value={formData.questionsCorrect} onChange={(e) => setFormData({ ...formData, questionsCorrect: e.target.value })} className="w-full p-3 bg-white dark:bg-zinc-900 border-none rounded-xl outline-none text-sm font-bold dark:text-white shadow-sm" />
-                  </div>
-                </div>
-              )}
-
-              <button
-                onClick={handleSaveActivity}
-                disabled={!formData.subjectId}
-                className="w-full py-4 bg-zinc-900 dark:bg-zinc-700 hover:bg-zinc-800 dark:hover:bg-zinc-600 text-white rounded-2xl text-[10px] font-bold uppercase shadow-lg shadow-zinc-900/10 dark:shadow-zinc-900/50 disabled:opacity-50 disabled:shadow-none active:scale-95 transition-all mt-4 flex items-center justify-center gap-2"
-              >
-                <Save size={16} /> Salvar Registro
-              </button>
             </div>
           </div>
         </div>

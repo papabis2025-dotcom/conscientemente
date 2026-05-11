@@ -109,10 +109,10 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
-      <div className="flex justify-between items-center">
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 px-1">
         <div>
-          <h2 className="text-2xl text-zinc-800 dark:text-white">Meus Editais</h2>
-          <p className="text-zinc-500 dark:text-zinc-400">Gerencie suas metas e prazos estratégicos.</p>
+          <h2 className="text-2xl font-black text-zinc-800 dark:text-white tracking-tight uppercase">Meus Editais</h2>
+          <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">Gerencie suas metas e prazos estratégicos.</p>
         </div>
         <button
           onClick={() => setIsAdding(true)}
@@ -120,7 +120,7 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
         >
           + Novo Concurso
         </button>
-      </div>
+      </header>
 
       {isAdding && (
         <div className="bg-white dark:bg-zinc-900 p-8 rounded-[3rem] border-2 border-zinc-800 dark:border-zinc-600 shadow-2xl animate-in slide-in-from-top-4 duration-300">

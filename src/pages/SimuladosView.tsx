@@ -56,10 +56,10 @@ const SimuladosView: React.FC<SimuladosViewProps> = ({ subjects, simulados, onAd
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
-      <header className="flex justify-between items-center">
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 px-1">
         <div>
-          <h2 className="text-2xl text-zinc-800 dark:text-white">Simulados Completos</h2>
-          <p className="text-zinc-500 dark:text-zinc-400">Avalie seu desempenho global em condições de prova.</p>
+          <h2 className="text-2xl font-black text-zinc-800 dark:text-white tracking-tight uppercase">Simulados Completos</h2>
+          <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">Avalie seu desempenho global em condições de prova.</p>
         </div>
         <button
           onClick={() => setIsAdding(true)}

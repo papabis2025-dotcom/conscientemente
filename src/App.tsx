@@ -11,9 +11,10 @@ import SettingsView from './pages/SettingsView';
 import LogView from './pages/LogView';
 import StatisticsView from './pages/StatisticsView';
 import LoginView from './pages/LoginView';
-import { Concurso } from './types.ts';
+import { Concurso, ActivityType, StudySession } from './types.ts';
 import { useAppData } from './hooks/useAppData';
 import { useTimer } from './hooks/useTimer';
+import { Plus, Clock, Save, X } from 'lucide-react';
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -39,6 +40,43 @@ const App: React.FC = () => {
     timeLeft, isActive, isAlarmPlaying,
     startTimer, pauseTimer, resumeTimer, resetTimer, stopAlarm
   } = useTimer();
+
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [activityFormData, setActivityFormData] = useState({
+    subjectId: '',
+    topicId: '',
+    activityType: 'Questões' as ActivityType,
+    duration: '',
+    questionsDone: '',
+    questionsCorrect: '',
+    date: new Date().toISOString().split('T')[0]
+  });
+
+  const handleSaveActivity = () => {
+    if (!activityFormData.subjectId) return;
+
+    addSession({
+      id: crypto.randomUUID(),
+      subjectId: activityFormData.subjectId,
+      topicId: activityFormData.topicId || undefined,
+      durationInMinutes: parseInt(activityFormData.duration) || 0,
+      date: new Date(`${activityFormData.date}T12:00:00`).toISOString(),
+      questionsDone: activityFormData.activityType === 'Questões' ? (parseInt(activityFormData.questionsDone) || undefined) : undefined,
+      questionsCorrect: activityFormData.activityType === 'Questões' ? (parseInt(activityFormData.questionsCorrect) || undefined) : undefined,
+      activityType: activityFormData.activityType
+    });
+
+    setShowAddModal(false);
+    setActivityFormData({
+      subjectId: '',
+      topicId: '',
+      activityType: 'Questões',
+      duration: '',
+      questionsDone: '',
+      questionsCorrect: '',
+      date: new Date().toISOString().split('T')[0]
+    });
+  };
 
   const handleLogout = () => {
     logout();
@@ -104,6 +142,7 @@ const App: React.FC = () => {
         onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
         studyTasks={studyTasks}
         sessions={sessions}
+        onOpenAddModal={() => setShowAddModal(true)}
       />
       <main className="flex-1 overflow-y-auto p-4 relative">
         <div className="max-w-[1440px] mx-auto pb-10">{renderContent()}</div>
@@ -119,6 +158,85 @@ const App: React.FC = () => {
           Legis Pro - {activeConcurso ? activeConcurso.name : 'Visão Global'}
         </div>
       </footer>
+
+      {showAddModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-zinc-950/80 backdrop-blur-sm p-4">
+          <div className="bg-white dark:bg-zinc-900 w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 p-8 relative">
+            <button
+              onClick={() => setShowAddModal(false)}
+              className="absolute top-6 right-6 text-zinc-400 hover:text-rose-500 w-8 h-8 flex items-center justify-center rounded-full bg-zinc-50 dark:bg-zinc-800 transition-colors"
+            >
+              <X size={18} />
+            </button>
+
+            <h3 className="text-xl font-bold uppercase tracking-tight mb-6 dark:text-white flex items-center gap-2">Nova Atividade <Clock size={20} className="text-zinc-900 dark:text-zinc-300" /></h3>
+
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[10px] font-bold text-zinc-400 uppercase mb-1.5 block">Tipo</label>
+                  <select value={activityFormData.activityType} onChange={(e) => setActivityFormData({ ...activityFormData, activityType: e.target.value as any })} className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 border-none rounded-2xl outline-none text-sm font-bold dark:text-white ring-1 ring-zinc-100 dark:ring-zinc-800 focus:ring-zinc-500">
+                    <option value="Leitura">Leitura</option>
+                    <option value="Questões">Questões</option>
+                    <option value="Aula">Aula</option>
+                    <option value="Simulado">Simulado</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-zinc-400 uppercase mb-1.5 block">Data</label>
+                  <input type="date" value={activityFormData.date} onChange={(e) => setActivityFormData({ ...activityFormData, date: e.target.value })} className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 border-none rounded-2xl outline-none text-sm font-bold dark:text-white ring-1 ring-zinc-100 dark:ring-zinc-800 focus:ring-zinc-500" />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold text-zinc-400 uppercase mb-1.5 block">Disciplina</label>
+                <select value={activityFormData.subjectId} onChange={(e) => setActivityFormData({ ...activityFormData, subjectId: e.target.value, topicId: '' })} className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 border-none rounded-2xl outline-none text-sm font-bold dark:text-white ring-1 ring-zinc-100 dark:ring-zinc-800 focus:ring-zinc-500">
+                  <option value="">Selecione a matéria...</option>
+                  {filteredSubjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </select>
+              </div>
+
+              {activityFormData.subjectId && (
+                <div className="animate-in fade-in slide-in-from-top-2">
+                  <label className="text-[10px] font-bold text-zinc-400 uppercase mb-1.5 block">Assunto / Tópico</label>
+                  <select value={activityFormData.topicId} onChange={(e) => setActivityFormData({ ...activityFormData, topicId: e.target.value })} className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 border-none rounded-2xl outline-none text-sm font-bold dark:text-white ring-1 ring-zinc-100 dark:ring-zinc-800 focus:ring-zinc-500">
+                    <option value="">Geral / Outros</option>
+                    {filteredSubjects.find(s => s.id === activityFormData.subjectId)?.topics.map(t => (
+                      <option key={t.id} value={t.id}>{t.title}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <div>
+                <label className="text-[10px] font-bold text-zinc-400 uppercase mb-1.5 block">Tempo Dedicado (min)</label>
+                <input type="number" placeholder="Ex: 45" value={activityFormData.duration} onChange={(e) => setActivityFormData({ ...activityFormData, duration: e.target.value })} className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 border-none rounded-2xl outline-none text-sm font-bold dark:text-white ring-1 ring-zinc-100 dark:ring-zinc-800 focus:ring-zinc-500" />
+              </div>
+
+              {activityFormData.activityType === 'Questões' && (
+                <div className="grid grid-cols-2 gap-4 p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl border border-dashed border-zinc-200 dark:border-zinc-800 animate-in fade-in slide-in-from-top-2">
+                  <div>
+                    <label className="text-[10px] font-bold text-zinc-400 uppercase mb-1.5 block">Resolvidas</label>
+                    <input type="number" placeholder="0" value={activityFormData.questionsDone} onChange={(e) => setActivityFormData({ ...activityFormData, questionsDone: e.target.value })} className="w-full p-3 bg-white dark:bg-zinc-900 border-none rounded-xl outline-none text-sm font-bold dark:text-white shadow-sm" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-zinc-400 uppercase mb-1.5 block">Acertos</label>
+                    <input type="number" placeholder="0" value={activityFormData.questionsCorrect} onChange={(e) => setActivityFormData({ ...activityFormData, questionsCorrect: e.target.value })} className="w-full p-3 bg-white dark:bg-zinc-900 border-none rounded-xl outline-none text-sm font-bold dark:text-white shadow-sm" />
+                  </div>
+                </div>
+              )}
+
+              <button
+                onClick={handleSaveActivity}
+                disabled={!activityFormData.subjectId}
+                className="w-full py-4 bg-zinc-900 dark:bg-zinc-700 hover:bg-zinc-800 dark:hover:bg-zinc-600 text-white rounded-2xl text-[10px] font-bold uppercase shadow-lg shadow-zinc-900/10 dark:shadow-zinc-900/50 disabled:opacity-50 disabled:shadow-none active:scale-95 transition-all mt-4 flex items-center justify-center gap-2"
+              >
+                <Save size={16} /> Salvar Registro
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -250,25 +250,30 @@ const CalendarView: React.FC<CalendarViewProps> = ({ subjects, allSubjects, sche
   };
 
   return (
-    <div className="space-y-4 animate-in fade-in duration-500 h-[calc(100vh-140px)] flex flex-col pb-4">
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shrink-0">
+    <div className="space-y-6 animate-in fade-in duration-500 pb-10">
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 px-1">
         <div>
-          <h2 className="text-xl font-bold text-zinc-800 dark:text-white">Planner de Estudos</h2>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">Gerencie sua rotina diária.</p>
+          <h2 className="text-2xl font-black text-zinc-800 dark:text-white tracking-tight uppercase">Planner de Estudos</h2>
+          <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">Organize seu cronograma e acompanhe o que já foi cumprido.</p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          <div className="bg-zinc-100 dark:bg-zinc-800 p-1 rounded-2xl flex gap-1">
-            {(['semanal', 'mensal'] as ViewMode[]).map(mode => (
-              <button key={mode} onClick={() => setViewMode(mode)} className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === mode ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-sm' : 'text-zinc-400'}`}>
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-1 shadow-sm flex">
+            {(['semanal', 'mensal', 'anual'] as ViewMode[]).map((mode) => (
+              <button
+                key={mode}
+                onClick={() => setViewMode(mode)}
+                className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === mode ? 'bg-zinc-900 dark:bg-zinc-700 text-white shadow-md' : 'text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200'}`}
+              >
                 {mode}
               </button>
             ))}
           </div>
-          <div className="flex items-center gap-3 bg-white dark:bg-zinc-900 px-3 py-1.5 rounded-2xl border border-zinc-200 dark:border-zinc-800">
-            <button onClick={() => handleNavigate(-1)} className="text-xs">◀</button>
-            <span className="font-black text-[10px] uppercase tracking-widest min-w-[120px] text-center">{getTitle()}</span>
-            <button onClick={() => handleNavigate(1)} className="text-xs">▶</button>
+          
+          <div className="flex items-center gap-3 bg-white dark:bg-zinc-900 px-4 py-2 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
+            <button onClick={() => handleNavigate(-1)} className="text-zinc-400 hover:text-zinc-900 dark:hover:text-white font-bold transition-colors">◀</button>
+            <span className="font-black text-[10px] uppercase tracking-widest min-w-[120px] text-center dark:text-white">{getTitle()}</span>
+            <button onClick={() => handleNavigate(1)} className="text-zinc-400 hover:text-zinc-900 dark:hover:text-white font-bold transition-colors">▶</button>
           </div>
         </div>
       </header>

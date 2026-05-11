@@ -2,7 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import { Subject, ScheduledStudy, Topic, ActivityType, StudySession } from '../types';
 import { getBadgeStyle } from '../utils/colors';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, Plus, Trash2, CheckCircle, X } from 'lucide-react';
+// No lucide-react icons used in this file
 
 interface CalendarViewProps {
   subjects: Subject[]; // For dropdown (filtered)

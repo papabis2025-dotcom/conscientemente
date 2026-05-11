@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { LogEntry } from '../types';
-import { FileText, Trash2, Clock } from 'lucide-react';
+import { FileText } from 'lucide-react';
 
 interface LogViewProps {
   logs: LogEntry[];

@@ -1,6 +1,6 @@
 
 import React, { useEffect, useMemo } from 'react';
-import { CheckCircle, Circle, Calendar, Trophy, Lightbulb, Target } from 'lucide-react';
+import { CheckCircle, Circle, Lightbulb } from 'lucide-react';
 import { Subject, StudySession } from '../types';
 
 import AISuggestions from '../components/dashboard/AISuggestions';
@@ -32,7 +32,7 @@ const StudyPlan: React.FC<StudyPlanProps> = ({ subjects, sessions, studyTasks, o
             console.log("Generating study plan for", today);
 
             // 1. Check for REVIEW tasks (7 days or 30 days ago)
-            const reviewTasks: any[] = [];
+            const reviewTasks: { id: string, subjectId: string, subjectName: string, topicId: string, topicName: string, done: boolean, date: string, isReview: boolean }[] = [];
             const todayDate = new Date();
             todayDate.setHours(0, 0, 0, 0);
 
@@ -234,13 +234,13 @@ const StudyPlan: React.FC<StudyPlanProps> = ({ subjects, sessions, studyTasks, o
 
     return (
         <div className="space-y-8 animate-in fade-in duration-500 pb-10">
-            <header>
-                <h2 className="text-2xl text-zinc-800 dark:text-white mb-2 flex items-center gap-3">
-                    Plano de Estudos
-                </h2>
-                <p className="text-zinc-500 dark:text-zinc-400 font-medium max-w-2xl">
-                    Sua rotina diária otimizada pela IA. Focamos no que você mais precisa evoluir hoje.
-                </p>
+            <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 px-1">
+                <div>
+                    <h2 className="text-2xl font-black text-zinc-800 dark:text-white tracking-tight uppercase flex items-center gap-2">
+                        Plano de Estudos <Lightbulb size={20} className="text-blue-500" />
+                    </h2>
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">Sua rotina diária otimizada pela IA. Focamos no que você mais precisa evoluir hoje.</p>
+                </div>
             </header>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

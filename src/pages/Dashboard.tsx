@@ -5,11 +5,10 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
   PieChart, Pie, LabelList
 } from 'recharts';
-import { Eye, EyeOff, X, Plus, Save, Trash2, Trophy, Target, Calendar, Clock, CheckCircle, AlertTriangle, TrendingUp, Maximize2, Minimize2, Check } from 'lucide-react';
+import { Eye, EyeOff, X, Save, Trash2, Trophy, Target, Clock, CheckCircle, AlertTriangle, TrendingUp, Maximize2, Minimize2, Check } from 'lucide-react';
 
 import { Subject, StudySession, Concurso, Simulado, ActivityType, ScheduledStudy } from '../types';
 import { getColorHex } from '../utils/colors';
-import AISuggestions from '../components/dashboard/AISuggestions';
 import TimerWidget from '../components/dashboard/TimerWidget';
 
 interface DashboardProps {

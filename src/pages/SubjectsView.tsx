@@ -10,13 +10,8 @@ import {
   Trash2,
   Edit2,
   Plus,
-  FileText,
   Clock,
-  Bot,
-  Target,
-  TrendingUp,
   CheckCircle,
-  Circle,
   AlertTriangle,
   Trophy
 } from 'lucide-react';

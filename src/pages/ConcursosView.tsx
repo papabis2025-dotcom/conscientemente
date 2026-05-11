@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { AlertTriangle, X, Target, Plus, Search } from 'lucide-react';
+import { AlertTriangle, Target } from 'lucide-react';
 import { Concurso } from '../types';
 
 interface ConcursosViewProps {

@@ -14,7 +14,7 @@ import LoginView from './pages/LoginView';
 import { Concurso, ActivityType, StudySession } from './types';
 import { useAppData } from './hooks/useAppData';
 import { useTimer } from './hooks/useTimer';
-import { Plus, Clock, Save, X } from 'lucide-react';
+import { Clock, Save, X } from 'lucide-react';
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState('dashboard');

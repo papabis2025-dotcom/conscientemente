@@ -1,7 +1,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { Subject, StudySession } from '../types';
-import { ChevronDown, ChevronRight, Trophy, TrendingUp, BarChart2 } from 'lucide-react';
+import { ChevronDown, ChevronRight, Trophy } from 'lucide-react';
 
 interface StatisticsViewProps {
   subjects: Subject[];

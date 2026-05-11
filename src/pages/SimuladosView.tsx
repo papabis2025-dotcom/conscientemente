@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Subject, Simulado, SimuladoSubjectResult } from '../types';
-import { GraduationCap, Trash2, Plus, CheckCircle } from 'lucide-react';
+import { GraduationCap } from 'lucide-react';
 
 interface SimuladosViewProps {
   subjects: Subject[];

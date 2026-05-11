@@ -109,6 +109,18 @@ const CalendarView: React.FC<CalendarViewProps> = ({ subjects, allSubjects, sche
     onDelete(id);
   };
 
+  const handleNavigate = (direction: number) => {
+    const newDate = new Date(currentDate);
+    if (viewMode === 'mensal') {
+      newDate.setMonth(newDate.getMonth() + direction);
+    } else if (viewMode === 'semanal') {
+      newDate.setDate(newDate.getDate() + (direction * 7));
+    } else if (viewMode === 'anual') {
+      newDate.setFullYear(newDate.getFullYear() + direction);
+    }
+    setCurrentDate(newDate);
+  };
+
   const selectedSubject = subjects.find(s => s.id === formData.subjectId);
   const tasksForSelectedDay = scheduledStudies.filter(s => s.date === selectedDayKey);
 

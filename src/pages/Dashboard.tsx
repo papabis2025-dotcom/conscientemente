@@ -842,7 +842,7 @@ const Dashboard: React.FC<DashboardProps> = ({
               <div className="flex justify-between items-center mb-6">
                 <h4 className="text-[11px] font-black text-zinc-800 dark:text-zinc-200 uppercase tracking-widest bg-zinc-50 dark:bg-zinc-800/50 px-3 py-1 rounded-full">{widget.title}</h4>
                 <div className="flex gap-2 items-center">
-                  {!isEditMode && ['weekly_chart', 'questions_by_subject', 'time_by_subject', 'performance_by_subject'].includes(widget.id) && (
+                  {!isEditMode && ['weekly_chart', 'activity_calendar', 'unified_subject_analysis'].includes(widget.id) && (
                     <button
                       onClick={() => setFullscreenWidgetId(widget.id)}
                       className="text-zinc-400 hover:text-zinc-900 dark:text-zinc-300 transition-colors p-1"

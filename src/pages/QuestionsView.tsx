@@ -70,7 +70,8 @@ const QuestionsView: React.FC<QuestionsViewProps> = ({
       durationInMinutes: parseInt(duration) || 0,
       date: new Date(`${date}T12:00:00`).toISOString(),
       questionsDone: doneNum,
-      questionsCorrect: correctNum
+      questionsCorrect: correctNum,
+      activityType: 'Questões'
     };
 
     onAddSession(newSession);

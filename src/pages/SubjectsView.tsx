@@ -603,7 +603,10 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                                               </button>
                                             </div>
                                           ) : (
-                                            topic.title
+                                            <div className="flex items-center gap-2 cursor-pointer w-fit" onClick={() => toggleTopic(subject.id, topic.id)}>
+                                              <input type="checkbox" checked={topic.isCompleted} readOnly className="cursor-pointer" />
+                                              <span>{topic.title}</span>
+                                            </div>
                                           )}
                                         </td>
                                         <td className="py-2 text-zinc-500 text-xs">
@@ -636,7 +639,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                                   })}
                                 {subject.topics.length === 0 && (
                                   <tr>
-                                    <td colSpan={6} className="py-4 text-center text-xs text-zinc-400 italic">
+                                    <td colSpan={7} className="py-4 text-center text-xs text-zinc-400 italic">
                                       Nenhum tópico cadastrado para esta disciplina.
                                     </td>
                                   </tr>

@@ -1,4 +1,4 @@
-
+﻿
 export const tailwindColors: Record<string, string> = {
     'bg-blue-500': '#3b82f6',
     'bg-purple-500': '#a855f7',
@@ -8,7 +8,7 @@ export const tailwindColors: Record<string, string> = {
     'bg-indigo-500': '#6366f1',
     'bg-cyan-500': '#06b6d4',
     'bg-orange-500': '#f97316',
-    'bg-slate-500': '#64748b',
+    'bg-zinc-500': '#64748b',
     'bg-red-500': '#ef4444',
     'bg-green-500': '#22c55e',
     'bg-yellow-500': '#eab308',
@@ -29,14 +29,14 @@ const getContrastTextClass = (hexColor: string): string => {
     const g = parseInt(hex.substring(2, 4), 16);
     const b = parseInt(hex.substring(4, 6), 16);
     const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
-    return (yiq >= 128) ? 'text-slate-900' : 'text-white';
+    return (yiq >= 128) ? 'text-zinc-900' : 'text-white';
 };
 
 export const getBadgeStyle = (colorIdentifier: string) => {
     let hex = colorIdentifier;
     // Resolve tailwind class to hex for calculation
     if (!colorIdentifier.startsWith('#')) {
-        hex = tailwindColors[colorIdentifier] || '#64748b'; // Default to slate-500 if unknown, or safe fallback
+        hex = tailwindColors[colorIdentifier] || '#64748b'; // Default to zinc-500 if unknown, or safe fallback
     }
 
     const textClass = getContrastTextClass(hex);

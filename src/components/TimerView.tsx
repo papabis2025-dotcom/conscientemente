@@ -1,4 +1,4 @@
-
+﻿
 import React, { useState, useEffect } from 'react';
 
 const TimerView: React.FC = () => {
@@ -31,28 +31,28 @@ const TimerView: React.FC = () => {
   return (
     <div className="flex flex-col items-center justify-center h-[calc(100vh-160px)] space-y-8">
       <div className="text-center">
-        <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Foco Total</h2>
-        <p className="text-slate-500 dark:text-slate-400">A técnica Pomodoro ajuda na concentração.</p>
+        <h2 className="text-2xl font-bold text-zinc-800 dark:text-white">Foco Total</h2>
+        <p className="text-zinc-500 dark:text-zinc-400">A tÃ©cnica Pomodoro ajuda na concentraÃ§Ã£o.</p>
       </div>
 
-      <div className="flex gap-4 p-1 bg-slate-200 dark:bg-slate-800 rounded-2xl transition-colors">
+      <div className="flex gap-4 p-1 bg-zinc-200 dark:bg-zinc-800 rounded-2xl transition-colors">
         <button 
           onClick={() => { setMode('study'); setSeconds(25*60); setIsActive(false); }}
-          className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${mode === 'study' ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800'}`}
+          className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${mode === 'study' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 dark:text-zinc-100 shadow-sm' : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-800'}`}
         >
           Estudo (25m)
         </button>
         <button 
           onClick={() => { setMode('break'); setSeconds(5*60); setIsActive(false); }}
-          className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${mode === 'break' ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800'}`}
+          className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${mode === 'break' ? 'bg-white dark:bg-zinc-700 text-emerald-600 dark:text-emerald-400 shadow-sm' : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-800'}`}
         >
           Pausa (5m)
         </button>
       </div>
 
       <div className="relative flex items-center justify-center">
-        <div className="w-80 h-80 rounded-full border-8 border-slate-100 dark:border-slate-800 flex items-center justify-center">
-          <span className="text-7xl font-mono font-bold text-slate-800 dark:text-white tabular-nums">{formatTime(seconds)}</span>
+        <div className="w-80 h-80 rounded-full border-8 border-zinc-100 dark:border-zinc-800 flex items-center justify-center">
+          <span className="text-7xl font-mono font-bold text-zinc-800 dark:text-white tabular-nums">{formatTime(seconds)}</span>
         </div>
         <svg className="absolute w-80 h-80 -rotate-90">
           <circle cx="160" cy="160" r="152" fill="transparent" stroke={mode === 'study' ? '#2563eb' : '#10b981'} strokeWidth="8" strokeDasharray={2 * Math.PI * 152} strokeDashoffset={2 * Math.PI * 152 * (1 - seconds / (mode === 'study' ? 25*60 : 5*60))} className="transition-all duration-1000 ease-linear" />
@@ -60,8 +60,8 @@ const TimerView: React.FC = () => {
       </div>
 
       <div className="flex gap-4">
-        <button onClick={resetTimer} className="px-8 py-3 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-bold rounded-2xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-all">Resetar</button>
-        <button onClick={toggleTimer} className={`px-12 py-3 font-bold rounded-2xl text-white shadow-lg transition-all transform active:scale-95 ${isActive ? 'bg-rose-500 hover:bg-rose-600' : 'bg-blue-600 hover:bg-blue-700'}`}>
+        <button onClick={resetTimer} className="px-8 py-3 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 font-bold rounded-2xl hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-all">Resetar</button>
+        <button onClick={toggleTimer} className={`px-12 py-3 font-bold rounded-2xl text-white shadow-lg transition-all transform active:scale-95 ${isActive ? 'bg-rose-500 hover:bg-rose-600' : 'bg-zinc-900 dark:bg-zinc-700 hover:bg-zinc-800 dark:hover:bg-zinc-600'}`}>
           {isActive ? 'Pausar' : 'Iniciar'}
         </button>
       </div>

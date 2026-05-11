@@ -1,4 +1,4 @@
-
+﻿
 import React, { useState } from 'react';
 import { AlertTriangle, X } from 'lucide-react';
 import { Concurso } from '../types';
@@ -111,60 +111,60 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl text-slate-800 dark:text-white">Meus Editais</h2>
-          <p className="text-slate-500 dark:text-slate-400">Gerencie suas metas e prazos estratégicos.</p>
+          <h2 className="text-2xl text-zinc-800 dark:text-white">Meus Editais</h2>
+          <p className="text-zinc-500 dark:text-zinc-400">Gerencie suas metas e prazos estratÃ©gicos.</p>
         </div>
         <button
           onClick={() => setIsAdding(true)}
-          className="bg-blue-600 text-white px-6 py-3 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/20 active:scale-95"
+          className="bg-zinc-900 dark:bg-zinc-700 text-white px-6 py-3 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-zinc-800 dark:hover:bg-zinc-600 transition-all shadow-lg shadow-zinc-900/10 dark:shadow-zinc-900/50 active:scale-95"
         >
           + Novo Concurso
         </button>
       </div>
 
       {isAdding && (
-        <div className="bg-white dark:bg-slate-900 p-8 rounded-[3rem] border-2 border-blue-500 shadow-2xl animate-in slide-in-from-top-4 duration-300">
-          <h3 className="text-xl font-black text-slate-800 dark:text-white mb-6 uppercase tracking-tight">Novo Projeto de Aprovação</h3>
+        <div className="bg-white dark:bg-zinc-900 p-8 rounded-[3rem] border-2 border-zinc-800 dark:border-zinc-600 shadow-2xl animate-in slide-in-from-top-4 duration-300">
+          <h3 className="text-xl font-black text-zinc-800 dark:text-white mb-6 uppercase tracking-tight">Novo Projeto de AprovaÃ§Ã£o</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <div>
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Nome do Concurso</label>
-              <input type="text" placeholder="Ex: Receita Federal" value={newConcName} onChange={(e) => setNewConcName(e.target.value)} className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 text-slate-800 dark:text-white" />
+              <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1.5 block">Nome do Concurso</label>
+              <input type="text" placeholder="Ex: Receita Federal" value={newConcName} onChange={(e) => setNewConcName(e.target.value)} className="w-full px-4 py-3 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-2xl outline-none focus:ring-2 focus:ring-zinc-500 text-zinc-800 dark:text-white" />
             </div>
             <div>
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Banca Organizadora</label>
-              <input type="text" placeholder="Ex: FGV, CESPE..." value={banca} onChange={(e) => setBanca(e.target.value)} className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 text-slate-800 dark:text-white" />
+              <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1.5 block">Banca Organizadora</label>
+              <input type="text" placeholder="Ex: FGV, CESPE..." value={banca} onChange={(e) => setBanca(e.target.value)} className="w-full px-4 py-3 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-2xl outline-none focus:ring-2 focus:ring-zinc-500 text-zinc-800 dark:text-white" />
             </div>
             <div>
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Data de Início</label>
-              <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 text-slate-800 dark:text-white" />
+              <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1.5 block">Data de InÃ­cio</label>
+              <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full px-4 py-3 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-2xl outline-none focus:ring-2 focus:ring-zinc-500 text-zinc-800 dark:text-white" />
             </div>
             <div>
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Data da Prova (Alvo)</label>
-              <input type="date" value={targetDate} onChange={(e) => setTargetDate(e.target.value)} className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 text-slate-800 dark:text-white" />
+              <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1.5 block">Data da Prova (Alvo)</label>
+              <input type="date" value={targetDate} onChange={(e) => setTargetDate(e.target.value)} className="w-full px-4 py-3 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-2xl outline-none focus:ring-2 focus:ring-zinc-500 text-zinc-800 dark:text-white" />
             </div>
           </div>
 
-          <div className="bg-slate-50 dark:bg-slate-800/50 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 mb-8">
-            <h4 className="text-sm font-black text-slate-500 uppercase tracking-widest mb-4">Disciplinas & Metas</h4>
+          <div className="bg-zinc-50 dark:bg-zinc-800/50 p-6 rounded-3xl border border-zinc-100 dark:border-zinc-800 mb-8">
+            <h4 className="text-sm font-black text-zinc-500 uppercase tracking-widest mb-4">Disciplinas & Metas</h4>
             <div className="flex flex-col md:flex-row gap-3 mb-4">
               <input
                 type="text"
                 placeholder="Nome da Disciplina (Ex: Direito Constitucional)"
                 value={tempSubName}
                 onChange={e => setTempSubName(e.target.value)}
-                className="flex-1 px-4 py-2 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl"
+                className="flex-1 px-4 py-2 bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 rounded-xl"
                 onKeyPress={e => e.key === 'Enter' && handleAddTempSubject()}
               />
               <input
                 type="number"
-                placeholder="Meta de Questões"
+                placeholder="Meta de QuestÃµes"
                 value={tempSubGoal}
                 onChange={e => setTempSubGoal(e.target.value)}
-                className="w-40 px-4 py-2 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl"
+                className="w-40 px-4 py-2 bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 rounded-xl"
                 onKeyPress={e => e.key === 'Enter' && handleAddTempSubject()}
               />
-              <div className="flex items-center gap-2 bg-white dark:bg-slate-800 px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl">
-                <span className="text-[10px] font-bold uppercase text-slate-400">Peso</span>
+              <div className="flex items-center gap-2 bg-white dark:bg-zinc-800 px-3 py-2 border border-zinc-200 dark:border-zinc-700 rounded-xl">
+                <span className="text-[10px] font-bold uppercase text-zinc-400">Peso</span>
                 <input
                   type="number"
                   value={tempSubWeight}
@@ -175,17 +175,17 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
                   onKeyPress={e => e.key === 'Enter' && handleAddTempSubject()}
                 />
               </div>
-              <button onClick={handleAddTempSubject} className="bg-slate-800 dark:bg-white text-white dark:text-slate-900 px-4 py-2 rounded-xl font-bold hover:opacity-90">Adicionar</button>
+              <button onClick={handleAddTempSubject} className="bg-zinc-800 dark:bg-white text-white dark:text-zinc-900 px-4 py-2 rounded-xl font-bold hover:opacity-90">Adicionar</button>
             </div>
 
             {newSubjects.length > 0 && (
               <div className="flex flex-wrap gap-2">
                 {newSubjects.map((s, i) => (
-                  <div key={i} className="flex items-center gap-2 bg-white dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
-                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{s.name}</span>
-                    {s.goal > 0 && <span className="text-[10px] bg-blue-100 text-blue-600 px-1.5 rounded font-black">{s.goal} Qs</span>}
+                  <div key={i} className="flex items-center gap-2 bg-white dark:bg-zinc-800 px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 shadow-sm">
+                    <span className="text-xs font-bold text-zinc-700 dark:text-zinc-300">{s.name}</span>
+                    {s.goal > 0 && <span className="text-[10px] bg-zinc-200 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 px-1.5 rounded font-black">{s.goal} Qs</span>}
                     {s.weight > 1 && <span className="text-[10px] bg-amber-100 text-amber-600 px-1.5 rounded font-black">{s.weight}x</span>}
-                    <button onClick={() => removeTempSubject(i)} className="text-slate-400 hover:text-rose-500 ml-1">×</button>
+                    <button onClick={() => removeTempSubject(i)} className="text-zinc-400 hover:text-rose-500 ml-1">Ã—</button>
                   </div>
                 ))}
               </div>
@@ -193,8 +193,8 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
           </div>
 
           <div className="flex justify-end gap-3">
-            <button onClick={() => setIsAdding(false)} className="px-6 py-3 text-slate-400 font-black uppercase text-xs tracking-widest hover:text-rose-500 transition-colors">Cancelar</button>
-            <button onClick={addConcurso} className="bg-blue-600 text-white px-8 py-3 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-blue-700 shadow-lg shadow-blue-500/20 active:scale-95 transition-all">Criar Edital</button>
+            <button onClick={() => setIsAdding(false)} className="px-6 py-3 text-zinc-400 font-black uppercase text-xs tracking-widest hover:text-rose-500 transition-colors">Cancelar</button>
+            <button onClick={addConcurso} className="bg-zinc-900 dark:bg-zinc-700 text-white px-8 py-3 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-zinc-800 dark:hover:bg-zinc-600 shadow-lg shadow-zinc-900/10 dark:shadow-zinc-900/50 active:scale-95 transition-all">Criar Edital</button>
           </div>
         </div>
       )}
@@ -209,75 +209,75 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
           const isEditing = editingId === conc.id;
 
           return (
-            <div key={conc.id} className="bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-200 dark:border-slate-800 p-8 shadow-sm hover:border-blue-300 dark:hover:border-blue-700 hover:shadow-xl transition-all group relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 -mr-16 -mt-16 rounded-full group-hover:bg-blue-500/10 transition-colors"></div>
+            <div key={conc.id} className="bg-white dark:bg-zinc-900 rounded-[3rem] border border-zinc-200 dark:border-zinc-800 p-8 shadow-sm hover:border-blue-300 dark:hover:border-zinc-700 hover:shadow-xl transition-all group relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-zinc-500/5 -mr-16 -mt-16 rounded-full group-hover:bg-zinc-500/10 transition-colors"></div>
 
               <div className="flex justify-between items-start mb-6">
                 <div className="flex-1 mr-4">
                   {isEditing ? (
-                    <div className="space-y-4 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl">
-                      <input type="text" value={editFormData.name} onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })} className="w-full p-2 rounded-lg text-sm font-bold border border-slate-200 dark:border-slate-700" placeholder="Nome" />
-                      <input type="text" value={editFormData.banca} onChange={(e) => setEditFormData({ ...editFormData, banca: e.target.value })} className="w-full p-2 rounded-lg text-sm font-bold border border-slate-200 dark:border-slate-700" placeholder="Banca" />
+                    <div className="space-y-4 bg-zinc-50 dark:bg-zinc-800/50 p-4 rounded-2xl">
+                      <input type="text" value={editFormData.name} onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })} className="w-full p-2 rounded-lg text-sm font-bold border border-zinc-200 dark:border-zinc-700" placeholder="Nome" />
+                      <input type="text" value={editFormData.banca} onChange={(e) => setEditFormData({ ...editFormData, banca: e.target.value })} className="w-full p-2 rounded-lg text-sm font-bold border border-zinc-200 dark:border-zinc-700" placeholder="Banca" />
                       <div className="grid grid-cols-2 gap-2">
-                        <input type="date" value={editFormData.startDate} onChange={(e) => setEditFormData({ ...editFormData, startDate: e.target.value })} className="w-full p-2 rounded-lg text-xs font-bold border border-slate-200 dark:border-slate-700" />
-                        <input type="date" value={editFormData.targetDate} onChange={(e) => setEditFormData({ ...editFormData, targetDate: e.target.value })} className="w-full p-2 rounded-lg text-xs font-bold border border-slate-200 dark:border-slate-700" />
+                        <input type="date" value={editFormData.startDate} onChange={(e) => setEditFormData({ ...editFormData, startDate: e.target.value })} className="w-full p-2 rounded-lg text-xs font-bold border border-zinc-200 dark:border-zinc-700" />
+                        <input type="date" value={editFormData.targetDate} onChange={(e) => setEditFormData({ ...editFormData, targetDate: e.target.value })} className="w-full p-2 rounded-lg text-xs font-bold border border-zinc-200 dark:border-zinc-700" />
                       </div>
                       <div className="flex gap-2 justify-end">
-                        <button onClick={() => setEditingId(null)} className="text-xs text-slate-400 font-bold hover:text-slate-600">Cancelar</button>
+                        <button onClick={() => setEditingId(null)} className="text-xs text-zinc-400 font-bold hover:text-zinc-600">Cancelar</button>
                         <button onClick={saveEdit} className="text-xs bg-emerald-500 text-white px-3 py-1 rounded-lg font-bold">Salvar</button>
                       </div>
                     </div>
                   ) : (
                     <>
                       <div className="flex gap-2 mb-3">
-                        <span className="text-[9px] font-black uppercase px-3 py-1 rounded-full bg-blue-600 text-white tracking-widest">
+                        <span className="text-[9px] font-black uppercase px-3 py-1 rounded-full bg-zinc-900 dark:bg-zinc-700 text-white tracking-widest">
                           Banca: {conc.banca}
                         </span>
-                        <span className="text-[9px] font-black uppercase px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700 tracking-widest">
+                        <span className="text-[9px] font-black uppercase px-3 py-1 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700 tracking-widest">
                           Em estudo: {daysActive} dias
                         </span>
                       </div>
-                      <h3 className="text-2xl font-black text-slate-800 dark:text-white leading-tight">{conc.name}</h3>
+                      <h3 className="text-2xl font-black text-zinc-800 dark:text-white leading-tight">{conc.name}</h3>
                     </>
                   )}
                 </div>
                 <div className="flex flex-col gap-2">
                   <button
                     onClick={() => startEditing(conc)}
-                    className="text-slate-300 hover:text-blue-500 transition-colors p-2"
+                    className="text-zinc-300 hover:text-zinc-900 dark:text-zinc-300 transition-colors p-2"
                     title="Editar Concurso"
-                  >✎</button>
+                  >âœŽ</button>
                   <button
                     onClick={() => setDeleteConfirmation({ isOpen: true, id: conc.id, name: conc.name })}
-                    className="text-slate-200 hover:text-rose-500 transition-colors p-2"
+                    className="text-zinc-200 hover:text-rose-500 transition-colors p-2"
                     title="Excluir Concurso"
-                  >🗑️</button>
+                  >ðŸ—‘ï¸</button>
                 </div>
               </div>
 
               {!isEditing && (
                 <div className="space-y-6">
                   <div>
-                    <div className="flex justify-between text-[10px] font-black uppercase text-slate-400 mb-2 tracking-widest">
+                    <div className="flex justify-between text-[10px] font-black uppercase text-zinc-400 mb-2 tracking-widest">
                       <span>Progresso do Edital</span>
-                      <span className="text-blue-600">{progress}%</span>
+                      <span className="text-zinc-900 dark:text-zinc-100">{progress}%</span>
                     </div>
-                    <div className="w-full h-3 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                    <div className="w-full h-3 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-blue-600 rounded-full transition-all duration-1000"
+                        className="h-full bg-zinc-900 dark:bg-zinc-700 rounded-full transition-all duration-1000"
                         style={{ width: `${progress}%` }}
                       ></div>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
-                      <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Disciplinas</p>
-                      <p className="text-lg font-black text-slate-800 dark:text-white">{conc.subjects.length}</p>
+                    <div className="bg-zinc-50 dark:bg-zinc-800/50 p-4 rounded-2xl border border-zinc-100 dark:border-zinc-800">
+                      <p className="text-[8px] font-black text-zinc-400 uppercase tracking-widest mb-1">Disciplinas</p>
+                      <p className="text-lg font-black text-zinc-800 dark:text-white">{conc.subjects.length}</p>
                     </div>
-                    <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
-                      <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Início em</p>
-                      <p className="text-sm font-black text-slate-800 dark:text-white">
+                    <div className="bg-zinc-50 dark:bg-zinc-800/50 p-4 rounded-2xl border border-zinc-100 dark:border-zinc-800">
+                      <p className="text-[8px] font-black text-zinc-400 uppercase tracking-widest mb-1">InÃ­cio em</p>
+                      <p className="text-sm font-black text-zinc-800 dark:text-white">
                         {new Date(conc.startDate).toLocaleDateString('pt-BR')}
                       </p>
                     </div>
@@ -285,9 +285,9 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
 
                   <button
                     onClick={() => onSelectConcurso(conc)}
-                    className="w-full bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-600 hover:text-white text-blue-600 dark:text-blue-400 py-4 rounded-[1.5rem] text-xs font-black uppercase tracking-widest transition-all border border-blue-100 dark:border-blue-900/30 active:scale-95"
+                    className="w-full bg-zinc-100 dark:bg-zinc-800 dark:bg-zinc-800/50 hover:bg-zinc-900 dark:bg-zinc-700 hover:text-white text-zinc-900 dark:text-zinc-100 dark:text-zinc-100 py-4 rounded-[1.5rem] text-xs font-black uppercase tracking-widest transition-all border border-zinc-200 dark:border-blue-900/30 active:scale-95"
                   >
-                    Focar neste concurso →
+                    Focar neste concurso â†’
                   </button>
                 </div>
               )}
@@ -296,13 +296,13 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
         })}
 
         {concursos.length === 0 && !isAdding && (
-          <div className="col-span-full py-32 text-center bg-white dark:bg-slate-900 rounded-[3rem] border border-dashed border-slate-200 dark:border-slate-800">
-            <span className="text-6xl mb-6 block">📝</span>
-            <h3 className="text-xl font-black text-slate-400 uppercase tracking-tighter">Nenhum edital cadastrado</h3>
-            <p className="text-slate-400 text-sm mt-2 mb-8">Comece adicionando o edital que você está estudando.</p>
+          <div className="col-span-full py-32 text-center bg-white dark:bg-zinc-900 rounded-[3rem] border border-dashed border-zinc-200 dark:border-zinc-800">
+            <span className="text-6xl mb-6 block">ðŸ“</span>
+            <h3 className="text-xl font-black text-zinc-400 uppercase tracking-tighter">Nenhum edital cadastrado</h3>
+            <p className="text-zinc-400 text-sm mt-2 mb-8">Comece adicionando o edital que vocÃª estÃ¡ estudando.</p>
             <button
               onClick={() => setIsAdding(true)}
-              className="bg-blue-600 text-white px-8 py-3 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-blue-700"
+              className="bg-zinc-900 dark:bg-zinc-700 text-white px-8 py-3 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-zinc-800 dark:hover:bg-zinc-600"
             >
               + Adicionar Meu Primeiro Edital
             </button>
@@ -311,21 +311,21 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
       </div>
 
       {deleteConfirmation.isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 p-6 border border-slate-200 dark:border-slate-800">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-zinc-900 w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 p-6 border border-zinc-200 dark:border-zinc-800">
             <div className="flex flex-col items-center text-center">
               <div className="w-12 h-12 bg-rose-100 dark:bg-rose-900/30 rounded-full flex items-center justify-center text-rose-600 dark:text-rose-400 mb-4">
                 <AlertTriangle size={24} />
               </div>
-              <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-2">Excluir Edital?</h3>
-              <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
+              <h3 className="text-lg font-bold text-zinc-800 dark:text-white mb-2">Excluir Edital?</h3>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-6">
                 Tem certeza que deseja excluir <strong>{deleteConfirmation.name}</strong>? <br />
-                Esta ação não pode ser desfeita.
+                Esta aÃ§Ã£o nÃ£o pode ser desfeita.
               </p>
               <div className="flex gap-3 w-full">
                 <button
                   onClick={() => setDeleteConfirmation({ isOpen: false, id: null, name: '' })}
-                  className="flex-1 py-3 rounded-xl font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all text-xs uppercase"
+                  className="flex-1 py-3 rounded-xl font-bold bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-all text-xs uppercase"
                 >
                   Cancelar
                 </button>

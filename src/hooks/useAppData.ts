@@ -150,7 +150,7 @@ export const useAppData = () => {
     const activeConcurso = useMemo(() => concursos.find(c => c.id === selectedConcursoId), [concursos, selectedConcursoId]);
 
     const allSubjects = useMemo(() => {
-        const allSubs = concursos.flatMap(c => c.subjects);
+        const allSubs = concursos.flatMap(c => c.subjects || []);
         // Unique by ID to avoid duplicates if any (though rare in this schema)
         const uniqueMap = new Map();
         allSubs.forEach(s => uniqueMap.set(s.id, s));
@@ -288,8 +288,8 @@ export const useAppData = () => {
             for (const id of deletedIds) await api.concursos.delete(id);
 
             // Find removed subjects (Cascading Delete)
-            const oldSubjects = concursos.flatMap(c => c.subjects);
-            const newSubjects = newConcursos.flatMap(c => c.subjects);
+            const oldSubjects = concursos.flatMap(c => c.subjects || []);
+            const newSubjects = newConcursos.flatMap(c => c.subjects || []);
             const removedSubjectIds = oldSubjects.filter(os => !newSubjects.find(ns => ns.id === os.id)).map(s => s.id);
 
             if (removedSubjectIds.length > 0) {

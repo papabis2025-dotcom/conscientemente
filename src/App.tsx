@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import Sidebar from './components/Sidebar';
 import Dashboard from './pages/Dashboard';
 import SubjectsView from './pages/SubjectsView';
@@ -51,7 +51,7 @@ const App: React.FC = () => {
       case 'concursos':
         return <ConcursosView concursos={concursos} onUpdateConcursos={setConcursos} onSelectConcurso={(c) => { setSelectedConcursoId(c.id); setActiveTab('dashboard'); }} />;
       case 'subjects':
-        return <SubjectsView subjects={activeConcurso?.subjects || []} sessions={sessions} onUpdateSubjects={(subs) => setConcursos(concursos.map(c => c.id === selectedConcursoId ? { ...c, subjects: subs } : c))} />;
+        return <SubjectsView subjects={activeConcurso?.subjects || []} sessions={sessions} onUpdateSubjects={(subs) => setConcursos(concursos.map(c => c.id === selectedConcursoId ? { ...c, subjects: subs } : c))} selectedConcursoId={selectedConcursoId} onSelectConcursoId={setSelectedConcursoId} concursos={concursos} />;
       case 'questions':
         return <QuestionsView subjects={filteredSubjects} sessions={sessions} dailyGoals={dailyGoals} onUpdateDailyGoals={setDailyGoals} onAddSession={addSession} onDeleteSession={deleteSession} />;
       case 'simulados':
@@ -81,7 +81,7 @@ const App: React.FC = () => {
 
   if (!currentUser) {
     return <LoginView users={users} onLogin={setCurrentUser} onCreateFirstUser={(name, pass) => {
-      const newUser = { id: crypto.randomUUID(), name, password: pass, avatar: '🎓' };
+      const newUser = { id: crypto.randomUUID(), name, password: pass, avatar: 'ðŸŽ“' };
       const newUsers = [...users, newUser];
       setUsers(newUsers);
       setCurrentUser(newUser);
@@ -89,7 +89,7 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="flex h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-300 overflow-hidden font-sans">
+    <div className="flex h-screen bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 transition-colors duration-300 overflow-hidden font-sans">
       <Sidebar
         activeTab={activeTab} setActiveTab={setActiveTab} theme={theme} toggleTheme={toggleTheme}
         timeLeft={timeLeft} isActive={isActive} isAlarmPlaying={isAlarmPlaying}
@@ -104,15 +104,15 @@ const App: React.FC = () => {
       <main className="flex-1 overflow-y-auto p-4 relative">
         <div className="max-w-[1440px] mx-auto pb-10">{renderContent()}</div>
       </main>
-      <footer className={`fixed bottom-0 right-0 h-9 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 px-4 flex items-center justify-between text-[9px] font-medium z-40 transition-all duration-300 ${isSidebarCollapsed ? 'left-20' : 'left-64'}`}>
+      <footer className={`fixed bottom-0 right-0 h-9 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md border-t border-zinc-200 dark:border-zinc-800 px-4 flex items-center justify-between text-[9px] font-medium z-40 transition-all duration-300 ${isSidebarCollapsed ? 'left-20' : 'left-64'}`}>
         <div className="flex items-center gap-3">
           <div className={`w-1.5 h-1.5 rounded-full ${saveError ? 'bg-red-500' : isSaving ? 'bg-blue-400 animate-ping' : 'bg-emerald-500'}`}></div>
-          <span className={`${saveError ? 'text-red-500 font-bold' : 'opacity-70 dark:text-slate-400'}`}>
+          <span className={`${saveError ? 'text-red-500 font-bold' : 'opacity-70 dark:text-zinc-400'}`}>
             {saveError ? saveError : (isSaving ? 'Salvando...' : `Sincronizado: ${lastSaved}`)}
           </span>
         </div>
-        <div className="uppercase font-bold tracking-widest text-slate-400 dark:text-slate-500">
-          Legis Pro - {activeConcurso ? activeConcurso.name : 'Visão Global'}
+        <div className="uppercase font-bold tracking-widest text-zinc-400 dark:text-zinc-500">
+          Legis Pro - {activeConcurso ? activeConcurso.name : 'VisÃ£o Global'}
         </div>
       </footer>
     </div>

@@ -28,7 +28,7 @@ export const api = {
                 banca: c.banca,
                 startDate: c.start_date,
                 targetDate: c.target_date,
-                subjects: c.subjects,
+                subjects: c.subjects || [],
                 categoryId: c.category_id
             }));
         },

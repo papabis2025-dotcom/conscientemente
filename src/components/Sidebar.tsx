@@ -149,17 +149,17 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   const handleSaveProfile = () => {
     if (onUpdateUser && editName.trim()) {
-      onUpdateUser(editName, editAvatar || '🎓');
+      onUpdateUser(editName, editAvatar || 'ðŸŽ“');
       setIsEditingProfile(false);
     }
   };
 
   return (
-    <div className={`${isCollapsed ? 'w-20' : 'w-64'} h-full bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col p-4 transition-all duration-300 z-50 shadow-xl overflow-hidden text-sm relative`}>
+    <div className={`${isCollapsed ? 'w-20' : 'w-64'} h-full bg-white dark:bg-zinc-900 border-r border-zinc-200 dark:border-zinc-800 flex flex-col p-4 transition-all duration-300 z-50 shadow-xl overflow-hidden text-sm relative`}>
 
       <button
         onClick={onToggleCollapse}
-        className="absolute -right-3 top-9 w-6 h-6 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full flex items-center justify-center text-slate-500 hover:text-blue-600 shadow-sm z-50 hover:scale-110 transition-transform"
+        className="absolute -right-3 top-9 w-6 h-6 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-full flex items-center justify-center text-zinc-500 hover:text-zinc-900 dark:text-zinc-100 shadow-sm z-50 hover:scale-110 transition-transform"
       >
         {isCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
       </button>
@@ -169,8 +169,8 @@ const Sidebar: React.FC<SidebarProps> = ({
           <img src={logoImg} alt="Logo" className="w-8 h-8 rounded-lg shrink-0 object-contain" />
           {!isCollapsed && (
             <div className="animate-in fade-in slide-in-from-left-4 duration-300">
-              <h1 className="text-sm font-bold text-slate-800 dark:text-white leading-none tracking-tight">Legis</h1>
-              <p className="text-[10px] font-medium text-blue-600 tracking-wide">Pro</p>
+              <h1 className="text-sm font-bold text-zinc-800 dark:text-white leading-none tracking-tight">Legis</h1>
+              <p className="text-[10px] font-medium text-zinc-900 dark:text-zinc-100 tracking-wide">Pro</p>
             </div>
           )}
         </div>
@@ -178,24 +178,24 @@ const Sidebar: React.FC<SidebarProps> = ({
         {!isCollapsed && (
           <div
             onClick={toggleTheme}
-            className={`w-12 h-6 rounded-full cursor-pointer transition-colors duration-300 p-1 flex items-center ${theme === 'dark' ? 'bg-blue-600 justify-end' : 'bg-slate-300 justify-start'}`}
+            className={`w-12 h-6 rounded-full cursor-pointer transition-colors duration-300 p-1 flex items-center ${theme === 'dark' ? 'bg-zinc-900 dark:bg-zinc-700 justify-end' : 'bg-zinc-300 justify-start'}`}
             title={theme === 'light' ? 'Mudar para Escuro' : 'Mudar para Claro'}
           >
             <div className="w-4 h-4 rounded-full bg-white shadow-sm flex items-center justify-center">
-              {theme === 'dark' ? <Moon size={10} className="text-blue-600" /> : <Sun size={10} className="text-amber-500" />}
+              {theme === 'dark' ? <Moon size={10} className="text-zinc-900 dark:text-zinc-100" /> : <Sun size={10} className="text-amber-500" />}
             </div>
           </div>
         )}
       </div>
 
-      <div className={`mb-6 p-3 bg-slate-50 dark:bg-slate-800/40 rounded-2xl flex items-center gap-3 border border-slate-100 dark:border-slate-700 ${isCollapsed ? 'justify-center' : ''}`}>
+      <div className={`mb-6 p-3 bg-zinc-50 dark:bg-zinc-800/40 rounded-2xl flex items-center gap-3 border border-zinc-100 dark:border-zinc-700 ${isCollapsed ? 'justify-center' : ''}`}>
         {!isEditingProfile || isCollapsed ? (
           <>
             {/* Profile Picture Removed */}
             {!isCollapsed && (
               <div className="flex-1 min-w-0 animate-in fade-in slide-in-from-left-4 duration-300 cursor-pointer" onClick={() => setIsEditingProfile(true)}>
-                <p className="text-[10px] font-semibold text-slate-400 leading-none mb-1">Bem-vindo,</p>
-                <p className="text-lg font-bold text-slate-800 dark:text-white truncate">{currentUser.name}</p>
+                <p className="text-[10px] font-semibold text-zinc-400 leading-none mb-1">Bem-vindo,</p>
+                <p className="text-lg font-bold text-zinc-800 dark:text-white truncate">{currentUser.name}</p>
               </div>
             )}
           </>
@@ -206,7 +206,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                 type="text"
                 value={editName}
                 onChange={(e) => setEditName(e.target.value)}
-                className="w-full px-2 py-1 text-xs font-medium border rounded-lg dark:bg-slate-700 dark:text-white dark:border-slate-600 focus:ring-2 focus:ring-blue-500 outline-none"
+                className="w-full px-2 py-1 text-xs font-medium border rounded-lg dark:bg-zinc-700 dark:text-white dark:border-zinc-600 focus:ring-2 focus:ring-zinc-500 outline-none"
                 placeholder="Seu nome"
                 autoFocus
               />
@@ -214,7 +214,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                 {/* Avatar selection removed */}
 
                 <div className="flex-1 flex justify-end gap-1">
-                  <button onClick={() => { setIsEditingProfile(false); setEditName(currentUser.name); setEditAvatar(currentUser.avatar); }} className="text-slate-400 hover:text-slate-600 p-1"><X size={14} /></button>
+                  <button onClick={() => { setIsEditingProfile(false); setEditName(currentUser.name); setEditAvatar(currentUser.avatar); }} className="text-zinc-400 hover:text-zinc-600 p-1"><X size={14} /></button>
                   <button onClick={handleSaveProfile} className="text-emerald-500 hover:text-emerald-600 p-1"><Check size={14} /></button>
                 </div>
               </div>
@@ -223,10 +223,10 @@ const Sidebar: React.FC<SidebarProps> = ({
         )}
       </div>
 
-      <div className="mb-5 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-2xl border border-slate-100 dark:border-slate-700">
+      <div className="mb-5 bg-zinc-50 dark:bg-zinc-800/50 p-3 rounded-2xl border border-zinc-100 dark:border-zinc-700">
         {!isCollapsed && (
           <div className="flex flex-col gap-2">
-            <span className="text-[10px] font-semibold text-slate-400">Timer de Foco</span>
+            <span className="text-[10px] font-semibold text-zinc-400">Timer de Foco</span>
 
             {isAlarmPlaying ? (
               <button
@@ -237,8 +237,8 @@ const Sidebar: React.FC<SidebarProps> = ({
               </button>
             ) : (isActive || timeLeft > 0) ? (
               <>
-                <div className="text-center py-2 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
-                  <span className={`text-2xl font-mono font-bold tabular-nums ${isActive ? 'text-emerald-500' : 'text-slate-400'}`}>
+                <div className="text-center py-2 bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700">
+                  <span className={`text-2xl font-mono font-bold tabular-nums ${isActive ? 'text-emerald-500' : 'text-zinc-400'}`}>
                     {formatTime(timeLeft)}
                   </span>
                 </div>
@@ -252,7 +252,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                   </button>
                   <button
                     onClick={onResetTimer}
-                    className="flex-1 py-2 bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-300 rounded-lg text-[9px] font-bold uppercase tracking-wide hover:bg-slate-300 dark:hover:bg-slate-600 flex items-center justify-center gap-1"
+                    className="flex-1 py-2 bg-zinc-200 dark:bg-zinc-700 text-zinc-500 dark:text-zinc-300 rounded-lg text-[9px] font-bold uppercase tracking-wide hover:bg-zinc-300 dark:hover:bg-zinc-600 flex items-center justify-center gap-1"
                   >
                     <RotateCcw size={12} /> Resetar
                   </button>
@@ -266,7 +266,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                   max="180"
                   value={inputMinutes}
                   onChange={(e) => setInputMinutes(parseInt(e.target.value) || 0)}
-                  className="w-16 px-2 text-center font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 dark:text-white text-sm"
+                  className="w-16 px-2 text-center font-bold bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 dark:text-white text-sm"
                 />
                 <button
                   onClick={() => onStartTimer(inputMinutes)}
@@ -287,7 +287,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             onClick={resetMenuOrder}
             className="w-full py-1.5 bg-amber-600 text-white rounded-lg text-[10px] font-bold hover:bg-amber-700"
           >
-            Restaurar Padrão
+            Restaurar PadrÃ£o
           </button>
         </div>
       )}
@@ -302,8 +302,8 @@ const Sidebar: React.FC<SidebarProps> = ({
             onDragEnd={handleDragEnd}
             onClick={() => !isReorderMode && setActiveTab(item.id)}
             className={`w-full flex items-center ${isCollapsed ? 'justify-center px-1' : 'gap-3 px-3'} py-2.5 rounded-xl transition-all ${activeTab === item.id
-              ? 'bg-blue-600 text-white font-semibold shadow-md shadow-blue-500/20'
-              : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 font-medium'
+              ? 'bg-zinc-900 dark:bg-zinc-700 text-white font-semibold shadow-md shadow-zinc-900/10 dark:shadow-zinc-900/50'
+              : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 font-medium'
               } ${isReorderMode ? 'cursor-move' : ''} ${draggedIndex === index ? 'opacity-50 scale-95' : ''}`}
             title={isCollapsed ? item.label : ''}
           >
@@ -332,12 +332,12 @@ const Sidebar: React.FC<SidebarProps> = ({
 
       </nav>
 
-      <div className="pt-3 mt-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
-        <button onClick={() => setActiveTab('settings')} className={`w-full flex items-center ${isCollapsed ? 'justify-center px-1' : 'gap-3 px-3'} py-2 rounded-xl transition-colors ${activeTab === 'settings' ? 'text-blue-700 bg-blue-50 dark:bg-blue-900/10 font-semibold' : 'text-slate-500 hover:text-slate-800 dark:hover:text-white font-medium'}`} title="Ajustes">
+      <div className="pt-3 mt-3 border-t border-zinc-100 dark:border-zinc-800 space-y-2">
+        <button onClick={() => setActiveTab('settings')} className={`w-full flex items-center ${isCollapsed ? 'justify-center px-1' : 'gap-3 px-3'} py-2 rounded-xl transition-colors ${activeTab === 'settings' ? 'text-zinc-900 bg-zinc-100 dark:bg-zinc-800 dark:text-white font-semibold' : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-white font-medium'}`} title="Ajustes">
           <Settings size={20} />
           {!isCollapsed && <span className="text-sm">Ajustes</span>}
         </button>
-        <button onClick={() => setActiveTab('logs')} className={`w-full flex items-center ${isCollapsed ? 'justify-center px-1' : 'gap-3 px-3'} py-2 rounded-xl transition-colors ${activeTab === 'logs' ? 'text-blue-700 bg-blue-50 dark:bg-blue-900/10 font-semibold' : 'text-slate-500 hover:text-slate-800 dark:hover:text-white font-medium'}`} title="Logs">
+        <button onClick={() => setActiveTab('logs')} className={`w-full flex items-center ${isCollapsed ? 'justify-center px-1' : 'gap-3 px-3'} py-2 rounded-xl transition-colors ${activeTab === 'logs' ? 'text-zinc-900 bg-zinc-100 dark:bg-zinc-800 dark:text-white font-semibold' : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-white font-medium'}`} title="Logs">
           <ChartNoAxesColumn size={20} />
           {!isCollapsed && <span className="text-sm">Logs</span>}
         </button>

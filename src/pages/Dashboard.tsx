@@ -1,4 +1,4 @@
-
+﻿
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   LineChart, Line, AreaChart, Area, BarChart, Bar,
@@ -45,10 +45,10 @@ interface WidgetState {
 
 const DEFAULT_WIDGETS: WidgetState[] = [
   { id: 'general_stats', title: 'Desempenho Geral', isVisible: true, size: 'wide' },
-  { id: 'study_frequency', title: 'Informações e Metas', isVisible: true, size: 'normal' },
+  { id: 'study_frequency', title: 'InformaÃ§Ãµes e Metas', isVisible: true, size: 'normal' },
   { id: 'study_tasks', title: 'Tarefas de Hoje', isVisible: true, size: 'normal' },
   { id: 'weekly_chart', title: 'Volume de Estudo', isVisible: true, size: 'normal' },
-  { id: 'unified_subject_analysis', title: 'Análise por Disciplina', isVisible: true, size: 'wide' },
+  { id: 'unified_subject_analysis', title: 'AnÃ¡lise por Disciplina', isVisible: true, size: 'wide' },
 ];
 
 import { getColorHex } from '../utils/colors';
@@ -135,7 +135,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   const [formData, setFormData] = useState({
     subjectId: '',
     topicId: '',
-    activityType: 'Questões' as ActivityType,
+    activityType: 'QuestÃµes' as ActivityType,
     duration: '',
     questionsDone: '',
     questionsCorrect: '',
@@ -194,8 +194,8 @@ const Dashboard: React.FC<DashboardProps> = ({
       topicId: formData.topicId || undefined,
       durationInMinutes: parseInt(formData.duration) || 0,
       date: new Date(`${formData.date}T12:00:00`).toISOString(),
-      questionsDone: formData.activityType === 'Questões' ? (parseInt(formData.questionsDone) || undefined) : undefined,
-      questionsCorrect: formData.activityType === 'Questões' ? (parseInt(formData.questionsCorrect) || undefined) : undefined,
+      questionsDone: formData.activityType === 'QuestÃµes' ? (parseInt(formData.questionsDone) || undefined) : undefined,
+      questionsCorrect: formData.activityType === 'QuestÃµes' ? (parseInt(formData.questionsCorrect) || undefined) : undefined,
       activityType: formData.activityType
     });
 
@@ -203,7 +203,7 @@ const Dashboard: React.FC<DashboardProps> = ({
     setFormData({
       subjectId: '',
       topicId: '',
-      activityType: 'Questões',
+      activityType: 'QuestÃµes',
       duration: '',
       questionsDone: '',
       questionsCorrect: '',
@@ -272,7 +272,7 @@ const Dashboard: React.FC<DashboardProps> = ({
 
     if (activeWeeklyPeriod === 'weekly') {
       // Weekly view: Rolling last 7 days
-      const days = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+      const days = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'SÃ¡b'];
 
       const dataMap = [];
       for (let i = 6; i >= 0; i--) {
@@ -438,7 +438,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                     stroke="currentColor"
                     strokeWidth="10"
                     fill="transparent"
-                    className="text-slate-100 dark:text-slate-800"
+                    className="text-zinc-100 dark:text-zinc-800"
                   />
                   <circle
                     cx="50"
@@ -458,7 +458,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                   <span className={`text-2xl font-black ${globalColor}`} style={{ color: globalColorHex }}>{globalAccuracy}%</span>
                 </div>
               </div>
-              <p className="text-[9px] font-bold text-slate-500 uppercase tracking-wide mt-1">Geral</p>
+              <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-wide mt-1">Geral</p>
             </div>
 
             {/* Simulado Stats */}
@@ -472,7 +472,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                     stroke="currentColor"
                     strokeWidth="10"
                     fill="transparent"
-                    className="text-slate-100 dark:text-slate-800"
+                    className="text-zinc-100 dark:text-zinc-800"
                   />
                   <circle
                     cx="50"
@@ -492,7 +492,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                   <span className={`text-2xl font-black ${simColor}`} style={{ color: simColorHex }}>{simAccuracy}%</span>
                 </div>
               </div>
-              <p className="text-[9px] font-bold text-slate-500 uppercase tracking-wide mt-1">Simulados</p>
+              <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-wide mt-1">Simulados</p>
             </div>
           </div>
         );
@@ -503,18 +503,18 @@ const Dashboard: React.FC<DashboardProps> = ({
             <div className="flex-1 flex flex-col justify-center min-h-0">
               <div className="flex items-end gap-2 mb-1">
                 <span className="text-2xl font-bold text-amber-500 leading-none">{frequencyData.streak}</span>
-                <span className="text-[9px] font-semibold uppercase text-slate-400 mb-0.5">Dias Seguidos</span>
+                <span className="text-[9px] font-semibold uppercase text-zinc-400 mb-0.5">Dias Seguidos</span>
               </div>
-              <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
-                Você estudou em <strong className="text-blue-600 dark:text-blue-400">{frequencyData.last7DaysCount}</strong> dos últimos 7 dias.
+              <p className="text-[10px] text-zinc-500 dark:text-zinc-400 font-medium">
+                VocÃª estudou em <strong className="text-zinc-900 dark:text-zinc-100 dark:text-zinc-100">{frequencyData.last7DaysCount}</strong> dos Ãºltimos 7 dias.
               </p>
-              <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full mt-2 overflow-hidden">
+              <div className="w-full h-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-full mt-2 overflow-hidden">
                 <div className="h-full bg-amber-500" style={{ width: `${(frequencyData.last7DaysCount / 7) * 100}%` }} />
               </div>
             </div>
 
             {/* Daily Goal Section - With more space */}
-            <div className="border-t border-slate-100 dark:border-slate-800 pt-2 mt-1">
+            <div className="border-t border-zinc-100 dark:border-zinc-800 pt-2 mt-1">
               {(() => {
                 const today = new Date();
                 const year = today.getFullYear();
@@ -538,10 +538,10 @@ const Dashboard: React.FC<DashboardProps> = ({
                 return (
                   <>
                     <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Meta Diária</span>
-                      <span className="text-[10px] font-bold text-slate-600 dark:text-slate-300">{doneToday} / {goal}</span>
+                      <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wide">Meta DiÃ¡ria</span>
+                      <span className="text-[10px] font-bold text-zinc-600 dark:text-zinc-300">{doneToday} / {goal}</span>
                     </div>
-                    <div className="w-full h-3 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden mb-1">
+                    <div className="w-full h-3 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden mb-1">
                       <div
                         className={`h-full bg-gradient-to-r ${getProgressColor(pct)} transition-all duration-500`}
                         style={{ width: `${pct}%` }}
@@ -552,7 +552,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                         <span className="text-[9px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wide">Meta Batida!</span>
                       </div>
                     ) : (
-                      <p className="text-[9px] text-right text-slate-400 font-medium">Faltam {remaining} questões</p>
+                      <p className="text-[9px] text-right text-zinc-400 font-medium">Faltam {remaining} questÃµes</p>
                     )}
                   </>
                 );
@@ -573,9 +573,9 @@ const Dashboard: React.FC<DashboardProps> = ({
 
                 return studyTasks.filter(t => t.date === todayStr).length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-full opacity-60 space-y-1.5">
-                    <div className="w-9 h-9 rounded-full bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-base shadow-sm">🎉</div>
+                    <div className="w-9 h-9 rounded-full bg-zinc-50 dark:bg-zinc-800 flex items-center justify-center text-base shadow-sm">ðŸŽ‰</div>
                     <div className="text-center">
-                      <p className="text-[10px] font-bold text-slate-600 dark:text-slate-300">Tudo em dia!</p>
+                      <p className="text-[10px] font-bold text-zinc-600 dark:text-zinc-300">Tudo em dia!</p>
                     </div>
                   </div>
                 ) : (
@@ -583,16 +583,16 @@ const Dashboard: React.FC<DashboardProps> = ({
                     <div
                       key={task.id}
                       onClick={() => handleToggleTask(task.id)}
-                      className={`flex items-center gap-2.5 p-2.5 rounded-xl border transition-all duration-300 cursor-pointer ${task.done ? 'bg-slate-50 dark:bg-slate-800/40 border-slate-100 dark:border-slate-800 opacity-60' : 'bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-700'}`}
+                      className={`flex items-center gap-2.5 p-2.5 rounded-xl border transition-all duration-300 cursor-pointer ${task.done ? 'bg-zinc-50 dark:bg-zinc-800/40 border-zinc-100 dark:border-zinc-800 opacity-60' : 'bg-white dark:bg-zinc-900 border-zinc-100 dark:border-zinc-700 hover:border-blue-300 dark:hover:border-zinc-700'}`}
                     >
-                      <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${task.done ? 'bg-emerald-500 border-emerald-500' : 'border-slate-300 dark:border-slate-600'}`}>
+                      <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${task.done ? 'bg-emerald-500 border-emerald-500' : 'border-zinc-300 dark:border-zinc-600'}`}>
                         {task.done && <Check size={10} className="text-white" />}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className={`text-[10px] font-bold truncate leading-tight ${task.done ? 'text-slate-500 line-through' : 'text-slate-700 dark:text-slate-200'}`}>
+                        <p className={`text-[10px] font-bold truncate leading-tight ${task.done ? 'text-zinc-500 line-through' : 'text-zinc-700 dark:text-zinc-200'}`}>
                           {task.subjectName}
                         </p>
-                        {task.topicName && <p className="text-[8px] text-slate-400 truncate mt-0.5">{task.topicName}</p>}
+                        {task.topicName && <p className="text-[8px] text-zinc-400 truncate mt-0.5">{task.topicName}</p>}
                       </div>
                     </div>
                   ))
@@ -601,7 +601,7 @@ const Dashboard: React.FC<DashboardProps> = ({
             </div>
 
             {/* Total badge */}
-            <div className="absolute bottom-0 right-0 bg-blue-600 text-white text-[8px] font-bold px-2 py-0.5 rounded-tl-xl shadow-sm z-10 opacity-0 group-hover/container:opacity-100 transition-all pointer-events-none translate-y-full group-hover/container:translate-y-0">
+            <div className="absolute bottom-0 right-0 bg-zinc-900 dark:bg-zinc-700 text-white text-[8px] font-bold px-2 py-0.5 rounded-tl-xl shadow-sm z-10 opacity-0 group-hover/container:opacity-100 transition-all pointer-events-none tranzinc-y-full group-hover/container:tranzinc-y-0">
               {studyTasks.filter(t => t.date === new Date().toISOString().split('T')[0] && !t.done).length} Pendentes
             </div>
           </div>
@@ -610,41 +610,41 @@ const Dashboard: React.FC<DashboardProps> = ({
       case 'weekly_chart':
         return (
           <div className="flex flex-col h-full">
-            {/* Tabs: Tempo / Questões - Aligned to Left */}
+            {/* Tabs: Tempo / QuestÃµes - Aligned to Left */}
             <div className="flex justify-start mb-2">
-              <div className="flex items-center gap-1 bg-slate-50 dark:bg-slate-800/50 p-1 rounded-lg">
+              <div className="flex items-center gap-1 bg-zinc-50 dark:bg-zinc-800/50 p-1 rounded-lg">
                 <button
                   onClick={() => setActiveWeeklyTab('hours')}
-                  className={`py-1 px-3 rounded-md text-[10px] font-bold uppercase tracking-wide transition-all ${activeWeeklyTab === 'hours' ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm' : 'text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+                  className={`py-1 px-3 rounded-md text-[10px] font-bold uppercase tracking-wide transition-all ${activeWeeklyTab === 'hours' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-sm' : 'text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}
                 >
                   Tempo
                 </button>
                 <button
                   onClick={() => setActiveWeeklyTab('questions')}
-                  className={`py-1 px-3 rounded-md text-[10px] font-bold uppercase tracking-wide transition-all ${activeWeeklyTab === 'questions' ? 'bg-white dark:bg-slate-700 text-purple-600 shadow-sm' : 'text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+                  className={`py-1 px-3 rounded-md text-[10px] font-bold uppercase tracking-wide transition-all ${activeWeeklyTab === 'questions' ? 'bg-white dark:bg-zinc-700 text-purple-600 shadow-sm' : 'text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}
                 >
-                  Questões
+                  QuestÃµes
                 </button>
               </div>
             </div>
 
             {/* Period Filter Buttons */}
-            <div className="flex items-center gap-1 mb-3 bg-slate-50 dark:bg-slate-800/50 p-1 rounded-lg">
+            <div className="flex items-center gap-1 mb-3 bg-zinc-50 dark:bg-zinc-800/50 p-1 rounded-lg">
               <button
                 onClick={() => setActiveWeeklyPeriod('weekly')}
-                className={`flex-1 py-1 px-2 rounded-md text-[9px] font-bold uppercase tracking-wide transition-all ${activeWeeklyPeriod === 'weekly' ? 'bg-white dark:bg-slate-700 text-emerald-600 shadow-sm' : 'text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+                className={`flex-1 py-1 px-2 rounded-md text-[9px] font-bold uppercase tracking-wide transition-all ${activeWeeklyPeriod === 'weekly' ? 'bg-white dark:bg-zinc-700 text-emerald-600 shadow-sm' : 'text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}
               >
                 Semanal
               </button>
               <button
                 onClick={() => setActiveWeeklyPeriod('monthly')}
-                className={`flex-1 py-1 px-2 rounded-md text-[9px] font-bold uppercase tracking-wide transition-all ${activeWeeklyPeriod === 'monthly' ? 'bg-white dark:bg-slate-700 text-emerald-600 shadow-sm' : 'text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+                className={`flex-1 py-1 px-2 rounded-md text-[9px] font-bold uppercase tracking-wide transition-all ${activeWeeklyPeriod === 'monthly' ? 'bg-white dark:bg-zinc-700 text-emerald-600 shadow-sm' : 'text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}
               >
                 Mensal
               </button>
               <button
                 onClick={() => setActiveWeeklyPeriod('annual')}
-                className={`flex-1 py-1 px-2 rounded-md text-[9px] font-bold uppercase tracking-wide transition-all ${activeWeeklyPeriod === 'annual' ? 'bg-white dark:bg-slate-700 text-emerald-600 shadow-sm' : 'text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+                className={`flex-1 py-1 px-2 rounded-md text-[9px] font-bold uppercase tracking-wide transition-all ${activeWeeklyPeriod === 'annual' ? 'bg-white dark:bg-zinc-700 text-emerald-600 shadow-sm' : 'text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}
               >
                 Anual
               </button>
@@ -668,7 +668,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                       <Area type="monotone" dataKey="h" stroke="#3b82f6" fill="url(#colorH)" strokeWidth={3} />
                     </AreaChart>
                   </ResponsiveContainer>
-                ) : <div className="h-full flex items-center justify-center text-xs text-slate-400">Sem dados de tempo</div>
+                ) : <div className="h-full flex items-center justify-center text-xs text-zinc-400">Sem dados de tempo</div>
               ) : (
                 weeklyQuestionsData.some(d => d.q > 0) ? (
                   <ResponsiveContainer width="100%" height="100%">
@@ -688,31 +688,31 @@ const Dashboard: React.FC<DashboardProps> = ({
                       </Bar>
                     </BarChart>
                   </ResponsiveContainer>
-                ) : <div className="h-full flex items-center justify-center text-xs text-slate-400">Sem questões feitas</div>
+                ) : <div className="h-full flex items-center justify-center text-xs text-zinc-400">Sem questÃµes feitas</div>
               )}
             </div>
           </div>
         );
       case 'unified_subject_analysis':
         return (
-          <div className="flex flex-col h-full bg-white dark:bg-slate-900 rounded-2xl overflow-hidden relative">
+          <div className="flex flex-col h-full bg-white dark:bg-zinc-900 rounded-2xl overflow-hidden relative">
             {/* Header / Tabs */}
-            <div className="flex items-center gap-1 p-2 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
+            <div className="flex items-center gap-1 p-2 bg-zinc-50 dark:bg-zinc-800/50 border-b border-zinc-100 dark:border-zinc-800">
               <button
                 onClick={() => setActiveAnalysisTab('questions')}
-                className={`flex-1 py-1 px-2 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-all ${activeAnalysisTab === 'questions' ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm' : 'text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+                className={`flex-1 py-1 px-2 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-all ${activeAnalysisTab === 'questions' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-sm' : 'text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}
               >
-                Questões
+                QuestÃµes
               </button>
               <button
                 onClick={() => setActiveAnalysisTab('time')}
-                className={`flex-1 py-1 px-2 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-all ${activeAnalysisTab === 'time' ? 'bg-white dark:bg-slate-700 text-purple-600 shadow-sm' : 'text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+                className={`flex-1 py-1 px-2 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-all ${activeAnalysisTab === 'time' ? 'bg-white dark:bg-zinc-700 text-purple-600 shadow-sm' : 'text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}
               >
                 Tempo
               </button>
               <button
                 onClick={() => setActiveAnalysisTab('performance')}
-                className={`flex-1 py-1 px-2 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-all ${activeAnalysisTab === 'performance' ? 'bg-white dark:bg-slate-700 text-emerald-600 shadow-sm' : 'text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+                className={`flex-1 py-1 px-2 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-all ${activeAnalysisTab === 'performance' ? 'bg-white dark:bg-zinc-700 text-emerald-600 shadow-sm' : 'text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}
               >
                 Desempenho
               </button>
@@ -740,7 +740,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                       </Bar>
                     </BarChart>
                   </ResponsiveContainer>
-                ) : <div className="h-full flex items-center justify-center text-xs text-slate-400">Sem questões resolvidas</div>
+                ) : <div className="h-full flex items-center justify-center text-xs text-zinc-400">Sem questÃµes resolvidas</div>
               )}
 
               {activeAnalysisTab === 'time' && (
@@ -764,7 +764,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                       </Bar>
                     </BarChart>
                   </ResponsiveContainer>
-                ) : <div className="h-full flex items-center justify-center text-xs text-slate-400">Sem dados de tempo</div>
+                ) : <div className="h-full flex items-center justify-center text-xs text-zinc-400">Sem dados de tempo</div>
               )}
 
               {activeAnalysisTab === 'performance' && (
@@ -790,7 +790,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                       </Bar>
                     </BarChart>
                   </ResponsiveContainer>
-                ) : <div className="h-full flex items-center justify-center text-xs text-slate-400">Sem dados de desempenho</div>
+                ) : <div className="h-full flex items-center justify-center text-xs text-zinc-400">Sem dados de desempenho</div>
               )}
             </div>
           </div>
@@ -803,88 +803,31 @@ const Dashboard: React.FC<DashboardProps> = ({
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="flex items-center gap-6 bg-white dark:bg-slate-900 p-4 rounded-[1.5rem] border border-slate-200 dark:border-slate-800 shadow-sm overflow-x-auto">
-        <div className="flex items-center gap-4 pr-6 border-r border-slate-100 dark:border-slate-800 shrink-0">
-          <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/40 rounded-xl flex items-center justify-center text-blue-600 dark:text-blue-400"><Trophy size={20} /></div>
-          <div>
-            <p className="text-[10px] font-semibold uppercase text-slate-400 dark:text-slate-500 tracking-wide leading-none mb-1.5">Meta Ativa</p>
-            <select
-              value={selectedConcursoId}
-              onChange={(e) => onSelectConcursoId(e.target.value)}
-              className="bg-transparent border-none outline-none text-sm font-bold text-slate-800 dark:text-white cursor-pointer"
-            >
-              <option value="all">Visão Global</option>
-              {concursos.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
-          </div>
-        </div>
-        <div className="flex gap-6 px-4">
-          <div className="flex flex-col">
-            <span className="text-base font-bold text-slate-800 dark:text-white leading-none mb-1">
-              {activeConcurso ? Math.floor((new Date().getTime() - new Date(activeConcurso.startDate).getTime()) / (1000 * 60 * 60 * 24)) : 0}
-            </span>
-            <span className="text-[10px] font-semibold uppercase text-slate-400 dark:text-slate-500 tracking-wide">Decorridos</span>
-          </div>
-          <div className="flex flex-col">
-            <span className={`text-base font-bold leading-none mb-1 ${activeConcurso?.targetDate ? 'text-rose-500' : 'text-slate-300'}`}>
-              {activeConcurso?.targetDate ? Math.ceil((new Date(activeConcurso.targetDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : '-'}
-            </span>
-            <span className="text-[10px] font-semibold uppercase text-slate-400 dark:text-slate-500 tracking-wide">Restantes</span>
-          </div>
-          <div className="w-px h-8 bg-slate-100 dark:bg-slate-800 mx-2" />
-          <div className="flex flex-col">
-            <span className="text-base font-bold text-slate-800 dark:text-white leading-none mb-1">{subjects.length}</span>
-            <span className="text-[10px] font-semibold uppercase text-slate-400 dark:text-slate-500 tracking-wide">Matérias</span>
-          </div>
-
-          <div className="flex flex-col">
-            <span className="text-base font-bold text-slate-800 dark:text-white leading-none mb-1">{sessions.reduce((acc, s) => {
-              // If specific concurso selected, only count questions if subject belongs to it
-              if (selectedConcursoId !== 'all') {
-                const subjectIds = subjects.map(sub => sub.id);
-                if (!subjectIds.includes(s.subjectId)) return acc;
-              }
-              return acc + (s.questionsDone || 0);
-            }, 0)}</span>
-            <span className="text-[10px] font-semibold uppercase text-slate-400 dark:text-slate-500 tracking-wide">Questões</span>
-          </div>
-          <div className="flex flex-col">
-            <span className="text-base font-bold text-slate-800 dark:text-white leading-none mb-1 text-center">{simulados.length}</span>
-            <span className="text-[10px] font-semibold uppercase text-slate-400 dark:text-slate-500 tracking-wide text-center">Simulados</span>
-          </div>
-          <div className="flex flex-col">
-            <span className="text-base font-bold text-slate-800 dark:text-white leading-none mb-1">
-              {(sessions.reduce((acc, s) => {
-                if (selectedConcursoId !== 'all') {
-                  const subjectIds = subjects.map(sub => sub.id);
-                  if (!subjectIds.includes(s.subjectId)) return acc;
-                }
-                return acc + s.durationInMinutes;
-              }, 0) / 60).toFixed(1)}h
-            </span>
-            <span className="text-[10px] font-semibold uppercase text-slate-400 dark:text-slate-500 tracking-wide">Tempo Total</span>
-          </div>
-        </div>
-
-      </div>
-
       <header className="flex justify-between items-center px-1">
         <div className="flex items-center gap-4">
-
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-1.5 flex items-center gap-2 shadow-sm">
+             <Trophy size={14} className="text-zinc-900 dark:text-zinc-300" />
+             <select
+                value={selectedConcursoId}
+                onChange={(e) => onSelectConcursoId(e.target.value)}
+                className="bg-transparent border-none outline-none text-xs font-bold text-zinc-800 dark:text-white cursor-pointer w-32"
+             >
+                <option value="all">VisÃ£o Global</option>
+                {concursos.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+             </select>
+          </div>
+          
           <button
             onClick={() => setShowModal(true)}
-            className="bg-blue-600 text-white px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wide hover:bg-blue-700 shadow-sm transition-all flex items-center gap-2"
+            className="bg-zinc-900 dark:bg-zinc-700 text-white px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wide hover:bg-zinc-800 dark:hover:bg-zinc-600 shadow-sm transition-all flex items-center gap-2"
           >
             <Plus size={14} /> Adicionar Atividade
           </button>
-
-
-
         </div>
         <button onClick={() => {
           setIsEditMode(!isEditMode);
           onToggleReorderMode?.(!isEditMode);
-        }} className={`px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wide transition-all ${isEditMode ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50'}`}>
+        }} className={`px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wide transition-all ${isEditMode ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50'}`}>
           {isEditMode ? 'Salvar Painel' : 'Ajustar Layout'}
         </button>
       </header>
@@ -911,24 +854,24 @@ const Dashboard: React.FC<DashboardProps> = ({
               onDragStart={() => handleDragStart(index)}
               onDragOver={(e) => handleDragOver(e, index)}
               onDragEnd={handleDragEnd}
-              className={`${sizeClass} ${heightClass} ${widget.isVisible ? 'opacity-100' : 'opacity-40'} bg-white dark:bg-slate-900 p-4 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-sm relative group hover:shadow-md transition-all duration-300 ${isEditMode ? 'cursor-move ring-2 ring-emerald-500/20' : ''} ${draggedWidgetIndex === index ? 'opacity-50 scale-95' : ''}`}
+              className={`${sizeClass} ${heightClass} ${widget.isVisible ? 'opacity-100' : 'opacity-40'} bg-white dark:bg-zinc-900 p-4 rounded-[2rem] border border-zinc-200 dark:border-zinc-800 shadow-sm relative group hover:shadow-md transition-all duration-300 ${isEditMode ? 'cursor-move ring-2 ring-emerald-500/20' : ''} ${draggedWidgetIndex === index ? 'opacity-50 scale-95' : ''}`}
             >
               <div className="flex justify-between items-center mb-2">
-                <h4 className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wide">{widget.title}</h4>
+                <h4 className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wide">{widget.title}</h4>
                 <div className="flex gap-2 items-center">
                   {!isEditMode && ['weekly_chart', 'questions_by_subject', 'time_by_subject', 'performance_by_subject'].includes(widget.id) && (
                     <button
                       onClick={() => setFullscreenWidgetId(widget.id)}
-                      className="text-slate-400 hover:text-blue-500 transition-colors p-1"
-                      title="Expandir Gráfico"
+                      className="text-zinc-400 hover:text-zinc-900 dark:text-zinc-300 transition-colors p-1"
+                      title="Expandir GrÃ¡fico"
                     >
                       <Maximize2 size={14} />
                     </button>
                   )}
                   {isEditMode && (
                     <div className="flex gap-2">
-                      <button onClick={() => cycleSize(widget.id)} className="bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-lg text-[9px] font-bold uppercase tracking-tight text-slate-500">Tam: {widget.size}</button>
-                      <button onClick={() => setWidgets(prev => prev.map(w => w.id === widget.id ? { ...w, isVisible: !w.isVisible } : w))} className="text-slate-500 hover:text-blue-500">{widget.isVisible ? <Eye size={16} /> : <EyeOff size={16} />}</button>
+                      <button onClick={() => cycleSize(widget.id)} className="bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded-lg text-[9px] font-bold uppercase tracking-tight text-zinc-500">Tam: {widget.size}</button>
+                      <button onClick={() => setWidgets(prev => prev.map(w => w.id === widget.id ? { ...w, isVisible: !w.isVisible } : w))} className="text-zinc-500 hover:text-zinc-900 dark:text-zinc-300">{widget.isVisible ? <Eye size={16} /> : <EyeOff size={16} />}</button>
                     </div>
                   )}
                 </div>
@@ -940,15 +883,15 @@ const Dashboard: React.FC<DashboardProps> = ({
       </div>
 
       {fullscreenWidgetId && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/90 backdrop-blur-md p-6 animate-in fade-in duration-300">
-          <div className="bg-white dark:bg-slate-900 w-full h-full max-w-6xl max-h-[90vh] rounded-[2.5rem] shadow-2xl p-8 relative flex flex-col">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-zinc-950/90 backdrop-blur-md p-6 animate-in fade-in duration-300">
+          <div className="bg-white dark:bg-zinc-900 w-full h-full max-w-6xl max-h-[90vh] rounded-[2.5rem] shadow-2xl p-8 relative flex flex-col">
             <div className="flex justify-between items-center mb-6 shrink-0">
-              <h3 className="text-2xl font-bold text-slate-800 dark:text-white uppercase tracking-tight">
+              <h3 className="text-2xl font-bold text-zinc-800 dark:text-white uppercase tracking-tight">
                 {widgets.find(w => w.id === fullscreenWidgetId)?.title}
               </h3>
               <button
                 onClick={() => setFullscreenWidgetId(null)}
-                className="w-10 h-10 flex items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-all"
+                className="w-10 h-10 flex items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-500 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-all"
               >
                 <X size={20} />
               </button>
@@ -975,46 +918,46 @@ const Dashboard: React.FC<DashboardProps> = ({
       )}
 
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 p-8 relative">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/80 backdrop-blur-sm p-4">
+          <div className="bg-white dark:bg-zinc-900 w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 p-8 relative">
             <button
               onClick={() => setShowModal(false)}
-              className="absolute top-6 right-6 text-slate-400 hover:text-rose-500 w-8 h-8 flex items-center justify-center rounded-full bg-slate-50 dark:bg-slate-800 transition-colors"
+              className="absolute top-6 right-6 text-zinc-400 hover:text-rose-500 w-8 h-8 flex items-center justify-center rounded-full bg-zinc-50 dark:bg-zinc-800 transition-colors"
             >
               <X size={18} />
             </button>
 
-            <h3 className="text-xl font-bold uppercase tracking-tight mb-6 dark:text-white flex items-center gap-2">Nova Atividade <Clock size={20} className="text-blue-500" /></h3>
+            <h3 className="text-xl font-bold uppercase tracking-tight mb-6 dark:text-white flex items-center gap-2">Nova Atividade <Clock size={20} className="text-zinc-900 dark:text-zinc-300" /></h3>
 
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-[10px] font-bold text-slate-400 uppercase mb-1.5 block">Tipo</label>
-                  <select value={formData.activityType} onChange={(e) => setFormData({ ...formData, activityType: e.target.value as any })} className="w-full p-3 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl outline-none text-sm font-bold dark:text-white ring-1 ring-slate-100 dark:ring-slate-800 focus:ring-blue-500">
+                  <label className="text-[10px] font-bold text-zinc-400 uppercase mb-1.5 block">Tipo</label>
+                  <select value={formData.activityType} onChange={(e) => setFormData({ ...formData, activityType: e.target.value as any })} className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 border-none rounded-2xl outline-none text-sm font-bold dark:text-white ring-1 ring-zinc-100 dark:ring-zinc-800 focus:ring-zinc-500">
                     <option value="Leitura">Leitura</option>
-                    <option value="Questões">Questões</option>
+                    <option value="QuestÃµes">QuestÃµes</option>
                     <option value="Aula">Aula</option>
                     <option value="Simulado">Simulado</option>
                   </select>
                 </div>
                 <div>
-                  <label className="text-[10px] font-bold text-slate-400 uppercase mb-1.5 block">Data</label>
-                  <input type="date" value={formData.date} onChange={(e) => setFormData({ ...formData, date: e.target.value })} className="w-full p-3 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl outline-none text-sm font-bold dark:text-white ring-1 ring-slate-100 dark:ring-slate-800 focus:ring-blue-500" />
+                  <label className="text-[10px] font-bold text-zinc-400 uppercase mb-1.5 block">Data</label>
+                  <input type="date" value={formData.date} onChange={(e) => setFormData({ ...formData, date: e.target.value })} className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 border-none rounded-2xl outline-none text-sm font-bold dark:text-white ring-1 ring-zinc-100 dark:ring-zinc-800 focus:ring-zinc-500" />
                 </div>
               </div>
 
               <div>
-                <label className="text-[10px] font-bold text-slate-400 uppercase mb-1.5 block">Disciplina</label>
-                <select value={formData.subjectId} onChange={(e) => setFormData({ ...formData, subjectId: e.target.value, topicId: '' })} className="w-full p-3 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl outline-none text-sm font-bold dark:text-white ring-1 ring-slate-100 dark:ring-slate-800 focus:ring-blue-500">
-                  <option value="">Selecione a matéria...</option>
+                <label className="text-[10px] font-bold text-zinc-400 uppercase mb-1.5 block">Disciplina</label>
+                <select value={formData.subjectId} onChange={(e) => setFormData({ ...formData, subjectId: e.target.value, topicId: '' })} className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 border-none rounded-2xl outline-none text-sm font-bold dark:text-white ring-1 ring-zinc-100 dark:ring-zinc-800 focus:ring-zinc-500">
+                  <option value="">Selecione a matÃ©ria...</option>
                   {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                 </select>
               </div>
 
               {formData.subjectId && (
                 <div className="animate-in fade-in slide-in-from-top-2">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase mb-1.5 block">Assunto / Tópico</label>
-                  <select value={formData.topicId} onChange={(e) => setFormData({ ...formData, topicId: e.target.value })} className="w-full p-3 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl outline-none text-sm font-bold dark:text-white ring-1 ring-slate-100 dark:ring-slate-800 focus:ring-blue-500">
+                  <label className="text-[10px] font-bold text-zinc-400 uppercase mb-1.5 block">Assunto / TÃ³pico</label>
+                  <select value={formData.topicId} onChange={(e) => setFormData({ ...formData, topicId: e.target.value })} className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 border-none rounded-2xl outline-none text-sm font-bold dark:text-white ring-1 ring-zinc-100 dark:ring-zinc-800 focus:ring-zinc-500">
                     <option value="">Geral / Outros</option>
                     {subjects.find(s => s.id === formData.subjectId)?.topics.map(t => (
                       <option key={t.id} value={t.id}>{t.title}</option>
@@ -1024,19 +967,19 @@ const Dashboard: React.FC<DashboardProps> = ({
               )}
 
               <div>
-                <label className="text-[10px] font-bold text-slate-400 uppercase mb-1.5 block">Tempo Dedicado (min)</label>
-                <input type="number" placeholder="Ex: 45" value={formData.duration} onChange={(e) => setFormData({ ...formData, duration: e.target.value })} className="w-full p-3 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl outline-none text-sm font-bold dark:text-white ring-1 ring-slate-100 dark:ring-slate-800 focus:ring-blue-500" />
+                <label className="text-[10px] font-bold text-zinc-400 uppercase mb-1.5 block">Tempo Dedicado (min)</label>
+                <input type="number" placeholder="Ex: 45" value={formData.duration} onChange={(e) => setFormData({ ...formData, duration: e.target.value })} className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 border-none rounded-2xl outline-none text-sm font-bold dark:text-white ring-1 ring-zinc-100 dark:ring-zinc-800 focus:ring-zinc-500" />
               </div>
 
-              {formData.activityType === 'Questões' && (
-                <div className="grid grid-cols-2 gap-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 animate-in fade-in slide-in-from-top-2">
+              {formData.activityType === 'QuestÃµes' && (
+                <div className="grid grid-cols-2 gap-4 p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl border border-dashed border-zinc-200 dark:border-zinc-800 animate-in fade-in slide-in-from-top-2">
                   <div>
-                    <label className="text-[10px] font-bold text-slate-400 uppercase mb-1.5 block">Resolvidas</label>
-                    <input type="number" placeholder="0" value={formData.questionsDone} onChange={(e) => setFormData({ ...formData, questionsDone: e.target.value })} className="w-full p-3 bg-white dark:bg-slate-900 border-none rounded-xl outline-none text-sm font-bold dark:text-white shadow-sm" />
+                    <label className="text-[10px] font-bold text-zinc-400 uppercase mb-1.5 block">Resolvidas</label>
+                    <input type="number" placeholder="0" value={formData.questionsDone} onChange={(e) => setFormData({ ...formData, questionsDone: e.target.value })} className="w-full p-3 bg-white dark:bg-zinc-900 border-none rounded-xl outline-none text-sm font-bold dark:text-white shadow-sm" />
                   </div>
                   <div>
-                    <label className="text-[10px] font-bold text-slate-400 uppercase mb-1.5 block">Acertos</label>
-                    <input type="number" placeholder="0" value={formData.questionsCorrect} onChange={(e) => setFormData({ ...formData, questionsCorrect: e.target.value })} className="w-full p-3 bg-white dark:bg-slate-900 border-none rounded-xl outline-none text-sm font-bold dark:text-white shadow-sm" />
+                    <label className="text-[10px] font-bold text-zinc-400 uppercase mb-1.5 block">Acertos</label>
+                    <input type="number" placeholder="0" value={formData.questionsCorrect} onChange={(e) => setFormData({ ...formData, questionsCorrect: e.target.value })} className="w-full p-3 bg-white dark:bg-zinc-900 border-none rounded-xl outline-none text-sm font-bold dark:text-white shadow-sm" />
                   </div>
                 </div>
               )}
@@ -1044,7 +987,7 @@ const Dashboard: React.FC<DashboardProps> = ({
               <button
                 onClick={handleSaveActivity}
                 disabled={!formData.subjectId}
-                className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-[10px] font-bold uppercase shadow-lg shadow-blue-500/20 disabled:opacity-50 disabled:shadow-none active:scale-95 transition-all mt-4 flex items-center justify-center gap-2"
+                className="w-full py-4 bg-zinc-900 dark:bg-zinc-700 hover:bg-zinc-800 dark:hover:bg-zinc-600 text-white rounded-2xl text-[10px] font-bold uppercase shadow-lg shadow-zinc-900/10 dark:shadow-zinc-900/50 disabled:opacity-50 disabled:shadow-none active:scale-95 transition-all mt-4 flex items-center justify-center gap-2"
               >
                 <Save size={16} /> Salvar Registro
               </button>

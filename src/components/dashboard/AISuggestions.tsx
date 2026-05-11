@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { Bot, Lightbulb } from 'lucide-react';
 
 interface AISuggestionsProps {
@@ -15,7 +15,7 @@ const AISuggestions: React.FC<AISuggestionsProps> = ({ suggestions }) => {
             {suggestions.length === 0 ? (
                 <div className="text-center py-6 opacity-60 flex flex-col items-center">
                     <Bot size={32} className="text-zinc-400 mb-2" />
-                    <p className="text-xs font-bold text-zinc-500 dark:text-zinc-400 mt-1">Sem sugestÃµes no momento.</p>
+                    <p className="text-xs font-bold text-zinc-500 dark:text-zinc-400 mt-1">Sem sugestões no momento.</p>
                     <p className="text-[10px] text-zinc-400">Continue estudando para gerar dados.</p>
                 </div>
             ) : (

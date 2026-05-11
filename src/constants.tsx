@@ -1,4 +1,4 @@
-﻿
+
 import { Category, Concurso } from './types';
 
 export const COLORS = [
@@ -9,7 +9,13 @@ export const COLORS = [
   'bg-rose-500',
   'bg-indigo-500',
   'bg-cyan-500',
-  'bg-orange-500'
+  'bg-orange-500',
+  'bg-zinc-500',
+  'bg-red-500',
+  'bg-green-500',
+  'bg-yellow-500',
+  'bg-pink-500',
+  'bg-teal-500'
 ];
 
 export const INITIAL_CATEGORIES: Category[] = [
@@ -25,19 +31,19 @@ export const INITIAL_CONCURSOS: Concurso[] = [
     subjects: [
       {
         id: 'sub-1',
-        name: 'PortuguÃªs',
+        name: 'Português',
         color: 'bg-blue-500',
         topics: [
           { id: 't-1', title: 'Ortografia', isCompleted: false, priority: 'Alta' },
-          { id: 't-2', title: 'Sintaxe', isCompleted: false, priority: 'MÃ©dia' }
+          { id: 't-2', title: 'Sintaxe', isCompleted: false, priority: 'Média' }
         ]
       },
       {
         id: 'sub-2',
-        name: 'MatemÃ¡tica',
+        name: 'Matemática',
         color: 'bg-emerald-500',
         topics: [
-          { id: 't-3', title: 'Regra de TrÃªs', isCompleted: false, priority: 'Alta' }
+          { id: 't-3', title: 'Regra de Três', isCompleted: false, priority: 'Alta' }
         ]
       }
     ]

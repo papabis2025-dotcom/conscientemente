@@ -1,4 +1,4 @@
-﻿
+
 import React, { useState } from 'react';
 import { Subject, Simulado, SimuladoSubjectResult } from '../types';
 
@@ -37,7 +37,7 @@ const SimuladosView: React.FC<SimuladosViewProps> = ({ subjects, simulados, onAd
 
   const handleSave = () => {
     if (!name || results.length === 0) {
-      alert("DÃª um nome ao simulado e adicione pelo menos um resultado de matÃ©ria.");
+      alert("Dê um nome ao simulado e adicione pelo menos um resultado de matéria.");
       return;
     }
 
@@ -59,7 +59,7 @@ const SimuladosView: React.FC<SimuladosViewProps> = ({ subjects, simulados, onAd
       <header className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl text-zinc-800 dark:text-white">Simulados Completos</h2>
-          <p className="text-zinc-500 dark:text-zinc-400">Avalie seu desempenho global em condiÃ§Ãµes de prova.</p>
+          <p className="text-zinc-500 dark:text-zinc-400">Avalie seu desempenho global em condições de prova.</p>
         </div>
         <button
           onClick={() => setIsAdding(true)}
@@ -92,7 +92,7 @@ const SimuladosView: React.FC<SimuladosViewProps> = ({ subjects, simulados, onAd
                 onChange={(e) => setCurrentSubjectId(e.target.value)}
                 className="flex-1 min-w-[150px] px-4 py-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl outline-none text-sm dark:text-white"
               >
-                <option value="">MatÃ©ria...</option>
+                <option value="">Matéria...</option>
                 {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
               </select>
               <input type="number" value={currentDone} onChange={(e) => setCurrentDone(e.target.value)} placeholder="Total" className="w-24 px-4 py-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl outline-none text-sm dark:text-white" />
@@ -110,10 +110,10 @@ const SimuladosView: React.FC<SimuladosViewProps> = ({ subjects, simulados, onAd
                       <div className={`w-2 h-8 rounded-full ${sub?.color || 'bg-zinc-500'}`} />
                       <div>
                         <p className="text-xs font-black dark:text-white leading-none">{sub?.name}</p>
-                        <p className="text-[10px] text-zinc-400 mt-1">{res.correct} acertos de {res.done} questÃµes ({acc}%)</p>
+                        <p className="text-[10px] text-zinc-400 mt-1">{res.correct} acertos de {res.done} questões ({acc}%)</p>
                       </div>
                     </div>
-                    <button onClick={() => removeResultRow(i)} className="text-rose-500 hover:text-rose-600">âœ•</button>
+                    <button onClick={() => removeResultRow(i)} className="text-rose-500 hover:text-rose-600">✕</button>
                   </div>
                 );
               })}
@@ -140,7 +140,7 @@ const SimuladosView: React.FC<SimuladosViewProps> = ({ subjects, simulados, onAd
                   <h4 className="text-lg font-black text-zinc-800 dark:text-white leading-tight">{sim.name}</h4>
                   <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mt-1">{new Date(sim.date).toLocaleDateString('pt-BR')}</p>
                 </div>
-                <button onClick={() => confirm('Excluir simulado?') && onDeleteSimulado(sim.id)} className="text-zinc-200 group-hover:text-rose-500 transition-colors">ðŸ—‘ï¸</button>
+                <button onClick={() => confirm('Excluir simulado?') && onDeleteSimulado(sim.id)} className="text-zinc-200 group-hover:text-rose-500 transition-colors">🗑️</button>
               </div>
 
               <div className="flex items-end justify-between mb-4">
@@ -150,7 +150,7 @@ const SimuladosView: React.FC<SimuladosViewProps> = ({ subjects, simulados, onAd
                 </div>
                 <div className="text-right">
                   <p className="text-sm font-black text-zinc-700 dark:text-zinc-300">{totalCorrect}/{totalDone}</p>
-                  <p className="text-[8px] font-black text-zinc-400 uppercase tracking-widest">Acertos/QuestÃµes</p>
+                  <p className="text-[8px] font-black text-zinc-400 uppercase tracking-widest">Acertos/Questões</p>
                 </div>
               </div>
 
@@ -168,8 +168,8 @@ const SimuladosView: React.FC<SimuladosViewProps> = ({ subjects, simulados, onAd
 
         {simulados.length === 0 && !isAdding && (
           <div className="col-span-full py-20 text-center opacity-30">
-            <span className="text-5xl mb-4 block">ðŸ“‰</span>
-            <p className="font-black uppercase tracking-widest text-xs">Ainda nÃ£o hÃ¡ simulados registrados</p>
+            <span className="text-5xl mb-4 block">📉</span>
+            <p className="font-black uppercase tracking-widest text-xs">Ainda não há simulados registrados</p>
           </div>
         )}
       </div>

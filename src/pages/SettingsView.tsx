@@ -1,4 +1,4 @@
-﻿
+
 import React, { useRef, useState } from 'react';
 import { supabase } from '../services/supabase';
 import { api } from '../services/api';
@@ -65,10 +65,10 @@ const SettingsView: React.FC<SettingsViewProps> = ({ currentUserEmail }) => {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
-      alert('âœ… Dados exportados com sucesso!');
+      alert('✅ Dados exportados com sucesso!');
     } catch (error) {
       console.error('Export error:', error);
-      alert('âŒ Erro ao exportar dados. Verifique o console.');
+      alert('❌ Erro ao exportar dados. Verifique o console.');
     } finally {
       setIsExporting(false);
     }
@@ -84,7 +84,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ currentUserEmail }) => {
       const importData = JSON.parse(text);
 
       if (!importData.data) {
-        throw new Error('Formato de arquivo invÃ¡lido');
+        throw new Error('Formato de arquivo inválido');
       }
 
       const { concursos, sessions, simulados, scheduledStudies, dailyGoals } = importData.data;
@@ -123,11 +123,11 @@ const SettingsView: React.FC<SettingsViewProps> = ({ currentUserEmail }) => {
         }
       }
 
-      alert('âœ… Dados importados com sucesso! Recarregue a pÃ¡gina.');
+      alert('✅ Dados importados com sucesso! Recarregue a página.');
       window.location.reload();
     } catch (error) {
       console.error('Import error:', error);
-      alert('âŒ Erro ao importar dados. Verifique o formato do arquivo.');
+      alert('❌ Erro ao importar dados. Verifique o formato do arquivo.');
     } finally {
       setIsImporting(false);
       if (fileRef.current) fileRef.current.value = '';
@@ -138,17 +138,17 @@ const SettingsView: React.FC<SettingsViewProps> = ({ currentUserEmail }) => {
     setPasswordMessage('');
 
     if (!newPassword || !confirmPassword) {
-      setPasswordMessage('âŒ Preencha todos os campos');
+      setPasswordMessage('❌ Preencha todos os campos');
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setPasswordMessage('âŒ As senhas nÃ£o coincidem');
+      setPasswordMessage('❌ As senhas não coincidem');
       return;
     }
 
     if (newPassword.length < 6) {
-      setPasswordMessage('âŒ A senha deve ter pelo menos 6 caracteres');
+      setPasswordMessage('❌ A senha deve ter pelo menos 6 caracteres');
       return;
     }
 
@@ -156,12 +156,12 @@ const SettingsView: React.FC<SettingsViewProps> = ({ currentUserEmail }) => {
       const { error } = await supabase.auth.updateUser({ password: newPassword });
       if (error) throw error;
 
-      setPasswordMessage('âœ… Senha alterada com sucesso!');
+      setPasswordMessage('✅ Senha alterada com sucesso!');
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
     } catch (error: any) {
-      setPasswordMessage(`âŒ Erro: ${error.message}`);
+      setPasswordMessage(`❌ Erro: ${error.message}`);
     }
   };
 
@@ -169,7 +169,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ currentUserEmail }) => {
     setEmailMessage('');
 
     if (!newEmail) {
-      setEmailMessage('âŒ Digite o novo e-mail');
+      setEmailMessage('❌ Digite o novo e-mail');
       return;
     }
 
@@ -177,23 +177,23 @@ const SettingsView: React.FC<SettingsViewProps> = ({ currentUserEmail }) => {
       const { error } = await supabase.auth.updateUser({ email: newEmail });
       if (error) throw error;
 
-      setEmailMessage('âœ… E-mail de confirmaÃ§Ã£o enviado! Verifique sua caixa de entrada.');
+      setEmailMessage('✅ E-mail de confirmação enviado! Verifique sua caixa de entrada.');
       setNewEmail('');
     } catch (error: any) {
-      setEmailMessage(`âŒ Erro: ${error.message}`);
+      setEmailMessage(`❌ Erro: ${error.message}`);
     }
   };
 
   return (
     <div className="space-y-8 animate-in fade-in">
       <div>
-        <h2 className="text-2xl font-black text-zinc-800 dark:text-white uppercase tracking-tight">ConfiguraÃ§Ãµes âš™ï¸</h2>
+        <h2 className="text-2xl font-black text-zinc-800 dark:text-white uppercase tracking-tight">Configurações ⚙️</h2>
         <p className="text-zinc-500 dark:text-zinc-400">Gerencie sua conta e dados.</p>
       </div>
 
       {/* Profile Management */}
       <div className="bg-white dark:bg-zinc-900 p-8 rounded-[2.5rem] border border-zinc-200 dark:border-zinc-800 shadow-sm space-y-6">
-        <h3 className="font-bold text-lg flex items-center gap-2">ðŸ‘¤ Minha Conta</h3>
+        <h3 className="font-bold text-lg flex items-center gap-2">👤 Minha Conta</h3>
 
         <div className="p-4 bg-zinc-100 dark:bg-zinc-800 dark:bg-zinc-800/50 rounded-2xl border border-zinc-200 dark:border-zinc-800">
           <p className="text-sm font-bold text-zinc-800 dark:text-zinc-300">E-mail atual: {currentUserEmail}</p>
@@ -251,11 +251,11 @@ const SettingsView: React.FC<SettingsViewProps> = ({ currentUserEmail }) => {
         </div>
       </div>
 
-      {/* PreferÃªncias de Estudo */}
+      {/* Preferências de Estudo */}
       <div className="bg-white dark:bg-zinc-900 p-8 rounded-[2.5rem] border border-zinc-200 dark:border-zinc-800 shadow-sm space-y-6">
-        <h3 className="font-bold text-lg flex items-center gap-2">ðŸŽ¯ PreferÃªncias de Estudo</h3>
+        <h3 className="font-bold text-lg flex items-center gap-2">🎯 Preferências de Estudo</h3>
         <div className="space-y-4">
-          <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Meta DiÃ¡ria de QuestÃµes</p>
+          <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Meta Diária de Questões</p>
           <div className="flex items-center gap-4">
             <input
               type="number"
@@ -264,7 +264,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ currentUserEmail }) => {
               onChange={(e) => setGlobalDailyGoal(parseInt(e.target.value) || 0)}
               className="w-32 px-4 py-3 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-2xl outline-none focus:ring-2 focus:ring-zinc-500 text-zinc-800 dark:text-white font-bold text-lg"
             />
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">questÃµes por dia em todas as datas.</p>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">questões por dia em todas as datas.</p>
           </div>
         </div>
       </div>
@@ -272,7 +272,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ currentUserEmail }) => {
       {/* Backup & Export */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div className="bg-white dark:bg-zinc-900 p-8 rounded-[2.5rem] border border-zinc-200 dark:border-zinc-800 shadow-sm space-y-6">
-          <h3 className="font-bold text-lg flex items-center gap-2">ðŸ“¦ Backup de Dados</h3>
+          <h3 className="font-bold text-lg flex items-center gap-2">📦 Backup de Dados</h3>
           <p className="text-sm text-zinc-500 leading-relaxed">Exporte ou importe seus dados do Supabase.</p>
           <div className="flex flex-col gap-3">
             <button
@@ -280,42 +280,42 @@ const SettingsView: React.FC<SettingsViewProps> = ({ currentUserEmail }) => {
               disabled={isExporting}
               className="w-full py-4 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-zinc-900 dark:bg-zinc-700 hover:text-white transition-all disabled:opacity-50"
             >
-              {isExporting ? 'â³ Exportando...' : 'ðŸ“¤ Exportar JSON'}
+              {isExporting ? '⏳ Exportando...' : '📤 Exportar JSON'}
             </button>
             <button
               onClick={() => fileRef.current?.click()}
               disabled={isImporting}
               className="w-full py-4 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-emerald-600 hover:text-white transition-all disabled:opacity-50"
             >
-              {isImporting ? 'â³ Importando...' : 'ðŸ“¥ Importar JSON'}
+              {isImporting ? '⏳ Importando...' : '📥 Importar JSON'}
             </button>
             <input type="file" ref={fileRef} onChange={handleImport} className="hidden" accept=".json" />
           </div>
         </div>
 
         <div className="bg-white dark:bg-zinc-900 p-8 rounded-[2.5rem] border border-zinc-200 dark:border-zinc-800 shadow-sm space-y-6">
-          <h3 className="font-bold text-lg flex items-center gap-2">â˜ï¸ SincronizaÃ§Ã£o</h3>
+          <h3 className="font-bold text-lg flex items-center gap-2">☁️ Sincronização</h3>
           <div className="p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl flex justify-between items-center border border-emerald-100 dark:border-emerald-800">
             <div>
               <p className="text-[10px] font-black uppercase text-emerald-600 dark:text-emerald-400">Status</p>
               <p className="text-lg font-black text-emerald-700 dark:text-emerald-300">Conectado ao Supabase</p>
             </div>
-            <span className="text-2xl">âœ…</span>
+            <span className="text-2xl">✅</span>
           </div>
-          <p className="text-xs text-zinc-500">Seus dados estÃ£o sendo salvos automaticamente na nuvem.</p>
+          <p className="text-xs text-zinc-500">Seus dados estão sendo salvos automaticamente na nuvem.</p>
         </div>
 
         {/* Danger Zone */}
         <div className="bg-rose-50 dark:bg-rose-900/10 p-8 rounded-[2.5rem] border border-rose-100 dark:border-rose-900/30 shadow-sm space-y-6">
-          <h3 className="font-bold text-lg flex items-center gap-2 text-rose-600 dark:text-rose-400">ðŸš¨ Zona de Perigo</h3>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">AÃ§Ãµes irreversÃ­veis.</p>
+          <h3 className="font-bold text-lg flex items-center gap-2 text-rose-600 dark:text-rose-400">🚨 Zona de Perigo</h3>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">Ações irreversíveis.</p>
           <button
             onClick={async () => {
-              if (confirm('âš ï¸ TEM CERTEZA? Isso apagarÃ¡ TODOS os seus dados (concursos, sessÃµes, simulados) permanentemente.') &&
-                confirm('â›” Ãšltimo aviso: Essa aÃ§Ã£o nÃ£o pode ser desfeita. Confirmar reset total?')) {
+              if (confirm('⚠️ TEM CERTEZA? Isso apagará TODOS os seus dados (concursos, sessões, simulados) permanentemente.') &&
+                confirm('⛔ Último aviso: Essa ação não pode ser desfeita. Confirmar reset total?')) {
                 const success = await resetAllData();
                 if (success) {
-                  alert('âœ… Todos os dados foram apagados. O sistema foi resetado.');
+                  alert('✅ Todos os dados foram apagados. O sistema foi resetado.');
                   window.location.reload();
                 } else {
                   alert('Erro ao resetar dados.');
@@ -324,7 +324,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ currentUserEmail }) => {
             }}
             className="w-full bg-rose-600 text-white py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-rose-700 transition-all shadow-lg shadow-rose-500/20 active:scale-95"
           >
-            ðŸ”¥ FÃBRICA: Resetar Tudo
+            🔥 FÁBRICA: Resetar Tudo
           </button>
         </div>
       </div>

@@ -1,4 +1,4 @@
-﻿
+
 import React, { useState } from 'react';
 import { User } from '../types';
 import { supabase } from '../services/supabase';
@@ -56,13 +56,13 @@ const LoginView: React.FC<LoginViewProps> = () => {
 
       // Handle network/CORS errors specifically
       if (err.name === 'AuthRetryableFetchError' || errorMessage.includes('Failed to fetch')) {
-        setError('Erro de conexÃ£o com servidor. Verifique: internet, firewall, antivÃ­rus ou VPN/proxy.');
+        setError('Erro de conexão com servidor. Verifique: internet, firewall, antivírus ou VPN/proxy.');
       } else if (errorMessage.includes('Invalid login credentials')) {
         setError('E-mail ou senha incorretos.');
       } else if (errorMessage.includes('Email not confirmed')) {
         setError('Por favor, confirme seu e-mail antes de fazer login.');
       } else if (errorMessage.includes('User already registered')) {
-        setError('Este e-mail jÃ¡ estÃ¡ cadastrado. FaÃ§a login.');
+        setError('Este e-mail já está cadastrado. Faça login.');
       } else {
         setError(errorMessage);
       }
@@ -93,17 +93,17 @@ const LoginView: React.FC<LoginViewProps> = () => {
 
       if (error) throw error;
 
-      setSuccessMsg('Link de recuperaÃ§Ã£o enviado! Verifique seu e-mail (inclusive spam).');
+      setSuccessMsg('Link de recuperação enviado! Verifique seu e-mail (inclusive spam).');
     } catch (err: any) {
       console.error('Password reset error - Full details:', err);
 
       // Handle network errors
       if (err.name === 'AuthRetryableFetchError' || err.message?.includes('Failed to fetch')) {
-        setError('Erro de conexÃ£o. Verifique se o projeto Supabase estÃ¡ ativo e se hÃ¡ internet.');
+        setError('Erro de conexão. Verifique se o projeto Supabase está ativo e se há internet.');
       } else if (err.status === 429) {
         setError('Muitas tentativas. Aguarde um momento.');
       } else {
-        setError(err.message || 'Erro ao enviar e-mail de recuperaÃ§Ã£o.');
+        setError(err.message || 'Erro ao enviar e-mail de recuperação.');
       }
     } finally {
       setLoading(false);
@@ -125,7 +125,7 @@ const LoginView: React.FC<LoginViewProps> = () => {
           <img src={logoImg} alt="Legis Pro Logo" className="w-48 h-48 object-contain mb-8 drop-shadow-2xl" />
           <h1 className="text-4xl lg:text-5xl font-black uppercase tracking-tighter mb-4 leading-tight">Legis Pro</h1>
           <p className="text-zinc-100 text-lg font-medium mb-8 leading-relaxed">
-            A plataforma definitiva para quem busca a aprovaÃ§Ã£o. Planeje, execute e analise sua evoluÃ§Ã£o com inteligÃªncia.
+            A plataforma definitiva para quem busca a aprovação. Planeje, execute e analise sua evolução com inteligência.
           </p>
           <div className="flex gap-4 items-center">
             <div className="flex -space-x-2">
@@ -151,7 +151,7 @@ const LoginView: React.FC<LoginViewProps> = () => {
               {isRegistering ? 'Crie sua conta gratuita' : 'Acesse seu painel'}
             </h3>
             <p className="text-sm text-zinc-500 dark:text-zinc-400 font-medium">
-              {isRegistering ? 'Comece sua jornada rumo Ã  posse hoje mesmo.' : 'Bem-vindo de volta! Insira suas credenciais abaixo.'}
+              {isRegistering ? 'Comece sua jornada rumo à posse hoje mesmo.' : 'Bem-vindo de volta! Insira suas credenciais abaixo.'}
             </p>
           </div>
 
@@ -179,7 +179,7 @@ const LoginView: React.FC<LoginViewProps> = () => {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
+                  placeholder="••••••••"
                   className="w-full px-4 py-3.5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-medium transition-all"
                   required
                 />
@@ -201,12 +201,12 @@ const LoginView: React.FC<LoginViewProps> = () => {
           {/* Google login removed */}
 
           <p className="text-center text-xs font-medium text-zinc-500">
-            {isRegistering ? 'JÃ¡ possui uma conta?' : 'Ainda nÃ£o Ã© membro?'}
+            {isRegistering ? 'Já possui uma conta?' : 'Ainda não é membro?'}
             <button
               onClick={() => { setIsRegistering(!isRegistering); setError(''); setSuccessMsg(''); }}
               className="ml-1 text-zinc-900 dark:text-zinc-100 font-bold hover:underline"
             >
-              {isRegistering ? 'FaÃ§a login' : 'Cadastre-se grÃ¡tis'}
+              {isRegistering ? 'Faça login' : 'Cadastre-se grátis'}
             </button>
           </p>
         </div>

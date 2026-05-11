@@ -1,4 +1,4 @@
-﻿
+
 import React, { useState, useEffect } from 'react';
 
 const TimerView: React.FC = () => {
@@ -32,7 +32,7 @@ const TimerView: React.FC = () => {
     <div className="flex flex-col items-center justify-center h-[calc(100vh-160px)] space-y-8">
       <div className="text-center">
         <h2 className="text-2xl font-bold text-zinc-800 dark:text-white">Foco Total</h2>
-        <p className="text-zinc-500 dark:text-zinc-400">A tÃ©cnica Pomodoro ajuda na concentraÃ§Ã£o.</p>
+        <p className="text-zinc-500 dark:text-zinc-400">A técnica Pomodoro ajuda na concentração.</p>
       </div>
 
       <div className="flex gap-4 p-1 bg-zinc-200 dark:bg-zinc-800 rounded-2xl transition-colors">

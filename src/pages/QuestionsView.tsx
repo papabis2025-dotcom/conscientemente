@@ -1,4 +1,4 @@
-﻿
+
 import React, { useState, useMemo } from 'react';
 import { Subject, StudySession, DailyGoal } from '../types';
 import { getBadgeStyle } from '../utils/colors';
@@ -52,13 +52,13 @@ const QuestionsView: React.FC<QuestionsViewProps> = ({
 
   const handleSave = () => {
     if (!selectedSubjectId || !done || !correct) {
-      alert("Preencha os campos obrigatÃ³rios.");
+      alert("Preencha os campos obrigatórios.");
       return;
     }
     const doneNum = parseInt(done);
     const correctNum = parseInt(correct);
     if (correctNum > doneNum) {
-      alert("Acertos nÃ£o podem superar o total.");
+      alert("Acertos não podem superar o total.");
       return;
     }
 
@@ -76,7 +76,7 @@ const QuestionsView: React.FC<QuestionsViewProps> = ({
     setDone(''); setCorrect(''); setDuration('');
   };
 
-  // Agrupamento HierÃ¡rquico: Disciplina -> TÃ³pico
+  // Agrupamento Hierárquico: Disciplina -> Tópico
   const performanceHierarchy = useMemo(() => {
     const subjectMap: Record<string, {
       name: string,
@@ -90,8 +90,8 @@ const QuestionsView: React.FC<QuestionsViewProps> = ({
       const subject = subjects.find(sub => sub.id === s.subjectId);
       if (!subject) return;
 
-      // Strict Filter: Only count 'QuestÃµes' or 'Simulado' type activities for performance stats
-      const validTypes = ['QuestÃµes', 'Simulado'];
+      // Strict Filter: Only count 'Questões' or 'Simulado' type activities for performance stats
+      const validTypes = ['Questões', 'Simulado'];
       if (s.activityType && !validTypes.includes(s.activityType)) return;
       // Also filter out any session without questionsDone
       if (s.questionsDone === undefined || s.questionsDone === null || s.questionsDone === 0) return;
@@ -132,8 +132,8 @@ const QuestionsView: React.FC<QuestionsViewProps> = ({
     <div className="space-y-8 animate-in fade-in duration-500">
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div>
-          <h2 className="text-2xl text-zinc-800 dark:text-white">Performance em QuestÃµes</h2>
-          <p className="text-zinc-500 dark:text-zinc-400">Analise seu rendimento detalhado por matÃ©ria e assunto.</p>
+          <h2 className="text-2xl text-zinc-800 dark:text-white">Performance em Questões</h2>
+          <p className="text-zinc-500 dark:text-zinc-400">Analise seu rendimento detalhado por matéria e assunto.</p>
         </div>
       </header>
 
@@ -180,7 +180,7 @@ const QuestionsView: React.FC<QuestionsViewProps> = ({
         {/* Data Column */}
         <div className="lg:col-span-2 space-y-8">
           <div className="bg-white dark:bg-zinc-900 p-8 rounded-[2.5rem] border border-zinc-200 dark:border-zinc-800 shadow-sm">
-            <h3 className="text-lg font-bold text-zinc-800 dark:text-white mb-6">Performance HierÃ¡rquica</h3>
+            <h3 className="text-lg font-bold text-zinc-800 dark:text-white mb-6">Performance Hierárquica</h3>
             <div className="space-y-8 max-h-[500px] overflow-y-auto pr-4 custom-scrollbar">
               {performanceHierarchy.length === 0 ? (
                 <div className="py-20 text-center opacity-30 uppercase text-xs font-black tracking-widest">Sem dados registrados</div>
@@ -202,7 +202,7 @@ const QuestionsView: React.FC<QuestionsViewProps> = ({
                         <div className="w-full h-1.5 bg-zinc-200 dark:bg-zinc-700 rounded-full overflow-hidden mb-1">
                           <div className={`h-full transition-all duration-1000 ${topic.accuracy >= 75 ? 'bg-emerald-500' : topic.accuracy >= 60 ? 'bg-amber-500' : 'bg-rose-500'}`} style={{ width: `${topic.accuracy}%` }} />
                         </div>
-                        <p className="text-[8px] font-black text-zinc-400 uppercase tracking-widest">{topic.correct}/{topic.done} QuestÃµes</p>
+                        <p className="text-[8px] font-black text-zinc-400 uppercase tracking-widest">{topic.correct}/{topic.done} Questões</p>
                       </div>
                     ))}
                   </div>

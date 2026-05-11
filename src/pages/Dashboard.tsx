@@ -1,4 +1,4 @@
-﻿
+
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   LineChart, Line, AreaChart, Area, BarChart, Bar,
@@ -45,10 +45,10 @@ interface WidgetState {
 
 const DEFAULT_WIDGETS: WidgetState[] = [
   { id: 'general_stats', title: 'Desempenho Geral', isVisible: true, size: 'wide' },
-  { id: 'study_frequency', title: 'InformaÃ§Ãµes e Metas', isVisible: true, size: 'normal' },
+  { id: 'study_frequency', title: 'Informações e Metas', isVisible: true, size: 'normal' },
   { id: 'study_tasks', title: 'Tarefas de Hoje', isVisible: true, size: 'normal' },
   { id: 'weekly_chart', title: 'Volume de Estudo', isVisible: true, size: 'normal' },
-  { id: 'unified_subject_analysis', title: 'AnÃ¡lise por Disciplina', isVisible: true, size: 'wide' },
+  { id: 'unified_subject_analysis', title: 'Análise por Disciplina', isVisible: true, size: 'wide' },
 ];
 
 import { getColorHex } from '../utils/colors';
@@ -135,7 +135,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   const [formData, setFormData] = useState({
     subjectId: '',
     topicId: '',
-    activityType: 'QuestÃµes' as ActivityType,
+    activityType: 'Questões' as ActivityType,
     duration: '',
     questionsDone: '',
     questionsCorrect: '',
@@ -194,8 +194,8 @@ const Dashboard: React.FC<DashboardProps> = ({
       topicId: formData.topicId || undefined,
       durationInMinutes: parseInt(formData.duration) || 0,
       date: new Date(`${formData.date}T12:00:00`).toISOString(),
-      questionsDone: formData.activityType === 'QuestÃµes' ? (parseInt(formData.questionsDone) || undefined) : undefined,
-      questionsCorrect: formData.activityType === 'QuestÃµes' ? (parseInt(formData.questionsCorrect) || undefined) : undefined,
+      questionsDone: formData.activityType === 'Questões' ? (parseInt(formData.questionsDone) || undefined) : undefined,
+      questionsCorrect: formData.activityType === 'Questões' ? (parseInt(formData.questionsCorrect) || undefined) : undefined,
       activityType: formData.activityType
     });
 
@@ -203,7 +203,7 @@ const Dashboard: React.FC<DashboardProps> = ({
     setFormData({
       subjectId: '',
       topicId: '',
-      activityType: 'QuestÃµes',
+      activityType: 'Questões',
       duration: '',
       questionsDone: '',
       questionsCorrect: '',
@@ -272,7 +272,7 @@ const Dashboard: React.FC<DashboardProps> = ({
 
     if (activeWeeklyPeriod === 'weekly') {
       // Weekly view: Rolling last 7 days
-      const days = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'SÃ¡b'];
+      const days = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
       const dataMap = [];
       for (let i = 6; i >= 0; i--) {
@@ -506,7 +506,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                 <span className="text-[9px] font-semibold uppercase text-zinc-400 mb-0.5">Dias Seguidos</span>
               </div>
               <p className="text-[10px] text-zinc-500 dark:text-zinc-400 font-medium">
-                VocÃª estudou em <strong className="text-zinc-900 dark:text-zinc-100 dark:text-zinc-100">{frequencyData.last7DaysCount}</strong> dos Ãºltimos 7 dias.
+                Você estudou em <strong className="text-zinc-900 dark:text-zinc-100 dark:text-zinc-100">{frequencyData.last7DaysCount}</strong> dos últimos 7 dias.
               </p>
               <div className="w-full h-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-full mt-2 overflow-hidden">
                 <div className="h-full bg-amber-500" style={{ width: `${(frequencyData.last7DaysCount / 7) * 100}%` }} />
@@ -538,7 +538,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                 return (
                   <>
                     <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wide">Meta DiÃ¡ria</span>
+                      <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wide">Meta Diária</span>
                       <span className="text-[10px] font-bold text-zinc-600 dark:text-zinc-300">{doneToday} / {goal}</span>
                     </div>
                     <div className="w-full h-3 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden mb-1">
@@ -552,7 +552,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                         <span className="text-[9px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wide">Meta Batida!</span>
                       </div>
                     ) : (
-                      <p className="text-[9px] text-right text-zinc-400 font-medium">Faltam {remaining} questÃµes</p>
+                      <p className="text-[9px] text-right text-zinc-400 font-medium">Faltam {remaining} questões</p>
                     )}
                   </>
                 );
@@ -573,7 +573,7 @@ const Dashboard: React.FC<DashboardProps> = ({
 
                 return studyTasks.filter(t => t.date === todayStr).length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-full opacity-60 space-y-1.5">
-                    <div className="w-9 h-9 rounded-full bg-zinc-50 dark:bg-zinc-800 flex items-center justify-center text-base shadow-sm">ðŸŽ‰</div>
+                    <div className="w-9 h-9 rounded-full bg-zinc-50 dark:bg-zinc-800 flex items-center justify-center text-base shadow-sm">🎉</div>
                     <div className="text-center">
                       <p className="text-[10px] font-bold text-zinc-600 dark:text-zinc-300">Tudo em dia!</p>
                     </div>
@@ -610,7 +610,7 @@ const Dashboard: React.FC<DashboardProps> = ({
       case 'weekly_chart':
         return (
           <div className="flex flex-col h-full">
-            {/* Tabs: Tempo / QuestÃµes - Aligned to Left */}
+            {/* Tabs: Tempo / Questões - Aligned to Left */}
             <div className="flex justify-start mb-2">
               <div className="flex items-center gap-1 bg-zinc-50 dark:bg-zinc-800/50 p-1 rounded-lg">
                 <button
@@ -623,7 +623,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                   onClick={() => setActiveWeeklyTab('questions')}
                   className={`py-1 px-3 rounded-md text-[10px] font-bold uppercase tracking-wide transition-all ${activeWeeklyTab === 'questions' ? 'bg-white dark:bg-zinc-700 text-purple-600 shadow-sm' : 'text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}
                 >
-                  QuestÃµes
+                  Questões
                 </button>
               </div>
             </div>
@@ -688,7 +688,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                       </Bar>
                     </BarChart>
                   </ResponsiveContainer>
-                ) : <div className="h-full flex items-center justify-center text-xs text-zinc-400">Sem questÃµes feitas</div>
+                ) : <div className="h-full flex items-center justify-center text-xs text-zinc-400">Sem questões feitas</div>
               )}
             </div>
           </div>
@@ -702,7 +702,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                 onClick={() => setActiveAnalysisTab('questions')}
                 className={`flex-1 py-1 px-2 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-all ${activeAnalysisTab === 'questions' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-sm' : 'text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}
               >
-                QuestÃµes
+                Questões
               </button>
               <button
                 onClick={() => setActiveAnalysisTab('time')}
@@ -740,7 +740,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                       </Bar>
                     </BarChart>
                   </ResponsiveContainer>
-                ) : <div className="h-full flex items-center justify-center text-xs text-zinc-400">Sem questÃµes resolvidas</div>
+                ) : <div className="h-full flex items-center justify-center text-xs text-zinc-400">Sem questões resolvidas</div>
               )}
 
               {activeAnalysisTab === 'time' && (
@@ -812,7 +812,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                 onChange={(e) => onSelectConcursoId(e.target.value)}
                 className="bg-transparent border-none outline-none text-xs font-bold text-zinc-800 dark:text-white cursor-pointer w-32"
              >
-                <option value="all">VisÃ£o Global</option>
+                <option value="all">Visão Global</option>
                 {concursos.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
              </select>
           </div>
@@ -863,7 +863,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                     <button
                       onClick={() => setFullscreenWidgetId(widget.id)}
                       className="text-zinc-400 hover:text-zinc-900 dark:text-zinc-300 transition-colors p-1"
-                      title="Expandir GrÃ¡fico"
+                      title="Expandir Gráfico"
                     >
                       <Maximize2 size={14} />
                     </button>
@@ -935,7 +935,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                   <label className="text-[10px] font-bold text-zinc-400 uppercase mb-1.5 block">Tipo</label>
                   <select value={formData.activityType} onChange={(e) => setFormData({ ...formData, activityType: e.target.value as any })} className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 border-none rounded-2xl outline-none text-sm font-bold dark:text-white ring-1 ring-zinc-100 dark:ring-zinc-800 focus:ring-zinc-500">
                     <option value="Leitura">Leitura</option>
-                    <option value="QuestÃµes">QuestÃµes</option>
+                    <option value="Questões">Questões</option>
                     <option value="Aula">Aula</option>
                     <option value="Simulado">Simulado</option>
                   </select>
@@ -949,14 +949,14 @@ const Dashboard: React.FC<DashboardProps> = ({
               <div>
                 <label className="text-[10px] font-bold text-zinc-400 uppercase mb-1.5 block">Disciplina</label>
                 <select value={formData.subjectId} onChange={(e) => setFormData({ ...formData, subjectId: e.target.value, topicId: '' })} className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 border-none rounded-2xl outline-none text-sm font-bold dark:text-white ring-1 ring-zinc-100 dark:ring-zinc-800 focus:ring-zinc-500">
-                  <option value="">Selecione a matÃ©ria...</option>
+                  <option value="">Selecione a matéria...</option>
                   {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                 </select>
               </div>
 
               {formData.subjectId && (
                 <div className="animate-in fade-in slide-in-from-top-2">
-                  <label className="text-[10px] font-bold text-zinc-400 uppercase mb-1.5 block">Assunto / TÃ³pico</label>
+                  <label className="text-[10px] font-bold text-zinc-400 uppercase mb-1.5 block">Assunto / Tópico</label>
                   <select value={formData.topicId} onChange={(e) => setFormData({ ...formData, topicId: e.target.value })} className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 border-none rounded-2xl outline-none text-sm font-bold dark:text-white ring-1 ring-zinc-100 dark:ring-zinc-800 focus:ring-zinc-500">
                     <option value="">Geral / Outros</option>
                     {subjects.find(s => s.id === formData.subjectId)?.topics.map(t => (
@@ -971,7 +971,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                 <input type="number" placeholder="Ex: 45" value={formData.duration} onChange={(e) => setFormData({ ...formData, duration: e.target.value })} className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 border-none rounded-2xl outline-none text-sm font-bold dark:text-white ring-1 ring-zinc-100 dark:ring-zinc-800 focus:ring-zinc-500" />
               </div>
 
-              {formData.activityType === 'QuestÃµes' && (
+              {formData.activityType === 'Questões' && (
                 <div className="grid grid-cols-2 gap-4 p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl border border-dashed border-zinc-200 dark:border-zinc-800 animate-in fade-in slide-in-from-top-2">
                   <div>
                     <label className="text-[10px] font-bold text-zinc-400 uppercase mb-1.5 block">Resolvidas</label>

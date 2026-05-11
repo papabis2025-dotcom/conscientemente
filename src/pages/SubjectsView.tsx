@@ -1,4 +1,4 @@
-﻿import React, { useState, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { Subject, Topic, StudySession, Concurso } from '../types';
 
 import { COLORS } from '../constants';
@@ -51,7 +51,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
   // Topic addition state
   const [addingTopicToId, setAddingTopicToId] = useState<string | null>(null);
   const [newTopicTitle, setNewTopicTitle] = useState('');
-  const [newTopicPriority, setNewTopicPriority] = useState<'Baixa' | 'MÃƒÂ©dia' | 'Alta'>('MÃƒÂ©dia');
+  const [newTopicPriority, setNewTopicPriority] = useState<'Baixa' | 'Média' | 'Alta'>('Média');
 
   const [sortBy, setSortBy] = useState<'default' | 'time' | 'questions' | 'name' | 'meta'>('default');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
@@ -156,7 +156,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
     e.stopPropagation();
     // Replaced with custom modal
     setDeleteConfirmation({ isOpen: true, id, name: subjects.find(s => s.id === id)?.name || '' });
-    // if (confirm('Deseja excluir esta disciplina e todos os seus tÃƒÂ³picos?')) {
+    // if (confirm('Deseja excluir esta disciplina e todos os seus tópicos?')) {
     //   onUpdateSubjects(subjects.filter(s => s.id !== id));
     // }
   };
@@ -243,12 +243,12 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                 onChange={(e) => onSelectConcursoId(e.target.value)}
                 className="bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100 rounded-lg px-2 py-1 outline-none text-sm font-bold cursor-pointer"
               >
-                <option value="all">VisÃƒÂ£o Global</option>
+                <option value="all">Visão Global</option>
                 {concursos.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             )}
           </div>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">Gerenciamento detalhado do conteÃƒÂºdo programÃƒÂ¡tico.</p>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">Gerenciamento detalhado do conteúdo programático.</p>
         </div>
 
         <div className="flex flex-wrap gap-3 w-full md:w-auto items-center">
@@ -272,8 +272,8 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                 />
                 <button onClick={addSubject} className="bg-zinc-900 dark:bg-zinc-700 text-white px-3 py-2 rounded-xl hover:bg-zinc-800 dark:hover:bg-zinc-600 flex items-center justify-center"><Plus size={20} /></button>
               </div>
-              <div className="flex gap-1.5 px-1 items-center">
-                {COLORS.slice(0, 5).map(color => (
+              <div className="flex flex-wrap gap-1.5 px-1 items-center max-w-[240px]">
+                {COLORS.map(color => (
                   <button
                     key={color}
                     onClick={() => setSelectedColor(color)}
@@ -286,7 +286,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                     type="color"
                     value={getColorHex(selectedColor)}
                     onChange={(e) => setSelectedColor(e.target.value)}
-                    className="absolute top-1/2 left-1/2 transform -tranzinc-x-1/2 -tranzinc-y-1/2 w-[150%] h-[150%] p-0 border-0 cursor-pointer"
+                    className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[150%] h-[150%] p-0 border-0 cursor-pointer"
                     title="Cor personalizada"
                   />
                   <span className="pointer-events-none text-[8px] font-bold text-zinc-500">+</span>
@@ -304,20 +304,20 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
               <tr className="border-b border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-800/50">
                 <th className="px-6 py-4 text-[10px] font-bold uppercase text-zinc-400 tracking-wider"></th>
                 <th className="px-6 py-4 text-[10px] font-bold uppercase text-zinc-400 tracking-wider cursor-pointer hover:text-zinc-900 dark:text-zinc-300" onClick={() => { setSortBy('name'); setSortOrder(o => o === 'asc' ? 'desc' : 'asc'); }}>
-                  Disciplina {sortBy === 'name' && (sortOrder === 'asc' ? 'Ã¢â€ â€œ' : 'Ã¢â€ â€˜')}
+                  Disciplina {sortBy === 'name' && (sortOrder === 'asc' ? '↓' : '↑')}
                 </th>
                 <th className="px-6 py-4 text-[10px] font-bold uppercase text-zinc-400 tracking-wider cursor-pointer hover:text-zinc-900 dark:text-zinc-300" onClick={() => { setSortBy('time'); setSortOrder(o => o === 'desc' ? 'asc' : 'desc'); }}>
-                  Tempo {sortBy === 'time' && (sortOrder === 'desc' ? 'Ã¢â€ â€œ' : 'Ã¢â€ â€˜')}
+                  Tempo {sortBy === 'time' && (sortOrder === 'desc' ? '↓' : '↑')}
                 </th>
                 <th className="px-6 py-4 text-[10px] font-bold uppercase text-zinc-400 tracking-wider cursor-pointer hover:text-zinc-900 dark:text-zinc-300" onClick={() => { setSortBy('questions'); setSortOrder(o => o === 'desc' ? 'asc' : 'desc'); }}>
-                  QuestÃƒÂµes {sortBy === 'questions' && (sortOrder === 'desc' ? 'Ã¢â€ â€œ' : 'Ã¢â€ â€˜')}
+                  Questões {sortBy === 'questions' && (sortOrder === 'desc' ? '↓' : '↑')}
                 </th>
                 <th className="px-6 py-4 text-[10px] font-bold uppercase text-zinc-400 tracking-wider">Aproveitamento</th>
                 <th className="px-6 py-4 text-[10px] font-bold uppercase text-zinc-400 tracking-wider cursor-pointer hover:text-zinc-900 dark:text-zinc-300" onClick={() => { setSortBy('meta'); setSortOrder(o => o === 'desc' ? 'asc' : 'desc'); }}>
-                  Edital {sortBy === 'meta' && (sortOrder === 'desc' ? 'Ã¢â€ â€œ' : 'Ã¢â€ â€˜')}
+                  Edital {sortBy === 'meta' && (sortOrder === 'desc' ? '↓' : '↑')}
                 </th>
                 <th className="px-6 py-4 text-[10px] font-bold uppercase text-zinc-400 tracking-wider">Peso</th>
-                <th className="px-6 py-4 text-[10px] font-bold uppercase text-zinc-400 tracking-wider text-right">AÃƒÂ§ÃƒÂµes</th>
+                <th className="px-6 py-4 text-[10px] font-bold uppercase text-zinc-400 tracking-wider text-right">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
@@ -368,7 +368,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                           ) : (
                             <div>
                               <p className="text-sm font-bold text-zinc-800 dark:text-white">{subject.name}</p>
-                              <p className="text-[10px] text-zinc-400 uppercase font-medium mt-0.5">{subject.topics.length} tÃƒÂ³picos</p>
+                              <p className="text-[10px] text-zinc-400 uppercase font-medium mt-0.5">{subject.topics.length} tópicos</p>
                             </div>
                           )}
                         </div>
@@ -439,13 +439,13 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                         <td colSpan={8} className="px-0 py-0 bg-zinc-50/50 dark:bg-zinc-800/20 border-b border-zinc-100 dark:border-zinc-800">
                           <div className="p-6 pl-16 grid gap-4">
                             <div className="flex items-center gap-4 mb-2">
-                              <h4 className="text-xs font-bold uppercase text-zinc-400 tracking-wide">TÃƒÂ³picos do Edital</h4>
+                              <h4 className="text-xs font-bold uppercase text-zinc-400 tracking-wide">Tópicos do Edital</h4>
                               <div className="flex-1 h-px bg-zinc-200 dark:bg-zinc-700" />
                               {addingTopicToId === subject.id ? (
                                 <div className="flex items-center gap-2 animate-in fade-in">
                                   <input
                                     className="text-xs px-2 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 outline-none"
-                                    placeholder="Nome do tÃƒÂ³pico..."
+                                    placeholder="Nome do tópico..."
                                     value={newTopicTitle}
                                     onChange={e => setNewTopicTitle(e.target.value)}
                                     onKeyPress={e => e.key === 'Enter' && handleAddTopic(subject.id)}
@@ -456,14 +456,14 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                                     className="text-xs px-2 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 outline-none"
                                   >
                                     <option value="Baixa">Baixa</option>
-                                    <option value="MÃƒÂ©dia">MÃƒÂ©dia</option>
+                                    <option value="Média">Média</option>
                                     <option value="Alta">Alta</option>
                                   </select>
                                   <button onClick={() => handleAddTopic(subject.id)} className="text-xs bg-zinc-900 dark:bg-zinc-700 text-white px-3 py-1.5 rounded-lg">Add</button>
                                   <button onClick={() => setAddingTopicToId(null)} className="text-xs text-zinc-400 px-2">X</button>
                                 </div>
                               ) : (
-                                <button onClick={() => setAddingTopicToId(subject.id)} className="text-[10px] font-bold text-zinc-900 dark:text-zinc-100 uppercase hover:underline">+ Adicionar TÃƒÂ³pico</button>
+                                <button onClick={() => setAddingTopicToId(subject.id)} className="text-[10px] font-bold text-zinc-900 dark:text-zinc-100 uppercase hover:underline">+ Adicionar Tópico</button>
                               )}
                             </div>
 
@@ -471,10 +471,10 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                               <thead>
                                 <tr className="text-zinc-400 border-b border-zinc-200 dark:border-zinc-700">
                                   <th className="py-2 pl-4 text-[10px] uppercase font-bold cursor-pointer hover:text-zinc-900 dark:text-zinc-300" onClick={() => { setTopicSortBy('name'); setTopicSortOrder(o => o === 'asc' ? 'desc' : 'asc'); }}>
-                                    Assunto {topicSortBy === 'name' && (topicSortOrder === 'asc' ? 'Ã¢â€ â€˜' : 'Ã¢â€ â€œ')}
+                                    Assunto {topicSortBy === 'name' && (topicSortOrder === 'asc' ? '↑' : '↓')}
                                   </th>
                                   <th className="py-2 text-[10px] uppercase font-bold cursor-pointer hover:text-zinc-900 dark:text-zinc-300" onClick={() => { setTopicSortBy('lastStudy'); setTopicSortOrder(o => o === 'desc' ? 'asc' : 'desc'); }}>
-                                    ÃƒÅ¡ltimo Estudo {topicSortBy === 'lastStudy' && (topicSortOrder === 'desc' ? 'Ã¢â€ â€œ' : 'Ã¢â€ â€˜')}
+                                    Último Estudo {topicSortBy === 'lastStudy' && (topicSortOrder === 'desc' ? '↓' : '↑')}
                                   </th>
                                   <th className="py-2 text-[10px] uppercase font-bold text-zinc-400">
                                     Rev. 7d
@@ -483,22 +483,22 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                                     Rev. 30d
                                   </th>
                                   <th className="py-2 text-[10px] uppercase font-bold cursor-pointer hover:text-zinc-900 dark:text-zinc-300" onClick={() => { setTopicSortBy('time'); setTopicSortOrder(o => o === 'desc' ? 'asc' : 'desc'); }}>
-                                    Tempo {topicSortBy === 'time' && (topicSortOrder === 'desc' ? 'Ã¢â€ â€œ' : 'Ã¢â€ â€˜')}
+                                    Tempo {topicSortBy === 'time' && (topicSortOrder === 'desc' ? '↓' : '↑')}
                                   </th>
                                   <th className="py-2 text-[10px] uppercase font-bold cursor-pointer hover:text-zinc-900 dark:text-zinc-300" onClick={() => { setTopicSortBy('questions'); setTopicSortOrder(o => o === 'desc' ? 'asc' : 'desc'); }}>
-                                    QuestÃƒÂµes {topicSortBy === 'questions' && (topicSortOrder === 'desc' ? 'Ã¢â€ â€œ' : 'Ã¢â€ â€˜')}
+                                    Questões {topicSortBy === 'questions' && (topicSortOrder === 'desc' ? '↓' : '↑')}
                                   </th>
-                                  <th className="py-2 text-[10px] uppercase font-bold text-right">AÃƒÂ§ÃƒÂ£o</th>
+                                  <th className="py-2 text-[10px] uppercase font-bold text-right">Ação</th>
                                 </tr>
                               </thead>
                               <tbody>
-                                {/* TÃƒÂ³pico Geral / Fixo */}
+                                {/* Tópico Geral / Fixo */}
                                 {(() => {
                                   const stats = getTopicStats(subject.id, null);
                                   return (
                                     <tr className="bg-zinc-50/50 dark:bg-zinc-800/10 border-b border-zinc-100 dark:border-zinc-800/30">
                                       <td className="py-2 font-bold pl-4" style={{ color: getColorHex(subject.color) }}>
-                                        Geral / Outros <span className="text-[10px] font-normal opacity-70 ml-1 text-zinc-500 dark:text-zinc-400">(RevisÃƒÂ£o Geral)</span>
+                                        Geral / Outros <span className="text-[10px] font-normal opacity-70 ml-1 text-zinc-500 dark:text-zinc-400">(Revisão Geral)</span>
                                       </td>
                                       <td className="py-2 text-zinc-500 text-xs text-center">
                                         {stats.lastStudyDate || '-'}
@@ -599,7 +599,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                                 {subject.topics.length === 0 && (
                                   <tr>
                                     <td colSpan={6} className="py-4 text-center text-xs text-zinc-400 italic">
-                                      Nenhum tÃƒÂ³pico cadastrado para esta disciplina.
+                                      Nenhum tópico cadastrado para esta disciplina.
                                     </td>
                                   </tr>
                                 )}
@@ -619,7 +619,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                     <div className="flex flex-col items-center justify-center opacity-50">
                       <Bot size={40} className="mb-2 text-zinc-400" />
                       <p className="font-bold text-zinc-500">{selectedConcursoId === 'all' ? 'Selecione um edital acima para ver e adicionar disciplinas.' : 'Nenhuma disciplina encontrada neste edital.'}</p>
-                      {selectedConcursoId !== 'all' && <p className="text-sm text-zinc-400">Adicione manualmente usando o botÃƒÂ£o acima.</p>}
+                      {selectedConcursoId !== 'all' && <p className="text-sm text-zinc-400">Adicione manualmente usando o botão acima.</p>}
                     </div>
                   </td>
                 </tr>
@@ -640,7 +640,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                 <h3 className="text-lg font-bold text-zinc-800 dark:text-white mb-2">Excluir Disciplina?</h3>
                 <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-6">
                   Tem certeza que deseja excluir <strong>{deleteConfirmation.name}</strong>?<br />
-                  Todos os tÃƒÂ³picos e histÃƒÂ³rico associado serÃƒÂ£o removidos.
+                  Todos os tópicos e histórico associado serão removidos.
                 </p>
                 <div className="flex gap-3 w-full">
                   <button

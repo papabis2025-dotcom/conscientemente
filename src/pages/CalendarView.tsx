@@ -1,4 +1,4 @@
-﻿
+
 import React, { useState, useMemo } from 'react';
 import { Subject, ScheduledStudy, Topic, ActivityType, StudySession } from '../types';
 import { getBadgeStyle } from '../utils/colors';
@@ -34,7 +34,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ subjects, allSubjects, sche
   });
 
   const monthNames = [
-    "Janeiro", "Fevereiro", "MarÃ§o", "Abril", "Maio", "Junho",
+    "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
     "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
   ];
 
@@ -71,8 +71,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({ subjects, allSubjects, sche
         topicId: formData.topicId || undefined,
         durationInMinutes: parseInt(formData.duration) || 0,
         date: new Date(`${selectedDayKey}T12:00:00`).toISOString(),
-        questionsDone: formData.activityType === 'QuestÃµes' ? (parseInt(formData.questionsDone) || undefined) : undefined,
-        questionsCorrect: formData.activityType === 'QuestÃµes' ? (parseInt(formData.questionsCorrect) || undefined) : undefined,
+        questionsDone: formData.activityType === 'Questões' ? (parseInt(formData.questionsDone) || undefined) : undefined,
+        questionsCorrect: formData.activityType === 'Questões' ? (parseInt(formData.questionsCorrect) || undefined) : undefined,
         activityType: formData.activityType // Explicitly pass the type
       });
     } else {
@@ -84,8 +84,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({ subjects, allSubjects, sche
         activityType: formData.activityType,
         notes: formData.notes,
         durationInMinutes: parseInt(formData.duration) || undefined,
-        questionsDone: formData.activityType === 'QuestÃµes' ? (parseInt(formData.questionsDone) || undefined) : undefined,
-        questionsCorrect: formData.activityType === 'QuestÃµes' ? (parseInt(formData.questionsCorrect) || undefined) : undefined
+        questionsDone: formData.activityType === 'Questões' ? (parseInt(formData.questionsDone) || undefined) : undefined,
+        questionsCorrect: formData.activityType === 'Questões' ? (parseInt(formData.questionsCorrect) || undefined) : undefined
       };
       onUpdateSchedule([...scheduledStudies, newEntry]);
     }
@@ -112,11 +112,11 @@ const CalendarView: React.FC<CalendarViewProps> = ({ subjects, allSubjects, sche
 
   const getActivityIcon = (type?: ActivityType) => {
     switch (type) {
-      case 'QuestÃµes': return 'ðŸ“';
-      case 'Aula': return 'ðŸŽ¥';
-      case 'Leitura': return 'ðŸ“–';
-      case 'Simulado': return 'ðŸ“‹';
-      default: return 'ðŸ“š';
+      case 'Questões': return '📝';
+      case 'Aula': return '🎥';
+      case 'Leitura': return '📖';
+      case 'Simulado': return '📋';
+      default: return '📚';
     }
   };
 
@@ -132,7 +132,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ subjects, allSubjects, sche
               return (
                 <div key={key} onClick={() => handleDayClick(key)} className={`bg-white dark:bg-zinc-900 p-4 rounded-3xl border ${isToday ? 'border-blue-400 shadow-lg' : 'border-zinc-100 dark:border-zinc-800'} min-h-[600px] flex flex-col cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-all`}>
                   <div className="mb-4">
-                    <p className="text-[10px] font-black uppercase text-zinc-400">{['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'SÃ¡b'][date.getDay()]}</p>
+                    <p className="text-[10px] font-black uppercase text-zinc-400">{['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'][date.getDay()]}</p>
                     <h4 className={`text-2xl font-black ${isToday ? 'text-zinc-900 dark:text-zinc-100' : 'text-zinc-700 dark:text-zinc-200'}`}>{date.getDate()}</h4>
                   </div>
                   <div className="space-y-2 flex-1 overflow-y-auto custom-scrollbar pr-1">
@@ -183,7 +183,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ subjects, allSubjects, sche
                         const { style, className } = sub ? getBadgeStyle(sub.color) : { style: {}, className: 'bg-zinc-400 text-white' };
                         return (
                           <div key={t.id} style={style} className={`px-2 py-1.5 rounded-lg text-[10px] leading-tight font-bold line-clamp-2 ${className}`}>
-                            {t.activityType === 'Simulado' ? 'ðŸ“‹ ' : ''}{sub ? sub.name : 'Disciplina Removida'}
+                            {t.activityType === 'Simulado' ? '📋 ' : ''}{sub ? sub.name : 'Disciplina Removida'}
                           </div>
                         );
                       })}
@@ -194,7 +194,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ subjects, allSubjects, sche
             </div>
           </div>
         );
-      default: return <div className="p-20 text-center text-zinc-400 font-bold uppercase tracking-widest opacity-30">Selecione uma visualizaÃ§Ã£o</div>;
+      default: return <div className="p-20 text-center text-zinc-400 font-bold uppercase tracking-widest opacity-30">Selecione uma visualização</div>;
     }
   };
 
@@ -209,7 +209,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ subjects, allSubjects, sche
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div>
           <h2 className="text-2xl text-zinc-800 dark:text-white">Planner de Estudos</h2>
-          <p className="text-zinc-500 dark:text-zinc-400">Gerencie sua rotina diÃ¡ria e acompanhe seu progresso.</p>
+          <p className="text-zinc-500 dark:text-zinc-400">Gerencie sua rotina diária e acompanhe seu progresso.</p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
@@ -221,9 +221,9 @@ const CalendarView: React.FC<CalendarViewProps> = ({ subjects, allSubjects, sche
             ))}
           </div>
           <div className="flex items-center gap-4 bg-white dark:bg-zinc-900 px-4 py-2 rounded-2xl border border-zinc-200 dark:border-zinc-800">
-            <button onClick={() => handleNavigate(-1)}>â—€</button>
+            <button onClick={() => handleNavigate(-1)}>◀</button>
             <span className="font-black text-xs uppercase tracking-widest min-w-[150px] text-center">{getTitle()}</span>
-            <button onClick={() => handleNavigate(1)}>â–¶</button>
+            <button onClick={() => handleNavigate(1)}>▶</button>
           </div>
         </div>
       </header>
@@ -238,13 +238,13 @@ const CalendarView: React.FC<CalendarViewProps> = ({ subjects, allSubjects, sche
               <div className="space-y-3">
                 {tasksForSelectedDay.map(task => (
                   <div key={task.id} className="p-4 bg-white dark:bg-zinc-900 rounded-[1.5rem] border border-zinc-200 dark:border-zinc-700 group relative">
-                    <button onClick={() => handleDelete(task.id)} className="absolute top-2 right-2 text-zinc-300 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-all">âœ•</button>
+                    <button onClick={() => handleDelete(task.id)} className="absolute top-2 right-2 text-zinc-300 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-all">✕</button>
                     <p className="text-[8px] font-black uppercase text-zinc-900 dark:text-zinc-100 mb-1">{task.activityType}</p>
                     <h5 className="text-xs font-bold dark:text-white truncate">
                       {lookupSubjects.find(s => s.id === task.subjectId)?.name || <span className="text-rose-400 italic">Desconhecida</span>}
                     </h5>
                     {task.questionsDone !== undefined && (
-                      <p className="text-[9px] text-zinc-400 mt-1 font-bold">{task.questionsCorrect}/{task.questionsDone} QuestÃµes</p>
+                      <p className="text-[9px] text-zinc-400 mt-1 font-bold">{task.questionsCorrect}/{task.questionsDone} Questões</p>
                     )}
                   </div>
                 ))}
@@ -254,14 +254,14 @@ const CalendarView: React.FC<CalendarViewProps> = ({ subjects, allSubjects, sche
             <div className="flex-1 p-8 overflow-y-auto max-h-[80vh]">
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-xl font-black uppercase tracking-tighter">Novo Registro</h3>
-                <button onClick={() => setShowModal(false)} className="text-zinc-400">âœ•</button>
+                <button onClick={() => setShowModal(false)} className="text-zinc-400">✕</button>
               </div>
               <div className="space-y-4">
                 <div>
                   <label className="text-[10px] font-black text-zinc-400 uppercase mb-1 block">Tipo de Atividade</label>
                   <select value={formData.activityType} onChange={(e) => setFormData({ ...formData, activityType: e.target.value as any })} className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 border rounded-2xl outline-none text-sm dark:text-white">
                     <option value="Leitura">Leitura</option>
-                    <option value="QuestÃµes">QuestÃµes</option>
+                    <option value="Questões">Questões</option>
                     <option value="Aula">Aula</option>
                     <option value="Simulado">Simulado</option>
                   </select>
@@ -286,15 +286,15 @@ const CalendarView: React.FC<CalendarViewProps> = ({ subjects, allSubjects, sche
                 )}
                 <div className="grid grid-cols-1 gap-4">
                   <div>
-                    <label className="text-[10px] font-black text-zinc-400 uppercase mb-1 block">DuraÃ§Ã£o (min)</label>
-                    <input type="number" placeholder="DuraÃ§Ã£o" value={formData.duration} onChange={(e) => setFormData({ ...formData, duration: e.target.value })} className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 border rounded-2xl outline-none text-sm dark:text-white" />
+                    <label className="text-[10px] font-black text-zinc-400 uppercase mb-1 block">Duração (min)</label>
+                    <input type="number" placeholder="Duração" value={formData.duration} onChange={(e) => setFormData({ ...formData, duration: e.target.value })} className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 border rounded-2xl outline-none text-sm dark:text-white" />
                   </div>
                 </div>
 
-                {formData.activityType === 'QuestÃµes' && (
+                {formData.activityType === 'Questões' && (
                   <div className="grid grid-cols-2 gap-3 animate-in fade-in slide-in-from-top-2">
                     <div>
-                      <label className="text-[10px] font-black text-zinc-400 uppercase mb-1 block">Total QuestÃµes</label>
+                      <label className="text-[10px] font-black text-zinc-400 uppercase mb-1 block">Total Questões</label>
                       <input type="number" placeholder="Ex: 20" value={formData.questionsDone} onChange={(e) => setFormData({ ...formData, questionsDone: e.target.value })} className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 border rounded-2xl outline-none text-sm dark:text-white" />
                     </div>
                     <div>

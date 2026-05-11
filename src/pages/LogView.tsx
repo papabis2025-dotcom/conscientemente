@@ -1,4 +1,4 @@
-﻿import React, { useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { LogEntry } from '../types';
 
 interface LogViewProps {
@@ -16,22 +16,22 @@ const LogView: React.FC<LogViewProps> = ({ logs, onClearLogs, onDeleteLog }) => 
     <div className="space-y-6 animate-in fade-in duration-500">
       <header className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-black text-zinc-800 dark:text-white uppercase tracking-tight">Registro de Atividades ðŸ“‹</h2>
-          <p className="text-zinc-500 dark:text-zinc-400">HistÃ³rico tÃ©cnico de alteraÃ§Ãµes e eventos do sistema.</p>
+          <h2 className="text-2xl font-black text-zinc-800 dark:text-white uppercase tracking-tight">Registro de Atividades 📋</h2>
+          <p className="text-zinc-500 dark:text-zinc-400">Histórico técnico de alterações e eventos do sistema.</p>
         </div>
         <button
           onClick={() => confirm('Limpar todos os logs?') && onClearLogs()}
           className="px-4 py-2 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl font-bold uppercase text-xs transition-colors"
           disabled={logs.length === 0}
         >
-          Limpar HistÃ³rico
+          Limpar Histórico
         </button>
       </header>
 
       <div className="bg-white dark:bg-zinc-900 rounded-[2.5rem] border border-zinc-200 dark:border-zinc-800 p-6 shadow-sm overflow-hidden">
         {sortedLogs.length === 0 ? (
           <div className="text-center py-20 opacity-40">
-            <span className="text-4xl block mb-2">ðŸ“œ</span>
+            <span className="text-4xl block mb-2">📜</span>
             <p className="font-bold uppercase tracking-widest text-xs">Nenhum registro encontrado</p>
           </div>
         ) : (
@@ -42,7 +42,7 @@ const LogView: React.FC<LogViewProps> = ({ logs, onClearLogs, onDeleteLog }) => 
                   <th className="px-6 py-4 rounded-l-2xl">Data/Hora</th>
                   <th className="px-6 py-4">Tipo</th>
                   <th className="px-6 py-4 w-full">Mensagem</th>
-                  <th className="px-6 py-4 rounded-r-2xl text-right">AÃ§Ã£o</th>
+                  <th className="px-6 py-4 rounded-r-2xl text-right">Ação</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">

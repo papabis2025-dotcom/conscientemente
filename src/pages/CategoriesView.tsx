@@ -1,4 +1,4 @@
-﻿
+
 import React, { useState } from 'react';
 import { Category } from '../types';
 import { COLORS } from '../constants';
@@ -25,7 +25,7 @@ const CategoriesView: React.FC<CategoriesViewProps> = ({ categories, onUpdateCat
   };
 
   const deleteCategory = (id: string) => {
-    if (confirm('Tem certeza que deseja excluir esta categoria? Concursos associados ficarÃ£o sem categoria.')) {
+    if (confirm('Tem certeza que deseja excluir esta categoria? Concursos associados ficarão sem categoria.')) {
       onUpdateCategories(categories.filter(c => c.id !== id));
     }
   };
@@ -46,7 +46,7 @@ const CategoriesView: React.FC<CategoriesViewProps> = ({ categories, onUpdateCat
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold text-zinc-800 dark:text-white">Categorias de Concursos</h2>
-          <p className="text-zinc-500 dark:text-zinc-400">Organize seus planos de estudo por Ã¡reas.</p>
+          <p className="text-zinc-500 dark:text-zinc-400">Organize seus planos de estudo por áreas.</p>
         </div>
       </div>
 
@@ -82,8 +82,8 @@ const CategoriesView: React.FC<CategoriesViewProps> = ({ categories, onUpdateCat
                     className="flex-1 px-2 py-1 border border-blue-300 dark:border-zinc-700 rounded bg-transparent text-zinc-800 dark:text-white focus:outline-none"
                     autoFocus
                   />
-                  <button onClick={saveEdit} className="text-emerald-500 font-bold">âœ“</button>
-                  <button onClick={() => setEditingId(null)} className="text-rose-500 font-bold">âœ•</button>
+                  <button onClick={saveEdit} className="text-emerald-500 font-bold">✓</button>
+                  <button onClick={() => setEditingId(null)} className="text-rose-500 font-bold">✕</button>
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
@@ -94,10 +94,10 @@ const CategoriesView: React.FC<CategoriesViewProps> = ({ categories, onUpdateCat
 
               <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button onClick={() => startEdit(cat)} className="text-zinc-400 hover:text-zinc-900 dark:text-zinc-300">
-                  âœï¸
+                  ✏️
                 </button>
                 <button onClick={() => deleteCategory(cat.id)} className="text-zinc-400 hover:text-rose-500">
-                  ðŸ—‘ï¸
+                  🗑️
                 </button>
               </div>
             </div>

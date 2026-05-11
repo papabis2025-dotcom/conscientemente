@@ -149,7 +149,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   const handleSaveProfile = () => {
     if (onUpdateUser && editName.trim()) {
-      onUpdateUser(editName, editAvatar || 'ðŸŽ“');
+      onUpdateUser(editName, editAvatar || '🎓');
       setIsEditingProfile(false);
     }
   };
@@ -287,7 +287,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             onClick={resetMenuOrder}
             className="w-full py-1.5 bg-amber-600 text-white rounded-lg text-[10px] font-bold hover:bg-amber-700"
           >
-            Restaurar PadrÃ£o
+            Restaurar Padrão
           </button>
         </div>
       )}

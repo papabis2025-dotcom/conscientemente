@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import Sidebar from './components/Sidebar';
 import Dashboard from './pages/Dashboard';
 import SubjectsView from './pages/SubjectsView';
@@ -81,7 +81,7 @@ const App: React.FC = () => {
 
   if (!currentUser) {
     return <LoginView users={users} onLogin={setCurrentUser} onCreateFirstUser={(name, pass) => {
-      const newUser = { id: crypto.randomUUID(), name, password: pass, avatar: 'ðŸŽ“' };
+      const newUser = { id: crypto.randomUUID(), name, password: pass, avatar: '🎓' };
       const newUsers = [...users, newUser];
       setUsers(newUsers);
       setCurrentUser(newUser);
@@ -112,7 +112,7 @@ const App: React.FC = () => {
           </span>
         </div>
         <div className="uppercase font-bold tracking-widest text-zinc-400 dark:text-zinc-500">
-          Legis Pro - {activeConcurso ? activeConcurso.name : 'VisÃ£o Global'}
+          Legis Pro - {activeConcurso ? activeConcurso.name : 'Visão Global'}
         </div>
       </footer>
     </div>

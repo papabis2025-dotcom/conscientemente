@@ -7,7 +7,7 @@ import {
 } from 'recharts';
 import { Eye, EyeOff, X, Plus, Save, Trash2, Trophy, Target, Calendar, Clock, CheckCircle, AlertTriangle, TrendingUp, Maximize2, Minimize2, Check } from 'lucide-react';
 
-import { Subject, StudySession, Concurso, Simulado, ActivityType } from '../types';
+import { Subject, StudySession, Concurso, Simulado, ActivityType, ScheduledStudy } from '../types';
 import AISuggestions from '../components/dashboard/AISuggestions';
 import TimerWidget from '../components/dashboard/TimerWidget';
 
@@ -34,7 +34,7 @@ interface DashboardProps {
   onStopAlarm?: () => void;
   studyTasks?: { id: string, subjectId: string, subjectName: string, done: boolean, date: string }[];
   onUpdateTasks?: (tasks: { id: string, subjectId: string, subjectName: string, topicId?: string, topicName?: string, done: boolean, date: string }[]) => void;
-  scheduledStudies?: import('../types').ScheduledStudy[];
+  scheduledStudies?: ScheduledStudy[];
 }
 
 interface WidgetState {

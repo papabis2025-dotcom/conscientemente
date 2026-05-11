@@ -7,13 +7,16 @@
 @variant dark (&:where(.dark, .dark *));
 
 @layer base {
+  html {
+    font-size: 14px;
+  }
   body {
     @apply font-sans antialiased tracking-tight text-sm text-zinc-900 dark:text-zinc-50 bg-zinc-50 dark:bg-zinc-900;
   }
 }
 
 .custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
+  width: 4px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
@@ -26,4 +29,4 @@
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   @apply bg-zinc-400 dark:bg-zinc-600;
-}
+}

@@ -354,10 +354,10 @@ const Dashboard: React.FC<DashboardProps> = ({
         const simColorHex = getPerformanceColorHex(simAccuracy);
 
         return (
-          <div className="flex flex-row items-center justify-around h-full gap-3 px-3">
+          <div className="flex flex-row items-center justify-around h-full gap-2 px-2">
             {/* General Stats */}
             <div className="flex flex-col items-center justify-center flex-1">
-              <div className="relative w-[110px] h-[110px] flex items-center justify-center">
+              <div className="relative w-[88px] h-[88px] flex items-center justify-center">
                 <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
                   <circle
                     cx="50"
@@ -383,7 +383,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                   />
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className={`text-2xl font-black ${globalColor}`} style={{ color: globalColorHex }}>{globalAccuracy}%</span>
+                  <span className={`text-lg font-black ${globalColor}`} style={{ color: globalColorHex }}>{globalAccuracy}%</span>
                 </div>
               </div>
               <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-wide mt-1">Geral</p>
@@ -391,7 +391,7 @@ const Dashboard: React.FC<DashboardProps> = ({
 
             {/* Simulado Stats */}
             <div className="flex flex-col items-center justify-center flex-1">
-              <div className="relative w-[110px] h-[110px] flex items-center justify-center">
+              <div className="relative w-[88px] h-[88px] flex items-center justify-center">
                 <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
                   <circle
                     cx="50"
@@ -417,7 +417,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                   />
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className={`text-2xl font-black ${simColor}`} style={{ color: simColorHex }}>{simAccuracy}%</span>
+                  <span className={`text-lg font-black ${simColor}`} style={{ color: simColorHex }}>{simAccuracy}%</span>
                 </div>
               </div>
               <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-wide mt-1">Simulados</p>
@@ -785,10 +785,10 @@ const Dashboard: React.FC<DashboardProps> = ({
 
 
     return (
-    <div className="space-y-6 animate-in fade-in duration-500 pb-10">
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 px-1">
+    <div className="space-y-4 animate-in fade-in duration-500 pb-6">
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 px-1">
         <div>
-          <h2 className="text-2xl font-black text-zinc-800 dark:text-white tracking-tight uppercase">Dashboard</h2>
+          <h2 className="text-xl font-black text-zinc-800 dark:text-white tracking-tight uppercase">Dashboard</h2>
           <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">Bem-vindo de volta! Aqui está o resumo do seu desempenho.</p>
         </div>
 
@@ -814,19 +814,19 @@ const Dashboard: React.FC<DashboardProps> = ({
         </div>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 auto-rows-auto">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 auto-rows-auto">
         {widgets.map((widget, index) => {
           if (!widget.isVisible && !isEditMode) return null;
           const sizeClass = widget.size === 'full' ? 'md:col-span-3' : widget.size === 'wide' ? 'md:col-span-2' : 'md:col-span-1';
 
           // Define heights for different widgets
           const heightClass = (() => {
-            if (widget.id === 'general_stats') return 'h-[180px]';
-            if (widget.id === 'study_frequency') return 'h-[180px]';
-            if (widget.id === 'study_tasks') return 'h-[180px]';
-            if (widget.id === 'weekly_chart') return 'h-[400px]';
-            if (widget.id === 'activity_calendar') return 'h-[400px]';
-            if (widget.id === 'unified_subject_analysis') return 'h-[400px]';
+            if (widget.id === 'general_stats') return 'h-[200px]';
+            if (widget.id === 'study_frequency') return 'h-[200px]';
+            if (widget.id === 'study_tasks') return 'h-[200px]';
+            if (widget.id === 'weekly_chart') return 'h-[360px]';
+            if (widget.id === 'activity_calendar') return 'h-[360px]';
+            if (widget.id === 'unified_subject_analysis') return 'h-[360px]';
             return 'h-auto';
           })();
 
@@ -837,9 +837,9 @@ const Dashboard: React.FC<DashboardProps> = ({
               onDragStart={() => handleDragStart(index)}
               onDragOver={(e) => handleDragOver(e, index)}
               onDragEnd={handleDragEnd}
-              className={`${sizeClass} ${heightClass} ${widget.isVisible ? 'opacity-100' : 'opacity-40'} bg-white dark:bg-zinc-900 p-6 rounded-[2.5rem] border border-zinc-200 dark:border-zinc-800 shadow-sm relative group hover:shadow-md transition-all duration-300 ${isEditMode ? 'cursor-move ring-2 ring-emerald-500/20' : ''} ${draggedWidgetIndex === index ? 'opacity-50 scale-95' : ''}`}
+              className={`${sizeClass} ${heightClass} ${widget.isVisible ? 'opacity-100' : 'opacity-40'} bg-white dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm relative group hover:shadow-md transition-all duration-300 ${isEditMode ? 'cursor-move ring-2 ring-emerald-500/20' : ''} ${draggedWidgetIndex === index ? 'opacity-50 scale-95' : ''}`}
             >
-              <div className="flex justify-between items-center mb-6">
+              <div className="flex justify-between items-center mb-3">
                 <h4 className="text-[11px] font-black text-zinc-800 dark:text-zinc-200 uppercase tracking-widest bg-zinc-50 dark:bg-zinc-800/50 px-3 py-1 rounded-full">{widget.title}</h4>
                 <div className="flex gap-2 items-center">
                   {!isEditMode && ['weekly_chart', 'activity_calendar', 'unified_subject_analysis'].includes(widget.id) && (

@@ -245,7 +245,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
 
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
+    <div className="space-y-4 animate-in fade-in duration-500">
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 px-1">
         <div>
           <h2 className="text-2xl font-black text-zinc-800 dark:text-white tracking-tight uppercase">Disciplinas</h2>
@@ -270,7 +270,6 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
       </header>
 
       <div className="flex flex-wrap gap-3 w-full md:w-auto items-center">
-        <div className="h-8 w-px bg-zinc-200 dark:bg-zinc-700 mx-2 hidden md:block" />
 
         {selectedConcursoId === 'all' ? (
            <div className="bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800 px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2">

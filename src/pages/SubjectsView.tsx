@@ -135,6 +135,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
     const statsA = getSubjectStats(a.id);
     const statsB = getSubjectStats(b.id);
     if (sortBy === 'time') return sortOrder === 'desc' ? statsB.hours - statsA.hours : statsA.hours - statsB.hours;
+    if (sortBy === 'accuracy') return sortOrder === 'desc' ? statsB.accuracy - statsA.accuracy : statsA.accuracy - statsB.accuracy;
     return sortOrder === 'desc' ? statsB.questions - statsA.questions : statsA.questions - statsB.questions;
   });
 
@@ -312,11 +313,9 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                 <th className="px-6 py-4 text-[10px] font-bold uppercase text-zinc-400 tracking-wider cursor-pointer hover:text-zinc-900 dark:text-zinc-300" onClick={() => { setSortBy('questions'); setSortOrder(o => o === 'desc' ? 'asc' : 'desc'); }}>
                   Questões {sortBy === 'questions' && (sortOrder === 'desc' ? '↓' : '↑')}
                 </th>
-                <th className="px-6 py-4 text-[10px] font-bold uppercase text-zinc-400 tracking-wider">Aproveitamento</th>
-                <th className="px-6 py-4 text-[10px] font-bold uppercase text-zinc-400 tracking-wider cursor-pointer hover:text-zinc-900 dark:text-zinc-300" onClick={() => { setSortBy('meta'); setSortOrder(o => o === 'desc' ? 'asc' : 'desc'); }}>
-                  Edital {sortBy === 'meta' && (sortOrder === 'desc' ? '↓' : '↑')}
+                <th className="px-6 py-4 text-[10px] font-bold uppercase text-zinc-400 tracking-wider cursor-pointer hover:text-zinc-900 dark:text-zinc-300" onClick={() => { setSortBy('accuracy'); setSortOrder(o => o === 'desc' ? 'asc' : 'desc'); }}>
+                  Aproveitamento {sortBy === 'accuracy' && (sortOrder === 'desc' ? '↓' : '↑')}
                 </th>
-                <th className="px-6 py-4 text-[10px] font-bold uppercase text-zinc-400 tracking-wider">Peso</th>
                 <th className="px-6 py-4 text-[10px] font-bold uppercase text-zinc-400 tracking-wider text-right">Ações</th>
               </tr>
             </thead>
@@ -391,37 +390,6 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                           <span className="text-xs font-bold text-zinc-600 dark:text-zinc-400">{stats.accuracy}%</span>
                         </div>
                       </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2 text-sm font-medium text-zinc-600 dark:text-zinc-300" onClick={e => editingSubjectId === subject.id && e.stopPropagation()}>
-                          {editingSubjectId === subject.id ? (
-                            <input
-                              type="number"
-                              placeholder="Qtd"
-                              className="w-16 px-2 py-1 bg-white dark:bg-zinc-900 border rounded text-sm"
-                              value={editQuestionsGoal}
-                              onChange={e => setEditQuestionsGoal(e.target.value === '' ? '' : Number(e.target.value))}
-                            />
-                          ) : (
-                            subject.questionsGoal ? <span className="bg-zinc-200 dark:bg-zinc-800 dark:bg-zinc-700/30 text-zinc-900 dark:text-zinc-100 dark:text-zinc-100 px-2 py-0.5 rounded text-xs font-bold">{subject.questionsGoal} Qs</span> : '-'
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2 text-sm font-medium text-zinc-600 dark:text-zinc-300" onClick={e => editingSubjectId === subject.id && e.stopPropagation()}>
-                          {editingSubjectId === subject.id ? (
-                            <input
-                              type="number"
-                              placeholder="Peso"
-                              className="w-16 px-2 py-1 bg-white dark:bg-zinc-900 border rounded text-sm"
-                              value={editWeight}
-                              onChange={e => setEditWeight(e.target.value === '' ? '' : Number(e.target.value))}
-                              step="0.1"
-                            />
-                          ) : (
-                            subject.weight ? <span className="bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded text-xs font-bold">{subject.weight}x</span> : '-'
-                          )}
-                        </div>
-                      </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button onClick={(e) => startEditing(subject, e)} className="p-1.5 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg text-zinc-400 hover:text-zinc-900 dark:text-zinc-300 transition-colors">
@@ -436,7 +404,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
 
                     {isExpanded && (
                       <tr>
-                        <td colSpan={8} className="px-0 py-0 bg-zinc-50/50 dark:bg-zinc-800/20 border-b border-zinc-100 dark:border-zinc-800">
+                        <td colSpan={6} className="px-0 py-0 bg-zinc-50/50 dark:bg-zinc-800/20 border-b border-zinc-100 dark:border-zinc-800">
                           <div className="p-6 pl-16 grid gap-4">
                             <div className="flex items-center gap-4 mb-2">
                               <h4 className="text-xs font-bold uppercase text-zinc-400 tracking-wide">Tópicos do Edital</h4>

@@ -278,9 +278,9 @@ const StudyPlan: React.FC<StudyPlanProps> = ({ subjects, sessions, studyTasks, o
                                             {task.done ? <CheckCircle size={18} fill="currentColor" /> : <Circle size={18} />}
                                         </div>
                                         <div>
-                                            <h4 className={`text-lg font-bold transition-colors ${task.done ? 'text-emerald-700 dark:text-emerald-400 line-through' : 'text-zinc-800 dark:text-white'
+                                    <h4 className={`text-lg font-bold transition-colors ${task.done ? 'text-emerald-700 dark:text-emerald-400 line-through' : 'text-zinc-800 dark:text-white'
                                                 }`}>
-                                                {task.subjectName}
+                                                {subjects.find(s => s.id === task.subjectId)?.name || task.subjectName || 'Disciplina'}
                                             </h4>
                                             {task.topicName && (
                                                 <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400 transition-colors">

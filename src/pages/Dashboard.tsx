@@ -111,7 +111,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   };
 
   const [widgets, setWidgets] = useState<WidgetState[]>(() => {
-    const saved = localStorage.getItem('cp_dashboard_layout_v17');
+    const saved = localStorage.getItem('cp_dashboard_layout_v18');
     // Merge with defaults to ensure new widgets appear
     if (!saved) return DEFAULT_WIDGETS;
     const parsed = JSON.parse(saved);
@@ -154,7 +154,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   const isDarkMode = theme === 'dark';
   const chartTextColor = isDarkMode ? '#94a3b8' : '#64748b';
 
-  useEffect(() => { localStorage.setItem('cp_dashboard_layout_v17', JSON.stringify(widgets)); }, [widgets]);
+  useEffect(() => { localStorage.setItem('cp_dashboard_layout_v18', JSON.stringify(widgets)); }, [widgets]);
 
   const handleDragStart = (index: number) => {
     setDraggedWidgetIndex(index);

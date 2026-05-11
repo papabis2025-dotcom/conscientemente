@@ -124,16 +124,16 @@ const CalendarView: React.FC<CalendarViewProps> = ({ subjects, allSubjects, sche
     switch (viewMode) {
       case 'semanal':
         return (
-          <div className="grid grid-cols-1 md:grid-cols-7 gap-4 auto-rows-fr">
+          <div className="grid grid-cols-1 md:grid-cols-7 gap-3 flex-1 min-h-0">
             {weekDays.map(date => {
               const key = getDayKey(date);
               const tasks = scheduledStudies.filter(s => (s.date && (s.date === key || s.date.split('T')[0] === key)));
               const isToday = new Date().toDateString() === date.toDateString();
               return (
-                <div key={key} onClick={() => handleDayClick(key)} className={`bg-white dark:bg-zinc-900 p-4 rounded-3xl border ${isToday ? 'border-blue-400 shadow-lg' : 'border-zinc-100 dark:border-zinc-800'} min-h-[600px] flex flex-col cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-all`}>
-                  <div className="mb-4">
-                    <p className="text-[10px] font-black uppercase text-zinc-400">{['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'][date.getDay()]}</p>
-                    <h4 className={`text-2xl font-black ${isToday ? 'text-zinc-900 dark:text-zinc-100' : 'text-zinc-700 dark:text-zinc-200'}`}>{date.getDate()}</h4>
+                <div key={key} onClick={() => handleDayClick(key)} className={`bg-white dark:bg-zinc-900 p-3 rounded-3xl border ${isToday ? 'border-blue-400 shadow-lg' : 'border-zinc-100 dark:border-zinc-800'} flex flex-col cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-all overflow-hidden`}>
+                  <div className="mb-2">
+                    <p className="text-[10px] font-black uppercase text-zinc-400 leading-tight">{['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'][date.getDay()]}</p>
+                    <h4 className={`text-xl font-black ${isToday ? 'text-zinc-900 dark:text-zinc-100' : 'text-zinc-700 dark:text-zinc-200'}`}>{date.getDate()}</h4>
                   </div>
                   <div className="space-y-2 flex-1 overflow-y-auto custom-scrollbar pr-1">
                     {tasks.map(task => {
@@ -158,13 +158,13 @@ const CalendarView: React.FC<CalendarViewProps> = ({ subjects, allSubjects, sche
         const numDays = daysInMonth(year, month);
         const startDay = firstDayOfMonth(year, month);
         return (
-          <div className="bg-white dark:bg-zinc-900 rounded-[2.5rem] border border-zinc-200 dark:border-zinc-800 overflow-hidden shadow-sm">
-            <div className="grid grid-cols-7 border-b border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-800/30">
+          <div className="bg-white dark:bg-zinc-900 rounded-[2rem] border border-zinc-200 dark:border-zinc-800 overflow-hidden shadow-sm flex flex-col flex-1 min-h-0">
+            <div className="grid grid-cols-7 border-b border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-800/30 shrink-0">
               {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab'].map(day => (
                 <div key={day} className="py-4 text-center text-[10px] font-black text-zinc-400 uppercase tracking-widest">{day}</div>
               ))}
             </div>
-            <div className="grid grid-cols-7 auto-rows-[180px]">
+            <div className="grid grid-cols-7 flex-1">
               {Array.from({ length: startDay }).map((_, i) => (
                 <div key={`empty-${i}`} className="bg-zinc-50/30 dark:bg-zinc-950/20 border-r border-b border-zinc-100 dark:border-zinc-800/50" />
               ))}
@@ -175,8 +175,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({ subjects, allSubjects, sche
                 const tasks = scheduledStudies.filter(s => (s.date && (s.date === key || s.date.split('T')[0] === key)));
                 const isToday = new Date().toDateString() === date.toDateString();
                 return (
-                  <div key={day} onClick={() => handleDayClick(key)} className="p-2 border-r border-b border-zinc-100 dark:border-zinc-800 hover:bg-zinc-100 dark:bg-zinc-800/30 dark:hover:bg-blue-900/10 cursor-pointer transition-all flex flex-col">
-                    <span className={`text-xs font-bold w-6 h-6 flex items-center justify-center rounded-full ${isToday ? 'bg-zinc-900 dark:bg-zinc-700 text-white' : 'text-zinc-400'}`}>{day}</span>
+                  <div key={day} onClick={() => handleDayClick(key)} className="p-1.5 border-r border-b border-zinc-100 dark:border-zinc-800 hover:bg-zinc-100 dark:bg-zinc-800/30 dark:hover:bg-blue-900/10 cursor-pointer transition-all flex flex-col min-h-0 overflow-hidden">
+                    <span className={`text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full ${isToday ? 'bg-zinc-900 dark:bg-zinc-700 text-white' : 'text-zinc-400'}`}>{day}</span>
                     <div className="mt-1 space-y-1 overflow-y-auto">
                       {tasks.map(t => {
                         const sub = lookupSubjects.find(s => s.id === t.subjectId);
@@ -205,11 +205,11 @@ const CalendarView: React.FC<CalendarViewProps> = ({ subjects, allSubjects, sche
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+    <div className="space-y-4 animate-in fade-in duration-500 h-[calc(100vh-140px)] flex flex-col pb-4">
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shrink-0">
         <div>
-          <h2 className="text-2xl text-zinc-800 dark:text-white">Planner de Estudos</h2>
-          <p className="text-zinc-500 dark:text-zinc-400">Gerencie sua rotina diária e acompanhe seu progresso.</p>
+          <h2 className="text-xl font-bold text-zinc-800 dark:text-white">Planner de Estudos</h2>
+          <p className="text-xs text-zinc-500 dark:text-zinc-400">Gerencie sua rotina diária.</p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
@@ -220,15 +220,15 @@ const CalendarView: React.FC<CalendarViewProps> = ({ subjects, allSubjects, sche
               </button>
             ))}
           </div>
-          <div className="flex items-center gap-4 bg-white dark:bg-zinc-900 px-4 py-2 rounded-2xl border border-zinc-200 dark:border-zinc-800">
-            <button onClick={() => handleNavigate(-1)}>◀</button>
-            <span className="font-black text-xs uppercase tracking-widest min-w-[150px] text-center">{getTitle()}</span>
-            <button onClick={() => handleNavigate(1)}>▶</button>
+          <div className="flex items-center gap-3 bg-white dark:bg-zinc-900 px-3 py-1.5 rounded-2xl border border-zinc-200 dark:border-zinc-800">
+            <button onClick={() => handleNavigate(-1)} className="text-xs">◀</button>
+            <span className="font-black text-[10px] uppercase tracking-widest min-w-[120px] text-center">{getTitle()}</span>
+            <button onClick={() => handleNavigate(1)} className="text-xs">▶</button>
           </div>
         </div>
       </header>
 
-      <div className="min-h-[500px]">{renderView()}</div>
+      <div className="flex-1 min-h-0">{renderView()}</div>
 
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/80 backdrop-blur-sm p-4">

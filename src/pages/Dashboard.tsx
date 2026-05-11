@@ -34,6 +34,7 @@ interface DashboardProps {
   onStopAlarm?: () => void;
   studyTasks?: { id: string, subjectId: string, subjectName: string, done: boolean, date: string }[];
   onUpdateTasks?: (tasks: { id: string, subjectId: string, subjectName: string, topicId?: string, topicName?: string, done: boolean, date: string }[]) => void;
+  scheduledStudies?: import('../types').ScheduledStudy[];
 }
 
 interface WidgetState {
@@ -89,7 +90,8 @@ const Dashboard: React.FC<DashboardProps> = ({
   timeLeft, isActive, isAlarmPlaying,
   onStartTimer, onPauseTimer, onResumeTimer, onResetTimer, onStopAlarm,
   studyTasks = [],
-  onUpdateTasks
+  onUpdateTasks,
+  scheduledStudies = []
 }) => {
   const [isEditMode, setIsEditMode] = useState(false);
   const [showModal, setShowModal] = useState(false);
@@ -709,7 +711,13 @@ const Dashboard: React.FC<DashboardProps> = ({
           const date = new Date(year, month, i + 1);
           const dateStr = date.toISOString().split('T')[0];
           const daySessions = sessions.filter(s => s.date.startsWith(dateStr));
-          const daySubjects = Array.from(new Set(daySessions.map(s => s.subjectId)))
+          const dayPlannerRealized = scheduledStudies.filter(s => s.date === dateStr && s.status === 'realizado');
+          
+          const sessionSubjectIds = daySessions.map(s => s.subjectId);
+          const plannerSubjectIds = dayPlannerRealized.map(s => s.subjectId);
+          
+          const allDaySubjectIds = Array.from(new Set([...sessionSubjectIds, ...plannerSubjectIds]));
+          const daySubjects = allDaySubjectIds
             .map(id => subjects.find(sub => sub.id === id))
             .filter(Boolean);
 

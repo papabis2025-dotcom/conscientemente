@@ -17,7 +17,8 @@ import {
   TrendingUp,
   CheckCircle,
   Circle,
-  AlertTriangle
+  AlertTriangle,
+  Trophy
 } from 'lucide-react';
 
 interface SubjectsViewProps {

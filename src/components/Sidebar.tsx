@@ -21,11 +21,14 @@ import {
   Pause,
   RotateCcw,
   Bell,
+  BellOff,
+  User,
+  Plus,
+  Trophy,
   X,
   Check,
   GripVertical,
-  Clock,
-  Trophy
+  Clock
 } from 'lucide-react';
 import logoImg from '../assets/logo.png';
 

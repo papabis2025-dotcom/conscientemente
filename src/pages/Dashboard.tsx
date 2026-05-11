@@ -46,7 +46,7 @@ interface WidgetState {
 const DEFAULT_WIDGETS: WidgetState[] = [
   { id: 'general_stats', title: 'Desempenho Geral', isVisible: true, size: 'wide' },
   { id: 'study_frequency', title: 'Informações e Metas', isVisible: true, size: 'normal' },
-  { id: 'study_tasks', title: 'Última Atividade & Próximas Revisões', isVisible: true, size: 'normal' },
+  { id: 'study_tasks', title: 'Revisões Pendentes', isVisible: true, size: 'normal' },
   { id: 'weekly_chart', title: 'Volume de Estudo', isVisible: true, size: 'normal' },
   { id: 'unified_subject_analysis', title: 'Análise por Disciplina', isVisible: true, size: 'wide' },
 ];
@@ -561,12 +561,6 @@ const Dashboard: React.FC<DashboardProps> = ({
           </div>
         );
       case 'study_tasks': {
-        // Find last studied session
-        const sortedSessions = [...sessions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-        const lastSession = sortedSessions[0];
-        const lastSubject = lastSession ? subjects.find(s => s.id === lastSession.subjectId) : null;
-        const lastTopic = lastSession && lastSubject ? lastSubject.topics.find(t => t.id === lastSession.topicId) : null;
-
         // Find upcoming reviews (topics with sessions 7 or 30 days ago)
         const todayMs = new Date().setHours(0, 0, 0, 0);
         const upcomingReviews: { subjectName: string; topicName: string; daysUntil: number; reviewType: string }[] = [];
@@ -592,45 +586,30 @@ const Dashboard: React.FC<DashboardProps> = ({
         upcomingReviews.sort((a, b) => a.daysUntil - b.daysUntil);
 
         return (
-          <div className="flex flex-col h-full gap-3 overflow-y-auto custom-scrollbar">
-            {/* Last Studied */}
-            <div className="shrink-0">
-              <p className="text-[8px] font-black uppercase tracking-widest text-zinc-400 mb-1.5">Último Estudo</p>
-              {lastSession && lastSubject ? (
-                <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-xl p-2.5">
-                  <p className="text-[11px] font-bold text-zinc-800 dark:text-white truncate">{lastSubject.name}</p>
-                  {lastTopic && <p className="text-[9px] text-zinc-500 truncate mt-0.5">{lastTopic.title}</p>}
-                  <p className="text-[8px] text-zinc-400 mt-1">{new Date(lastSession.date + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}</p>
-                </div>
-              ) : (
-                <p className="text-[10px] text-zinc-400">Nenhum estudo registrado ainda.</p>
-              )}
-            </div>
-
-            {/* Upcoming Reviews */}
-            <div className="flex-1 min-h-0">
-              <p className="text-[8px] font-black uppercase tracking-widest text-zinc-400 mb-1.5">Próximas Revisões</p>
-              {upcomingReviews.length === 0 ? (
-                <p className="text-[10px] text-zinc-400">Nenhuma revisão nos próximos 7 dias.</p>
-              ) : (
-                <div className="space-y-1.5">
-                  {upcomingReviews.slice(0, 4).map((rev, i) => (
-                    <div key={i} className="flex items-center gap-2 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl p-2">
-                      <div className={`w-5 h-5 rounded-full shrink-0 flex items-center justify-center text-[8px] font-black ${
-                        rev.daysUntil === 0 ? 'bg-rose-500 text-white' : rev.daysUntil <= 2 ? 'bg-amber-400 text-white' : 'bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300'
-                      }`}>
-                        {rev.daysUntil === 0 ? 'Hj' : `${rev.daysUntil}d`}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-[10px] font-bold text-zinc-700 dark:text-zinc-200 truncate">{rev.subjectName}</p>
-                        <p className="text-[8px] text-zinc-400 truncate">{rev.topicName}</p>
-                      </div>
-                      <span className="ml-auto shrink-0 text-[7px] font-black uppercase text-zinc-400 bg-zinc-100 dark:bg-zinc-700 px-1.5 py-0.5 rounded-full">{rev.reviewType}</span>
+          <div className="flex flex-col h-full gap-2">
+            {upcomingReviews.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full opacity-60 space-y-2">
+                <div className="w-9 h-9 rounded-full bg-zinc-50 dark:bg-zinc-800 flex items-center justify-center text-base shadow-sm">✅</div>
+                <p className="text-[10px] font-bold text-zinc-600 dark:text-zinc-300">Nenhuma revisão pendente!</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {upcomingReviews.slice(0, 2).map((rev, i) => (
+                  <div key={i} className="flex items-center gap-2.5 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl p-3">
+                    <div className={`w-8 h-8 rounded-full shrink-0 flex items-center justify-center text-[9px] font-black ${
+                      rev.daysUntil === 0 ? 'bg-rose-500 text-white' : rev.daysUntil <= 2 ? 'bg-amber-400 text-white' : 'bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300'
+                    }`}>
+                      {rev.daysUntil === 0 ? 'Hoje' : `${rev.daysUntil}d`}
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[11px] font-bold text-zinc-700 dark:text-zinc-200 truncate">{rev.subjectName}</p>
+                      <p className="text-[9px] text-zinc-400 truncate mt-0.5">{rev.topicName}</p>
+                    </div>
+                    <span className="shrink-0 text-[8px] font-black uppercase text-zinc-400 bg-zinc-100 dark:bg-zinc-700 px-2 py-0.5 rounded-full">{rev.reviewType}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         );
       }

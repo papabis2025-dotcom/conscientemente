@@ -434,7 +434,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                 <span className="text-[9px] font-semibold uppercase text-zinc-400 mb-0.5">Dias Seguidos</span>
               </div>
               <p className="text-[10px] text-zinc-500 dark:text-zinc-400 font-medium">
-                Você estudou em <strong className="text-zinc-900 dark:text-zinc-100 dark:text-zinc-100">{frequencyData.last7DaysCount}</strong> dos últimos 7 dias.
+                Você estudou em <strong className="text-zinc-900 dark:text-zinc-100">{frequencyData.last7DaysCount}</strong> dos últimos 7 dias.
               </p>
               <div className="w-full h-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-full mt-2 overflow-hidden">
                 <div className="h-full bg-amber-500" style={{ width: `${(frequencyData.last7DaysCount / 7) * 100}%` }} />

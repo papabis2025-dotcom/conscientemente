@@ -10,6 +10,7 @@ import {
   Edit2,
   Plus,
   Clock,
+  Target,
   CheckCircle,
   AlertTriangle,
   Trophy,

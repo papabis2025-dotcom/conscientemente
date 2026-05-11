@@ -200,7 +200,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ currentUserEmail }) => {
       <div className="bg-white dark:bg-zinc-900 p-8 rounded-[2.5rem] border border-zinc-200 dark:border-zinc-800 shadow-sm space-y-6">
         <h3 className="font-bold text-lg flex items-center gap-2">👤 Minha Conta</h3>
 
-        <div className="p-4 bg-zinc-100 dark:bg-zinc-800 dark:bg-zinc-800/50 rounded-2xl border border-zinc-200 dark:border-zinc-800">
+        <div className="p-4 bg-zinc-100 dark:bg-zinc-800/50 rounded-2xl border border-zinc-200 dark:border-zinc-800">
           <p className="text-sm font-bold text-zinc-800 dark:text-zinc-300">E-mail atual: {currentUserEmail}</p>
         </div>
 
@@ -283,7 +283,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ currentUserEmail }) => {
             <button
               onClick={handleExport}
               disabled={isExporting}
-              className="w-full py-4 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-zinc-900 dark:bg-zinc-700 hover:text-white transition-all disabled:opacity-50"
+              className="w-full py-4 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-zinc-900 dark:hover:bg-zinc-700 hover:text-white transition-all disabled:opacity-50"
             >
               {isExporting ? '⏳ Exportando...' : '📤 Exportar JSON'}
             </button>

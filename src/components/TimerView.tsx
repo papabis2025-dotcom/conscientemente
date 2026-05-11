@@ -38,7 +38,7 @@ const TimerView: React.FC = () => {
       <div className="flex gap-4 p-1 bg-zinc-200 dark:bg-zinc-800 rounded-2xl transition-colors">
         <button 
           onClick={() => { setMode('study'); setSeconds(25*60); setIsActive(false); }}
-          className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${mode === 'study' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 dark:text-zinc-100 shadow-sm' : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-800'}`}
+          className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${mode === 'study' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-sm' : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-800'}`}
         >
           Estudo (25m)
         </button>

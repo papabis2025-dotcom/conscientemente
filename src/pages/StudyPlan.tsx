@@ -282,7 +282,7 @@ const StudyPlan: React.FC<StudyPlanProps> = ({ subjects, sessions, studyTasks, o
                                             </h4>
                                             {task.topicName && (
                                                 <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400 transition-colors">
-                                                    Foco: <span className="text-zinc-900 dark:text-zinc-100 dark:text-zinc-100">{task.topicName}</span>
+                                                    Foco: <span className="text-zinc-900 dark:text-zinc-100">{task.topicName}</span>
                                                 </p>
                                             )}
                                             <p className="text-[10px] font-bold uppercase tracking-wide text-zinc-400 mt-1">

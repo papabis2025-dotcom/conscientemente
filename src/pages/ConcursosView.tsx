@@ -287,7 +287,7 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
 
                   <button
                     onClick={() => onSelectConcurso(conc)}
-                    className="w-full bg-zinc-100 dark:bg-zinc-800 dark:bg-zinc-800/50 hover:bg-zinc-900 dark:bg-zinc-700 hover:text-white text-zinc-900 dark:text-zinc-100 dark:text-zinc-100 py-4 rounded-[1.5rem] text-xs font-black uppercase tracking-widest transition-all border border-zinc-200 dark:border-blue-900/30 active:scale-95"
+                    className="w-full bg-zinc-100 dark:bg-zinc-800/50 hover:bg-zinc-900 dark:hover:bg-zinc-700 hover:text-white text-zinc-900 dark:text-zinc-100 py-4 rounded-[1.5rem] text-xs font-black uppercase tracking-widest transition-all border border-zinc-200 dark:border-blue-900/30 active:scale-95"
                   >
                     Focar neste concurso →
                   </button>

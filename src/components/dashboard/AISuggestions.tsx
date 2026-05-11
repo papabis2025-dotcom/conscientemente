@@ -22,13 +22,13 @@ const AISuggestions: React.FC<AISuggestionsProps> = ({ suggestions }) => {
                 suggestions.map((s, i) => (
                     <div key={i} className={`p-3 rounded-2xl border ${s.type === 'warning' ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-100 dark:border-amber-800' :
                         s.type === 'success' ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-100 dark:border-emerald-800' :
-                            'bg-zinc-100 dark:bg-zinc-800 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-800'
+                            'bg-zinc-100 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-800'
                         }`}>
                         <div className="flex items-center gap-2 mb-1.5">
                             <Lightbulb size={12} className={s.type === 'warning' ? 'text-amber-500' : s.type === 'success' ? 'text-emerald-500' : 'text-zinc-900 dark:text-zinc-300'} />
                             <p className={`text-xs font-bold uppercase leading-none ${s.type === 'warning' ? 'text-amber-600 dark:text-amber-400' :
                                 s.type === 'success' ? 'text-emerald-600 dark:text-emerald-400' :
-                                    'text-zinc-900 dark:text-zinc-100 dark:text-zinc-100'
+                                    'text-zinc-900 dark:text-zinc-100'
                                 }`}>{s.subjectName}</p>
                         </div>
                         <p className="text-xs text-zinc-600 dark:text-zinc-400 font-medium leading-relaxed pl-5">

@@ -40,16 +40,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({ subjects, allSubjects, sche
   ];
 
   const daysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
-  const firstDayOfMonth = (year, month: number) => new Date(year, month, 1).getDay();
+  const firstDayOfMonth = (year: number, month: number) => new Date(year, month, 1).getDay();
 
-  const handleNavigate = (direction: number) => {
-    const newDate = new Date(currentDate);
-    if (viewMode === 'anual') newDate.setFullYear(currentDate.getFullYear() + direction);
-    else if (viewMode === 'semestral') newDate.setMonth(currentDate.getMonth() + (direction * 6));
-    else if (viewMode === 'mensal') newDate.setMonth(currentDate.getMonth() + direction);
-    else if (viewMode === 'semanal') newDate.setDate(currentDate.getDate() + (direction * 7));
-    setCurrentDate(newDate);
-  };
 
   const getDayKey = (date: Date) => {
     const d = date.getDate().toString().padStart(2, '0');

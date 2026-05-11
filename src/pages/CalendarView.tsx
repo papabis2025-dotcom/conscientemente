@@ -64,7 +64,22 @@ const CalendarView: React.FC<CalendarViewProps> = ({ subjects, allSubjects, sche
   const handleSave = () => {
     if (!formData.subjectId || selectedDayKey === null) return;
 
-    if (onAddSession) {
+    const newEntry: ScheduledStudy = {
+      id: crypto.randomUUID(),
+      date: selectedDayKey,
+      subjectId: formData.subjectId,
+      topicId: formData.topicId || undefined,
+      activityType: formData.activityType,
+      notes: formData.notes,
+      durationInMinutes: parseInt(formData.duration) || undefined,
+      questionsDone: formData.activityType === 'Questões' ? (parseInt(formData.questionsDone) || undefined) : undefined,
+      questionsCorrect: formData.activityType === 'Questões' ? (parseInt(formData.questionsCorrect) || undefined) : undefined,
+      status: 'planejado'
+    };
+
+    onUpdateSchedule([...scheduledStudies, newEntry]);
+
+    if (onAddSession && (formData.duration || formData.questionsDone)) {
       onAddSession({
         id: crypto.randomUUID(),
         subjectId: formData.subjectId,
@@ -73,25 +88,20 @@ const CalendarView: React.FC<CalendarViewProps> = ({ subjects, allSubjects, sche
         date: new Date(`${selectedDayKey}T12:00:00`).toISOString(),
         questionsDone: formData.activityType === 'Questões' ? (parseInt(formData.questionsDone) || undefined) : undefined,
         questionsCorrect: formData.activityType === 'Questões' ? (parseInt(formData.questionsCorrect) || undefined) : undefined,
-        activityType: formData.activityType // Explicitly pass the type
+        activityType: formData.activityType
       });
-    } else {
-      const newEntry: ScheduledStudy = {
-        id: crypto.randomUUID(),
-        date: selectedDayKey,
-        subjectId: formData.subjectId,
-        topicId: formData.topicId || undefined,
-        activityType: formData.activityType,
-        notes: formData.notes,
-        durationInMinutes: parseInt(formData.duration) || undefined,
-        questionsDone: formData.activityType === 'Questões' ? (parseInt(formData.questionsDone) || undefined) : undefined,
-        questionsCorrect: formData.activityType === 'Questões' ? (parseInt(formData.questionsCorrect) || undefined) : undefined,
-        status: 'planejado'
-      };
-      onUpdateSchedule([...scheduledStudies, newEntry]);
     }
 
     setShowModal(false);
+    setFormData({
+      subjectId: '',
+      topicId: '',
+      activityType: 'Leitura' as ActivityType,
+      duration: '',
+      questionsDone: '',
+      questionsCorrect: '',
+      notes: ''
+    });
   };
 
   const handleDelete = (id: string) => {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Subject, Topic, StudySession, Concurso } from '../types';
 
 import { COLORS } from '../constants';
@@ -58,12 +58,26 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
 
 
 
-  const [topicSortBy, setTopicSortBy] = useState<'default' | 'priority' | 'time' | 'questions' | 'name' | 'lastStudy'>('default');
+  const [topicSortBy, setTopicSortBy] = useState<'default' | 'priority' | 'time' | 'questions' | 'name' | 'lastStudy' | 'review7d' | 'review30d'>('default');
   const [topicSortOrder, setTopicSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [showColorPicker, setShowColorPicker] = useState(false);
 
   // Topic editing state
   const [editingTopicId, setEditingTopicId] = useState<string | null>(null);
   const [editTopicTitle, setEditTopicTitle] = useState('');
+
+  const colorPickerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showColorPicker) return;
+    const handler = (e: MouseEvent) => {
+      if (colorPickerRef.current && !colorPickerRef.current.contains(e.target as Node)) {
+        setShowColorPicker(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showColorPicker]);
 
   const toggleExpand = (id: string) => {
     const newSet = new Set(expandedSubjects);
@@ -278,7 +292,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
         ) : (
           <>
             <div className="flex flex-col gap-2 w-full">
-              <div className="flex gap-2 flex-1 md:flex-none">
+              <div className="flex gap-2 flex-1 md:flex-none items-center">
                 <input
                   type="text"
                   placeholder="Nova disciplina..."
@@ -302,27 +316,52 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                   onChange={(e) => setNewWeight(e.target.value === '' ? '' : Number(e.target.value))}
                   className="px-3 py-2 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl focus:ring-2 focus:ring-zinc-500 outline-none text-zinc-800 dark:text-white text-sm w-24"
                 />
-                <button onClick={addSubject} className="bg-zinc-900 dark:bg-zinc-700 text-white px-3 py-2 rounded-xl hover:bg-zinc-800 dark:hover:bg-zinc-600 flex items-center justify-center"><Plus size={20} /></button>
-              </div>
-              <div className="flex flex-wrap gap-1.5 px-1 items-center max-w-[240px]">
-                {COLORS.map(color => (
+
+                {/* Color picker — compact button that expands to honeycomb */}
+                <div className="relative" ref={colorPickerRef}>
                   <button
-                    key={color}
-                    onClick={() => setSelectedColor(color)}
-                    className={`w-5 h-5 rounded-full transition-all ${selectedColor === color ? 'ring-2 ring-offset-2 ring-zinc-400 dark:ring-offset-zinc-900 scale-110' : 'opacity-60 hover:opacity-100'} ${getBadgeStyle(color).className}`}
-                    style={getBadgeStyle(color).style}
+                    onClick={() => setShowColorPicker(p => !p)}
+                    title="Escolher cor"
+                    className="w-8 h-8 rounded-full border-2 border-white dark:border-zinc-700 shadow-md hover:scale-110 active:scale-95 transition-transform ring-2 ring-zinc-300 dark:ring-zinc-600"
+                    style={{ backgroundColor: getColorHex(selectedColor) }}
                   />
-                ))}
-                <div className="relative flex items-center justify-center w-6 h-6 rounded-full overflow-hidden border border-zinc-200 dark:border-zinc-700 hover:ring-2 hover:ring-zinc-500 transition-all ml-1 cursor-pointer">
-                  <input
-                    type="color"
-                    value={getColorHex(selectedColor)}
-                    onChange={(e) => setSelectedColor(e.target.value)}
-                    className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[150%] h-[150%] p-0 border-0 cursor-pointer"
-                    title="Cor personalizada"
-                  />
-                  <span className="pointer-events-none text-[8px] font-bold text-zinc-500">+</span>
+                  {showColorPicker && (
+                    <div
+                      className="absolute top-10 left-1/2 -translate-x-1/2 z-50 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl shadow-2xl p-3 animate-in fade-in zoom-in-95 duration-150"
+                      style={{ minWidth: 160 }}
+                    >
+                      {/* Honeycomb grid */}
+                      <div className="flex flex-wrap gap-1.5 justify-center">
+                        {COLORS.map((color, idx) => (
+                          <button
+                            key={color}
+                            onClick={() => { setSelectedColor(color); setShowColorPicker(false); }}
+                            className={`w-6 h-6 rounded-full transition-all hover:scale-110 ${idx % 2 === 1 ? 'mt-2' : ''} ${
+                              selectedColor === color
+                                ? 'ring-2 ring-offset-2 ring-zinc-400 dark:ring-offset-zinc-900 scale-110'
+                                : 'opacity-80 hover:opacity-100'
+                            } ${getBadgeStyle(color).className}`}
+                            style={getBadgeStyle(color).style}
+                            title={color}
+                          />
+                        ))}
+                        {/* Custom color */}
+                        <div className="relative flex items-center justify-center w-6 h-6 rounded-full overflow-hidden border-2 border-dashed border-zinc-300 dark:border-zinc-600 hover:ring-2 hover:ring-zinc-400 cursor-pointer mt-2">
+                          <input
+                            type="color"
+                            value={getColorHex(selectedColor)}
+                            onChange={(e) => { setSelectedColor(e.target.value); setShowColorPicker(false); }}
+                            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[150%] h-[150%] p-0 border-0 cursor-pointer opacity-0"
+                            title="Cor personalizada"
+                          />
+                          <span className="pointer-events-none text-[10px] font-bold text-zinc-400">+</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
+
+                <button onClick={addSubject} className="bg-zinc-900 dark:bg-zinc-700 text-white px-3 py-2 rounded-xl hover:bg-zinc-800 dark:hover:bg-zinc-600 flex items-center justify-center"><Plus size={20} /></button>
               </div>
             </div>
           </>
@@ -514,11 +553,11 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                                   <th className="py-2 text-[10px] uppercase font-bold cursor-pointer hover:text-zinc-900 dark:text-zinc-300" onClick={() => { setTopicSortBy('lastStudy'); setTopicSortOrder(o => o === 'desc' ? 'asc' : 'desc'); }}>
                                     Último Estudo {topicSortBy === 'lastStudy' && (topicSortOrder === 'desc' ? '↓' : '↑')}
                                   </th>
-                                  <th className="py-2 text-[10px] uppercase font-bold text-zinc-400">
-                                    Rev. 7d
+                                  <th className="py-2 text-[10px] uppercase font-bold cursor-pointer hover:text-zinc-900 dark:text-zinc-300" onClick={() => { setTopicSortBy('review7d'); setTopicSortOrder(o => o === 'desc' ? 'asc' : 'desc'); }}>
+                                    Rev. 7d {topicSortBy === 'review7d' && (topicSortOrder === 'desc' ? '↓' : '↑')}
                                   </th>
-                                  <th className="py-2 text-[10px] uppercase font-bold text-zinc-400">
-                                    Rev. 30d
+                                  <th className="py-2 text-[10px] uppercase font-bold cursor-pointer hover:text-zinc-900 dark:text-zinc-300" onClick={() => { setTopicSortBy('review30d'); setTopicSortOrder(o => o === 'desc' ? 'asc' : 'desc'); }}>
+                                    Rev. 30d {topicSortBy === 'review30d' && (topicSortOrder === 'desc' ? '↓' : '↑')}
                                   </th>
                                   <th className="py-2 text-[10px] uppercase font-bold cursor-pointer hover:text-zinc-900 dark:text-zinc-300" onClick={() => { setTopicSortBy('time'); setTopicSortOrder(o => o === 'desc' ? 'asc' : 'desc'); }}>
                                     Tempo {topicSortBy === 'time' && (topicSortOrder === 'desc' ? '↓' : '↑')}
@@ -576,6 +615,16 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                                       const bDate = b.stats.lastStudyDate ? new Date(b.stats.lastStudyDate).getTime() : 0;
                                       return (aDate - bDate) * multiplier;
                                     }
+                                    if (topicSortBy === 'review7d') {
+                                      const aDate = a.stats.review7dDate ? new Date(a.stats.review7dDate).getTime() : 0;
+                                      const bDate = b.stats.review7dDate ? new Date(b.stats.review7dDate).getTime() : 0;
+                                      return (aDate - bDate) * multiplier;
+                                    }
+                                    if (topicSortBy === 'review30d') {
+                                      const aDate = a.stats.review30dDate ? new Date(a.stats.review30dDate).getTime() : 0;
+                                      const bDate = b.stats.review30dDate ? new Date(b.stats.review30dDate).getTime() : 0;
+                                      return (aDate - bDate) * multiplier;
+                                    }
                                     if (topicSortBy === 'time') return (a.stats.minutes - b.stats.minutes) * multiplier;
                                     if (topicSortBy === 'questions') return (a.stats.done - b.stats.done) * multiplier;
 
@@ -603,10 +652,13 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                                               </button>
                                             </div>
                                           ) : (
-                                            <div className="flex items-center gap-2 cursor-pointer w-fit" onClick={() => toggleTopic(subject.id, topic.id)}>
-                                              <input type="checkbox" checked={topic.isCompleted} readOnly className="cursor-pointer" />
-                                              <span>{topic.title}</span>
-                                            </div>
+                                            <span
+                                              className="cursor-pointer hover:underline select-none"
+                                              onClick={() => toggleTopic(subject.id, topic.id)}
+                                              title={topic.isCompleted ? 'Marcar como pendente' : 'Marcar como concluído'}
+                                            >
+                                              {topic.title}
+                                            </span>
                                           )}
                                         </td>
                                         <td className="py-2 text-zinc-500 text-xs">

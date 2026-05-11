@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { AlertTriangle, X } from 'lucide-react';
+import { AlertTriangle, X, Target, Plus, Search } from 'lucide-react';
 import { Concurso } from '../types';
 
 interface ConcursosViewProps {
@@ -111,7 +111,9 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
     <div className="space-y-8 animate-in fade-in duration-500">
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 px-1">
         <div>
-          <h2 className="text-2xl font-black text-zinc-800 dark:text-white tracking-tight uppercase">Meus Editais</h2>
+          <h2 className="text-2xl font-black text-zinc-800 dark:text-white tracking-tight uppercase flex items-center gap-2">
+            Meus Editais <Target size={20} className="text-blue-500" />
+          </h2>
           <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">Gerencie suas metas e prazos estratégicos.</p>
         </div>
         <button

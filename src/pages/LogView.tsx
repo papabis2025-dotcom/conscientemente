@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { LogEntry } from '../types';
+import { FileText, Trash2, Clock } from 'lucide-react';
 
 interface LogViewProps {
   logs: LogEntry[];
@@ -16,7 +17,9 @@ const LogView: React.FC<LogViewProps> = ({ logs, onClearLogs, onDeleteLog }) => 
     <div className="space-y-6 animate-in fade-in duration-500">
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 px-1">
         <div>
-          <h2 className="text-2xl font-black text-zinc-800 dark:text-white tracking-tight uppercase">Registro de Atividades</h2>
+          <h2 className="text-2xl font-black text-zinc-800 dark:text-white tracking-tight uppercase flex items-center gap-2">
+            Registro de Atividades <FileText size={20} className="text-zinc-400" />
+          </h2>
           <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">Histórico técnico de alterações e eventos do sistema.</p>
         </div>
         <button
@@ -52,7 +55,7 @@ const LogView: React.FC<LogViewProps> = ({ logs, onClearLogs, onDeleteLog }) => 
                       {new Date(log.timestamp).toLocaleString('pt-BR')}
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`inline-flex items-center px-2 py-1 rounded-md text-[10px] font-black uppercase tracking-widest ${log.type === 'error' ? 'bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400' :
+                      <span className={`inline-flex items-center px-2 py-1 rounded-md text-[10px] font-black uppercase tracking-widest ${log.type === 'danger' ? 'bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400' :
                           log.type === 'success' ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400' :
                             log.type === 'warning' ? 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400' :
                               'bg-zinc-200 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 dark:bg-zinc-700/30 dark:text-zinc-100'

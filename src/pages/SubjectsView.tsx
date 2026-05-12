@@ -51,8 +51,6 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
 
   const [sortBy, setSortBy] = useState<'default' | 'time' | 'questions' | 'name' | 'meta' | 'accuracy' | 'questionsGoal' | 'weight'>('default');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  const [newQuestionsGoal, setNewQuestionsGoal] = useState<number | ''>('');
-  const [newWeight, setNewWeight] = useState<number | ''>('');
 
 
 
@@ -167,14 +165,10 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
       id: crypto.randomUUID(),
       name: newSubjectName,
       color: selectedColor,
-      questionsGoal: newQuestionsGoal === '' ? undefined : Number(newQuestionsGoal),
-      weight: newWeight === '' ? undefined : Number(newWeight),
       topics: []
     };
     onUpdateSubjects([...subjects, newSub]);
     setNewSubjectName('');
-    setNewQuestionsGoal('');
-    setNewWeight('');
     const currentIndex = COLORS.indexOf(selectedColor);
     setSelectedColor(COLORS[(currentIndex + 1) % COLORS.length]);
   };
@@ -291,30 +285,14 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
            </div>
         ) : (
           <>
-            <div className="flex flex-col gap-2 w-full">
-              <div className="flex gap-2 flex-1 md:flex-none items-center">
+            <div className="flex gap-2 items-center">
                 <input
                   type="text"
                   placeholder="Nova disciplina..."
                   value={newSubjectName}
                   onChange={(e) => setNewSubjectName(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && addSubject()}
-                  className="px-4 py-2 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl focus:ring-2 focus:ring-zinc-500 outline-none text-zinc-800 dark:text-white text-sm min-w-[180px]"
-                />
-                <input
-                  type="number"
-                  placeholder="Prev. Edital"
-                  value={newQuestionsGoal}
-                  onChange={(e) => setNewQuestionsGoal(e.target.value === '' ? '' : Number(e.target.value))}
-                  className="px-3 py-2 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl focus:ring-2 focus:ring-zinc-500 outline-none text-zinc-800 dark:text-white text-sm w-28"
-                />
-                <input
-                  type="number"
-                  placeholder="Peso"
-                  step="0.1"
-                  value={newWeight}
-                  onChange={(e) => setNewWeight(e.target.value === '' ? '' : Number(e.target.value))}
-                  className="px-3 py-2 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl focus:ring-2 focus:ring-zinc-500 outline-none text-zinc-800 dark:text-white text-sm w-24"
+                  className="px-4 py-2 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl focus:ring-2 focus:ring-zinc-500 outline-none text-zinc-800 dark:text-white text-sm min-w-[200px]"
                 />
 
                 {/* Color picker — compact button that expands to honeycomb */}
@@ -330,7 +308,6 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                       className="absolute top-10 left-1/2 -translate-x-1/2 z-50 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl shadow-2xl p-3 animate-in fade-in zoom-in-95 duration-150"
                       style={{ minWidth: 160 }}
                     >
-                      {/* Honeycomb grid */}
                       <div className="flex flex-wrap gap-1.5 justify-center">
                         {COLORS.map((color, idx) => (
                           <button
@@ -345,7 +322,6 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                             title={color}
                           />
                         ))}
-                        {/* Custom color */}
                         <div className="relative flex items-center justify-center w-6 h-6 rounded-full overflow-hidden border-2 border-dashed border-zinc-300 dark:border-zinc-600 hover:ring-2 hover:ring-zinc-400 cursor-pointer mt-2">
                           <input
                             type="color"
@@ -361,9 +337,10 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                   )}
                 </div>
 
-                <button onClick={addSubject} className="bg-zinc-900 dark:bg-zinc-700 text-white px-3 py-2 rounded-xl hover:bg-zinc-800 dark:hover:bg-zinc-600 flex items-center justify-center"><Plus size={20} /></button>
+                <button onClick={addSubject} className="bg-zinc-900 dark:bg-zinc-700 text-white px-3 py-2 rounded-xl hover:bg-zinc-800 dark:hover:bg-zinc-600 flex items-center justify-center gap-1.5 text-xs font-bold">
+                  <Plus size={16} /> Adicionar
+                </button>
               </div>
-            </div>
           </>
         )}
       </div>
@@ -406,12 +383,12 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                       className={`hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer group ${isExpanded ? 'bg-zinc-50 dark:bg-zinc-800/30' : ''}`}
                       onClick={() => toggleExpand(subject.id)}
                     >
-                      <td className="px-6 py-4 w-10">
-                        {isExpanded ? <ChevronDown size={16} className="text-zinc-400" /> : <ChevronRight size={16} className="text-zinc-400" />}
+                      <td className="px-4 py-3 w-10">
+                        {isExpanded ? <ChevronDown size={15} className="text-zinc-400" /> : <ChevronRight size={15} className="text-zinc-400" />}
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
-                          <div className={`w-3 h-3 rounded-full ${getBadgeStyle(subject.color).className}`} style={getBadgeStyle(subject.color).style} />
+                          <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${getBadgeStyle(subject.color).className}`} style={getBadgeStyle(subject.color).style} />
                           {editingSubjectId === subject.id ? (
                             <div className="flex flex-col gap-2" onClick={e => e.stopPropagation()}>
                               <div className="flex items-center gap-2">
@@ -443,41 +420,41 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                           ) : (
                             <div>
                               <p className="text-sm font-bold text-zinc-800 dark:text-white">{subject.name}</p>
-                              <p className="text-[10px] text-zinc-400 uppercase font-medium mt-0.5">{subject.topics.length} tópicos</p>
+                              <p className="text-[10px] text-zinc-400 font-medium mt-0.5">{subject.topics.length} tópico{subject.topics.length !== 1 ? 's' : ''}</p>
                             </div>
                           )}
                         </div>
                       </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2 text-sm font-medium text-zinc-600 dark:text-zinc-300">
-                          <Clock size={14} className="text-zinc-400" /> {stats.hours}h
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-1.5 text-sm font-medium text-zinc-600 dark:text-zinc-300">
+                          <Clock size={13} className="text-zinc-400" /> {stats.hours}h
                         </div>
                       </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2 text-sm font-medium text-zinc-600 dark:text-zinc-300">
-                          <Target size={14} className="text-zinc-400" /> {stats.questions}
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-1.5 text-sm font-medium text-zinc-600 dark:text-zinc-300">
+                          <Target size={13} className="text-zinc-400" /> {stats.questions}
                         </div>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
-                          <div className="w-16 h-1.5 bg-zinc-100 dark:bg-zinc-700 rounded-full overflow-hidden">
+                          <div className="w-14 h-1.5 bg-zinc-100 dark:bg-zinc-700 rounded-full overflow-hidden">
                             <div className={`h-full ${stats.accuracy >= 80 ? 'bg-emerald-500' : stats.accuracy < 50 ? 'bg-rose-500' : 'bg-blue-500'}`} style={{ width: `${stats.accuracy}%` }} />
                           </div>
                           <span className="text-xs font-bold text-zinc-600 dark:text-zinc-400">{stats.accuracy}%</span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <td className="px-4 py-3 text-right">
+                        <div className="flex items-center justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button onClick={(e) => startEditing(subject, e)} className="p-1.5 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg text-zinc-400 hover:text-zinc-900 dark:text-zinc-300 transition-colors">
-                            <Edit2 size={14} />
+                            <Edit2 size={13} />
                           </button>
                           <button onClick={(e) => deleteSubject(subject.id, e)} className="p-1.5 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg text-zinc-400 hover:text-rose-500 transition-colors">
-                            <Trash2 size={14} />
+                            <Trash2 size={13} />
                           </button>
                         </div>
                       </td>
                       {/* Previsto no Edital */}
-                      <td className="px-4 py-4" onClick={e => editingSubjectId === subject.id && e.stopPropagation()}>
+                      <td className="px-4 py-3" onClick={e => editingSubjectId === subject.id && e.stopPropagation()}>
                         {editingSubjectId === subject.id ? (
                           <input
                             type="number"
@@ -493,7 +470,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                         )}
                       </td>
                       {/* Peso Total */}
-                      <td className="px-6 py-4" onClick={e => editingSubjectId === subject.id && e.stopPropagation()}>
+                      <td className="px-4 py-3" onClick={e => editingSubjectId === subject.id && e.stopPropagation()}>
                         {editingSubjectId === subject.id ? (
                           <input
                             type="number"
@@ -513,59 +490,53 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
 
                     {isExpanded && (
                       <tr>
-                        <td colSpan={8} className="px-0 py-0 bg-zinc-50/50 dark:bg-zinc-800/20 border-b border-zinc-100 dark:border-zinc-800">
-                          <div className="p-6 pl-16 grid gap-4">
-                            <div className="flex items-center gap-4 mb-2">
-                              <h4 className="text-xs font-bold uppercase text-zinc-400 tracking-wide">Tópicos do Edital</h4>
-                              <div className="flex-1 h-px bg-zinc-200 dark:bg-zinc-700" />
-                              {addingTopicToId === subject.id ? (
-                                <div className="flex items-center gap-2 animate-in fade-in">
-                                  <input
-                                    className="text-xs px-2 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 outline-none"
-                                    placeholder="Nome do tópico..."
-                                    value={newTopicTitle}
-                                    onChange={e => setNewTopicTitle(e.target.value)}
-                                    onKeyPress={e => e.key === 'Enter' && handleAddTopic(subject.id)}
-                                    autoFocus
-                                  />
-                                  <select
-                                    value={newTopicPriority} onChange={e => setNewTopicPriority(e.target.value as any)}
-                                    className="text-xs px-2 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 outline-none"
-                                  >
-                                    <option value="Baixa">Baixa</option>
-                                    <option value="Média">Média</option>
-                                    <option value="Alta">Alta</option>
-                                  </select>
-                                  <button onClick={() => handleAddTopic(subject.id)} className="text-xs bg-zinc-900 dark:bg-zinc-700 text-white px-3 py-1.5 rounded-lg">Add</button>
-                                  <button onClick={() => setAddingTopicToId(null)} className="text-xs text-zinc-400 px-2">X</button>
-                                </div>
-                              ) : (
-                                <button onClick={() => setAddingTopicToId(subject.id)} className="text-[10px] font-bold text-zinc-900 dark:text-zinc-100 uppercase hover:underline">+ Adicionar Tópico</button>
-                              )}
-                            </div>
+                        <td colSpan={8} className="px-0 py-0 bg-zinc-50/30 dark:bg-zinc-800/10 border-b border-zinc-100 dark:border-zinc-800">
+                          <div className="pl-10 pr-4 py-2">
 
                             <table className="w-full text-left text-sm">
                               <thead>
-                                <tr className="text-zinc-400 border-b border-zinc-200 dark:border-zinc-700">
-                                  <th className="py-2 pl-4 text-[10px] uppercase font-bold cursor-pointer hover:text-zinc-900 dark:text-zinc-300" onClick={() => { setTopicSortBy('name'); setTopicSortOrder(o => o === 'asc' ? 'desc' : 'asc'); }}>
-                                    Assunto {topicSortBy === 'name' && (topicSortOrder === 'asc' ? '↑' : '↓')}
+                                <tr className="text-zinc-400 border-b border-zinc-100 dark:border-zinc-800">
+                                  <th className="py-1.5 pl-3 text-[10px] uppercase font-bold cursor-pointer hover:text-zinc-900 dark:text-zinc-300 flex items-center gap-3" onClick={() => { setTopicSortBy('name'); setTopicSortOrder(o => o === 'asc' ? 'desc' : 'asc'); }}>
+                                    <span>Assunto {topicSortBy === 'name' && (topicSortOrder === 'asc' ? '↑' : '↓')}</span>
+                                    <span className="flex-1" />
+                                    {addingTopicToId === subject.id ? (
+                                      <div className="flex items-center gap-2 animate-in fade-in" onClick={e => e.stopPropagation()}>
+                                        <input
+                                          className="text-xs px-2 py-1 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 outline-none font-normal normal-case tracking-normal"
+                                          placeholder="Nome do tópico..."
+                                          value={newTopicTitle}
+                                          onChange={e => setNewTopicTitle(e.target.value)}
+                                          onKeyPress={e => e.key === 'Enter' && handleAddTopic(subject.id)}
+                                          autoFocus
+                                        />
+                                        <button onClick={() => handleAddTopic(subject.id)} className="text-xs bg-zinc-900 dark:bg-zinc-700 text-white px-2.5 py-1 rounded-lg font-normal normal-case tracking-normal">Salvar</button>
+                                        <button onClick={() => setAddingTopicToId(null)} className="text-xs text-zinc-400 px-1 font-normal normal-case tracking-normal">✕</button>
+                                      </div>
+                                    ) : (
+                                      <button
+                                        onClick={e => { e.stopPropagation(); setAddingTopicToId(subject.id); }}
+                                        className="text-[10px] font-black text-zinc-500 hover:text-zinc-900 dark:hover:text-white uppercase tracking-widest normal-case flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
+                                      >
+                                        <Plus size={11} /> Tópico
+                                      </button>
+                                    )}
                                   </th>
-                                  <th className="py-2 text-[10px] uppercase font-bold cursor-pointer hover:text-zinc-900 dark:text-zinc-300" onClick={() => { setTopicSortBy('lastStudy'); setTopicSortOrder(o => o === 'desc' ? 'asc' : 'desc'); }}>
-                                    Último Estudo {topicSortBy === 'lastStudy' && (topicSortOrder === 'desc' ? '↓' : '↑')}
+                                  <th className="py-1.5 text-[10px] uppercase font-bold cursor-pointer hover:text-zinc-900 dark:text-zinc-300" onClick={() => { setTopicSortBy('lastStudy'); setTopicSortOrder(o => o === 'desc' ? 'asc' : 'desc'); }}>
+                                    Último {topicSortBy === 'lastStudy' && (topicSortOrder === 'desc' ? '↓' : '↑')}
                                   </th>
-                                  <th className="py-2 text-[10px] uppercase font-bold cursor-pointer hover:text-zinc-900 dark:text-zinc-300" onClick={() => { setTopicSortBy('review7d'); setTopicSortOrder(o => o === 'desc' ? 'asc' : 'desc'); }}>
-                                    Rev. 7d {topicSortBy === 'review7d' && (topicSortOrder === 'desc' ? '↓' : '↑')}
+                                  <th className="py-1.5 text-[10px] uppercase font-bold cursor-pointer hover:text-zinc-900 dark:text-zinc-300" onClick={() => { setTopicSortBy('review7d'); setTopicSortOrder(o => o === 'desc' ? 'asc' : 'desc'); }}>
+                                    Rev.7d {topicSortBy === 'review7d' && (topicSortOrder === 'desc' ? '↓' : '↑')}
                                   </th>
-                                  <th className="py-2 text-[10px] uppercase font-bold cursor-pointer hover:text-zinc-900 dark:text-zinc-300" onClick={() => { setTopicSortBy('review30d'); setTopicSortOrder(o => o === 'desc' ? 'asc' : 'desc'); }}>
-                                    Rev. 30d {topicSortBy === 'review30d' && (topicSortOrder === 'desc' ? '↓' : '↑')}
+                                  <th className="py-1.5 text-[10px] uppercase font-bold cursor-pointer hover:text-zinc-900 dark:text-zinc-300" onClick={() => { setTopicSortBy('review30d'); setTopicSortOrder(o => o === 'desc' ? 'asc' : 'desc'); }}>
+                                    Rev.30d {topicSortBy === 'review30d' && (topicSortOrder === 'desc' ? '↓' : '↑')}
                                   </th>
-                                  <th className="py-2 text-[10px] uppercase font-bold cursor-pointer hover:text-zinc-900 dark:text-zinc-300" onClick={() => { setTopicSortBy('time'); setTopicSortOrder(o => o === 'desc' ? 'asc' : 'desc'); }}>
+                                  <th className="py-1.5 text-[10px] uppercase font-bold cursor-pointer hover:text-zinc-900 dark:text-zinc-300" onClick={() => { setTopicSortBy('time'); setTopicSortOrder(o => o === 'desc' ? 'asc' : 'desc'); }}>
                                     Tempo {topicSortBy === 'time' && (topicSortOrder === 'desc' ? '↓' : '↑')}
                                   </th>
-                                  <th className="py-2 text-[10px] uppercase font-bold cursor-pointer hover:text-zinc-900 dark:text-zinc-300" onClick={() => { setTopicSortBy('questions'); setTopicSortOrder(o => o === 'desc' ? 'asc' : 'desc'); }}>
+                                  <th className="py-1.5 text-[10px] uppercase font-bold cursor-pointer hover:text-zinc-900 dark:text-zinc-300" onClick={() => { setTopicSortBy('questions'); setTopicSortOrder(o => o === 'desc' ? 'asc' : 'desc'); }}>
                                     Questões {topicSortBy === 'questions' && (topicSortOrder === 'desc' ? '↓' : '↑')}
                                   </th>
-                                  <th className="py-2 text-[10px] uppercase font-bold text-right">Ação</th>
+                                  <th className="py-1.5 text-[10px] uppercase font-bold text-right w-16"></th>
                                 </tr>
                               </thead>
                               <tbody>
@@ -573,28 +544,16 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                                 {(() => {
                                   const stats = getTopicStats(subject.id, null);
                                   return (
-                                    <tr className="bg-zinc-50/50 dark:bg-zinc-800/10 border-b border-zinc-100 dark:border-zinc-800/30">
-                                      <td className="py-2 font-bold pl-4" style={{ color: getColorHex(subject.color) }}>
-                                        Geral / Outros <span className="text-[10px] font-normal opacity-70 ml-1 text-zinc-500 dark:text-zinc-400">(Revisão Geral)</span>
+                                    <tr className="border-b border-zinc-50 dark:border-zinc-800/30">
+                                      <td className="py-1.5 font-semibold pl-3 text-xs" style={{ color: getColorHex(subject.color) }}>
+                                        Geral / Outros <span className="text-[10px] font-normal opacity-60 ml-1 text-zinc-500">revisão geral</span>
                                       </td>
-                                      <td className="py-2 text-zinc-500 text-xs text-center">
-                                        {stats.lastStudyDate || '-'}
-                                      </td>
-                                      <td className="py-2 text-xs font-medium text-zinc-400 text-center">
-                                        {stats.review7dDate || '-'}
-                                      </td>
-                                      <td className="py-2 text-xs font-medium text-zinc-400 text-center">
-                                        {stats.review30dDate || '-'}
-                                      </td>
-                                      <td className="py-2 text-zinc-500 text-xs text-center">
-                                        {stats.minutes > 0 ? `${stats.hours}h` : '-'}
-                                      </td>
-                                      <td className="py-2 text-zinc-500 text-xs text-center">
-                                        {stats.done > 0 ? `${stats.correct}/${stats.done} (${stats.acc}%)` : '-'}
-                                      </td>
-                                      <td className="py-2 text-right">
-                                        {/* No delete/edit actions for fixed topic */}
-                                      </td>
+                                      <td className="py-1.5 text-zinc-400 text-xs">{stats.lastStudyDate || '—'}</td>
+                                      <td className="py-1.5 text-xs text-zinc-400">{stats.review7dDate || '—'}</td>
+                                      <td className="py-1.5 text-xs text-zinc-400">{stats.review30dDate || '—'}</td>
+                                      <td className="py-1.5 text-zinc-400 text-xs">{stats.minutes > 0 ? `${stats.hours}h` : '—'}</td>
+                                      <td className="py-1.5 text-zinc-400 text-xs">{stats.done > 0 ? `${stats.correct}/${stats.done} (${stats.acc}%)` : '—'}</td>
+                                      <td className="py-1.5" />
                                     </tr>
                                   );
                                 })()}
@@ -632,8 +591,8 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                                   })
                                   .map(({ topic, stats: tStats }) => {
                                     return (
-                                      <tr key={topic.id} className="group/row hover:bg-zinc-100 dark:hover:bg-zinc-700/50 transition-colors">
-                                        <td className={`py-2 pl-4 font-bold ${topic.isCompleted ? 'text-zinc-400 line-through' : 'text-zinc-700 dark:text-zinc-300'}`}>
+                                      <tr key={topic.id} className="group/row hover:bg-zinc-100/80 dark:hover:bg-zinc-700/40 transition-colors border-b border-zinc-50 dark:border-zinc-800/20 last:border-0">
+                                        <td className={`py-1.5 pl-3 text-xs font-semibold ${topic.isCompleted ? 'text-zinc-300 dark:text-zinc-600 line-through' : 'text-zinc-700 dark:text-zinc-300'}`}>
                                           {editingTopicId === topic.id ? (
                                             <div className="flex items-center gap-2">
                                               <input
@@ -648,12 +607,12 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                                                 onClick={e => e.stopPropagation()}
                                               />
                                               <button onClick={() => saveTopicEdit(subject.id, topic.id)} className="text-emerald-500 hover:text-emerald-600">
-                                                <CheckCircle size={14} />
+                                                <CheckCircle size={13} />
                                               </button>
                                             </div>
                                           ) : (
                                             <span
-                                              className="cursor-pointer hover:underline select-none"
+                                              className="cursor-pointer hover:text-zinc-900 dark:hover:text-white transition-colors select-none"
                                               onClick={() => toggleTopic(subject.id, topic.id)}
                                               title={topic.isCompleted ? 'Marcar como pendente' : 'Marcar como concluído'}
                                             >
@@ -661,28 +620,28 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                                             </span>
                                           )}
                                         </td>
-                                        <td className="py-2 text-zinc-500 text-xs">
+                                        <td className="py-1.5 text-zinc-400 text-xs">
                                           {tStats.lastStudyDate || '-'}
                                         </td>
-                                        <td className="py-2 text-xs font-medium text-zinc-400">
+                                        <td className="py-1.5 text-xs font-medium text-zinc-400">
                                           {tStats.review7dDate || '-'}
                                         </td>
-                                        <td className="py-2 text-xs font-medium text-zinc-400">
+                                        <td className="py-1.5 text-xs font-medium text-zinc-400">
                                           {tStats.review30dDate || '-'}
                                         </td>
-                                        <td className="py-2 text-zinc-500 text-xs">
+                                        <td className="py-1.5 text-zinc-400 text-xs">
                                           {tStats.minutes > 0 ? `${tStats.hours}h` : '-'}
                                         </td>
-                                        <td className="py-2 text-zinc-500 text-xs">
+                                        <td className="py-1.5 text-zinc-400 text-xs">
                                           {tStats.done > 0 ? `${tStats.correct}/${tStats.done} (${tStats.acc}%)` : '-'}
                                         </td>
-                                        <td className="py-2 text-right">
+                                        <td className="py-1.5 text-right">
                                           <div className="flex items-center justify-end gap-2 opacity-0 group-hover/row:opacity-100 transition-opacity">
-                                            <button onClick={() => startEditingTopic(topic)} className="text-zinc-300 hover:text-zinc-900 dark:text-zinc-300">
-                                              <Edit2 size={12} />
+                                            <button onClick={() => startEditingTopic(topic)} className="text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors">
+                                              <Edit2 size={11} />
                                             </button>
-                                            <button onClick={() => deleteTopic(subject.id, topic.id)} className="text-zinc-300 hover:text-rose-500">
-                                              <Trash2 size={12} />
+                                            <button onClick={() => deleteTopic(subject.id, topic.id)} className="text-zinc-400 hover:text-rose-500 transition-colors">
+                                              <Trash2 size={11} />
                                             </button>
                                           </div>
                                         </td>

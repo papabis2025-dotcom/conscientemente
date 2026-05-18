@@ -22,7 +22,8 @@ import {
   GripVertical,
   Clock,
   BookOpen,
-  Check
+  Check,
+  LayoutTemplate
 } from 'lucide-react';
 import logoImg from '../assets/logo.png';
 
@@ -311,14 +312,14 @@ const Sidebar: React.FC<SidebarProps> = ({
 
       </nav>
 
-      <div className="pt-3 mt-3 border-t border-zinc-100 dark:border-zinc-800 space-y-2">
+      <div className="mt-auto pt-4 border-t border-zinc-100 dark:border-zinc-800 space-y-2">
         <button onClick={() => setActiveTab('settings')} className={`w-full flex items-center ${isCollapsed ? 'justify-center px-1' : 'gap-3 px-3'} py-2 rounded-xl transition-colors ${activeTab === 'settings' ? 'text-zinc-900 bg-zinc-100 dark:bg-zinc-800 dark:text-white font-semibold' : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-white font-medium'}`} title="Ajustes">
           <Settings size={20} />
           {!isCollapsed && <span className="text-sm">Ajustes</span>}
         </button>
-        <button onClick={onLogout} className={`w-full flex items-center ${isCollapsed ? 'justify-center px-1' : 'gap-3 px-3'} py-2 text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/10 rounded-xl transition-colors font-medium`} title="Voltar ao Hub">
-          <LayoutDashboard size={20} />
-          {!isCollapsed && <span className="text-sm">Voltar ao Hub</span>}
+        <button onClick={onLogout} className="w-full flex items-center justify-center gap-2 py-3 px-2 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 rounded-xl transition-colors font-bold text-[11px] uppercase tracking-wider" title="Voltar ao Hub">
+          <LayoutTemplate size={18} className={isCollapsed ? '' : 'shrink-0'} />
+          {!isCollapsed && <span>Voltar ao Hub</span>}
         </button>
       </div>
     </div >

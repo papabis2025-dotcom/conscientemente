@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { MODULES } from '../constants';
 import { Module, LogEntry } from '../types';
 import { LogOut, Sun, Moon, ArrowUpRight, Lock, BookOpen, Wallet, ListTodo, Brain, ChevronRight, Activity, TrendingUp, Settings, User, X } from 'lucide-react';
 import LogView from '../modules/estudos/pages/LogView';
 import { api } from '../modules/estudos/services/api';
+import { supabase } from '../modules/estudos/services/supabase';
 
 interface HubHomeProps {
   userName: string;
@@ -143,6 +144,18 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [logs, setLogs] = useState<LogEntry[]>([]);
 
+  // Settings states
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [isExporting, setIsExporting] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+
+  // Profile states
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordMessage, setPasswordMessage] = useState('');
+  const [newEmail, setNewEmail] = useState('');
+  const [emailMessage, setEmailMessage] = useState('');
+
   const fetchLogs = async () => {
     const data = await api.logs.list();
     if (data) setLogs(data);
@@ -155,6 +168,88 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
 
   const handleDeleteLog = async (id: string) => {
     setLogs(prev => prev.filter(l => l.id !== id));
+  };
+
+  const handleExport = async () => {
+    setIsExporting(true);
+    try {
+      const [concursos, sessions, simulados, schedule, goals] = await Promise.all([
+        api.concursos.list(), api.sessions.list(), api.simulados.list(), api.schedule.list(), api.dailyGoals.list()
+      ]);
+      const exportData = { version: '1.0', exportDate: new Date().toISOString(), data: { concursos, sessions, simulados, scheduledStudies: schedule, dailyGoals: goals } };
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `conscientemente-backup-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+      alert('✅ Dados exportados com sucesso!');
+    } catch (error) {
+      console.error(error); alert('❌ Erro ao exportar dados.');
+    } finally { setIsExporting(false); }
+  };
+
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsImporting(true);
+    try {
+      const text = await file.text();
+      const importData = JSON.parse(text);
+      if (!importData.data) throw new Error('Formato inválido');
+      const { concursos, sessions, simulados, scheduledStudies, dailyGoals } = importData.data;
+      if (!confirm('Importar itens? Isso pode sobrescrever dados existentes.')) { setIsImporting(false); return; }
+      if (concursos) for (const c of concursos) await api.concursos.upsert(c);
+      if (sessions) for (const s of sessions) await api.sessions.create(s);
+      if (simulados) for (const s of simulados) await api.simulados.create(s);
+      if (scheduledStudies) for (const s of scheduledStudies) await api.schedule.create(s);
+      if (dailyGoals) for (const g of dailyGoals) await api.dailyGoals.upsert(g);
+      alert('✅ Dados importados com sucesso! Recarregue a página.');
+      window.location.reload();
+    } catch (error) {
+      console.error(error); alert('❌ Erro ao importar dados.');
+    } finally { setIsImporting(false); if (fileRef.current) fileRef.current.value = ''; }
+  };
+
+  const handleResetAllData = async () => {
+    if (confirm('⚠️ TEM CERTEZA? Isso apagará TODOS os seus dados permanentemente.') &&
+        confirm('⛔ Último aviso: Essa ação não pode ser desfeita. Confirmar reset total?')) {
+      try {
+        await Promise.all([
+          supabase.from('concursos').delete().neq('id', '0'),
+          supabase.from('study_sessions').delete().neq('id', '0'),
+          supabase.from('simulados').delete().neq('id', '0'),
+          supabase.from('scheduled_studies').delete().neq('id', '0'),
+          supabase.from('daily_goals').delete().neq('id', '0'),
+          supabase.from('logs').delete().neq('id', '0')
+        ]);
+        alert('✅ Todos os dados foram apagados. O sistema foi resetado.');
+        window.location.reload();
+      } catch (e) { alert('Erro ao resetar dados.'); }
+    }
+  };
+
+  const handlePasswordChange = async () => {
+    setPasswordMessage('');
+    if (!newPassword || !confirmPassword) { setPasswordMessage('❌ Preencha todos os campos'); return; }
+    if (newPassword !== confirmPassword) { setPasswordMessage('❌ As senhas não coincidem'); return; }
+    if (newPassword.length < 6) { setPasswordMessage('❌ A senha deve ter pelo menos 6 caracteres'); return; }
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+      setPasswordMessage('✅ Senha alterada com sucesso!');
+      setNewPassword(''); setConfirmPassword('');
+    } catch (error: any) { setPasswordMessage(`❌ Erro: ${error.message}`); }
+  };
+
+  const handleEmailChange = async () => {
+    setEmailMessage('');
+    if (!newEmail) { setEmailMessage('❌ Digite o novo e-mail'); return; }
+    try {
+      const { error } = await supabase.auth.updateUser({ email: newEmail });
+      if (error) throw error;
+      setEmailMessage('✅ E-mail de confirmação enviado! Verifique sua caixa de entrada.');
+      setNewEmail('');
+    } catch (error: any) { setEmailMessage(`❌ Erro: ${error.message}`); }
   };
 
   useEffect(() => { setMounted(true); }, []);
@@ -197,7 +292,7 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
     }
   }, [todayStr]);
 
-  const timeStr = currentTime.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const timeStr = currentTime.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
   const dateStr = currentTime.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
 
   return (
@@ -349,8 +444,46 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
              <div className="p-6 border-b border-zinc-200 dark:border-zinc-800 shrink-0">
                <h2 className="text-xl font-black uppercase tracking-widest text-zinc-800 dark:text-white flex items-center gap-2"><Settings size={20} /> Configurações Gerais - Logs do Sistema</h2>
              </div>
-             <div className="flex-1 min-h-0 overflow-y-auto p-6 bg-zinc-50 dark:bg-zinc-950">
-               <LogView logs={logs} onClearLogs={handleClearLogs} onDeleteLog={handleDeleteLog} />
+             <div className="flex-1 min-h-0 overflow-y-auto p-6 bg-zinc-50 dark:bg-zinc-950 space-y-8">
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 shrink-0">
+                 <div className="bg-white dark:bg-zinc-900 p-8 rounded-[2.5rem] border border-zinc-200 dark:border-zinc-800 shadow-sm space-y-6">
+                   <h3 className="font-bold text-lg flex items-center gap-2">📦 Backup de Dados</h3>
+                   <p className="text-sm text-zinc-500 leading-relaxed">Exporte ou importe seus dados do Supabase.</p>
+                   <div className="flex flex-col gap-3">
+                     <button onClick={handleExport} disabled={isExporting} className="w-full py-4 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-zinc-900 dark:hover:bg-zinc-700 hover:text-white transition-all disabled:opacity-50">
+                       {isExporting ? '⏳ Exportando...' : '📤 Exportar JSON'}
+                     </button>
+                     <button onClick={() => fileRef.current?.click()} disabled={isImporting} className="w-full py-4 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-emerald-600 hover:text-white transition-all disabled:opacity-50">
+                       {isImporting ? '⏳ Importando...' : '📥 Importar JSON'}
+                     </button>
+                     <input type="file" ref={fileRef} onChange={handleImport} className="hidden" accept=".json" />
+                   </div>
+                 </div>
+                 
+                 <div className="bg-white dark:bg-zinc-900 p-8 rounded-[2.5rem] border border-zinc-200 dark:border-zinc-800 shadow-sm space-y-6">
+                   <h3 className="font-bold text-lg flex items-center gap-2">☁️ Sincronização</h3>
+                   <div className="p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl flex justify-between items-center border border-emerald-100 dark:border-emerald-800">
+                     <div>
+                       <p className="text-[10px] font-black uppercase text-emerald-600 dark:text-emerald-400">Status</p>
+                       <p className="text-lg font-black text-emerald-700 dark:text-emerald-300">Conectado ao Supabase</p>
+                     </div>
+                     <span className="text-2xl">✅</span>
+                   </div>
+                   <p className="text-xs text-zinc-500">Seus dados estão sendo salvos automaticamente na nuvem.</p>
+                 </div>
+                 
+                 <div className="bg-rose-50 dark:bg-rose-900/10 p-8 rounded-[2.5rem] border border-rose-100 dark:border-rose-900/30 shadow-sm space-y-6 md:col-span-2">
+                   <h3 className="font-bold text-lg flex items-center gap-2 text-rose-600 dark:text-rose-400">🚨 Zona de Perigo</h3>
+                   <button onClick={handleResetAllData} className="w-full bg-rose-600 text-white py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-rose-700 transition-all shadow-lg shadow-rose-500/20 active:scale-95">
+                     🔥 FÁBRICA: Resetar Tudo
+                   </button>
+                 </div>
+               </div>
+
+               <div className="bg-white dark:bg-zinc-900 p-8 rounded-[2.5rem] border border-zinc-200 dark:border-zinc-800 shadow-sm shrink-0">
+                 <h3 className="font-bold text-lg flex items-center gap-2 mb-6">📝 Logs do Sistema</h3>
+                 <LogView logs={logs} onClearLogs={handleClearLogs} onDeleteLog={handleDeleteLog} />
+               </div>
              </div>
           </div>
         </div>
@@ -358,18 +491,41 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
 
       {showProfileModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/80 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-zinc-900 w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden p-8 relative animate-in zoom-in-95">
+          <div className="bg-white dark:bg-zinc-900 w-full max-w-2xl max-h-[90vh] rounded-[2.5rem] shadow-2xl overflow-y-auto p-8 relative animate-in zoom-in-95 custom-scrollbar">
              <button onClick={() => setShowProfileModal(false)} className="absolute top-6 right-6 text-zinc-400 hover:text-rose-500 bg-zinc-100 dark:bg-zinc-800 rounded-full p-2"><X size={16} /></button>
-             <h2 className="text-xl font-black uppercase tracking-widest text-zinc-800 dark:text-white mb-4 flex items-center gap-2"><User size={20} /> Preferências</h2>
-             <p className="text-zinc-500 dark:text-zinc-400 text-sm mb-6">Em breve: configuração de perfil e preferências de conta.</p>
-             <div className="bg-zinc-100 dark:bg-zinc-800 rounded-2xl p-4 flex items-center gap-4">
-                <div className="w-12 h-12 bg-indigo-500 text-white rounded-full flex items-center justify-center text-xl font-black shadow-lg">
-                  {userName[0].toUpperCase()}
-                </div>
-                <div>
-                  <p className="font-bold text-zinc-800 dark:text-white">{userName}</p>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400">Usuário do Sistema</p>
-                </div>
+             <h2 className="text-xl font-black uppercase tracking-widest text-zinc-800 dark:text-white mb-6 flex items-center gap-2"><User size={20} /> Preferências de Usuário</h2>
+             
+             <div className="space-y-6">
+               <div className="bg-zinc-100 dark:bg-zinc-800/50 rounded-2xl p-4 flex items-center gap-4 border border-zinc-200 dark:border-zinc-800">
+                  <div className="w-12 h-12 bg-indigo-500 text-white rounded-full flex items-center justify-center text-xl font-black shadow-lg">
+                    {userName[0].toUpperCase()}
+                  </div>
+                  <div>
+                    <p className="font-bold text-zinc-800 dark:text-white">{userName}</p>
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400">Usuário Autenticado</p>
+                  </div>
+               </div>
+
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4">
+                 <div className="space-y-4">
+                   <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Alterar Senha</p>
+                   <div className="space-y-3">
+                     <input type="password" placeholder="Nova Senha" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="w-full px-4 py-3 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-2xl outline-none focus:ring-2 focus:ring-zinc-500 text-zinc-800 dark:text-white" />
+                     <input type="password" placeholder="Confirmar Nova Senha" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="w-full px-4 py-3 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-2xl outline-none focus:ring-2 focus:ring-zinc-500 text-zinc-800 dark:text-white" />
+                     <button onClick={handlePasswordChange} className="w-full bg-zinc-900 dark:bg-zinc-700 text-white py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-zinc-800 dark:hover:bg-zinc-600">Alterar Senha</button>
+                     {passwordMessage && <p className="text-xs font-bold text-rose-500">{passwordMessage}</p>}
+                   </div>
+                 </div>
+
+                 <div className="space-y-4">
+                   <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Alterar E-mail</p>
+                   <div className="space-y-3">
+                     <input type="email" placeholder="Novo E-mail" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} className="w-full px-4 py-3 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-2xl outline-none focus:ring-2 focus:ring-zinc-500 text-zinc-800 dark:text-white" />
+                     <button onClick={handleEmailChange} className="w-full bg-emerald-600 text-white py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-emerald-700">Alterar E-mail</button>
+                     {emailMessage && <p className="text-xs font-bold text-emerald-500">{emailMessage}</p>}
+                   </div>
+                 </div>
+               </div>
              </div>
           </div>
         </div>

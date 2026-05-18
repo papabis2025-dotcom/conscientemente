@@ -196,65 +196,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ currentUserEmail }) => {
         </div>
       </header>
 
-      {/* Profile Management */}
-      <div className="bg-white dark:bg-zinc-900 p-8 rounded-[2.5rem] border border-zinc-200 dark:border-zinc-800 shadow-sm space-y-6">
-        <h3 className="font-bold text-lg flex items-center gap-2">👤 Minha Conta</h3>
 
-        <div className="p-4 bg-zinc-100 dark:bg-zinc-800/50 rounded-2xl border border-zinc-200 dark:border-zinc-800">
-          <p className="text-sm font-bold text-zinc-800 dark:text-zinc-300">E-mail atual: {currentUserEmail}</p>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Password Change */}
-          <div className="space-y-4">
-            <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Alterar Senha</p>
-            <div className="space-y-3">
-              <input
-                type="password"
-                placeholder="Nova Senha"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                className="w-full px-4 py-3 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-2xl outline-none focus:ring-2 focus:ring-zinc-500 text-zinc-800 dark:text-white"
-              />
-              <input
-                type="password"
-                placeholder="Confirmar Nova Senha"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full px-4 py-3 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-2xl outline-none focus:ring-2 focus:ring-zinc-500 text-zinc-800 dark:text-white"
-              />
-              <button
-                onClick={handlePasswordChange}
-                className="w-full bg-zinc-900 dark:bg-zinc-700 text-white py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-zinc-800 dark:hover:bg-zinc-600"
-              >
-                Alterar Senha
-              </button>
-              {passwordMessage && <p className="text-xs font-bold">{passwordMessage}</p>}
-            </div>
-          </div>
-
-          {/* Email Change */}
-          <div className="space-y-4">
-            <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Alterar E-mail</p>
-            <div className="space-y-3">
-              <input
-                type="email"
-                placeholder="Novo E-mail"
-                value={newEmail}
-                onChange={(e) => setNewEmail(e.target.value)}
-                className="w-full px-4 py-3 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-2xl outline-none focus:ring-2 focus:ring-zinc-500 text-zinc-800 dark:text-white"
-              />
-              <button
-                onClick={handleEmailChange}
-                className="w-full bg-emerald-600 text-white py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-emerald-700"
-              >
-                Alterar E-mail
-              </button>
-              {emailMessage && <p className="text-xs font-bold">{emailMessage}</p>}
-            </div>
-          </div>
-        </div>
-      </div>
 
       {/* Preferências de Estudo */}
       <div className="bg-white dark:bg-zinc-900 p-8 rounded-[2.5rem] border border-zinc-200 dark:border-zinc-800 shadow-sm space-y-6">
@@ -274,65 +216,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ currentUserEmail }) => {
         </div>
       </div>
 
-      {/* Backup & Export */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div className="bg-white dark:bg-zinc-900 p-8 rounded-[2.5rem] border border-zinc-200 dark:border-zinc-800 shadow-sm space-y-6">
-          <h3 className="font-bold text-lg flex items-center gap-2">📦 Backup de Dados</h3>
-          <p className="text-sm text-zinc-500 leading-relaxed">Exporte ou importe seus dados do Supabase.</p>
-          <div className="flex flex-col gap-3">
-            <button
-              onClick={handleExport}
-              disabled={isExporting}
-              className="w-full py-4 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-zinc-900 dark:hover:bg-zinc-700 hover:text-white transition-all disabled:opacity-50"
-            >
-              {isExporting ? '⏳ Exportando...' : '📤 Exportar JSON'}
-            </button>
-            <button
-              onClick={() => fileRef.current?.click()}
-              disabled={isImporting}
-              className="w-full py-4 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-emerald-600 hover:text-white transition-all disabled:opacity-50"
-            >
-              {isImporting ? '⏳ Importando...' : '📥 Importar JSON'}
-            </button>
-            <input type="file" ref={fileRef} onChange={handleImport} className="hidden" accept=".json" />
-          </div>
-        </div>
 
-        <div className="bg-white dark:bg-zinc-900 p-8 rounded-[2.5rem] border border-zinc-200 dark:border-zinc-800 shadow-sm space-y-6">
-          <h3 className="font-bold text-lg flex items-center gap-2">☁️ Sincronização</h3>
-          <div className="p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl flex justify-between items-center border border-emerald-100 dark:border-emerald-800">
-            <div>
-              <p className="text-[10px] font-black uppercase text-emerald-600 dark:text-emerald-400">Status</p>
-              <p className="text-lg font-black text-emerald-700 dark:text-emerald-300">Conectado ao Supabase</p>
-            </div>
-            <span className="text-2xl">✅</span>
-          </div>
-          <p className="text-xs text-zinc-500">Seus dados estão sendo salvos automaticamente na nuvem.</p>
-        </div>
-
-        {/* Danger Zone */}
-        <div className="bg-rose-50 dark:bg-rose-900/10 p-8 rounded-[2.5rem] border border-rose-100 dark:border-rose-900/30 shadow-sm space-y-6">
-          <h3 className="font-bold text-lg flex items-center gap-2 text-rose-600 dark:text-rose-400">🚨 Zona de Perigo</h3>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">Ações irreversíveis.</p>
-          <button
-            onClick={async () => {
-              if (confirm('⚠️ TEM CERTEZA? Isso apagará TODOS os seus dados (concursos, sessões, simulados) permanentemente.') &&
-                confirm('⛔ Último aviso: Essa ação não pode ser desfeita. Confirmar reset total?')) {
-                const success = await resetAllData();
-                if (success) {
-                  alert('✅ Todos os dados foram apagados. O sistema foi resetado.');
-                  window.location.reload();
-                } else {
-                  alert('Erro ao resetar dados.');
-                }
-              }
-            }}
-            className="w-full bg-rose-600 text-white py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-rose-700 transition-all shadow-lg shadow-rose-500/20 active:scale-95"
-          >
-            🔥 FÁBRICA: Resetar Tudo
-          </button>
-        </div>
-      </div>
     </div>
   );
 };

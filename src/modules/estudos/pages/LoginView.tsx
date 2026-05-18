@@ -122,8 +122,8 @@ const LoginView: React.FC<LoginViewProps> = () => {
         </div>
 
         <div className="relative z-10 text-white max-w-md">
-          <img src={logoImg} alt="Legis Pro Logo" className="w-48 h-48 object-contain mb-8 drop-shadow-2xl" />
-          <h1 className="text-4xl lg:text-5xl font-black uppercase tracking-tighter mb-4 leading-tight">Legis Pro</h1>
+          <img src={logoImg} alt="Conscientemente Logo" className="w-48 h-48 object-contain mb-8 drop-shadow-2xl" />
+          <h1 className="text-4xl lg:text-5xl font-black uppercase tracking-tighter mb-4 leading-tight">Conscientemente</h1>
           <p className="text-zinc-100 text-lg font-medium mb-8 leading-relaxed">
             A plataforma definitiva para quem busca a aprovação. Planeje, execute e analise sua evolução com inteligência.
           </p>
@@ -142,8 +142,8 @@ const LoginView: React.FC<LoginViewProps> = () => {
       <div className="flex-1 flex items-center justify-center p-6 md:p-12 lg:p-24 bg-white dark:bg-zinc-950">
         <div className="w-full max-w-sm space-y-8">
           <div className="md:hidden flex flex-col items-center mb-10">
-            <img src={logoImg} alt="Legis Pro Logo" className="w-24 h-24 object-contain mb-4 drop-shadow-xl" />
-            <h2 className="text-2xl font-black text-zinc-800 dark:text-white uppercase tracking-tighter">Legis Pro</h2>
+            <img src={logoImg} alt="Conscientemente Logo" className="w-24 h-24 object-contain mb-4 drop-shadow-xl" />
+            <h2 className="text-2xl font-black text-zinc-800 dark:text-white uppercase tracking-tighter">Conscientemente</h2>
           </div>
 
           <div className="space-y-2">

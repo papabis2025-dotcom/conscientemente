@@ -136,15 +136,18 @@ export const api = {
                 durationInMinutes: i.duration_minutes,
                 questionsDone: i.questions_done,
                 questionsCorrect: i.questions_correct,
-                status: i.status || 'planejado'
+                // 'status' column does NOT exist in the DB table.
+                // Status is managed purely on the client side (localStorage).
+                status: 'realizado' as const
             }));
         },
         create: async (item: Omit<ScheduledStudy, 'id' | 'user_id' | 'created_at'> & { id?: string }) => {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) throw new Error('Not authenticated');
 
+            // Do NOT send 'status' — that column does not exist in the DB table.
             const result = await handleRequest<any>(supabase.from('scheduled_studies').insert({
-                id: item.id, // Allow explicit ID
+                id: item.id,
                 user_id: user.id,
                 date: item.date,
                 subject_id: item.subjectId,
@@ -153,8 +156,7 @@ export const api = {
                 notes: item.notes,
                 duration_minutes: item.durationInMinutes,
                 questions_done: item.questionsDone,
-                questions_correct: item.questionsCorrect,
-                status: item.status || 'planejado'
+                questions_correct: item.questionsCorrect
             }).select().single());
             
             if (!result) return null;
@@ -169,7 +171,7 @@ export const api = {
                 durationInMinutes: result.duration_minutes,
                 questionsDone: result.questions_done,
                 questionsCorrect: result.questions_correct,
-                status: result.status || 'planejado'
+                status: item.status || 'realizado'
             } as ScheduledStudy;
         },
         update: async (id: string, updates: Partial<ScheduledStudy>) => {
@@ -181,7 +183,7 @@ export const api = {
             if (updates.durationInMinutes !== undefined) dbPayload.duration_minutes = updates.durationInMinutes;
             if (updates.questionsDone !== undefined) dbPayload.questions_done = updates.questionsDone;
             if (updates.questionsCorrect !== undefined) dbPayload.questions_correct = updates.questionsCorrect;
-            if (updates.status) dbPayload.status = updates.status;
+            // Do NOT send 'status' — column does not exist in DB
             if (updates.date) dbPayload.date = updates.date;
 
             return handleRequest(supabase.from('scheduled_studies').update(dbPayload).eq('id', id));

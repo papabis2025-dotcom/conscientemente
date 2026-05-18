@@ -88,8 +88,62 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
             if (sessionsData) setSessions(sessionsData);
             if (simuladosData) setSimulados(simuladosData);
             if (scheduleData) {
-                setScheduledStudies(scheduleData);
-                localStorage.setItem('cp_scheduled_studies', JSON.stringify(scheduleData));
+                // Server doesn't store 'status' column. Merge with localStorage 
+                // to preserve client-side status ('planejado'/'realizado') and any 
+                // items that only exist locally (pending DB sync).
+                const localRaw = localStorage.getItem('cp_scheduled_studies');
+                const localStudies: ScheduledStudy[] = localRaw ? JSON.parse(localRaw) : [];
+                const localStatusMap = new Map(localStudies.map(s => [s.id, s.status]));
+
+                // Merge: server items get their local status (if it exists), otherwise 'realizado'
+                const merged = scheduleData.map(s => ({
+                    ...s,
+                    status: localStatusMap.get(s.id) || s.status || 'realizado'
+                }));
+
+                // Also include local-only items (not yet synced to server)
+                const serverIds = new Set(scheduleData.map(s => s.id));
+                const localOnlyItems = localStudies.filter(s => !serverIds.has(s.id));
+
+                let finalSchedule = [...merged, ...localOnlyItems] as ScheduledStudy[];
+
+                // RECONCILIATION: Find study_sessions that have no matching scheduled_study.
+                // These are "orphaned" sessions from before the status-column bug was fixed.
+                // Generate virtual schedule entries so they appear on the calendar.
+                if (sessionsData && sessionsData.length > 0) {
+                    const scheduleSubjectDateKeys = new Set(
+                        finalSchedule.map(s => `${s.subjectId}_${s.date}`)
+                    );
+
+                    const orphanedSessions = sessionsData.filter(sess => {
+                        const sessDate = sess.date ? sess.date.split('T')[0] : '';
+                        const key = `${sess.subjectId}_${sessDate}`;
+                        return sessDate && !scheduleSubjectDateKeys.has(key);
+                    });
+
+                    const newEntries: ScheduledStudy[] = orphanedSessions.map(sess => ({
+                        id: crypto.randomUUID(),
+                        date: sess.date.split('T')[0],
+                        subjectId: sess.subjectId,
+                        topicId: sess.topicId,
+                        activityType: ((sess as any).activityType || (sess.questionsDone ? 'Questões' : sess.isSimulado ? 'Simulado' : 'Leitura')) as ActivityType,
+                        durationInMinutes: sess.durationInMinutes,
+                        questionsDone: sess.questionsDone,
+                        questionsCorrect: sess.questionsCorrect,
+                        status: 'realizado' as const
+                    }));
+
+                    if (newEntries.length > 0) {
+                        finalSchedule = [...finalSchedule, ...newEntries];
+                        // Backfill these to the DB silently (fire-and-forget)
+                        newEntries.forEach(entry => {
+                            api.schedule.create(entry).catch(() => { /* silent */ });
+                        });
+                    }
+                }
+
+                setScheduledStudies(finalSchedule);
+                localStorage.setItem('cp_scheduled_studies', JSON.stringify(finalSchedule));
             }
             if (goalsData) setDailyGoals(goalsData);
             if (logsData) setLogs(logsData);
@@ -452,41 +506,13 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
 
         const newStatus: 'planejado' | 'realizado' = study.status === 'realizado' ? 'planejado' : 'realizado';
 
-        const newStudy: ScheduledStudy = { ...study, status: newStatus };
+        // Status is purely client-side (DB has no 'status' column).
+        // Update local state + localStorage only.
         setScheduledStudies(prev => {
-            const updated = prev.map(s => s.id === id ? newStudy : s);
+            const updated = prev.map(s => s.id === id ? { ...s, status: newStatus } : s);
             localStorage.setItem('cp_scheduled_studies', JSON.stringify(updated));
             return updated;
         });
-
-        try {
-            if (id.includes('temp-')) {
-                await api.schedule.create(newStudy);
-            } else {
-                await api.schedule.update(id, newStudy);
-            }
-
-            if (newStatus === 'planejado') {
-                setSessions(prev => prev.filter(s => s.id !== id));
-                await api.sessions.delete(id);
-            } else {
-                const session: StudySession = {
-                    id: study.id,
-                    subjectId: study.subjectId,
-                    topicId: study.topicId,
-                    durationInMinutes: study.durationInMinutes || 0,
-                    date: new Date(`${study.date}T12:00:00`).toISOString(),
-                    questionsDone: study.questionsDone,
-                    questionsCorrect: study.questionsCorrect,
-                    activityType: study.activityType
-                };
-                setSessions(prev => [...prev, session]);
-                await api.sessions.create(session);
-            }
-            setLastSaved(new Date().toLocaleTimeString());
-        } catch (e) {
-            console.error('Error toggling status:', e);
-        }
     };
 
     return {

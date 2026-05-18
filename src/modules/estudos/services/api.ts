@@ -54,6 +54,10 @@ export const api = {
             return handleRequest<Concurso>(supabase.from('concursos').upsert(dbPayload).select().single());
         },
         delete: async (id: string) => handleRequest(supabase.from('concursos').delete().eq('id', id)),
+        deleteAll: async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) return handleRequest(supabase.from('concursos').delete().eq('user_id', user.id));
+        },
     },
 
     // Study Sessions
@@ -91,6 +95,10 @@ export const api = {
         },
         delete: async (id: string) => handleRequest(supabase.from('study_sessions').delete().eq('id', id)),
         deleteBySubject: async (subjectId: string) => handleRequest(supabase.from('study_sessions').delete().eq('subject_id', subjectId)),
+        deleteAll: async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) return handleRequest(supabase.from('study_sessions').delete().eq('user_id', user.id));
+        },
     },
 
     // Simulados
@@ -118,6 +126,10 @@ export const api = {
             }).select().single());
         },
         delete: async (id: string) => handleRequest(supabase.from('simulados').delete().eq('id', id)),
+        deleteAll: async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) return handleRequest(supabase.from('simulados').delete().eq('user_id', user.id));
+        },
         // Note: Simulados effectively embed subjects in JSON 'results', so we can't simple delete by subject_id column
         // Handling must be done application side or by updating the JSONB
     },
@@ -190,6 +202,10 @@ export const api = {
         },
         delete: async (id: string) => handleRequest(supabase.from('scheduled_studies').delete().eq('id', id)),
         deleteBySubject: async (subjectId: string) => handleRequest(supabase.from('scheduled_studies').delete().eq('subject_id', subjectId)),
+        deleteAll: async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) return handleRequest(supabase.from('scheduled_studies').delete().eq('user_id', user.id));
+        },
     },
 
     // Daily Goals
@@ -210,6 +226,10 @@ export const api = {
                 date: goal.date,
                 questions_target: goal.questionsTarget
             }, { onConflict: 'user_id, date' }));
+        },
+        deleteAll: async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) return handleRequest(supabase.from('daily_goals').delete().eq('user_id', user.id));
         }
     },
 

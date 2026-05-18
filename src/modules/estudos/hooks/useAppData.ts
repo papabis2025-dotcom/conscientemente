@@ -88,59 +88,17 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
             if (sessionsData) setSessions(sessionsData);
             if (simuladosData) setSimulados(simuladosData);
             if (scheduleData) {
-                // Server doesn't store 'status' column. Merge with localStorage 
-                // to preserve client-side status ('planejado'/'realizado') and any 
-                // items that only exist locally (pending DB sync).
+                // Server is the source of truth for WHICH items exist.
+                // 'status' is client-only (no DB column), so merge it from localStorage.
                 const localRaw = localStorage.getItem('cp_scheduled_studies');
                 const localStudies: ScheduledStudy[] = localRaw ? JSON.parse(localRaw) : [];
                 const localStatusMap = new Map(localStudies.map(s => [s.id, s.status]));
 
-                // Merge: server items get their local status (if it exists), otherwise 'realizado'
-                const merged = scheduleData.map(s => ({
+                // Server items get their local status if available, otherwise default 'realizado'
+                const finalSchedule: ScheduledStudy[] = scheduleData.map(s => ({
                     ...s,
-                    status: localStatusMap.get(s.id) || s.status || 'realizado'
+                    status: (localStatusMap.get(s.id) || 'realizado') as 'planejado' | 'realizado'
                 }));
-
-                // Also include local-only items (not yet synced to server)
-                const serverIds = new Set(scheduleData.map(s => s.id));
-                const localOnlyItems = localStudies.filter(s => !serverIds.has(s.id));
-
-                let finalSchedule = [...merged, ...localOnlyItems] as ScheduledStudy[];
-
-                // RECONCILIATION: Find study_sessions that have no matching scheduled_study.
-                // These are "orphaned" sessions from before the status-column bug was fixed.
-                // Generate virtual schedule entries so they appear on the calendar.
-                if (sessionsData && sessionsData.length > 0) {
-                    const scheduleSubjectDateKeys = new Set(
-                        finalSchedule.map(s => `${s.subjectId}_${s.date}`)
-                    );
-
-                    const orphanedSessions = sessionsData.filter(sess => {
-                        const sessDate = sess.date ? sess.date.split('T')[0] : '';
-                        const key = `${sess.subjectId}_${sessDate}`;
-                        return sessDate && !scheduleSubjectDateKeys.has(key);
-                    });
-
-                    const newEntries: ScheduledStudy[] = orphanedSessions.map(sess => ({
-                        id: crypto.randomUUID(),
-                        date: sess.date.split('T')[0],
-                        subjectId: sess.subjectId,
-                        topicId: sess.topicId,
-                        activityType: ((sess as any).activityType || (sess.questionsDone ? 'Questões' : sess.isSimulado ? 'Simulado' : 'Leitura')) as ActivityType,
-                        durationInMinutes: sess.durationInMinutes,
-                        questionsDone: sess.questionsDone,
-                        questionsCorrect: sess.questionsCorrect,
-                        status: 'realizado' as const
-                    }));
-
-                    if (newEntries.length > 0) {
-                        finalSchedule = [...finalSchedule, ...newEntries];
-                        // Backfill these to the DB silently (fire-and-forget)
-                        newEntries.forEach(entry => {
-                            api.schedule.create(entry).catch(() => { /* silent */ });
-                        });
-                    }
-                }
 
                 setScheduledStudies(finalSchedule);
                 localStorage.setItem('cp_scheduled_studies', JSON.stringify(finalSchedule));
@@ -562,12 +520,12 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         resetAllData: async () => {
             setIsLoading(true);
             try {
-                // Clear all data - robust deletion via API loops
-                for (const c of concursos) await api.concursos.delete(c.id);
-                for (const s of sessions) await api.sessions.delete(s.id);
-                for (const s of simulados) await api.simulados.delete(s.id);
-                for (const s of scheduledStudies) await api.schedule.delete(s.id);
-                for (const g of dailyGoals) await api.dailyGoals.upsert({ ...g, questionsTarget: 0 }); // or delete logic
+                // Clear all data - robust deletion via API
+                await api.concursos.deleteAll();
+                await api.sessions.deleteAll();
+                await api.simulados.deleteAll();
+                await api.schedule.deleteAll();
+                await api.dailyGoals.deleteAll();
                 await api.logs.clear();
 
                 setConcursos([]);
@@ -576,6 +534,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                 setScheduledStudies([]);
                 setDailyGoals([]);
                 setLogs([]);
+                localStorage.removeItem('cp_scheduled_studies');
                 setLastSaved(new Date().toLocaleTimeString());
                 return true;
             } catch (e) {

@@ -54,6 +54,7 @@ const DEFAULT_WIDGETS: WidgetState[] = [
 ];
 
 const getAcronym = (name: string) => {
+  if (!name) return '??';
   const words = name.trim().split(/\s+/);
   if (words.length >= 2) {
     return words.filter(w => w.length > 2).map(w => w[0]).join('').toUpperCase();
@@ -153,7 +154,7 @@ const Dashboard: React.FC<DashboardProps> = ({
       if (sub && stats[sub.name]) {
         stats[sub.name].done += (session.questionsDone || 0);
         stats[sub.name].correct += (session.questionsCorrect || 0);
-        stats[sub.name].minutes += session.durationInMinutes;
+        stats[sub.name].minutes += (session.durationInMinutes || 0);
       }
     });
 
@@ -190,7 +191,7 @@ const Dashboard: React.FC<DashboardProps> = ({
     const todayStr = `${year}-${month}-${day}`;
 
     const done = sessions
-      .filter(s => s.date.startsWith(todayStr) && s.questionsDone !== undefined)
+      .filter(s => s.date?.startsWith(todayStr) && s.questionsDone !== undefined)
       .reduce((acc, s) => acc + (s.questionsDone || 0), 0);
     return { total: done, goal: globalDailyGoal || 20 };
   }, [sessions, globalDailyGoal]);
@@ -281,7 +282,7 @@ const Dashboard: React.FC<DashboardProps> = ({
 
   const frequencyData = useMemo(() => {
     // Determine current streak
-    const uniqueDays = new Set(relevantSessions.map(s => s.date.split('T')[0]));
+    const uniqueDays = new Set(relevantSessions.filter(s => s.date).map(s => s.date.split('T')[0]));
     const sortedDates = Array.from(uniqueDays).sort() as string[];
 
     let streak = 0;
@@ -344,8 +345,8 @@ const Dashboard: React.FC<DashboardProps> = ({
         const totalCorrect = subjectStats.questionsData.reduce((acc, s) => acc + s.correct, 0);
         const globalAccuracy = totalDone > 0 ? Math.round((totalCorrect / totalDone) * 100) : 0;
 
-        const simDone = simulados.reduce((acc, s) => acc + s.results.reduce((a, r) => a + r.done, 0), 0);
-        const simCorrect = simulados.reduce((acc, s) => acc + s.results.reduce((a, r) => a + r.correct, 0), 0);
+        const simDone = simulados.reduce((acc, s) => acc + (s.results || []).reduce((a, r) => a + r.done, 0), 0);
+        const simCorrect = simulados.reduce((acc, s) => acc + (s.results || []).reduce((a, r) => a + r.correct, 0), 0);
         const simAccuracy = simDone > 0 ? Math.round((simCorrect / simDone) * 100) : 0;
 
         const globalColor = getPerformanceColor(globalAccuracy);
@@ -436,7 +437,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                 const todayStr = `${year}-${month}-${day}`;
 
                 const doneToday = sessions
-                  .filter(s => s.date.startsWith(todayStr) && s.questionsDone !== undefined)
+                  .filter(s => s.date?.startsWith(todayStr) && s.questionsDone !== undefined)
                   .reduce((acc, s) => acc + (s.questionsDone || 0), 0);
                 const goal = globalDailyGoal || 20;
                 const remaining = Math.max(0, goal - doneToday);
@@ -478,7 +479,7 @@ const Dashboard: React.FC<DashboardProps> = ({
           (sub.topics || []).forEach(topic => {
             const topicSessions = sessions.filter(s => s.subjectId === sub.id && s.topicId === topic.id);
             if (topicSessions.length > 0) {
-              const lastTopicDate = new Date([...topicSessions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0].date);
+              const lastTopicDate = new Date([...topicSessions].sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime())[0]?.date || 0);
               lastTopicDate.setHours(0, 0, 0, 0);
               const diffDays = Math.round((todayMs - lastTopicDate.getTime()) / (1000 * 60 * 60 * 24));
               const daysTo7 = 7 - diffDays;
@@ -620,7 +621,7 @@ const Dashboard: React.FC<DashboardProps> = ({
         const days = Array.from({ length: daysInMonth }, (_, i) => {
           const date = new Date(year, month, i + 1);
           const dateStr = date.toISOString().split('T')[0];
-          const daySessions = sessions.filter(s => s.date.startsWith(dateStr));
+          const daySessions = sessions.filter(s => s.date?.startsWith(dateStr));
           const dayPlannerRealized = scheduledStudies.filter(s => s.date === dateStr && s.status === 'realizado');
           
           const sessionSubjectIds = daySessions.map(s => s.subjectId);

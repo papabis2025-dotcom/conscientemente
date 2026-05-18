@@ -1,0 +1,48 @@
+import { Module } from './types';
+
+export const MODULES: Module[] = [
+  {
+    id: 'estudos',
+    label: 'Estudos',
+    description: 'Concursos, disciplinas, simulados e estatísticas de estudo.',
+    emoji: '',
+    color: 'indigo',
+    bgDark: 'dark:bg-indigo-950/30',
+    borderDark: 'dark:border-indigo-800/50',
+    route: 'estudos',
+    available: true,
+  },
+  {
+    id: 'financas',
+    label: 'Finanças',
+    description: 'Receitas, despesas, metas e controle do seu dinheiro.',
+    emoji: '',
+    color: 'emerald',
+    bgDark: 'dark:bg-emerald-950/30',
+    borderDark: 'dark:border-emerald-800/50',
+    route: 'financas',
+    available: true,
+  },
+  {
+    id: 'saude',
+    label: 'Saúde',
+    description: 'Academia, corrida, natação e ciclismo — seus treinos em um lugar.',
+    emoji: '',
+    color: 'cyan',
+    bgDark: 'dark:bg-cyan-950/30',
+    borderDark: 'dark:border-cyan-800/50',
+    route: 'saude',
+    available: true,
+  },
+  {
+    id: 'tarefas',
+    label: 'Tarefas',
+    description: 'Gerencie projetos, pendências e prioridades do dia a dia.',
+    emoji: '',
+    color: 'rose',
+    bgDark: 'dark:bg-rose-950/30',
+    borderDark: 'dark:border-rose-800/50',
+    route: 'tarefas',
+    available: true,
+  },
+];

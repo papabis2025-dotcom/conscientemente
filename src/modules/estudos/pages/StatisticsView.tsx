@@ -30,6 +30,11 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions }) =
   const [sortBy, setSortBy] = useState<'name' | 'questions' | 'accuracy' | 'weight' | 'priority'>('priority');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
+  // Dynamic weights (sum up to roughly 100)
+  const [weightAcc, setWeightAcc] = useState(60);
+  const [weightSubj, setWeightSubj] = useState(30);
+  const [weightQtd, setWeightQtd] = useState(10);
+
   const toggleExpand = (id: string) => {
     const s = new Set(expandedSubjects);
     s.has(id) ? s.delete(id) : s.add(id);
@@ -60,14 +65,20 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions }) =
   const maxWeight = useMemo(() => Math.max(1, ...subjectData.map(d => d.weight)), [subjectData]);
   const maxQuestions = useMemo(() => Math.max(1, ...subjectData.map(d => d.questions)), [subjectData]);
 
-  // Priority: accuracy has 60% weight, weight 30%, question volume 10%
-  // Higher priority = needs more attention
+  // Priority uses dynamic weights
   const getPriority = (weight: number, accuracy: number, questions: number): number => {
     const wNorm = weight / maxWeight;
-    // Accuracy penalty heavily dominates: 0% acc = 1.0, 100% acc = 0.0
-    const accPenalty = questions > 0 ? (100 - accuracy) / 100 : 0.5; // no data = medium concern
+    const accPenalty = questions > 0 ? (100 - accuracy) / 100 : 0.5;
     const qPenalty = Math.max(0, 1 - questions / Math.max(1, maxQuestions));
-    return (accPenalty * 0.60 + wNorm * 0.30 + qPenalty * 0.10);
+    
+    const totalW = weightAcc + weightSubj + weightQtd;
+    if (totalW === 0) return 0;
+
+    return (
+      accPenalty * (weightAcc / totalW) + 
+      wNorm * (weightSubj / totalW) + 
+      qPenalty * (weightQtd / totalW)
+    );
   };
 
   const sortedData = useMemo(() => {
@@ -102,7 +113,26 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions }) =
           <h2 className="text-2xl font-black text-zinc-800 dark:text-white tracking-tight uppercase flex items-center gap-2">
             Análise Estatística <Trophy size={20} className="text-amber-500" />
           </h2>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">Prioridade baseada no aproveitamento (60%) + peso (30%) + volume de questões (10%).</p>
+          <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">Prioridade é um cálculo balanceado para focar no que mais precisa de atenção.</p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3 bg-white dark:bg-zinc-900 p-2 rounded-xl border border-zinc-200 dark:border-zinc-800">
+          <span className="text-[10px] font-bold uppercase text-zinc-400 px-2">Pesos:</span>
+          
+          <label className="flex items-center gap-1 text-xs font-bold text-zinc-600 dark:text-zinc-300">
+            Aproveitamento
+            <input type="number" min="0" max="100" value={weightAcc} onChange={e => setWeightAcc(Number(e.target.value))} className="w-14 bg-zinc-100 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded p-1 text-center font-mono dark:text-white" />
+          </label>
+          
+          <label className="flex items-center gap-1 text-xs font-bold text-zinc-600 dark:text-zinc-300">
+            Peso Discip.
+            <input type="number" min="0" max="100" value={weightSubj} onChange={e => setWeightSubj(Number(e.target.value))} className="w-14 bg-zinc-100 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded p-1 text-center font-mono dark:text-white" />
+          </label>
+
+          <label className="flex items-center gap-1 text-xs font-bold text-zinc-600 dark:text-zinc-300">
+            Volume Qs
+            <input type="number" min="0" max="100" value={weightQtd} onChange={e => setWeightQtd(Number(e.target.value))} className="w-14 bg-zinc-100 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded p-1 text-center font-mono dark:text-white" />
+          </label>
         </div>
       </header>
 

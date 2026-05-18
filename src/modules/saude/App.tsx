@@ -1,0 +1,357 @@
+import React, { useState, useEffect, useMemo } from 'react';
+import { Activity, Dumbbell, Footprints, HeartPulse, LayoutTemplate, Plus, Trash2, TrendingUp } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+
+type ActivityType = 'Corrida' | 'Ciclismo' | 'Natação' | 'Musculação';
+type CardioLevel = 'Leve' | 'Ritmado' | 'Arrancada' | 'Específico' | 'Moderado' | 'Longo';
+type MuscleGroup = 'Peito' | 'Costa' | 'Ombro' | 'Bíceps' | 'Tríceps' | 'Perna/Anterior' | 'Perna/Posterior';
+
+interface HealthActivity {
+  id: string;
+  type: ActivityType;
+  date: string;
+  timeInMinutes: number;
+  
+  // Cardio
+  distanceKm?: number;
+  pace?: string;
+  level?: CardioLevel;
+  
+  // Musculação
+  muscles?: MuscleGroup[];
+}
+
+const MUSCLE_GROUPS: MuscleGroup[] = ['Peito', 'Costa', 'Ombro', 'Bíceps', 'Tríceps', 'Perna/Anterior', 'Perna/Posterior'];
+const CARDIO_LEVELS: CardioLevel[] = ['Leve', 'Ritmado', 'Arrancada', 'Específico', 'Moderado', 'Longo'];
+
+const SaudeApp: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'atividades'>('dashboard');
+  const [activities, setActivities] = useState<HealthActivity[]>(() => {
+    const saved = localStorage.getItem('cn_saude');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [formType, setFormType] = useState<ActivityType>('Corrida');
+  const [formDate, setFormDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [formTime, setFormTime] = useState('');
+  const [formDistance, setFormDistance] = useState('');
+  const [formLevel, setFormLevel] = useState<CardioLevel>('Leve');
+  const [formMuscles, setFormMuscles] = useState<MuscleGroup[]>([]);
+
+  useEffect(() => {
+    localStorage.setItem('cn_saude', JSON.stringify(activities));
+  }, [activities]);
+
+  const calculatePace = (dist: number, timeMs: number, type: ActivityType) => {
+    if (dist <= 0 || timeMs <= 0) return '-';
+    if (type === 'Ciclismo') {
+      const kmh = dist / (timeMs / 60);
+      return `${kmh.toFixed(1)} km/h`;
+    } else if (type === 'Natação') {
+      // Pace in Natação usually min/100m. If distance is in km, distance * 10 = 100m segments
+      const segments100m = dist * 10;
+      const paceMin = timeMs / segments100m;
+      const min = Math.floor(paceMin);
+      const sec = Math.round((paceMin - min) * 60);
+      return `${min}:${sec.toString().padStart(2, '0')}/100m`;
+    } else {
+      // Corrida min/km
+      const paceMin = timeMs / dist;
+      const min = Math.floor(paceMin);
+      const sec = Math.round((paceMin - min) * 60);
+      return `${min}:${sec.toString().padStart(2, '0')}/km`;
+    }
+  };
+
+  const handleAddActivity = (e: React.FormEvent) => {
+    e.preventDefault();
+    const time = parseInt(formTime) || 0;
+    if (time <= 0) return;
+
+    const newActivity: HealthActivity = {
+      id: crypto.randomUUID(),
+      type: formType,
+      date: formDate,
+      timeInMinutes: time,
+    };
+
+    if (formType === 'Musculação') {
+      if (formMuscles.length === 0) return;
+      newActivity.muscles = formMuscles;
+    } else {
+      const dist = parseFloat(formDistance.replace(',', '.')) || 0;
+      if (dist <= 0) return;
+      newActivity.distanceKm = dist;
+      newActivity.level = formLevel;
+      newActivity.pace = calculatePace(dist, time, formType);
+    }
+
+    setActivities(prev => [newActivity, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+    setShowAddForm(false);
+    
+    // Reset form
+    setFormTime('');
+    setFormDistance('');
+    setFormMuscles([]);
+    setFormLevel('Leve');
+  };
+
+  const toggleMuscle = (m: MuscleGroup) => {
+    setFormMuscles(prev => prev.includes(m) ? prev.filter(x => x !== m) : [...prev, m]);
+  };
+
+  const deleteActivity = (id: string) => {
+    if(confirm('Excluir este treino?')) {
+      setActivities(prev => prev.filter(a => a.id !== id));
+    }
+  };
+
+  // Dashboard calculations
+  const totalTreinos = activities.length;
+  const horasTotais = activities.reduce((acc, a) => acc + a.timeInMinutes, 0) / 60;
+  const kmTotais = activities.filter(a => a.type !== 'Musculação').reduce((acc, a) => acc + (a.distanceKm || 0), 0);
+
+  const freqData = useMemo(() => {
+    const counts: Record<string, number> = { 'Corrida': 0, 'Ciclismo': 0, 'Natação': 0, 'Musculação': 0 };
+    activities.forEach(a => counts[a.type]++);
+    return Object.entries(counts).filter(([_, c]) => c > 0).map(([name, count]) => ({
+      name, count, fill: name === 'Musculação' ? '#6366f1' : name === 'Natação' ? '#0ea5e9' : name === 'Ciclismo' ? '#f59e0b' : '#10b981'
+    }));
+  }, [activities]);
+
+  return (
+    <div className="flex h-screen bg-[#fdfdfc] dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 font-sans overflow-hidden selection:bg-cyan-200 dark:selection:bg-cyan-900/50">
+      
+      {/* Sidebar Lateral */}
+      <aside className="w-64 bg-white/50 dark:bg-zinc-900/50 border-r border-zinc-200 dark:border-zinc-800 flex flex-col transition-all backdrop-blur-xl">
+        <div className="p-6">
+          <div className="flex items-center gap-3 text-cyan-500 mb-8">
+            <HeartPulse size={28} className="drop-shadow-sm" />
+            <span className="text-xl font-black uppercase tracking-widest text-zinc-900 dark:text-white">Saúde</span>
+          </div>
+
+          <nav className="space-y-2">
+            <button 
+              onClick={() => setActiveTab('dashboard')} 
+              className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all font-semibold ${activeTab === 'dashboard' ? 'bg-cyan-500 text-white shadow-md shadow-cyan-500/20' : 'text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800/50'}`}
+            >
+              <div className="flex items-center gap-3"><TrendingUp size={20} /> Dashboard</div>
+            </button>
+            <button 
+              onClick={() => setActiveTab('atividades')} 
+              className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all font-semibold ${activeTab === 'atividades' ? 'bg-cyan-500 text-white shadow-md shadow-cyan-500/20' : 'text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800/50'}`}
+            >
+              <div className="flex items-center gap-3"><Activity size={20} /> Atividades</div>
+              <span className={`text-xs px-2 py-0.5 rounded-full ${activeTab === 'atividades' ? 'bg-white/20' : 'bg-zinc-200 dark:bg-zinc-800'}`}>
+                {activities.length}
+              </span>
+            </button>
+          </nav>
+        </div>
+
+        <div className="mt-auto p-6">
+          <button onClick={() => window.location.hash = ''} className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 rounded-xl transition-colors font-bold text-sm uppercase tracking-wider">
+            <LayoutTemplate size={18} /> Voltar ao Hub
+          </button>
+        </div>
+      </aside>
+
+      {/* Main Content */}
+      <main className="flex-1 overflow-y-auto p-6 relative custom-scrollbar">
+        <div className="max-w-[1440px] mx-auto h-full flex flex-col gap-6 animate-in fade-in duration-500">
+          
+          <header className="flex justify-between items-center bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 shrink-0">
+            <div>
+              <h1 className="text-2xl font-black text-zinc-900 dark:text-white uppercase tracking-tight">
+                {activeTab === 'dashboard' ? 'Estatísticas de Saúde' : 'Histórico de Atividades'}
+              </h1>
+              <p className="text-zinc-500 font-medium mt-1 text-sm">Monitore seu progresso físico e bem-estar geral.</p>
+            </div>
+            <button 
+              onClick={() => setShowAddForm(!showAddForm)}
+              className="bg-cyan-500 hover:bg-cyan-600 text-white px-5 py-3 rounded-xl font-bold uppercase tracking-wider text-xs transition-transform active:scale-95 shadow-lg shadow-cyan-500/20 flex items-center gap-2"
+            >
+              {showAddForm ? 'Cancelar' : <><Plus size={16} /> Novo Treino</>}
+            </button>
+          </header>
+
+          {showAddForm && (
+            <div className="bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 animate-in slide-in-from-top-4">
+              <form onSubmit={handleAddActivity} className="flex flex-col gap-5">
+                <div className="flex gap-4">
+                  <div className="flex-1">
+                    <label className="text-[10px] font-bold uppercase text-zinc-400 block mb-1.5">Atividade</label>
+                    <select value={formType} onChange={e => setFormType(e.target.value as ActivityType)} className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-sm font-bold text-zinc-800 dark:text-zinc-100 outline-none focus:ring-2 focus:ring-cyan-500">
+                      <option value="Corrida">Corrida</option>
+                      <option value="Ciclismo">Ciclismo</option>
+                      <option value="Natação">Natação</option>
+                      <option value="Musculação">Musculação</option>
+                    </select>
+                  </div>
+                  <div className="flex-1">
+                    <label className="text-[10px] font-bold uppercase text-zinc-400 block mb-1.5">Data</label>
+                    <input type="date" value={formDate} onChange={e => setFormDate(e.target.value)} required className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-sm font-bold text-zinc-800 dark:text-zinc-100 outline-none focus:ring-2 focus:ring-cyan-500" />
+                  </div>
+                  <div className="flex-1">
+                    <label className="text-[10px] font-bold uppercase text-zinc-400 block mb-1.5">Duração (min)</label>
+                    <input type="number" placeholder="Ex: 60" value={formTime} onChange={e => setFormTime(e.target.value)} required className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-sm font-bold text-zinc-800 dark:text-zinc-100 outline-none focus:ring-2 focus:ring-cyan-500" />
+                  </div>
+                </div>
+
+                {formType !== 'Musculação' ? (
+                  <div className="flex gap-4 animate-in fade-in">
+                    <div className="flex-1">
+                      <label className="text-[10px] font-bold uppercase text-zinc-400 block mb-1.5">Distância (km)</label>
+                      <input type="number" step="0.01" placeholder="Ex: 5.5" value={formDistance} onChange={e => setFormDistance(e.target.value)} required className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-sm font-bold text-zinc-800 dark:text-zinc-100 outline-none focus:ring-2 focus:ring-cyan-500" />
+                    </div>
+                    <div className="flex-1">
+                      <label className="text-[10px] font-bold uppercase text-zinc-400 block mb-1.5">Nível / Ritmo</label>
+                      <select value={formLevel} onChange={e => setFormLevel(e.target.value as CardioLevel)} className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-sm font-bold text-zinc-800 dark:text-zinc-100 outline-none focus:ring-2 focus:ring-cyan-500">
+                        {CARDIO_LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="animate-in fade-in">
+                    <label className="text-[10px] font-bold uppercase text-zinc-400 block mb-2">Grupos Musculares Trabalhados</label>
+                    <div className="flex flex-wrap gap-2">
+                      {MUSCLE_GROUPS.map(m => (
+                        <button
+                          key={m}
+                          type="button"
+                          onClick={() => toggleMuscle(m)}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider border transition-colors ${formMuscles.includes(m) ? 'bg-cyan-500 border-cyan-500 text-white' : 'bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400'}`}
+                        >
+                          {m}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <button type="submit" className="w-full bg-zinc-900 dark:bg-zinc-700 hover:bg-zinc-800 dark:hover:bg-zinc-600 text-white rounded-xl py-3 font-bold uppercase tracking-widest text-xs transition-colors mt-2">
+                  Salvar Treino
+                </button>
+              </form>
+            </div>
+          )}
+
+          {/* DASHBOARD TAB */}
+          {activeTab === 'dashboard' && (
+            <div className="flex-1 flex flex-col gap-6">
+              <div className="grid grid-cols-3 gap-6 shrink-0">
+                <div className="bg-cyan-500 text-white p-6 rounded-2xl shadow-lg shadow-cyan-500/20">
+                  <div className="flex items-center gap-3 mb-2 opacity-80"><Activity size={20} /><span className="text-xs font-black uppercase tracking-widest">Treinos Totais</span></div>
+                  <h2 className="text-4xl font-black">{totalTreinos}</h2>
+                </div>
+                <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6 rounded-2xl shadow-sm">
+                  <div className="flex items-center gap-3 mb-2 text-zinc-500"><Dumbbell size={20} /><span className="text-xs font-black uppercase tracking-widest">Horas Dedicadas</span></div>
+                  <h2 className="text-4xl font-black text-zinc-900 dark:text-white">{horasTotais.toFixed(1)} <span className="text-lg">h</span></h2>
+                </div>
+                <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6 rounded-2xl shadow-sm">
+                  <div className="flex items-center gap-3 mb-2 text-zinc-500"><Footprints size={20} /><span className="text-xs font-black uppercase tracking-widest">Distância Cardio</span></div>
+                  <h2 className="text-4xl font-black text-zinc-900 dark:text-white">{kmTotais.toFixed(1)} <span className="text-lg">km</span></h2>
+                </div>
+              </div>
+
+              <div className="flex-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6 rounded-2xl shadow-sm min-h-[300px] flex flex-col">
+                <h3 className="text-sm font-black uppercase tracking-tight text-zinc-500 mb-6">Distribuição de Atividades</h3>
+                {freqData.length > 0 ? (
+                  <div className="flex-1 w-full min-h-0">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={freqData} margin={{ top: 20, right: 0, bottom: 0, left: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
+                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 'bold', fill: '#888' }} />
+                        <YAxis width={30} axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#888' }} allowDecimals={false} />
+                        <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                        <Bar dataKey="count" radius={[8, 8, 0, 0]} maxBarSize={60}>
+                          {freqData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.fill} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                ) : (
+                  <div className="flex-1 flex items-center justify-center text-zinc-400 text-sm">Nenhum treino registrado ainda.</div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ATIVIDADES TAB */}
+          {activeTab === 'atividades' && (
+            <div className="flex-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-sm overflow-hidden flex flex-col">
+              {activities.length === 0 ? (
+                <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
+                  <Activity size={48} className="text-zinc-300 dark:text-zinc-700 mb-4" strokeWidth={1} />
+                  <p className="text-zinc-500 font-medium">Nenhuma atividade registrada.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto flex-1 custom-scrollbar">
+                  <table className="w-full text-left border-collapse">
+                    <thead className="bg-zinc-50 dark:bg-zinc-800/50 sticky top-0">
+                      <tr>
+                        <th className="px-6 py-4 text-[10px] font-black uppercase text-zinc-400 tracking-wider">Data</th>
+                        <th className="px-6 py-4 text-[10px] font-black uppercase text-zinc-400 tracking-wider">Tipo</th>
+                        <th className="px-6 py-4 text-[10px] font-black uppercase text-zinc-400 tracking-wider">Duração</th>
+                        <th className="px-6 py-4 text-[10px] font-black uppercase text-zinc-400 tracking-wider">Detalhes (Dist / Pace / Nível)</th>
+                        <th className="px-6 py-4 w-10"></th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
+                      {activities.map(a => (
+                        <tr key={a.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors group">
+                          <td className="px-6 py-4 text-xs font-bold text-zinc-600 dark:text-zinc-300">
+                            {new Date(`${a.date}T12:00:00`).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })}
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${
+                              a.type === 'Musculação' ? 'bg-indigo-100 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400' :
+                              a.type === 'Corrida' ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400' :
+                              a.type === 'Ciclismo' ? 'bg-amber-100 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400' :
+                              'bg-sky-100 text-sky-600 dark:bg-sky-500/10 dark:text-sky-400'
+                            }`}>
+                              {a.type}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-xs font-bold text-zinc-700 dark:text-zinc-200">
+                            {a.timeInMinutes} min
+                          </td>
+                          <td className="px-6 py-4">
+                            {a.type === 'Musculação' ? (
+                              <div className="flex flex-wrap gap-1">
+                                {a.muscles?.map(m => (
+                                  <span key={m} className="px-2 py-0.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 rounded text-[9px] uppercase font-bold tracking-wider">{m}</span>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-3 text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                                {a.distanceKm && <span className="text-zinc-800 dark:text-zinc-200 font-bold">{a.distanceKm} km</span>}
+                                {a.pace && <span>Pace: {a.pace}</span>}
+                                {a.level && <span className="px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-[9px] uppercase tracking-wider">{a.level}</span>}
+                              </div>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            <button onClick={() => deleteActivity(a.id)} className="p-2 rounded-lg text-zinc-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950 opacity-0 group-hover:opacity-100 transition-all">
+                              <Trash2 size={16} />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+
+        </div>
+      </main>
+    </div>
+  );
+};
+
+export default SaudeApp;

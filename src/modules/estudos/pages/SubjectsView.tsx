@@ -219,14 +219,14 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
   const toggleTopic = (subjectId: string, topicId: string) => {
     onUpdateSubjects(subjects.map(s => s.id === subjectId ? {
       ...s,
-      topics: (s.topics || []).map(t => t.id === topicId ? { ...t, isCompleted: !t.isCompleted } : t)
+      topics: s.topics.map(t => t.id === topicId ? { ...t, isCompleted: !t.isCompleted } : t)
     } : s));
   };
 
   const deleteTopic = (subjectId: string, topicId: string) => {
     onUpdateSubjects(subjects.map(s => s.id === subjectId ? {
       ...s,
-      topics: (s.topics || []).filter(t => t.id !== topicId)
+      topics: s.topics.filter(t => t.id !== topicId)
     } : s));
   };
 
@@ -239,7 +239,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
     if (!editTopicTitle.trim()) return;
     onUpdateSubjects(subjects.map(s => s.id === subjectId ? {
       ...s,
-      topics: (s.topics || []).map(t => t.id === topicId ? { ...t, title: editTopicTitle } : t)
+      topics: s.topics.map(t => t.id === topicId ? { ...t, title: editTopicTitle } : t)
     } : s));
     setEditingTopicId(null);
     setEditTopicTitle('');
@@ -420,7 +420,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                           ) : (
                             <div>
                               <p className="text-sm font-bold text-zinc-800 dark:text-white">{subject.name}</p>
-                              <p className="text-[10px] text-zinc-400 font-medium mt-0.5">{subject.topics.length} tópico{subject.topics.length !== 1 ? 's' : ''}</p>
+                              <p className="text-[10px] text-zinc-400 font-medium mt-0.5">{(subject.topics || []).length} tópico{(subject.topics || []).length !== 1 ? 's' : ''}</p>
                             </div>
                           )}
                         </div>
@@ -558,7 +558,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                                   );
                                 })()}
 
-                                {[...subject.topics].map(topic => ({ topic, stats: getTopicStats(subject.id, topic.id) }))
+                                {[...(subject.topics || [])].map(topic => ({ topic, stats: getTopicStats(subject.id, topic.id) }))
                                   .sort((a, b) => {
                                     if (topicSortBy === 'default') {
                                       // Default: completion then title
@@ -648,7 +648,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                                       </tr>
                                     );
                                   })}
-                                {subject.topics.length === 0 && (
+                                {(subject.topics || []).length === 0 && (
                                   <tr>
                                     <td colSpan={7} className="py-4 text-center text-xs text-zinc-400 italic">
                                       Nenhum tópico cadastrado para esta disciplina.

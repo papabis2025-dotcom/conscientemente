@@ -203,8 +203,8 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {concursos.map(conc => {
-          const completedCount = conc.subjects.reduce((acc, s) => acc + (s.topics || []).filter(t => t.isCompleted).length, 0);
-          const totalCount = conc.subjects.reduce((acc, s) => acc + (s.topics || []).length, 0);
+          const completedCount = conc.subjects.reduce((acc, s) => acc + s.topics.filter(t => t.isCompleted).length, 0);
+          const totalCount = conc.subjects.reduce((acc, s) => acc + s.topics.length, 0);
           const progress = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
           const daysActive = calculateDaysSince(conc.startDate);
 

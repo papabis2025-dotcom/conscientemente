@@ -15,7 +15,7 @@ import {
   Moon,
   ChevronLeft,
   ChevronRight,
-  User,
+  User as UserIcon,
   Plus,
   Trophy,
   X,
@@ -184,17 +184,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           )}
         </div>
 
-        {!isCollapsed && (
-          <div
-            onClick={toggleTheme}
-            className={`w-12 h-6 rounded-full cursor-pointer transition-colors duration-300 p-1 flex items-center ${theme === 'dark' ? 'bg-zinc-900 dark:bg-zinc-700 justify-end' : 'bg-zinc-300 justify-start'}`}
-            title={theme === 'light' ? 'Mudar para Escuro' : 'Mudar para Claro'}
-          >
-            <div className="w-4 h-4 rounded-full bg-white shadow-sm flex items-center justify-center">
-              {theme === 'dark' ? <Moon size={10} className="text-zinc-900 dark:text-zinc-100" /> : <Sun size={10} className="text-amber-500" />}
-            </div>
-          </div>
-        )}
+
       </div>
 
       <div className={`mb-6 p-3 bg-zinc-50 dark:bg-zinc-800/40 rounded-2xl flex items-center gap-3 border border-zinc-100 dark:border-zinc-700 ${isCollapsed ? 'justify-center' : ''}`}>
@@ -303,7 +293,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             {!isCollapsed && (
               <span className="text-sm flex items-center gap-2">
                 {item.label}
-                {item.id === 'study_plan' && studyTasks.some(t => {
+                {item.id === 'study_plan' && (studyTasks || []).some(t => {
                   const today = new Date().toISOString().split('T')[0];
                   return t.date === today && !t.done;
                 }) && (
@@ -311,7 +301,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                   )}
               </span>
             )}
-            {isCollapsed && item.id === 'study_plan' && studyTasks.some(t => {
+            {isCollapsed && item.id === 'study_plan' && (studyTasks || []).some(t => {
               const today = new Date().toISOString().split('T')[0];
               return t.date === today && !t.done;
             }) && (
@@ -332,9 +322,9 @@ const Sidebar: React.FC<SidebarProps> = ({
           <ChartNoAxesColumn size={20} />
           {!isCollapsed && <span className="text-sm">Logs</span>}
         </button>
-        <button onClick={onLogout} className={`w-full flex items-center ${isCollapsed ? 'justify-center px-1' : 'gap-3 px-3'} py-2 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/10 rounded-xl transition-colors font-medium`} title="Sair">
-          <LogOut size={20} />
-          {!isCollapsed && <span className="text-sm">Sair</span>}
+        <button onClick={onLogout} className={`w-full flex items-center ${isCollapsed ? 'justify-center px-1' : 'gap-3 px-3'} py-2 text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/10 rounded-xl transition-colors font-medium`} title="Voltar ao Hub">
+          <LayoutDashboard size={20} />
+          {!isCollapsed && <span className="text-sm">Voltar ao Hub</span>}
         </button>
       </div>
     </div >

@@ -1,7 +1,0 @@
-{
-  "name": "gabaritando-questoes v1",
-  "description": "Uma plataforma completa para planejar, acompanhar e otimizar seus estudos para concursos públicos com auxílio de IA.",
-  "requestFramePermissions": [
-    "microphone"
-  ]
-}

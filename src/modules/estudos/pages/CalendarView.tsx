@@ -172,7 +172,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ subjects, allSubjects, sche
                           <p className="truncate font-black">{sub ? sub.name : 'Disciplina Removida'}</p>
                           {task.topicId && sub && (
                             <p className="text-[10px] opacity-80 mt-0.5 line-clamp-1 font-medium italic">
-                              {(sub.topics || []).find(t => t.id === task.topicId)?.title || 'Assunto não encontrado'}
+                              {sub.topics.find(t => t.id === task.topicId)?.title || 'Assunto não encontrado'}
                             </p>
                           )}
                         </div>
@@ -230,7 +230,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ subjects, allSubjects, sche
                               <span className="truncate">{t.activityType === 'Simulado' ? '📋 ' : ''}{sub ? sub.name : 'Disciplina Removida'}</span>
                               {t.topicId && sub && (
                                 <span className="text-[8px] opacity-80 font-medium line-clamp-1 italic">
-                                  {(sub.topics || []).find(top => top.id === t.topicId)?.title}
+                                  {sub.topics.find(top => top.id === t.topicId)?.title}
                                 </span>
                               )}
                             </div>
@@ -333,7 +333,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ subjects, allSubjects, sche
                     <label className="text-[10px] font-black text-zinc-400 uppercase mb-1 block">Assunto</label>
                     <select value={formData.topicId} onChange={(e) => setFormData({ ...formData, topicId: e.target.value })} className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 border rounded-2xl outline-none text-sm dark:text-white">
                       <option value="">Geral / Outros</option>
-                      {(subjects.find(s => s.id === formData.subjectId)?.topics || []).map(t => (
+                      {subjects.find(s => s.id === formData.subjectId)?.topics.map(t => (
                         <option key={t.id} value={t.id}>{t.title}</option>
                       ))}
                     </select>

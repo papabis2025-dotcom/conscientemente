@@ -268,21 +268,27 @@ const SaudeApp: React.FC = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 flex-1 min-h-0">
-                <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6 rounded-2xl shadow-sm min-h-[300px] flex flex-col">
-                  <h3 className="text-sm font-black uppercase tracking-tight text-zinc-500 mb-6">Distribuição de Atividades</h3>
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 flex-1 min-h-0">
+                <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-4 rounded-2xl shadow-sm flex flex-col min-h-0">
+                  <h3 className="text-[11px] font-black uppercase tracking-tight text-zinc-500 mb-2">Distribuição de Atividades</h3>
                   {freqData.length > 0 ? (
                     <div className="flex-1 w-full min-h-0">
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
+                          <defs>
+                            <filter id="saudeShadow3d" x="-20%" y="-20%" width="140%" height="140%">
+                              <feDropShadow dx="2" dy="4" stdDeviation="3" floodOpacity="0.2" />
+                            </filter>
+                          </defs>
                           <Pie
                             data={freqData}
                             cx="50%"
                             cy="50%"
-                            innerRadius={60}
-                            outerRadius={80}
-                            paddingAngle={5}
+                            innerRadius={40}
+                            outerRadius={65}
+                            paddingAngle={3}
                             dataKey="count"
+                            style={{ filter: 'url(#saudeShadow3d)' }}
                           >
                             {freqData.map((entry, index) => (
                               <Cell key={`cell-${index}`} fill={entry.fill} />
@@ -292,56 +298,56 @@ const SaudeApp: React.FC = () => {
                             contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                             formatter={(value: number, name: string) => [`${value} treinos`, name]}
                           />
-                          <Legend verticalAlign="bottom" height={36} iconType="circle" />
+                          <Legend verticalAlign="bottom" height={24} iconType="circle" wrapperStyle={{ fontSize: '10px', fontWeight: 'bold' }} />
                         </PieChart>
                       </ResponsiveContainer>
                     </div>
                   ) : (
-                    <div className="flex-1 flex items-center justify-center text-zinc-400 text-sm font-medium">Nenhum treino registrado ainda.</div>
+                    <div className="flex-1 flex items-center justify-center text-zinc-400 text-[10px] font-medium">Nenhum treino.</div>
                   )}
                 </div>
 
-                <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6 rounded-2xl shadow-sm min-h-[300px] flex flex-col">
-                  <h3 className="text-sm font-black uppercase tracking-tight text-zinc-500 mb-6">Calendário Mensal</h3>
-                  <div className="grid grid-cols-7 gap-1 flex-1">
+                <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-4 rounded-2xl shadow-sm flex flex-col min-h-0">
+                  <h3 className="text-[11px] font-black uppercase tracking-tight text-zinc-500 mb-2">Calendário Mensal</h3>
+                  <div className="grid grid-cols-7 gap-1 flex-1 min-h-0 auto-rows-fr">
                     {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(d => (
-                      <div key={d} className="text-center text-[10px] font-bold text-zinc-400 uppercase pb-2">{d}</div>
+                      <div key={d} className="text-center text-[9px] font-bold text-zinc-400 uppercase flex items-end justify-center pb-1">{d}</div>
                     ))}
                     {Array.from({ length: firstDayOfMonth }).map((_, i) => (
                       <div key={`empty-${i}`} className="p-1"></div>
                     ))}
                     {calendarDays.map(({ day, activities }) => (
-                      <div key={day} className={`min-h-[50px] border rounded-lg p-1.5 flex flex-col ${activities.length > 0 ? 'bg-cyan-50 dark:bg-cyan-900/10 border-cyan-200 dark:border-cyan-800' : 'bg-zinc-50 dark:bg-zinc-900/50 border-zinc-100 dark:border-zinc-800'}`}>
-                        <span className="text-[10px] font-bold text-zinc-500">{day}</span>
-                        <div className="flex flex-wrap gap-0.5 mt-1">
+                      <div key={day} className={`border rounded-lg p-1 flex flex-col justify-between overflow-hidden ${activities.length > 0 ? 'bg-cyan-50 dark:bg-cyan-900/10 border-cyan-200 dark:border-cyan-800' : 'bg-zinc-50 dark:bg-zinc-900/50 border-zinc-100 dark:border-zinc-800'}`}>
+                        <span className="text-[9px] font-bold text-zinc-500">{day}</span>
+                        <div className="flex flex-wrap gap-0.5 mt-0.5 justify-end">
                           {activities.map((a, i) => (
-                            <span key={i} className={`w-2.5 h-2.5 rounded-full ${a.type === 'Corrida' ? 'bg-emerald-400' : a.type === 'Musculação' ? 'bg-indigo-400' : a.type === 'Ciclismo' ? 'bg-amber-400' : 'bg-sky-400'}`} title={a.type}></span>
+                            <span key={i} className={`w-1.5 h-1.5 rounded-full ${a.type === 'Corrida' ? 'bg-emerald-400' : a.type === 'Musculação' ? 'bg-indigo-400' : a.type === 'Ciclismo' ? 'bg-amber-400' : 'bg-sky-400'}`} title={a.type}></span>
                           ))}
                         </div>
                       </div>
                     ))}
                   </div>
                 </div>
-              </div>
 
-              <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6 rounded-2xl shadow-sm min-h-[300px] flex flex-col mt-6">
-                <h3 className="text-sm font-black uppercase tracking-tight text-zinc-500 mb-6">Volume de Exercícios (Minutos por Dia)</h3>
-                <div className="flex-1 w-full min-h-0">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={calendarDays.map(d => ({ day: d.day, minutos: d.activities.reduce((acc, a) => acc + a.timeInMinutes, 0) }))} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
-                      <defs>
-                        <linearGradient id="colorMinutos" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.3}/>
-                          <stop offset="95%" stopColor="#06b6d4" stopOpacity={0}/>
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
-                      <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#888' }} />
-                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#888' }} />
-                      <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                      <Area type="monotone" dataKey="minutos" stroke="#06b6d4" strokeWidth={3} fillOpacity={1} fill="url(#colorMinutos)" />
-                    </AreaChart>
-                  </ResponsiveContainer>
+                <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-4 rounded-2xl shadow-sm flex flex-col min-h-0">
+                  <h3 className="text-[11px] font-black uppercase tracking-tight text-zinc-500 mb-2">Volume de Exercícios (Min/Dia)</h3>
+                  <div className="flex-1 w-full min-h-0">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={calendarDays.map(d => ({ day: d.day, minutos: d.activities.reduce((acc, a) => acc + a.timeInMinutes, 0) }))} margin={{ top: 5, right: 0, left: -25, bottom: 0 }}>
+                        <defs>
+                          <linearGradient id="colorMinutos" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.3}/>
+                            <stop offset="95%" stopColor="#06b6d4" stopOpacity={0}/>
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
+                        <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#888' }} />
+                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#888' }} />
+                        <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '10px', fontWeight: 'bold' }} />
+                        <Area type="monotone" dataKey="minutos" stroke="#06b6d4" strokeWidth={3} fillOpacity={1} fill="url(#colorMinutos)" />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
                 </div>
               </div>
             </div>

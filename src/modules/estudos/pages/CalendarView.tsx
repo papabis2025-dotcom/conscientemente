@@ -113,7 +113,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({ subjects, allSubjects, sche
     setCurrentDate(newDate);
   };
 
-  const tasksForSelectedDay = scheduledStudies.filter(s => s.date && (s.date === selectedDayKey || s.date.split('T')[0] === selectedDayKey));
+  const visibleScheduledStudies = scheduledStudies.filter(s => !(s.activityType === 'Simulado' && s.status === 'realizado'));
+  const tasksForSelectedDay = visibleScheduledStudies.filter(s => s.date && (s.date === selectedDayKey || s.date.split('T')[0] === selectedDayKey));
 
   const weekDays = useMemo(() => {
     const startOfWeek = new Date(currentDate);
@@ -142,7 +143,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ subjects, allSubjects, sche
           <div className="grid grid-cols-1 md:grid-cols-7 gap-3 flex-1 min-h-0">
             {weekDays.map(date => {
               const key = getDayKey(date);
-              const tasks = scheduledStudies.filter(s => (s.date && (s.date === key || s.date.split('T')[0] === key)));
+              const tasks = visibleScheduledStudies.filter(s => (s.date && (s.date === key || s.date.split('T')[0] === key)));
               const isToday = new Date().toDateString() === date.toDateString();
               return (
                 <div key={key} onClick={() => handleDayClick(key)} className={`bg-white dark:bg-zinc-900 p-3 rounded-3xl border ${isToday ? 'border-blue-400 shadow-lg' : 'border-zinc-100 dark:border-zinc-800'} flex flex-col cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-all overflow-hidden`}>
@@ -207,7 +208,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ subjects, allSubjects, sche
                 const day = i + 1;
                 const date = new Date(year, month, day);
                 const key = getDayKey(date);
-                const tasks = scheduledStudies.filter(s => (s.date && (s.date === key || s.date.split('T')[0] === key)));
+                const tasks = visibleScheduledStudies.filter(s => (s.date && (s.date === key || s.date.split('T')[0] === key)));
                 const isToday = new Date().toDateString() === date.toDateString();
                 return (
                   <div key={day} onClick={() => handleDayClick(key)} className="p-1.5 border-r border-b border-zinc-100 dark:border-zinc-800 hover:bg-zinc-100 dark:bg-zinc-800/30 dark:hover:bg-blue-900/10 cursor-pointer transition-all flex flex-col min-h-0 overflow-hidden">

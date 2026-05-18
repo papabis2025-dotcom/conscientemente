@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { LayoutTemplate, Wallet, TrendingUp, TrendingDown, CreditCard, ChevronLeft, ChevronRight, Trash2, PieChart } from 'lucide-react';
+import { LayoutTemplate, Wallet, TrendingUp, TrendingDown, CreditCard, ChevronLeft, ChevronRight, Trash2, PieChart as PieChartIcon } from 'lucide-react';
+import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts';
+
+const CHART_COLORS = ['#3b82f6', '#f43f5e', '#10b981', '#f59e0b', '#8b5cf6', '#06b6d4', '#ec4899', '#14b8a6', '#f97316', '#6366f1'];
 
 type TransactionType = 'entrada' | 'saida';
 
@@ -258,18 +261,30 @@ const FinancasApp: React.FC = () => {
                   <option value="type">Tipo</option>
                 </select>
               </div>
-              <div className="flex-1 overflow-y-auto custom-scrollbar pr-1">
+              <div className="flex-1 w-full min-h-0 relative">
                 {gastosPorCartao.length === 0 ? (
-                  <p className="text-[10px] text-zinc-400">Nenhum gasto.</p>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <p className="text-[10px] text-zinc-400">Nenhum gasto.</p>
+                  </div>
                 ) : (
-                  <ul className="space-y-1.5">
-                    {gastosPorCartao.map(([metodo, total]) => (
-                      <li key={metodo} className="flex items-center justify-between text-[11px]">
-                        <span className="font-medium text-zinc-500 dark:text-zinc-400 truncate pr-2">{metodo}</span>
-                        <span className="font-bold shrink-0">{formatCurrency(total)}</span>
-                      </li>
-                    ))}
-                  </ul>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <defs>
+                        <filter id="shadow3d" x="-20%" y="-20%" width="140%" height="140%">
+                          <feDropShadow dx="2" dy="6" stdDeviation="4" floodOpacity="0.3" />
+                        </filter>
+                      </defs>
+                      <Pie
+                        data={gastosPorCartao.map(([name, value]) => ({ name, value }))}
+                        cx="50%" cy="50%" innerRadius={35} outerRadius={60} paddingAngle={2} dataKey="value"
+                        style={{ filter: 'url(#shadow3d)' }}
+                      >
+                        {gastosPorCartao.map((_, index) => <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />)}
+                      </Pie>
+                      <RechartsTooltip formatter={(value: number) => formatCurrency(value)} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '12px', fontWeight: 'bold' }} />
+                      <Legend verticalAlign="bottom" height={24} iconType="circle" wrapperStyle={{ fontSize: '10px', fontWeight: 'bold' }} />
+                    </PieChart>
+                  </ResponsiveContainer>
                 )}
               </div>
             </div>
@@ -277,24 +292,36 @@ const FinancasApp: React.FC = () => {
             {/* Top Categorias - Saídas */}
             <div className="bg-white dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col flex-1 min-h-0">
               <div className="flex items-center justify-between mb-2 shrink-0">
-                <h3 className="flex items-center gap-2 text-[11px] font-black uppercase tracking-tight text-zinc-800 dark:text-zinc-100"><PieChart size={14} className="text-zinc-400" /> Saídas por Categoria</h3>
+                <h3 className="flex items-center gap-2 text-[11px] font-black uppercase tracking-tight text-zinc-800 dark:text-zinc-100"><PieChartIcon size={14} className="text-zinc-400" /> Saídas por Categoria</h3>
                 <select value={categorySort} onChange={e => setCategorySort(e.target.value as any)} className="text-[9px] uppercase font-bold tracking-wider bg-transparent text-zinc-400 outline-none cursor-pointer">
                   <option value="value">Valor</option>
                   <option value="type">Tipo</option>
                 </select>
               </div>
-              <div className="flex-1 overflow-y-auto custom-scrollbar pr-1">
+              <div className="flex-1 w-full min-h-0 relative">
                 {gastosPorCategoria.length === 0 ? (
-                  <p className="text-[10px] text-zinc-400">Nenhum gasto.</p>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <p className="text-[10px] text-zinc-400">Nenhum gasto.</p>
+                  </div>
                 ) : (
-                  <ul className="space-y-1.5">
-                    {gastosPorCategoria.map(([cat, total]) => (
-                      <li key={cat} className="flex items-center justify-between text-[11px]">
-                        <span className="font-medium text-zinc-500 dark:text-zinc-400 truncate pr-2">{cat}</span>
-                        <span className="font-bold text-rose-500 shrink-0">{formatCurrency(total)}</span>
-                      </li>
-                    ))}
-                  </ul>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <defs>
+                        <filter id="shadow3d" x="-20%" y="-20%" width="140%" height="140%">
+                          <feDropShadow dx="2" dy="6" stdDeviation="4" floodOpacity="0.3" />
+                        </filter>
+                      </defs>
+                      <Pie
+                        data={gastosPorCategoria.map(([name, value]) => ({ name, value }))}
+                        cx="50%" cy="50%" innerRadius={35} outerRadius={60} paddingAngle={2} dataKey="value"
+                        style={{ filter: 'url(#shadow3d)' }}
+                      >
+                        {gastosPorCategoria.map((_, index) => <Cell key={`cell-${index}`} fill={CHART_COLORS[(index + 3) % CHART_COLORS.length]} />)}
+                      </Pie>
+                      <RechartsTooltip formatter={(value: number) => formatCurrency(value)} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '12px', fontWeight: 'bold' }} />
+                      <Legend verticalAlign="bottom" height={24} iconType="circle" wrapperStyle={{ fontSize: '10px', fontWeight: 'bold' }} />
+                    </PieChart>
+                  </ResponsiveContainer>
                 )}
               </div>
             </div>
@@ -302,24 +329,36 @@ const FinancasApp: React.FC = () => {
             {/* Top Categorias - Entradas */}
             <div className="bg-white dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col flex-1 min-h-0">
               <div className="flex items-center justify-between mb-2 shrink-0">
-                <h3 className="flex items-center gap-2 text-[11px] font-black uppercase tracking-tight text-zinc-800 dark:text-zinc-100"><PieChart size={14} className="text-zinc-400" /> Entradas por Categoria</h3>
+                <h3 className="flex items-center gap-2 text-[11px] font-black uppercase tracking-tight text-zinc-800 dark:text-zinc-100"><PieChartIcon size={14} className="text-zinc-400" /> Entradas por Categoria</h3>
                 <select value={categorySort} onChange={e => setCategorySort(e.target.value as any)} className="text-[9px] uppercase font-bold tracking-wider bg-transparent text-zinc-400 outline-none cursor-pointer">
                   <option value="value">Valor</option>
                   <option value="type">Tipo</option>
                 </select>
               </div>
-              <div className="flex-1 overflow-y-auto custom-scrollbar pr-1">
+              <div className="flex-1 w-full min-h-0 relative">
                 {entradasPorCategoria.length === 0 ? (
-                  <p className="text-[10px] text-zinc-400">Nenhuma entrada.</p>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <p className="text-[10px] text-zinc-400">Nenhuma entrada.</p>
+                  </div>
                 ) : (
-                  <ul className="space-y-1.5">
-                    {entradasPorCategoria.map(([cat, total]) => (
-                      <li key={cat} className="flex items-center justify-between text-[11px]">
-                        <span className="font-medium text-zinc-500 dark:text-zinc-400 truncate pr-2">{cat}</span>
-                        <span className="font-bold text-blue-500 shrink-0">{formatCurrency(total)}</span>
-                      </li>
-                    ))}
-                  </ul>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <defs>
+                        <filter id="shadow3d" x="-20%" y="-20%" width="140%" height="140%">
+                          <feDropShadow dx="2" dy="6" stdDeviation="4" floodOpacity="0.3" />
+                        </filter>
+                      </defs>
+                      <Pie
+                        data={entradasPorCategoria.map(([name, value]) => ({ name, value }))}
+                        cx="50%" cy="50%" innerRadius={35} outerRadius={60} paddingAngle={2} dataKey="value"
+                        style={{ filter: 'url(#shadow3d)' }}
+                      >
+                        {entradasPorCategoria.map((_, index) => <Cell key={`cell-${index}`} fill={CHART_COLORS[(index + 6) % CHART_COLORS.length]} />)}
+                      </Pie>
+                      <RechartsTooltip formatter={(value: number) => formatCurrency(value)} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '12px', fontWeight: 'bold' }} />
+                      <Legend verticalAlign="bottom" height={24} iconType="circle" wrapperStyle={{ fontSize: '10px', fontWeight: 'bold' }} />
+                    </PieChart>
+                  </ResponsiveContainer>
                 )}
               </div>
             </div>

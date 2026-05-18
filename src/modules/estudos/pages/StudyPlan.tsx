@@ -15,7 +15,8 @@ interface StudyPlanProps {
 const StudyPlan: React.FC<StudyPlanProps> = ({ subjects, sessions, studyTasks, onUpdateTasks }) => {
 
     useEffect(() => {
-        const today = new Date().toISOString().split('T')[0];
+        const now = new Date();
+        const today = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().split('T')[0];
         // Check if we already have tasks for today
         let tasksForToday = studyTasks.filter(t => t.date === today);
 
@@ -152,7 +153,8 @@ const StudyPlan: React.FC<StudyPlanProps> = ({ subjects, sessions, studyTasks, o
     }, [subjects, sessions, studyTasks]); // Removed onUpdateTasks from dep array to avoid infinite loop if it changes, though it should be stable.
 
     const todaysTasks = useMemo(() => {
-        const today = new Date().toISOString().split('T')[0];
+        const now = new Date();
+        const today = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().split('T')[0];
         return studyTasks.filter(t => t.date === today);
     }, [studyTasks]);
 

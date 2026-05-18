@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../services/supabase';
 import { MODULES } from '../constants';
 import { Module } from '../types';
-import { LogOut, Sun, Moon, ArrowUpRight, Lock, CheckCircle2, BookOpen } from 'lucide-react';
+import { LogOut, Sun, Moon, ArrowUpRight, Lock, CheckCircle2, BookOpen, Wallet } from 'lucide-react';
 
 interface HubHomeProps {
   userName: string;
@@ -98,13 +98,14 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
   const [currentTime, setCurrentTime] = useState(new Date());
   const [pendingTarefas, setPendingTarefas] = useState(0);
   const [pendingEstudos, setPendingEstudos] = useState(0);
+  const [financeBalance, setFinanceBalance] = useState(0);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
-  const todayStr = currentTime.toISOString().split('T')[0];
+  const todayStr = new Date(currentTime.getTime() - currentTime.getTimezoneOffset() * 60000).toISOString().split('T')[0];
 
   useEffect(() => {
     try {
@@ -117,6 +118,14 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
       const estudos = Array.isArray(estudosRaw) ? estudosRaw : [];
       const todayEstudos = estudos.filter((t: any) => !t.done && t.date === todayStr);
       setPendingEstudos(todayEstudos.length);
+
+      const financasRaw = JSON.parse(localStorage.getItem('cn_financas') || '[]');
+      const financas = Array.isArray(financasRaw) ? financasRaw : [];
+      const currentMonthStr = `${currentTime.getFullYear()}-${String(currentTime.getMonth() + 1).padStart(2, '0')}`;
+      const monthTransactions = financas.filter((t: any) => t.date?.startsWith(currentMonthStr));
+      const totalEntradas = monthTransactions.filter((t: any) => t.type === 'entrada').reduce((acc: number, t: any) => acc + (t.amount || 0), 0);
+      const totalSaidas = monthTransactions.filter((t: any) => t.type === 'saida').reduce((acc: number, t: any) => acc + (t.amount || 0), 0);
+      setFinanceBalance(totalEntradas - totalSaidas);
     } catch (e) {
       console.error(e);
     }
@@ -191,6 +200,10 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
                 <BookOpen size={14} /> Estudos concluídos
               </span>
             )}
+
+            <span className="flex items-center gap-2 px-3 py-1.5 bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-lg text-xs font-bold uppercase tracking-wider border border-emerald-200 dark:border-emerald-500/20 shadow-sm shadow-emerald-500/10">
+              <Wallet size={14} /> {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(financeBalance)}
+            </span>
           </div>
         </div>
 

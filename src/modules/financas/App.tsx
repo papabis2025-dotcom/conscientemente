@@ -98,6 +98,14 @@ const FinancasApp: React.FC = () => {
     return Object.entries(totals).sort((a, b) => categorySort === 'value' ? b[1] - a[1] : a[0].localeCompare(b[0]));
   }, [monthTransactions, categorySort]);
 
+  const entradasPorCategoria = useMemo(() => {
+    const totals: Record<string, number> = {};
+    monthTransactions.filter(t => t.type === 'entrada').forEach(s => {
+      totals[s.category] = (totals[s.category] || 0) + s.amount;
+    });
+    return Object.entries(totals).sort((a, b) => categorySort === 'value' ? b[1] - a[1] : a[0].localeCompare(b[0]));
+  }, [monthTransactions, categorySort]);
+
   const changeMonth = (offset: number) => {
     const newDate = new Date(currentDate);
     newDate.setMonth(newDate.getMonth() + offset);
@@ -218,73 +226,102 @@ const FinancasApp: React.FC = () => {
         <div className="max-w-[1440px] mx-auto min-h-full grid grid-cols-1 xl:grid-cols-3 gap-6 animate-in fade-in duration-500">
           
           {/* Coluna 1: Visão Geral */}
-          <section className="flex flex-col gap-4">
+          <section className="flex flex-col gap-3 h-full min-h-0">
             
             {/* Saldo Cards */}
-            <div className="bg-emerald-500 text-white p-5 rounded-2xl shadow-lg shadow-emerald-500/20">
-              <p className="text-emerald-100 font-bold uppercase tracking-widest text-[10px] mb-1">Saldo do Mês</p>
-              <h2 className="text-3xl font-black">{formatCurrency(saldo)}</h2>
+            <div className="bg-emerald-500 text-white p-4 rounded-2xl shadow-lg shadow-emerald-500/20 shrink-0">
+              <p className="text-emerald-100 font-bold uppercase tracking-widest text-[10px] mb-0.5">Saldo do Mês</p>
+              <h2 className="text-2xl font-black">{formatCurrency(saldo)}</h2>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-white dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
-                <div className="flex items-center gap-2 text-blue-500 mb-1">
+            <div className="grid grid-cols-2 gap-3 shrink-0">
+              <div className="bg-white dark:bg-zinc-900 p-3 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col justify-center">
+                <div className="flex items-center gap-2 text-blue-500 mb-0.5">
                   <TrendingUp size={14} /><span className="text-[9px] font-bold uppercase tracking-wider">Entradas</span>
                 </div>
-                <p className="text-lg font-bold dark:text-white">{formatCurrency(totalEntradas)}</p>
+                <p className="text-sm font-bold dark:text-white">{formatCurrency(totalEntradas)}</p>
               </div>
-              <div className="bg-white dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
-                <div className="flex items-center gap-2 text-rose-500 mb-1">
+              <div className="bg-white dark:bg-zinc-900 p-3 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col justify-center">
+                <div className="flex items-center gap-2 text-rose-500 mb-0.5">
                   <TrendingDown size={14} /><span className="text-[9px] font-bold uppercase tracking-wider">Saídas</span>
                 </div>
-                <p className="text-lg font-bold dark:text-white">{formatCurrency(totalSaidas)}</p>
+                <p className="text-sm font-bold dark:text-white">{formatCurrency(totalSaidas)}</p>
               </div>
             </div>
 
             {/* Faturas Cartões */}
-            <div className="bg-white dark:bg-zinc-900 p-5 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex-1">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="flex items-center gap-2 text-xs font-black uppercase tracking-tight text-zinc-800 dark:text-zinc-100"><CreditCard size={14} className="text-zinc-400" /> Formas de Pagamento</h3>
+            <div className="bg-white dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col flex-1 min-h-0">
+              <div className="flex items-center justify-between mb-2 shrink-0">
+                <h3 className="flex items-center gap-2 text-[11px] font-black uppercase tracking-tight text-zinc-800 dark:text-zinc-100"><CreditCard size={14} className="text-zinc-400" /> Cartões</h3>
                 <select value={paymentSort} onChange={e => setPaymentSort(e.target.value as any)} className="text-[9px] uppercase font-bold tracking-wider bg-transparent text-zinc-400 outline-none cursor-pointer">
                   <option value="value">Valor</option>
                   <option value="type">Tipo</option>
                 </select>
               </div>
-              {gastosPorCartao.length === 0 ? (
-                <p className="text-xs text-zinc-400">Nenhum gasto registrado.</p>
-              ) : (
-                <ul className="space-y-2">
-                  {gastosPorCartao.map(([metodo, total]) => (
-                    <li key={metodo} className="flex items-center justify-between text-xs">
-                      <span className="font-medium text-zinc-500 dark:text-zinc-400">{metodo}</span>
-                      <span className="font-bold">{formatCurrency(total)}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
+              <div className="flex-1 overflow-y-auto custom-scrollbar pr-1">
+                {gastosPorCartao.length === 0 ? (
+                  <p className="text-[10px] text-zinc-400">Nenhum gasto.</p>
+                ) : (
+                  <ul className="space-y-1.5">
+                    {gastosPorCartao.map(([metodo, total]) => (
+                      <li key={metodo} className="flex items-center justify-between text-[11px]">
+                        <span className="font-medium text-zinc-500 dark:text-zinc-400 truncate pr-2">{metodo}</span>
+                        <span className="font-bold shrink-0">{formatCurrency(total)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             </div>
 
-            {/* Top Categorias */}
-            <div className="bg-white dark:bg-zinc-900 p-5 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex-1">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="flex items-center gap-2 text-xs font-black uppercase tracking-tight text-zinc-800 dark:text-zinc-100"><PieChart size={14} className="text-zinc-400" /> Gastos por Categoria</h3>
+            {/* Top Categorias - Saídas */}
+            <div className="bg-white dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col flex-1 min-h-0">
+              <div className="flex items-center justify-between mb-2 shrink-0">
+                <h3 className="flex items-center gap-2 text-[11px] font-black uppercase tracking-tight text-zinc-800 dark:text-zinc-100"><PieChart size={14} className="text-zinc-400" /> Saídas por Categoria</h3>
                 <select value={categorySort} onChange={e => setCategorySort(e.target.value as any)} className="text-[9px] uppercase font-bold tracking-wider bg-transparent text-zinc-400 outline-none cursor-pointer">
                   <option value="value">Valor</option>
                   <option value="type">Tipo</option>
                 </select>
               </div>
-              {gastosPorCategoria.length === 0 ? (
-                <p className="text-xs text-zinc-400">Nenhum gasto registrado.</p>
-              ) : (
-                <ul className="space-y-2">
-                  {gastosPorCategoria.map(([cat, total]) => (
-                    <li key={cat} className="flex items-center justify-between text-xs">
-                      <span className="font-medium text-zinc-500 dark:text-zinc-400">{cat}</span>
-                      <span className="font-bold text-rose-500">{formatCurrency(total)}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
+              <div className="flex-1 overflow-y-auto custom-scrollbar pr-1">
+                {gastosPorCategoria.length === 0 ? (
+                  <p className="text-[10px] text-zinc-400">Nenhum gasto.</p>
+                ) : (
+                  <ul className="space-y-1.5">
+                    {gastosPorCategoria.map(([cat, total]) => (
+                      <li key={cat} className="flex items-center justify-between text-[11px]">
+                        <span className="font-medium text-zinc-500 dark:text-zinc-400 truncate pr-2">{cat}</span>
+                        <span className="font-bold text-rose-500 shrink-0">{formatCurrency(total)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+
+            {/* Top Categorias - Entradas */}
+            <div className="bg-white dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col flex-1 min-h-0">
+              <div className="flex items-center justify-between mb-2 shrink-0">
+                <h3 className="flex items-center gap-2 text-[11px] font-black uppercase tracking-tight text-zinc-800 dark:text-zinc-100"><PieChart size={14} className="text-zinc-400" /> Entradas por Categoria</h3>
+                <select value={categorySort} onChange={e => setCategorySort(e.target.value as any)} className="text-[9px] uppercase font-bold tracking-wider bg-transparent text-zinc-400 outline-none cursor-pointer">
+                  <option value="value">Valor</option>
+                  <option value="type">Tipo</option>
+                </select>
+              </div>
+              <div className="flex-1 overflow-y-auto custom-scrollbar pr-1">
+                {entradasPorCategoria.length === 0 ? (
+                  <p className="text-[10px] text-zinc-400">Nenhuma entrada.</p>
+                ) : (
+                  <ul className="space-y-1.5">
+                    {entradasPorCategoria.map(([cat, total]) => (
+                      <li key={cat} className="flex items-center justify-between text-[11px]">
+                        <span className="font-medium text-zinc-500 dark:text-zinc-400 truncate pr-2">{cat}</span>
+                        <span className="font-bold text-blue-500 shrink-0">{formatCurrency(total)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             </div>
 
           </section>

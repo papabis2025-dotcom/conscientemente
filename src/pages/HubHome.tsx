@@ -116,8 +116,8 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
 
       const estudosRaw = JSON.parse(localStorage.getItem('cp_study_tasks') || '[]');
       const estudos = Array.isArray(estudosRaw) ? estudosRaw : [];
-      const todayEstudos = estudos.filter((t: any) => !t.done && t.date === todayStr);
-      setPendingEstudos(todayEstudos.length);
+      const pendingEstudosList = estudos.filter((t: any) => !t.done);
+      setPendingEstudos(pendingEstudosList.length);
 
       const financasRaw = JSON.parse(localStorage.getItem('cn_financas') || '[]');
       const financas = Array.isArray(financasRaw) ? financasRaw : [];

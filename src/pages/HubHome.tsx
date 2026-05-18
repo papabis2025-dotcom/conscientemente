@@ -221,19 +221,19 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
         <div className={`mb-10 transition-all duration-700 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
 
           {/* Live clock widget */}
-          <div className="mt-4 inline-flex items-center gap-3 px-4 py-2.5 bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
+          <div className="mt-4 inline-flex items-center gap-5 px-6 py-4 bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-md">
             <div className="flex flex-col">
-              <span className="font-black text-zinc-800 dark:text-white text-lg leading-none tracking-tight tabular-nums">
+              <span className="font-black text-zinc-800 dark:text-white text-4xl leading-none tracking-tight tabular-nums">
                 {timeStr}
               </span>
-              <span className="text-[10px] text-zinc-400 dark:text-zinc-500 font-medium capitalize mt-0.5">
+              <span className="text-sm text-zinc-500 dark:text-zinc-400 font-bold capitalize mt-1.5">
                 {dateStr}
               </span>
             </div>
-            <div className="w-px h-8 bg-zinc-200 dark:bg-zinc-700" />
-            <div className="flex gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-[9px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">Ao vivo</span>
+            <div className="w-px h-12 bg-zinc-200 dark:bg-zinc-700" />
+            <div className="flex flex-col items-center justify-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-[9px] font-black text-emerald-600 dark:text-emerald-500 uppercase tracking-widest">Ao vivo</span>
             </div>
           </div>
 
@@ -245,9 +245,9 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
                 {pendingTarefas} {pendingTarefas === 1 ? 'tarefa' : 'tarefas'} hoje
               </span>
             ) : (
-              <span className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-100 dark:bg-zinc-800/60 text-zinc-500 dark:text-zinc-400 rounded-full text-[10px] font-bold uppercase tracking-wider border border-zinc-200 dark:border-zinc-700">
+              <span className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-full text-[10px] font-bold uppercase tracking-wider border border-emerald-200 dark:border-emerald-500/20">
                 <ListTodo size={11} />
-                Dia livre
+                Dia livre ✓
               </span>
             )}
 

@@ -23,10 +23,11 @@ interface SubjectsViewProps {
   onUpdateSubjects: (subjects: Subject[]) => void;
   selectedConcursoId?: string | 'all';
   onSelectConcursoId?: (id: string | 'all') => void;
+  scheduledStudies: any[];
   concursos?: Concurso[];
 }
 
-const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdateSubjects, selectedConcursoId, onSelectConcursoId, concursos }) => {
+const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdateSubjects, selectedConcursoId, onSelectConcursoId, concursos, scheduledStudies }) => {
   const [newSubjectName, setNewSubjectName] = useState('');
   const [selectedColor, setSelectedColor] = useState(COLORS[0]);
   const [editingSubjectId, setEditingSubjectId] = useState<string | null>(null);
@@ -85,7 +86,10 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
   };
 
   const getSubjectStats = (subjectId: string) => {
-    const subSessions = sessions.filter(s => s.subjectId === subjectId && !s.isSimulado && s.activityType !== 'Simulado');
+    const simuladoSessionIds = new Set(
+      scheduledStudies.filter(s => s.activityType === 'Simulado').map(s => s.id)
+    );
+    const subSessions = sessions.filter(s => s.subjectId === subjectId && !s.isSimulado && s.activityType !== 'Simulado' && !simuladoSessionIds.has(s.id));
     const totalMinutes = subSessions.reduce((acc, s) => acc + s.durationInMinutes, 0);
     const totalQuestions = subSessions.reduce((acc, s) => acc + (s.questionsDone || 0), 0);
     const totalCorrect = subSessions.reduce((acc, s) => acc + (s.questionsCorrect || 0), 0);

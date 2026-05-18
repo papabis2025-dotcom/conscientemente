@@ -103,7 +103,7 @@ const QuestionsView: React.FC<QuestionsViewProps> = ({
       }
 
       const topicId = s.topicId || 'geral';
-      const topicTitle = subject.topics.find(t => t.id === s.topicId)?.title || 'Geral / Outros';
+      const topicTitle = (subject.topics || []).find(t => t.id === s.topicId)?.title || 'Geral / Outros';
 
       if (!subjectMap[subject.id].topics[topicId]) {
         subjectMap[subject.id].topics[topicId] = { title: topicTitle, done: 0, correct: 0 };
@@ -160,7 +160,7 @@ const QuestionsView: React.FC<QuestionsViewProps> = ({
               <label className="text-[10px] font-black text-zinc-400 uppercase mb-1.5 block">Assunto</label>
               <select value={selectedTopicId} disabled={!selectedSubjectId} onChange={(e) => setSelectedTopicId(e.target.value)} className="w-full px-4 py-3 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-2xl outline-none text-sm dark:text-white disabled:opacity-50">
                 <option value="">Geral / Outros</option>
-                {selectedSubject?.topics.map(t => <option key={t.id} value={t.id}>{t.title}</option>)}
+                {(selectedSubject?.topics || []).map(t => <option key={t.id} value={t.id}>{t.title}</option>)}
               </select>
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -195,7 +195,7 @@ const QuestionsView: React.FC<QuestionsViewProps> = ({
                     <h4 className="text-xs font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400">{subject.name}</h4>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 ml-4">
-                    {subject.topics.map((topic, i) => (
+                    {(subject.topics || []).map((topic, i) => (
                       <div key={i} className="p-4 bg-zinc-50 dark:bg-zinc-800/40 rounded-2xl border border-zinc-100 dark:border-zinc-800">
                         <div className="flex justify-between items-start mb-2">
                           <p className="text-[11px] font-bold text-zinc-700 dark:text-zinc-200 leading-tight pr-2">{topic.title}</p>

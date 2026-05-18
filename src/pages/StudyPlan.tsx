@@ -35,7 +35,7 @@ const StudyPlan: React.FC<StudyPlanProps> = ({ subjects, sessions, studyTasks, o
             todayDate.setHours(0, 0, 0, 0);
 
             subjects.forEach(sub => {
-                sub.topics.forEach(topic => {
+                (sub.topics || []).forEach(topic => {
                     // Find last session for this topic
                     const topicSessions = sessions.filter(s => s.subjectId === sub.id && s.topicId === topic.id);
                     if (topicSessions.length > 0) {

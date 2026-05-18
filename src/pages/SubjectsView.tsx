@@ -219,14 +219,14 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
   const toggleTopic = (subjectId: string, topicId: string) => {
     onUpdateSubjects(subjects.map(s => s.id === subjectId ? {
       ...s,
-      topics: s.topics.map(t => t.id === topicId ? { ...t, isCompleted: !t.isCompleted } : t)
+      topics: (s.topics || []).map(t => t.id === topicId ? { ...t, isCompleted: !t.isCompleted } : t)
     } : s));
   };
 
   const deleteTopic = (subjectId: string, topicId: string) => {
     onUpdateSubjects(subjects.map(s => s.id === subjectId ? {
       ...s,
-      topics: s.topics.filter(t => t.id !== topicId)
+      topics: (s.topics || []).filter(t => t.id !== topicId)
     } : s));
   };
 
@@ -239,7 +239,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
     if (!editTopicTitle.trim()) return;
     onUpdateSubjects(subjects.map(s => s.id === subjectId ? {
       ...s,
-      topics: s.topics.map(t => t.id === topicId ? { ...t, title: editTopicTitle } : t)
+      topics: (s.topics || []).map(t => t.id === topicId ? { ...t, title: editTopicTitle } : t)
     } : s));
     setEditingTopicId(null);
     setEditTopicTitle('');

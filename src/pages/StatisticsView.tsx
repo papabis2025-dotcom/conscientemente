@@ -45,7 +45,7 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions }) =
       const weight = sub.weight || 1;
       const questionsGoal = sub.questionsGoal || 0;
 
-      const topics = sub.topics.map(topic => {
+      const topics = (sub.topics || []).map(topic => {
         const tSessions = sessions.filter(s => s.subjectId === sub.id && s.topicId === topic.id);
         const tQ = tSessions.reduce((acc, s) => acc + (s.questionsDone || 0), 0);
         const tC = tSessions.reduce((acc, s) => acc + (s.questionsCorrect || 0), 0);

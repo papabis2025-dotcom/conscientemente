@@ -475,7 +475,7 @@ const Dashboard: React.FC<DashboardProps> = ({
         const upcomingReviews: { subjectName: string; topicName: string; daysUntil: number; reviewType: string }[] = [];
 
         subjects.forEach(sub => {
-          sub.topics.forEach(topic => {
+          (sub.topics || []).forEach(topic => {
             const topicSessions = sessions.filter(s => s.subjectId === sub.id && s.topicId === topic.id);
             if (topicSessions.length > 0) {
               const lastTopicDate = new Date([...topicSessions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0].date);

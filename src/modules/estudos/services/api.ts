@@ -135,7 +135,8 @@ export const api = {
                 notes: i.notes,
                 durationInMinutes: i.duration_minutes,
                 questionsDone: i.questions_done,
-                questionsCorrect: i.questions_correct
+                questionsCorrect: i.questions_correct,
+                status: i.status || 'planejado'
             }));
         },
         create: async (item: Omit<ScheduledStudy, 'id' | 'user_id' | 'created_at'> & { id?: string }) => {
@@ -152,7 +153,8 @@ export const api = {
                 notes: item.notes,
                 duration_minutes: item.durationInMinutes,
                 questions_done: item.questionsDone,
-                questions_correct: item.questionsCorrect
+                questions_correct: item.questionsCorrect,
+                status: item.status || 'planejado'
             }).select().single());
         },
         update: async (id: string, updates: Partial<ScheduledStudy>) => {
@@ -162,6 +164,7 @@ export const api = {
             if (updates.activityType) dbPayload.activity_type = updates.activityType;
             if (updates.questionsDone !== undefined) dbPayload.questions_done = updates.questionsDone;
             if (updates.questionsCorrect !== undefined) dbPayload.questions_correct = updates.questionsCorrect;
+            if (updates.status) dbPayload.status = updates.status;
 
             return handleRequest(supabase.from('scheduled_studies').update(dbPayload).eq('id', id));
         },

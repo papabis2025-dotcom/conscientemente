@@ -20,7 +20,10 @@ export const useAppData = () => {
     };
     const [sessions, setSessions] = useState<StudySession[]>([]);
     const [simulados, setSimulados] = useState<Simulado[]>([]);
-    const [scheduledStudies, setScheduledStudies] = useState<ScheduledStudy[]>([]);
+    const [scheduledStudies, setScheduledStudies] = useState<ScheduledStudy[]>(() => {
+        const saved = localStorage.getItem('cp_scheduled_studies');
+        return saved ? JSON.parse(saved) : [];
+    });
     const [dailyGoals, setDailyGoals] = useState<DailyGoal[]>([]);
     const [logs, setLogs] = useState<LogEntry[]>([]);
 
@@ -81,7 +84,10 @@ export const useAppData = () => {
             if (concursosData) setConcursos(concursosData);
             if (sessionsData) setSessions(sessionsData);
             if (simuladosData) setSimulados(simuladosData);
-            if (scheduleData) setScheduledStudies(scheduleData);
+            if (scheduleData) {
+                setScheduledStudies(scheduleData);
+                localStorage.setItem('cp_scheduled_studies', JSON.stringify(scheduleData));
+            }
             if (goalsData) setDailyGoals(goalsData);
             if (logsData) setLogs(logsData);
 
@@ -195,7 +201,11 @@ export const useAppData = () => {
                 questionsDone: session.questionsDone,
                 questionsCorrect: session.questionsCorrect
             };
-            setScheduledStudies(prev => [...prev, newScheduled]);
+            setScheduledStudies(prev => {
+                const updated = [...prev, newScheduled];
+                localStorage.setItem('cp_scheduled_studies', JSON.stringify(updated));
+                return updated;
+            });
 
             // Generate automatic log for the session
             addLog({
@@ -266,7 +276,11 @@ export const useAppData = () => {
         setSaveError(null);
         // Cascade: Remove from sessions AND schedule
         setSessions(prev => prev.filter(s => s.id !== id));
-        setScheduledStudies(prev => prev.filter(s => s.id !== id)); // Assumes shared ID
+        setScheduledStudies(prev => {
+            const updated = prev.filter(s => s.id !== id);
+            localStorage.setItem('cp_scheduled_studies', JSON.stringify(updated));
+            return updated;
+        }); // Assumes shared ID
         try {
             await api.sessions.delete(id);
             await api.schedule.delete(id); // Cascade
@@ -340,7 +354,11 @@ export const useAppData = () => {
     const deleteScheduledStudy = async (id: string) => {
         setSaveError(null);
         // Cascade: Remove from schedule AND sessions
-        setScheduledStudies(prev => prev.filter(s => s.id !== id));
+        setScheduledStudies(prev => {
+            const updated = prev.filter(s => s.id !== id);
+            localStorage.setItem('cp_scheduled_studies', JSON.stringify(updated));
+            return updated;
+        });
         setSessions(prev => prev.filter(s => s.id !== id)); // Assumes shared ID
         try {
             await api.schedule.delete(id);
@@ -355,6 +373,7 @@ export const useAppData = () => {
     const updateScheduledStudies = async (newSchedule: ScheduledStudy[]) => {
         setSaveError(null);
         setScheduledStudies(newSchedule);
+        localStorage.setItem('cp_scheduled_studies', JSON.stringify(newSchedule));
         // Handle as bulk for now, but better would be specific actions
         try {
             // Very basic sync for schedule

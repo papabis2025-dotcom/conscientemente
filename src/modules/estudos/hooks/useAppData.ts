@@ -376,22 +376,18 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
 
     const updateScheduledStudies = async (newSchedule: ScheduledStudy[]) => {
         setSaveError(null);
+        const previousIds = new Set(scheduledStudies.map(s => s.id));
         setScheduledStudies(newSchedule);
         localStorage.setItem('cp_scheduled_studies', JSON.stringify(newSchedule));
-        // Handle as bulk for now, but better would be specific actions
+        const newItems = newSchedule.filter(item => !previousIds.has(item.id));
         try {
-            // Very basic sync for schedule
-            for (const item of newSchedule) {
-                if (item.id.includes('temp-')) {
-                    await api.schedule.create(item);
-                } else {
-                    await api.schedule.update(item.id, item);
-                }
+            for (const item of newItems) {
+                await api.schedule.create(item);
             }
-            setLastSaved(new Date().toLocaleTimeString());
+            if (newItems.length > 0) setLastSaved(new Date().toLocaleTimeString());
         } catch (e) {
-            console.error('Error updating schedule:', e);
-            setSaveError('Erro ao atualizar agenda.');
+            console.error('Error creating schedule items:', e);
+            setSaveError('Erro ao salvar item na agenda.');
         }
     };
 

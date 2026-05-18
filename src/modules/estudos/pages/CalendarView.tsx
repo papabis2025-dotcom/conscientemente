@@ -14,7 +14,7 @@ interface CalendarViewProps {
   onToggleStatus?: (id: string) => void;
 }
 
-type ViewMode = 'semanal' | 'mensal' | 'semestral' | 'anual';
+type ViewMode = 'semanal' | 'mensal' | 'anual';
 
 const CalendarView: React.FC<CalendarViewProps> = ({ subjects, allSubjects, scheduledStudies, onUpdateSchedule, onDelete, onAddSession, onToggleStatus }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -80,7 +80,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ subjects, allSubjects, sche
         durationInMinutes: parseInt(formData.duration) || undefined,
         questionsDone: formData.activityType === 'Questões' ? (parseInt(formData.questionsDone) || undefined) : undefined,
         questionsCorrect: formData.activityType === 'Questões' ? (parseInt(formData.questionsCorrect) || undefined) : undefined,
-        status: 'realizado'
+        status: 'planejado'
       };
       onUpdateSchedule([...scheduledStudies, newEntry]);
     }
@@ -113,8 +113,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ subjects, allSubjects, sche
     setCurrentDate(newDate);
   };
 
-  const selectedSubject = subjects.find(s => s.id === formData.subjectId);
-  const tasksForSelectedDay = scheduledStudies.filter(s => s.date === selectedDayKey);
+  const tasksForSelectedDay = scheduledStudies.filter(s => s.date && (s.date === selectedDayKey || s.date.split('T')[0] === selectedDayKey));
 
   const weekDays = useMemo(() => {
     const startOfWeek = new Date(currentDate);
@@ -158,7 +157,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ subjects, allSubjects, sche
                       return (
                         <div 
                           key={task.id} 
-                          style={{ ...style, opacity: task.status === 'realizado' ? 0.4 : 1 }} 
+                          style={{ ...style, opacity: task.status === 'planejado' ? 0.45 : 1 }} 
                           onClick={(e) => {
                             e.stopPropagation();
                             if (onToggleStatus) {
@@ -220,7 +219,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ subjects, allSubjects, sche
                         return (
                           <div 
                             key={t.id} 
-                            style={{ ...style, opacity: t.status === 'realizado' ? 0.4 : 1 }} 
+                            style={{ ...style, opacity: t.status === 'planejado' ? 0.45 : 1 }} 
                             onClick={(e) => {
                               e.stopPropagation();
                               if (onToggleStatus) {

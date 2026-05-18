@@ -56,7 +56,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
 
 
 
-  const [topicSortBy, setTopicSortBy] = useState<'default' | 'priority' | 'time' | 'questions' | 'name' | 'lastStudy' | 'review7d' | 'review30d'>('default');
+  const [topicSortBy, setTopicSortBy] = useState<'default' | 'priority' | 'time' | 'questions' | 'name' | 'lastStudy' | 'review7d' | 'review30d' | 'review90d'>('default');
   const [topicSortOrder, setTopicSortOrder] = useState<'asc' | 'desc'>('desc');
   const [showColorPicker, setShowColorPicker] = useState(false);
 
@@ -110,6 +110,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
     let lastStudyDate = '';
     let review7dDate = '';
     let review30dDate = '';
+    let review90dDate = '';
 
     if (topicSessions.length > 0) {
       const sortedSessions = [...topicSessions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -126,9 +127,13 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
       const d30 = new Date(lastDate);
       d30.setDate(d30.getDate() + 30);
       review30dDate = formatDate(d30);
+
+      const d90 = new Date(lastDate);
+      d90.setDate(d90.getDate() + 90);
+      review90dDate = formatDate(d90);
     }
 
-    return { minutes: tMinutes, done: tDone, correct: tCorrect, acc: tAcc, hours: tHours, lastStudyDate, review7dDate, review30dDate };
+    return { minutes: tMinutes, done: tDone, correct: tCorrect, acc: tAcc, hours: tHours, lastStudyDate, review7dDate, review30dDate, review90dDate };
   };
 
   const sortedSubjects = [...subjects].sort((a, b) => {
@@ -530,6 +535,9 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                                   <th className="py-1.5 text-[10px] uppercase font-bold cursor-pointer hover:text-zinc-900 dark:text-zinc-300" onClick={() => { setTopicSortBy('review30d'); setTopicSortOrder(o => o === 'desc' ? 'asc' : 'desc'); }}>
                                     Rev.30d {topicSortBy === 'review30d' && (topicSortOrder === 'desc' ? '↓' : '↑')}
                                   </th>
+                                  <th className="py-1.5 text-[10px] uppercase font-bold cursor-pointer hover:text-zinc-900 dark:text-zinc-300" onClick={() => { setTopicSortBy('review90d'); setTopicSortOrder(o => o === 'desc' ? 'asc' : 'desc'); }}>
+                                    Rev.90d {topicSortBy === 'review90d' && (topicSortOrder === 'desc' ? '↓' : '↑')}
+                                  </th>
                                   <th className="py-1.5 text-[10px] uppercase font-bold cursor-pointer hover:text-zinc-900 dark:text-zinc-300" onClick={() => { setTopicSortBy('time'); setTopicSortOrder(o => o === 'desc' ? 'asc' : 'desc'); }}>
                                     Tempo {topicSortBy === 'time' && (topicSortOrder === 'desc' ? '↓' : '↑')}
                                   </th>
@@ -551,6 +559,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                                       <td className="py-1.5 text-zinc-400 text-xs">{stats.lastStudyDate || '—'}</td>
                                       <td className="py-1.5 text-xs text-zinc-400">{stats.review7dDate || '—'}</td>
                                       <td className="py-1.5 text-xs text-zinc-400">{stats.review30dDate || '—'}</td>
+                                      <td className="py-1.5 text-xs text-zinc-400">{stats.review90dDate || '—'}</td>
                                       <td className="py-1.5 text-zinc-400 text-xs">{stats.minutes > 0 ? `${stats.hours}h` : '—'}</td>
                                       <td className="py-1.5 text-zinc-400 text-xs">{stats.done > 0 ? `${stats.correct}/${stats.done} (${stats.acc}%)` : '—'}</td>
                                       <td className="py-1.5" />
@@ -582,6 +591,11 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                                     if (topicSortBy === 'review30d') {
                                       const aDate = a.stats.review30dDate ? new Date(a.stats.review30dDate).getTime() : 0;
                                       const bDate = b.stats.review30dDate ? new Date(b.stats.review30dDate).getTime() : 0;
+                                      return (aDate - bDate) * multiplier;
+                                    }
+                                    if (topicSortBy === 'review90d') {
+                                      const aDate = a.stats.review90dDate ? new Date(a.stats.review90dDate).getTime() : 0;
+                                      const bDate = b.stats.review90dDate ? new Date(b.stats.review90dDate).getTime() : 0;
                                       return (aDate - bDate) * multiplier;
                                     }
                                     if (topicSortBy === 'time') return (a.stats.minutes - b.stats.minutes) * multiplier;
@@ -628,6 +642,9 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                                         </td>
                                         <td className="py-1.5 text-xs font-medium text-zinc-400">
                                           {tStats.review30dDate || '-'}
+                                        </td>
+                                        <td className="py-1.5 text-xs font-medium text-zinc-400">
+                                          {tStats.review90dDate || '-'}
                                         </td>
                                         <td className="py-1.5 text-zinc-400 text-xs">
                                           {tStats.minutes > 0 ? `${tStats.hours}h` : '-'}

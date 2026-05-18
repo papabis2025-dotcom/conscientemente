@@ -316,10 +316,6 @@ const Sidebar: React.FC<SidebarProps> = ({
           <Settings size={20} />
           {!isCollapsed && <span className="text-sm">Ajustes</span>}
         </button>
-        <button onClick={() => setActiveTab('logs')} className={`w-full flex items-center ${isCollapsed ? 'justify-center px-1' : 'gap-3 px-3'} py-2 rounded-xl transition-colors ${activeTab === 'logs' ? 'text-zinc-900 bg-zinc-100 dark:bg-zinc-800 dark:text-white font-semibold' : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-white font-medium'}`} title="Logs">
-          <ChartNoAxesColumn size={20} />
-          {!isCollapsed && <span className="text-sm">Logs</span>}
-        </button>
         <button onClick={onLogout} className={`w-full flex items-center ${isCollapsed ? 'justify-center px-1' : 'gap-3 px-3'} py-2 text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/10 rounded-xl transition-colors font-medium`} title="Voltar ao Hub">
           <LayoutDashboard size={20} />
           {!isCollapsed && <span className="text-sm">Voltar ao Hub</span>}

@@ -121,7 +121,6 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
         return <StatisticsView subjects={filteredSubjects} sessions={sessions} />;
       case 'settings':
         return <SettingsView currentUserEmail={currentUser?.email || ''} />;
-      case 'logs': return <LogView logs={logs} onClearLogs={clearLogs} onDeleteLog={deleteLog} />;
       default: return null;
     }
   };

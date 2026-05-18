@@ -47,7 +47,7 @@ interface WidgetState {
 const DEFAULT_WIDGETS: WidgetState[] = [
   { id: 'general_stats', title: 'Desempenho Geral', isVisible: true, size: 'wide' },
   { id: 'study_frequency', title: 'Informações e Metas', isVisible: true, size: 'normal' },
-  { id: 'study_tasks', title: 'Revisões Pendentes', isVisible: true, size: 'normal' },
+  { id: 'study_tasks', title: 'Tarefas Pendentes', isVisible: true, size: 'normal' },
   { id: 'weekly_chart', title: 'Volume de Estudo', isVisible: true, size: 'wide' },
   { id: 'activity_calendar', title: 'Calendário de Atividades', isVisible: true, size: 'wide' },
   { id: 'unified_subject_analysis', title: 'Análise por Disciplina', isVisible: true, size: 'wide' },
@@ -492,7 +492,7 @@ const Dashboard: React.FC<DashboardProps> = ({
               subjectName: sub.name, 
               topicName: topic?.title || s.activityType || 'Estudo Pendente', 
               daysUntil: diffDays < 0 ? 0 : diffDays, // 0 means Today, diffDays > 0 means Delayed
-              reviewType: diffDays > 0 ? 'Atrasado' : 'Pendente'
+              reviewType: diffDays > 0 ? 'Tarefa Atrasada' : 'Tarefa Programada'
             });
           }
         });
@@ -508,10 +508,13 @@ const Dashboard: React.FC<DashboardProps> = ({
               const diffDays = Math.round((todayMs - lastTopicDate.getTime()) / (1000 * 60 * 60 * 24));
               const daysTo7 = 7 - diffDays;
               const daysTo30 = 30 - diffDays;
+              const daysTo90 = 90 - diffDays;
               if (daysTo7 >= 0 && daysTo7 <= 7) {
-                upcomingReviews.push({ subjectName: sub.name, topicName: topic.title, daysUntil: daysTo7, reviewType: '7d' });
+                upcomingReviews.push({ subjectName: sub.name, topicName: topic.title, daysUntil: daysTo7, reviewType: 'Revisão 7d' });
               } else if (daysTo30 >= 0 && daysTo30 <= 7) {
-                upcomingReviews.push({ subjectName: sub.name, topicName: topic.title, daysUntil: daysTo30, reviewType: '30d' });
+                upcomingReviews.push({ subjectName: sub.name, topicName: topic.title, daysUntil: daysTo30, reviewType: 'Revisão 30d' });
+              } else if (daysTo90 >= 0 && daysTo90 <= 7) {
+                upcomingReviews.push({ subjectName: sub.name, topicName: topic.title, daysUntil: daysTo90, reviewType: 'Revisão 90d' });
               }
             }
           });
@@ -870,7 +873,7 @@ const Dashboard: React.FC<DashboardProps> = ({
               className={`${sizeClass} ${heightClass} ${widget.isVisible ? 'opacity-100' : 'opacity-40'} bg-white dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm relative group hover:shadow-md transition-all duration-300 flex flex-col ${isEditMode ? 'cursor-move ring-2 ring-emerald-500/20' : ''} ${draggedWidgetIndex === index ? 'opacity-50 scale-95' : ''}`}
             >
               <div className="flex justify-between items-center mb-3 shrink-0">
-                <h4 className="text-[10px] font-black text-zinc-800 dark:text-zinc-200 uppercase tracking-widest bg-zinc-50 dark:bg-zinc-800/50 px-2.5 py-1 rounded-full">{widget.title}</h4>
+                <h4 className="text-[10px] font-black text-zinc-800 dark:text-zinc-200 uppercase tracking-widest bg-zinc-50 dark:bg-zinc-800/50 px-2.5 py-1 rounded-full">{widget.id === 'study_tasks' ? 'Tarefas Pendentes' : widget.title}</h4>
                 <div className="flex gap-2 items-center">
                   {!isEditMode && ['weekly_chart', 'activity_calendar', 'unified_subject_analysis'].includes(widget.id) && (
                     <button

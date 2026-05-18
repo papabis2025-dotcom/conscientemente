@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CheckSquare, ListTodo, Archive, LayoutTemplate, Plus, Calendar as CalendarIcon, Clock, Tag, ArrowDownAZ, CalendarDays, Trash2, Check } from 'lucide-react';
+import { CheckSquare, ListTodo, Archive, LayoutTemplate, Plus, Calendar as CalendarIcon, Clock, Tag, ArrowDownAZ, CalendarDays, Trash2, Check, Repeat } from 'lucide-react';
 
 interface Task {
   id: string;
@@ -9,6 +9,8 @@ interface Task {
   dueTime: string;
   category: string;
   createdAt: number;
+  recurrenceType?: 'none' | 'days' | 'monthly';
+  recurrenceValue?: number;
 }
 
 const TarefasApp: React.FC = () => {
@@ -23,6 +25,8 @@ const TarefasApp: React.FC = () => {
   const [newTaskDate, setNewTaskDate] = useState('');
   const [newTaskTime, setNewTaskTime] = useState('');
   const [newTaskCategory, setNewTaskCategory] = useState('Tarefa');
+  const [newTaskRecurrence, setNewTaskRecurrence] = useState<'none' | 'days' | 'monthly'>('none');
+  const [newTaskRecurrenceValue, setNewTaskRecurrenceValue] = useState<number>(1);
 
   const [sortBy, setSortBy] = useState<'data' | 'alfabetica' | 'prioridade'>('prioridade');
 
@@ -41,7 +45,9 @@ const TarefasApp: React.FC = () => {
       dueDate: newTaskDate,
       dueTime: newTaskTime,
       category: newTaskCategory || 'Tarefa',
-      createdAt: Date.now()
+      createdAt: Date.now(),
+      recurrenceType: newTaskRecurrence,
+      recurrenceValue: newTaskRecurrenceValue
     };
 
     setTasks(prev => [...prev, newTask]);
@@ -49,10 +55,40 @@ const TarefasApp: React.FC = () => {
     setNewTaskDate('');
     setNewTaskTime('');
     setNewTaskCategory('Tarefa');
+    setNewTaskRecurrence('none');
+    setNewTaskRecurrenceValue(1);
   };
 
   const toggleTask = (id: string) => {
-    setTasks(prev => prev.map(t => t.id === id ? { ...t, completed: !t.completed } : t));
+    setTasks(prev => {
+      const task = prev.find(t => t.id === id);
+      if (!task) return prev;
+      
+      const updatedTasks = prev.map(t => t.id === id ? { ...t, completed: !t.completed } : t);
+      
+      if (!task.completed && task.recurrenceType && task.recurrenceType !== 'none' && task.dueDate) {
+        let nextDate = new Date(`${task.dueDate}T12:00:00`);
+        if (task.recurrenceType === 'days') {
+          nextDate.setDate(nextDate.getDate() + (task.recurrenceValue || 1));
+        } else if (task.recurrenceType === 'monthly') {
+          nextDate.setMonth(nextDate.getMonth() + 1);
+        }
+        
+        const nextDateStr = nextDate.toISOString().split('T')[0];
+        const hasNext = prev.some(t => t.text === task.text && t.dueDate === nextDateStr && !t.completed);
+        
+        if (!hasNext) {
+          updatedTasks.push({
+            ...task,
+            id: crypto.randomUUID(),
+            completed: false,
+            dueDate: nextDateStr,
+            createdAt: Date.now()
+          });
+        }
+      }
+      return updatedTasks;
+    });
   };
 
   const deleteTask = (id: string) => {
@@ -184,6 +220,31 @@ const TarefasApp: React.FC = () => {
                     </select>
                   </div>
 
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-rose-500 transition-shadow">
+                      <div className="pl-3 text-zinc-400"><Repeat size={16} /></div>
+                      <select 
+                        value={newTaskRecurrence}
+                        onChange={(e) => setNewTaskRecurrence(e.target.value as any)}
+                        className="bg-transparent border-none outline-none text-sm p-2 transition-all text-zinc-600 dark:text-zinc-300 font-medium cursor-pointer"
+                      >
+                        <option value="none">S/ Repetição</option>
+                        <option value="days">A cada dias</option>
+                        <option value="monthly">Mensalmente</option>
+                      </select>
+                    </div>
+                    {newTaskRecurrence === 'days' && (
+                      <input 
+                        type="number" 
+                        min="1"
+                        value={newTaskRecurrenceValue}
+                        onChange={(e) => setNewTaskRecurrenceValue(parseInt(e.target.value) || 1)}
+                        className="w-16 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-sm text-center text-zinc-600 dark:text-zinc-300 focus:ring-2 focus:ring-rose-500 outline-none"
+                        title="Dias"
+                      />
+                    )}
+                  </div>
+
                   <button 
                     type="submit" 
                     disabled={!newTaskText.trim()}
@@ -276,6 +337,12 @@ const TarefasApp: React.FC = () => {
                             {task.dueDate ? new Date(`${task.dueDate}T12:00:00`).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }) : ''}
                             {task.dueDate && task.dueTime && ' • '}
                             {task.dueTime}
+                          </span>
+                        )}
+                        {task.recurrenceType && task.recurrenceType !== 'none' && (
+                          <span className={`flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md ${task.completed ? 'text-zinc-400 bg-zinc-200/50 dark:bg-zinc-800/50' : 'text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-500/10'}`}>
+                            <Repeat size={12} />
+                            {task.recurrenceType === 'days' ? `A cada ${task.recurrenceValue} dias` : 'Mensalmente'}
                           </span>
                         )}
                       </div>

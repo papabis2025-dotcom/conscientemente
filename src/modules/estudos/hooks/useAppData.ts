@@ -202,9 +202,8 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         const sessionDate = session.date.split('T')[0];
         const activityType = session.activityType || (session.isSimulado ? 'Simulado' : session.questionsDone !== undefined ? 'Questões' : 'Leitura');
 
-        // Use a SEPARATE ID for the scheduled entry to avoid DB conflicts
-        // (study_sessions and scheduled_studies are different tables)
-        const scheduleId = crypto.randomUUID();
+        // Use the same ID to link the session and the scheduled entry.
+        const scheduleId = session.id;
         const newScheduled: ScheduledStudy = {
             id: scheduleId,
             date: sessionDate,
@@ -471,6 +470,24 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
             localStorage.setItem('cp_scheduled_studies', JSON.stringify(updated));
             return updated;
         });
+
+        if (newStatus === 'planejado') {
+            setSessions(prev => prev.filter(s => s.id !== id));
+            try { await api.sessions.delete(id); } catch(e) {}
+        } else {
+            const newSession: StudySession = {
+                id: study.id,
+                subjectId: study.subjectId,
+                topicId: study.topicId,
+                durationInMinutes: study.durationInMinutes || 0,
+                date: new Date(`${study.date}T12:00:00`).toISOString(),
+                questionsDone: study.questionsDone,
+                questionsCorrect: study.questionsCorrect,
+                activityType: study.activityType
+            };
+            setSessions(prev => [...prev, newSession]);
+            try { await api.sessions.create(newSession); } catch(e) {}
+        }
     };
 
     return {

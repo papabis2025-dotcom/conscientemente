@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { MODULES } from '../constants';
-import { Module } from '../types';
-import { LogOut, Sun, Moon, ArrowUpRight, Lock, BookOpen, Wallet, ListTodo, Brain, ChevronRight } from 'lucide-react';
+import { Module, LogEntry } from '../types';
+import { LogOut, Sun, Moon, ArrowUpRight, Lock, BookOpen, Wallet, ListTodo, Brain, ChevronRight, Activity, TrendingUp, Settings, User, X } from 'lucide-react';
+import LogView from '../modules/estudos/pages/LogView';
+import { api } from '../modules/estudos/services/api';
 
 interface HubHomeProps {
   userName: string;
@@ -61,6 +63,13 @@ const colorMap: Record<string, {
 };
 
 
+const iconMap: Record<string, React.ReactNode> = {
+  estudos: <BookOpen size={20} strokeWidth={2} />,
+  financas: <Wallet size={20} strokeWidth={2} />,
+  saude: <Activity size={20} strokeWidth={2} />,
+  tarefas: <ListTodo size={20} strokeWidth={2} />,
+};
+
 const ModuleCard: React.FC<{ module: Module; index: number }> = ({ module, index }) => {
   const colors = colorMap[module.color] ?? colorMap.indigo;
 
@@ -92,13 +101,16 @@ const ModuleCard: React.FC<{ module: Module; index: number }> = ({ module, index
 
       <div className="p-5">
         <div className="flex items-start justify-between mb-3">
+          <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shadow-lg ${colors.icon} ${module.available ? '' : 'opacity-50 grayscale'}`}>
+            {iconMap[module.id] || <TrendingUp size={20} />}
+          </div>
           {!module.available ? (
             <span className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-zinc-400 dark:text-zinc-500 bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded-full">
               <Lock size={9} />
               Em breve
             </span>
           ) : (
-            <span className={`flex items-center justify-center w-7 h-7 rounded-full ${colors.icon} opacity-0 group-hover:opacity-100 transition-all duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5`}>
+            <span className={`flex items-center justify-center w-7 h-7 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-400 opacity-0 group-hover:opacity-100 transition-all duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5`}>
               <ArrowUpRight size={14} />
             </span>
           )}
@@ -127,6 +139,23 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
   const [pendingEstudos, setPendingEstudos] = useState(0);
   const [financeBalance, setFinanceBalance] = useState<number | null>(null);
   const [mounted, setMounted] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [logs, setLogs] = useState<LogEntry[]>([]);
+
+  const fetchLogs = async () => {
+    const data = await api.logs.list();
+    if (data) setLogs(data);
+  };
+
+  const handleClearLogs = async () => {
+    await api.logs.clear();
+    setLogs([]);
+  };
+
+  const handleDeleteLog = async (id: string) => {
+    setLogs(prev => prev.filter(l => l.id !== id));
+  };
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -196,6 +225,22 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
         </div>
 
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => { setShowSettingsModal(true); fetchLogs(); }}
+            className="w-9 h-9 rounded-xl flex items-center justify-center border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-500 hover:text-zinc-800 dark:hover:text-white transition-all hover:scale-105 hover:shadow-sm"
+            title="Configurações"
+          >
+            <Settings size={15} />
+          </button>
+
+          <button
+            onClick={() => setShowProfileModal(true)}
+            className="w-9 h-9 rounded-xl flex items-center justify-center border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-500 hover:text-zinc-800 dark:hover:text-white transition-all hover:scale-105 hover:shadow-sm"
+            title="Preferências de Usuário"
+          >
+            <User size={15} />
+          </button>
+
           <button
             onClick={toggleTheme}
             className="w-9 h-9 rounded-xl flex items-center justify-center border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-500 hover:text-zinc-800 dark:hover:text-white transition-all hover:scale-105 hover:shadow-sm"
@@ -296,6 +341,39 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
           </p>
         </div>
       </main>
+
+      {showSettingsModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/80 backdrop-blur-sm p-4">
+          <div className="bg-white dark:bg-zinc-900 w-full max-w-4xl max-h-[90vh] rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col relative animate-in zoom-in-95">
+             <button onClick={() => setShowSettingsModal(false)} className="absolute top-6 right-6 z-10 text-zinc-400 hover:text-rose-500 bg-zinc-100 dark:bg-zinc-800 rounded-full p-2"><X size={16} /></button>
+             <div className="p-6 border-b border-zinc-200 dark:border-zinc-800 shrink-0">
+               <h2 className="text-xl font-black uppercase tracking-widest text-zinc-800 dark:text-white flex items-center gap-2"><Settings size={20} /> Configurações Gerais - Logs do Sistema</h2>
+             </div>
+             <div className="flex-1 min-h-0 overflow-y-auto p-6 bg-zinc-50 dark:bg-zinc-950">
+               <LogView logs={logs} onClearLogs={handleClearLogs} onDeleteLog={handleDeleteLog} />
+             </div>
+          </div>
+        </div>
+      )}
+
+      {showProfileModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/80 backdrop-blur-sm p-4">
+          <div className="bg-white dark:bg-zinc-900 w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden p-8 relative animate-in zoom-in-95">
+             <button onClick={() => setShowProfileModal(false)} className="absolute top-6 right-6 text-zinc-400 hover:text-rose-500 bg-zinc-100 dark:bg-zinc-800 rounded-full p-2"><X size={16} /></button>
+             <h2 className="text-xl font-black uppercase tracking-widest text-zinc-800 dark:text-white mb-4 flex items-center gap-2"><User size={20} /> Preferências</h2>
+             <p className="text-zinc-500 dark:text-zinc-400 text-sm mb-6">Em breve: configuração de perfil e preferências de conta.</p>
+             <div className="bg-zinc-100 dark:bg-zinc-800 rounded-2xl p-4 flex items-center gap-4">
+                <div className="w-12 h-12 bg-indigo-500 text-white rounded-full flex items-center justify-center text-xl font-black shadow-lg">
+                  {userName[0].toUpperCase()}
+                </div>
+                <div>
+                  <p className="font-bold text-zinc-800 dark:text-white">{userName}</p>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">Usuário do Sistema</p>
+                </div>
+             </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

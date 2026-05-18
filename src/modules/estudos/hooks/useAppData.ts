@@ -3,7 +3,7 @@ import { Subject, StudySession, Concurso, ScheduledStudy, DailyGoal, LogEntry, U
 import { supabase } from '../services/supabase';
 import { api } from '../services/api';
 
-export const useAppData = () => {
+export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme?: () => void) => {
     const [currentUser, setCurrentUser] = useState<User | null>(null);
     const [users, setUsers] = useState<User[]>([]); // Keeping for legacy/compatibility
     const [isLoading, setIsLoading] = useState(true);
@@ -55,10 +55,13 @@ export const useAppData = () => {
     };
 
     // Theme logic remains local for now to avoid flickering before auth loads
-    const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    const [localTheme, setLocalTheme] = useState<'light' | 'dark'>(() => {
         const saved = localStorage.getItem('cn_theme');
         return (saved === 'dark' || saved === 'light') ? saved : 'dark';
     });
+
+    const theme = externalTheme || localTheme;
+    const toggleTheme = externalToggleTheme || (() => setLocalTheme(t => t === 'dark' ? 'light' : 'dark'));
 
     // Theme Sync
     useEffect(() => {

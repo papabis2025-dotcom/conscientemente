@@ -139,7 +139,6 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
     }
   }, [todayStr]);
 
-  const greet = greeting(userName.split(' ')[0]);
   const dateString = currentTime.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
   const timeString = currentTime.toLocaleTimeString('pt-BR');
 

@@ -72,7 +72,7 @@ const App: React.FC = () => {
     || 'você';
 
   if (currentRoute === 'estudos') {
-    return <EstudosApp />;
+    return <EstudosApp theme={theme} toggleTheme={toggleTheme} />;
   }
 
   if (currentRoute === 'financas') {

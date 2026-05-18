@@ -16,7 +16,12 @@ import { useAppData } from './hooks/useAppData';
 import { useTimer } from './hooks/useTimer';
 import { Clock, Save, X } from 'lucide-react';
 
-const App: React.FC = () => {
+interface AppProps {
+  theme?: 'light' | 'dark';
+  toggleTheme?: () => void;
+}
+
+const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme }) => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isReorderMode, setIsReorderMode] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -34,7 +39,7 @@ const App: React.FC = () => {
     handleLogout: logout, addSession, addSimulado,
     deleteSimulado, deleteSession, clearLogs, deleteLog, updateProfile,
     globalDailyGoal, studyTasks, setStudyTasks
-  } = useAppData();
+  } = useAppData(extTheme, extToggleTheme);
 
   const {
     timeLeft, isActive, isAlarmPlaying,

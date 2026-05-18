@@ -224,9 +224,15 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
             const saved = await api.schedule.create(newScheduled);
 
             if (saved) {
-                // Ensure date match to avoid disappearing items if server returns full timestamp
-                const normalizedSaved = { ...saved, date: saved.date.split('T')[0] };
-                setScheduledStudies(prev => prev.map(s => s.id === sharedId ? normalizedSaved : s));
+                // Keep the locally-built camelCase object. Only sync id and date from server
+                // to avoid overwriting with raw snake_case DB response that breaks subjectId lookups.
+                const serverDate = saved.date ? saved.date.split('T')[0] : sessionDate;
+                const serverCorrected: ScheduledStudy = { ...newScheduled, id: saved.id || sharedId, date: serverDate };
+                setScheduledStudies(prev => prev.map(s => s.id === sharedId ? serverCorrected : s));
+                localStorage.setItem('cp_scheduled_studies', JSON.stringify(
+                    JSON.parse(localStorage.getItem('cp_scheduled_studies') || '[]')
+                        .map((s: ScheduledStudy) => s.id === sharedId ? serverCorrected : s)
+                ));
             }
 
             setLastSaved(new Date().toLocaleTimeString());

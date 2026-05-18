@@ -149,12 +149,17 @@ const Dashboard: React.FC<DashboardProps> = ({
       }
     });
 
-    const simuladoSessionIds = new Set(
-      scheduledStudies.filter(s => s.activityType === 'Simulado').map(s => s.id)
-    );
+    const simuladoSessions = scheduledStudies.filter(s => s.activityType === 'Simulado');
+    const isSimuladoSession = (session: any) => {
+      if (session.isSimulado || session.activityType === 'Simulado') return true;
+      return simuladoSessions.some(st => 
+        st.id === session.id || 
+        (st.subjectId === session.subjectId && st.date === session.date?.split('T')[0] && st.durationInMinutes === session.durationInMinutes)
+      );
+    };
 
     sessions.forEach(session => {
-      if (session.isSimulado || session.activityType === 'Simulado' || simuladoSessionIds.has(session.id)) return;
+      if (isSimuladoSession(session)) return;
       const sub = subjects.find(s => s.id === session.subjectId);
       if (sub && stats[sub.name]) {
         stats[sub.name].done += (session.questionsDone || 0);
@@ -185,10 +190,15 @@ const Dashboard: React.FC<DashboardProps> = ({
   // Filter sessions relevant to the current view (active context)
   const relevantSessions = useMemo(() => {
     const activeSubjectIds = new Set(subjects.map(s => s.id));
-    const simuladoSessionIds = new Set(
-      scheduledStudies.filter(s => s.activityType === 'Simulado').map(s => s.id)
-    );
-    return sessions.filter(s => activeSubjectIds.has(s.subjectId) && !s.isSimulado && s.activityType !== 'Simulado' && !simuladoSessionIds.has(s.id));
+    const simuladoSessions = scheduledStudies.filter(s => s.activityType === 'Simulado');
+    const isSimuladoSession = (session: any) => {
+      if (session.isSimulado || session.activityType === 'Simulado') return true;
+      return simuladoSessions.some(st => 
+        st.id === session.id || 
+        (st.subjectId === session.subjectId && st.date === session.date?.split('T')[0] && st.durationInMinutes === session.durationInMinutes)
+      );
+    };
+    return sessions.filter(s => activeSubjectIds.has(s.subjectId) && !isSimuladoSession(s));
   }, [sessions, subjects, scheduledStudies]);
 
   const progress = useMemo(() => {
@@ -198,12 +208,17 @@ const Dashboard: React.FC<DashboardProps> = ({
     const day = String(today.getDate()).padStart(2, '0');
     const todayStr = `${year}-${month}-${day}`;
 
-    const simuladoSessionIds = new Set(
-      scheduledStudies.filter(s => s.activityType === 'Simulado').map(s => s.id)
-    );
+    const simuladoSessions = scheduledStudies.filter(s => s.activityType === 'Simulado');
+    const isSimuladoSession = (session: any) => {
+      if (session.isSimulado || session.activityType === 'Simulado') return true;
+      return simuladoSessions.some(st => 
+        st.id === session.id || 
+        (st.subjectId === session.subjectId && st.date === session.date?.split('T')[0] && st.durationInMinutes === session.durationInMinutes)
+      );
+    };
 
     const done = sessions
-      .filter(s => s.date?.startsWith(todayStr) && s.questionsDone !== undefined && !s.isSimulado && s.activityType !== 'Simulado' && !simuladoSessionIds.has(s.id))
+      .filter(s => s.date?.startsWith(todayStr) && s.questionsDone !== undefined && !isSimuladoSession(s))
       .reduce((acc, s) => acc + (s.questionsDone || 0), 0);
     return { total: done, goal: globalDailyGoal || 20 };
   }, [sessions, globalDailyGoal, scheduledStudies]);
@@ -448,12 +463,17 @@ const Dashboard: React.FC<DashboardProps> = ({
                 const day = String(today.getDate()).padStart(2, '0');
                 const todayStr = `${year}-${month}-${day}`;
 
-                const simuladoSessionIds = new Set(
-                  scheduledStudies.filter(st => st.activityType === 'Simulado').map(st => st.id)
-                );
+                const simuladoSessions = scheduledStudies.filter(st => st.activityType === 'Simulado');
+                const isSimuladoSession = (session: any) => {
+                  if (session.isSimulado || session.activityType === 'Simulado') return true;
+                  return simuladoSessions.some(st => 
+                    st.id === session.id || 
+                    (st.subjectId === session.subjectId && st.date === session.date?.split('T')[0] && st.durationInMinutes === session.durationInMinutes)
+                  );
+                };
 
                 const doneToday = sessions
-                  .filter(s => s.date?.startsWith(todayStr) && s.questionsDone !== undefined && !s.isSimulado && s.activityType !== 'Simulado' && !simuladoSessionIds.has(s.id))
+                  .filter(s => s.date?.startsWith(todayStr) && s.questionsDone !== undefined && !isSimuladoSession(s))
                   .reduce((acc, s) => acc + (s.questionsDone || 0), 0);
                 const goal = globalDailyGoal || 20;
                 const remaining = Math.max(0, goal - doneToday);
@@ -492,7 +512,7 @@ const Dashboard: React.FC<DashboardProps> = ({
         const upcomingReviews: { subjectName: string; topicName: string; daysUntil: number; reviewType: string }[] = [];
 
         // Add Planner Pending Tasks (Planejado para hoje ou atrasado)
-        const pendingStudies = (scheduledStudies || []).filter(s => s.status === 'planejado' && s.date <= todayStr);
+        const pendingStudies = (scheduledStudies || []).filter(s => s.status === 'planejado' && s.date <= todayStr && s.activityType !== 'Simulado');
         pendingStudies.forEach(s => {
           const sub = subjects.find(sub => sub.id === s.subjectId);
           if (sub) {
@@ -517,7 +537,16 @@ const Dashboard: React.FC<DashboardProps> = ({
 
         subjects.forEach(sub => {
           (sub.topics || []).forEach(topic => {
-            const topicSessions = sessions.filter(s => s.subjectId === sub.id && s.topicId === topic.id && s.activityType !== 'Simulado' && !s.isSimulado);
+            const simuladoSessions = scheduledStudies.filter(st => st.activityType === 'Simulado');
+            const isSimuladoSession = (session: any) => {
+              if (session.isSimulado || session.activityType === 'Simulado') return true;
+              return simuladoSessions.some(st => 
+                st.id === session.id || 
+                (st.subjectId === session.subjectId && st.date === session.date?.split('T')[0] && st.durationInMinutes === session.durationInMinutes)
+              );
+            };
+
+            const topicSessions = sessions.filter(s => s.subjectId === sub.id && s.topicId === topic.id && !isSimuladoSession(s));
             if (topicSessions.length > 0) {
               const lastTopicDate = new Date([...topicSessions].sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime())[0]?.date || 0);
               lastTopicDate.setHours(0, 0, 0, 0);
@@ -664,10 +693,15 @@ const Dashboard: React.FC<DashboardProps> = ({
         const days = Array.from({ length: daysInMonth }, (_, i) => {
           const date = new Date(year, month, i + 1);
           const dateStr = date.toISOString().split('T')[0];
-          const simuladoSessionIds = new Set(
-            scheduledStudies.filter(st => st.activityType === 'Simulado').map(st => st.id)
-          );
-          const daySessions = sessions.filter(s => s.date?.startsWith(dateStr) && s.activityType !== 'Simulado' && !s.isSimulado && !simuladoSessionIds.has(s.id));
+          const simuladoSessions = scheduledStudies.filter(st => st.activityType === 'Simulado');
+          const isSimuladoSession = (session: any) => {
+            if (session.isSimulado || session.activityType === 'Simulado') return true;
+            return simuladoSessions.some(st => 
+              st.id === session.id || 
+              (st.subjectId === session.subjectId && st.date === session.date?.split('T')[0] && st.durationInMinutes === session.durationInMinutes)
+            );
+          };
+          const daySessions = sessions.filter(s => s.date?.startsWith(dateStr) && !isSimuladoSession(s));
           const dayPlannerRealized = scheduledStudies.filter(s => s.date === dateStr && s.status === 'realizado' && s.activityType !== 'Simulado');
           
           const sessionSubjectIds = daySessions.map(s => s.subjectId);

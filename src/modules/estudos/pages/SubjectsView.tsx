@@ -86,10 +86,16 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
   };
 
   const getSubjectStats = (subjectId: string) => {
-    const simuladoSessionIds = new Set(
-      scheduledStudies.filter(s => s.activityType === 'Simulado').map(s => s.id)
-    );
-    const subSessions = sessions.filter(s => s.subjectId === subjectId && !s.isSimulado && s.activityType !== 'Simulado' && !simuladoSessionIds.has(s.id));
+    const simuladoSessions = scheduledStudies.filter(s => s.activityType === 'Simulado');
+    const isSimuladoSession = (session: any) => {
+      if (session.isSimulado || session.activityType === 'Simulado') return true;
+      return simuladoSessions.some(st => 
+        st.id === session.id || 
+        (st.subjectId === session.subjectId && st.date === session.date?.split('T')[0] && st.durationInMinutes === session.durationInMinutes)
+      );
+    };
+
+    const subSessions = sessions.filter(s => s.subjectId === subjectId && !isSimuladoSession(s));
     const totalMinutes = subSessions.reduce((acc, s) => acc + s.durationInMinutes, 0);
     const totalQuestions = subSessions.reduce((acc, s) => acc + (s.questionsDone || 0), 0);
     const totalCorrect = subSessions.reduce((acc, s) => acc + (s.questionsCorrect || 0), 0);

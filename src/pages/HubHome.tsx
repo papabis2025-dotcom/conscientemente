@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../services/supabase';
 import { MODULES } from '../constants';
 import { Module } from '../types';
-import { LogOut, Sun, Moon, ArrowUpRight, Lock, BookOpen, Wallet, ListTodo, Brain, ChevronRight, Sparkles } from 'lucide-react';
+import { LogOut, Sun, Moon, ArrowUpRight, Lock, BookOpen, Wallet, ListTodo, Brain, ChevronRight } from 'lucide-react';
 
 interface HubHomeProps {
   userName: string;
@@ -61,12 +60,6 @@ const colorMap: Record<string, {
   },
 };
 
-const moduleIcons: Record<string, React.ReactNode> = {
-  estudos: <BookOpen size={22} />,
-  financas: <Wallet size={22} />,
-  saude: <span className="text-xl leading-none">🏃</span>,
-  tarefas: <ListTodo size={22} />,
-};
 
 const ModuleCard: React.FC<{ module: Module; index: number }> = ({ module, index }) => {
   const colors = colorMap[module.color] ?? colorMap.indigo;
@@ -98,13 +91,7 @@ const ModuleCard: React.FC<{ module: Module; index: number }> = ({ module, index
       <div className={`h-0.5 w-full bg-gradient-to-r ${colors.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
 
       <div className="p-5">
-        <div className="flex items-start justify-between mb-4">
-          {/* Icon */}
-          <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${colors.icon} transition-transform duration-300 group-hover:scale-110`}>
-            {moduleIcons[module.id] ?? <span className="text-xl">{module.emoji}</span>}
-          </div>
-
-          {/* Badge / Arrow */}
+        <div className="flex items-start justify-between mb-3">
           {!module.available ? (
             <span className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-zinc-400 dark:text-zinc-500 bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded-full">
               <Lock size={9} />
@@ -181,17 +168,8 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
     }
   }, [todayStr]);
 
-  const greeting = () => {
-    const h = currentTime.getHours();
-    if (h < 12) return 'Bom dia';
-    if (h < 18) return 'Boa tarde';
-    return 'Boa noite';
-  };
-
   const timeStr = currentTime.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   const dateStr = currentTime.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
-
-  const firstName = userName.split(' ')[0];
 
   return (
     <div className={`min-h-screen bg-zinc-50 dark:bg-zinc-950 flex flex-col relative overflow-hidden transition-colors duration-300`}>
@@ -241,15 +219,6 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
 
         {/* Hero section */}
         <div className={`mb-10 transition-all duration-700 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
-
-          {/* Greeting */}
-          <div className="flex items-center gap-2 mb-1">
-            <Sparkles size={14} className="text-amber-400" />
-            <p className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">{greeting()}</p>
-          </div>
-          <h2 className="text-3xl font-black text-zinc-800 dark:text-white tracking-tight mb-1">
-            {firstName} <span className="text-zinc-300 dark:text-zinc-600">👋</span>
-          </h2>
 
           {/* Live clock widget */}
           <div className="mt-4 inline-flex items-center gap-3 px-4 py-2.5 bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm">

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Subject, StudySession, Concurso, ScheduledStudy, DailyGoal, LogEntry, User, Simulado } from '../types';
+import { Subject, StudySession, Concurso, ScheduledStudy, DailyGoal, LogEntry, User, Simulado, ActivityType } from '../types';
 import { supabase } from '../services/supabase';
 import { api } from '../services/api';
 
@@ -184,62 +184,68 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
     // Actions that now persist immediately
     const addSession = async (session: StudySession) => {
         setSaveError(null);
+        // Optimistically add session to local state
         setSessions(prev => [...prev, session]);
+
+        const sessionDate = session.date.split('T')[0];
+        const activityType = session.activityType || (session.isSimulado ? 'Simulado' : session.questionsDone !== undefined ? 'Questões' : 'Leitura');
+
+        // Use a SEPARATE ID for the scheduled entry to avoid DB conflicts
+        // (study_sessions and scheduled_studies are different tables)
+        const scheduleId = crypto.randomUUID();
+        const newScheduled: ScheduledStudy = {
+            id: scheduleId,
+            date: sessionDate,
+            subjectId: session.subjectId,
+            topicId: session.topicId,
+            activityType: activityType as ActivityType,
+            durationInMinutes: session.durationInMinutes,
+            questionsDone: session.questionsDone,
+            questionsCorrect: session.questionsCorrect,
+            status: 'realizado'
+        };
+
+        // Optimistically add schedule entry to local state
+        setScheduledStudies(prev => {
+            const updated = [...prev, newScheduled];
+            localStorage.setItem('cp_scheduled_studies', JSON.stringify(updated));
+            return updated;
+        });
+
+        // Persist session to DB
         try {
             await api.sessions.create(session);
-            const sessionDate = session.date.split('T')[0];
-            // Use provided activityType if available, otherwise infer
-            const activityType = session.activityType || (session.isSimulado ? 'Simulado' : session.questionsDone !== undefined ? 'Questões' : 'Leitura');
+        } catch (e) {
+            console.error('Error saving session to DB:', e);
+            // Don't block schedule creation — local state already updated
+        }
 
-            // Now we rely on the user's intent. If they added it, we show it.
-            // SHARED ID: Use session.id so that deleting one can delete the other
-            const sharedId = session.id;
-            const newScheduled: ScheduledStudy = {
-                id: sharedId,
-                date: sessionDate,
-                subjectId: session.subjectId,
-                topicId: session.topicId,
-                activityType: activityType as any,
-                durationInMinutes: session.durationInMinutes,
-                questionsDone: session.questionsDone,
-                questionsCorrect: session.questionsCorrect,
-                status: 'realizado'
-            };
-            setScheduledStudies(prev => {
-                const updated = [...prev, newScheduled];
-                localStorage.setItem('cp_scheduled_studies', JSON.stringify(updated));
-                return updated;
-            });
+        // Persist schedule entry to DB
+        try {
+            const saved = await api.schedule.create(newScheduled);
+            if (saved && saved.id && saved.id !== scheduleId) {
+                // If server assigned a different ID, sync it locally
+                const syncedEntry: ScheduledStudy = { ...newScheduled, id: saved.id };
+                setScheduledStudies(prev => {
+                    const updated = prev.map(s => s.id === scheduleId ? syncedEntry : s);
+                    localStorage.setItem('cp_scheduled_studies', JSON.stringify(updated));
+                    return updated;
+                });
+            }
+        } catch (e) {
+            console.error('Error saving schedule entry to DB:', e);
+            // Local state already updated; schedule entry survives in localStorage
+        }
 
-            // Generate automatic log for the session
+        // Log
+        try {
             addLog({
                 message: `Sessão de ${activityType} registrada: ${session.durationInMinutes} min`,
                 type: 'success'
             });
+        } catch (e) { /* non-critical */ }
 
-            // ...
-            /* 
-              We expect `saved` to have the correct ID and DATE.
-            */
-            const saved = await api.schedule.create(newScheduled);
-
-            if (saved) {
-                // Keep the locally-built camelCase object. Only sync id and date from server
-                // to avoid overwriting with raw snake_case DB response that breaks subjectId lookups.
-                const serverDate = saved.date ? saved.date.split('T')[0] : sessionDate;
-                const serverCorrected: ScheduledStudy = { ...newScheduled, id: saved.id || sharedId, date: serverDate };
-                setScheduledStudies(prev => prev.map(s => s.id === sharedId ? serverCorrected : s));
-                localStorage.setItem('cp_scheduled_studies', JSON.stringify(
-                    JSON.parse(localStorage.getItem('cp_scheduled_studies') || '[]')
-                        .map((s: ScheduledStudy) => s.id === sharedId ? serverCorrected : s)
-                ));
-            }
-
-            setLastSaved(new Date().toLocaleTimeString());
-        } catch (e) {
-            console.error('Error adding session:', e);
-            setSaveError('Erro ao salvar sessão. Tente novamente.');
-        }
+        setLastSaved(new Date().toLocaleTimeString());
     };
 
     const addSimulado = async (sim: Simulado) => {

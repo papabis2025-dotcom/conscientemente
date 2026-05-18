@@ -148,9 +148,10 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
 
       {/* Top bar */}
       <header className="border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-6 py-4 flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-black text-zinc-800 dark:text-white leading-none">
-            {greet} 👋
+        <div className="flex items-center gap-3">
+          <span className="text-2xl select-none">🧠</span>
+          <h1 className="text-lg font-black text-zinc-800 dark:text-white uppercase tracking-widest">
+            Conscientemente
           </h1>
         </div>
 
@@ -180,11 +181,7 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
 
         {/* Hub title & Clock */}
         <div className="mb-10 text-center w-full">
-          <span className="text-4xl select-none mb-4 inline-block">🧠</span>
-          <h2 className="text-3xl font-black text-zinc-800 dark:text-white leading-none tracking-tight">
-            Conscientemente
-          </h2>
-          <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-2 font-bold uppercase tracking-widest">
+          <p className="text-xs text-zinc-400 dark:text-zinc-500 font-bold uppercase tracking-widest">
             {dateString} • {timeString}
           </p>
 

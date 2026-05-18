@@ -56,15 +56,15 @@ export const useAppData = () => {
 
     // Theme logic remains local for now to avoid flickering before auth loads
     const [theme, setTheme] = useState<'light' | 'dark'>(() => {
-        const saved = localStorage.getItem('cp_theme');
-        return (saved === 'dark' || saved === 'light') ? saved : 'light';
+        const saved = localStorage.getItem('cn_theme');
+        return (saved === 'dark' || saved === 'light') ? saved : 'dark';
     });
 
     // Theme Sync
     useEffect(() => {
         if (theme === 'dark') document.documentElement.classList.add('dark');
         else document.documentElement.classList.remove('dark');
-        localStorage.setItem('cp_theme', theme);
+        localStorage.setItem('cn_theme', theme);
     }, [theme]);
 
     // Initial Data Fetch

@@ -85,7 +85,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
   };
 
   const getSubjectStats = (subjectId: string) => {
-    const subSessions = sessions.filter(s => s.subjectId === subjectId);
+    const subSessions = sessions.filter(s => s.subjectId === subjectId && !s.isSimulado && s.activityType !== 'Simulado');
     const totalMinutes = subSessions.reduce((acc, s) => acc + s.durationInMinutes, 0);
     const totalQuestions = subSessions.reduce((acc, s) => acc + (s.questionsDone || 0), 0);
     const totalCorrect = subSessions.reduce((acc, s) => acc + (s.questionsCorrect || 0), 0);

@@ -150,6 +150,7 @@ const Dashboard: React.FC<DashboardProps> = ({
     });
 
     sessions.forEach(session => {
+      if (session.isSimulado || session.activityType === 'Simulado') return;
       const sub = subjects.find(s => s.id === session.subjectId);
       if (sub && stats[sub.name]) {
         stats[sub.name].done += (session.questionsDone || 0);
@@ -180,7 +181,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   // Filter sessions relevant to the current view (active context)
   const relevantSessions = useMemo(() => {
     const activeSubjectIds = new Set(subjects.map(s => s.id));
-    return sessions.filter(s => activeSubjectIds.has(s.subjectId));
+    return sessions.filter(s => activeSubjectIds.has(s.subjectId) && !s.isSimulado && s.activityType !== 'Simulado');
   }, [sessions, subjects]);
 
   const progress = useMemo(() => {
@@ -191,7 +192,7 @@ const Dashboard: React.FC<DashboardProps> = ({
     const todayStr = `${year}-${month}-${day}`;
 
     const done = sessions
-      .filter(s => s.date?.startsWith(todayStr) && s.questionsDone !== undefined)
+      .filter(s => s.date?.startsWith(todayStr) && s.questionsDone !== undefined && !s.isSimulado && s.activityType !== 'Simulado')
       .reduce((acc, s) => acc + (s.questionsDone || 0), 0);
     return { total: done, goal: globalDailyGoal || 20 };
   }, [sessions, globalDailyGoal]);
@@ -437,7 +438,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                 const todayStr = `${year}-${month}-${day}`;
 
                 const doneToday = sessions
-                  .filter(s => s.date?.startsWith(todayStr) && s.questionsDone !== undefined)
+                  .filter(s => s.date?.startsWith(todayStr) && s.questionsDone !== undefined && !s.isSimulado && s.activityType !== 'Simulado')
                   .reduce((acc, s) => acc + (s.questionsDone || 0), 0);
                 const goal = globalDailyGoal || 20;
                 const remaining = Math.max(0, goal - doneToday);

@@ -285,13 +285,22 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
 
     const deleteSimulado = async (id: string) => {
         setSaveError(null);
+        const simToDelete = simulados.find(s => s.id === id);
         setSimulados(prev => prev.filter(s => s.id !== id));
         try {
             await api.simulados.delete(id);
-            // Also delete linked sessions? Simulado sessions are distinct in current implementation (separate copies)
-            // But if they are linked by an ID we could. Currently addSimulado creates new sessions with NEW IDs.
-            // So no direct link to delete them unless we track them. For now, we leave them or standard deletion applies.
-            // User requested: "remova todas questões... dessa disciplina". Simulado is higher level.
+            
+            // Delete associated sessions that were automatically created
+            if (simToDelete) {
+                // The exact date string used when creating the session
+                const targetDate = new Date(`${simToDelete.date}T12:00:00`).toISOString();
+                const sessionsToDelete = sessions.filter(s => s.isSimulado && s.date === targetDate);
+                
+                for (const sess of sessionsToDelete) {
+                    await deleteSession(sess.id);
+                }
+            }
+            
             setLastSaved(new Date().toLocaleTimeString());
         } catch (e) {
             console.error('Error deleting simulado:', e);

@@ -99,7 +99,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
   };
 
   const getTopicStats = (subjectId: string, topicId: string | null) => {
-    const topicSessions = sessions.filter(s => (topicId ? s.topicId === topicId : !s.topicId) && s.subjectId === subjectId);
+    const topicSessions = sessions.filter(s => (topicId ? s.topicId === topicId : !s.topicId) && s.subjectId === subjectId && s.activityType !== 'Simulado' && !s.isSimulado);
     const tMinutes = topicSessions.reduce((acc, s) => acc + s.durationInMinutes, 0);
     const tDone = topicSessions.reduce((acc, s) => acc + (s.questionsDone || 0), 0);
     const tCorrect = topicSessions.reduce((acc, s) => acc + (s.questionsCorrect || 0), 0);

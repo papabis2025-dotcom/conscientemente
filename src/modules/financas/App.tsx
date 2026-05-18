@@ -18,16 +18,42 @@ interface Transaction {
   pending?: boolean;
 }
 
-const ENTRADA_CATEGORIES = ['Trabalho', 'Outros', 'Investimentos', 'Extra', 'Cashback', 'Reserva', 'Residual'];
-const SAIDA_CATEGORIES = [
+import AjustesFinancas from './AjustesFinancas';
+
+export interface FinCategoria {
+  id: string;
+  name: string;
+  color: string;
+}
+
+const DEFAULT_ENTRADA_CATEGORIES: FinCategoria[] = ['Trabalho', 'Outros', 'Investimentos', 'Extra', 'Cashback', 'Reserva', 'Residual'].map((c, i) => ({ id: `in_${i}`, name: c, color: CHART_COLORS[i % CHART_COLORS.length] }));
+const DEFAULT_SAIDA_CATEGORIES: FinCategoria[] = [
   'Alimentação', 'Item para casa', 'Desconhecido', 'Esporte', 'Educação', 
   'Etapa', 'Extra', 'Gasolina', 'Higiene', 'Investimento', 'Lazer', 
   'Mercado', 'Moradia', 'Outro', 'Refeição', 'Vestuário', 'Saúde', 
   'Trabalho', 'Veículo', 'Viagem'
-];
-const PAYMENT_METHODS = ['Pix / Dinheiro', 'Inter', 'Banrisul', 'Mercado Pago', 'Caixa Econômica'];
+].map((c, i) => ({ id: `out_${i}`, name: c, color: CHART_COLORS[(i + 3) % CHART_COLORS.length] }));
+const DEFAULT_PAYMENT_METHODS: FinCategoria[] = ['Pix / Dinheiro', 'Inter', 'Banrisul', 'Mercado Pago', 'Caixa Econômica'].map((c, i) => ({ id: `pay_${i}`, name: c, color: CHART_COLORS[i % CHART_COLORS.length] }));
 
 const FinancasApp: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'ajustes'>('dashboard');
+
+  const [inCategories, setInCategories] = useState<FinCategoria[]>(() => {
+    const saved = localStorage.getItem('cn_fin_inCat');
+    return saved ? JSON.parse(saved) : DEFAULT_ENTRADA_CATEGORIES;
+  });
+  const [outCategories, setOutCategories] = useState<FinCategoria[]>(() => {
+    const saved = localStorage.getItem('cn_fin_outCat');
+    return saved ? JSON.parse(saved) : DEFAULT_SAIDA_CATEGORIES;
+  });
+  const [paymentMethods, setPaymentMethods] = useState<FinCategoria[]>(() => {
+    const saved = localStorage.getItem('cn_fin_payMethods');
+    return saved ? JSON.parse(saved) : DEFAULT_PAYMENT_METHODS;
+  });
+
+  useEffect(() => { localStorage.setItem('cn_fin_inCat', JSON.stringify(inCategories)); }, [inCategories]);
+  useEffect(() => { localStorage.setItem('cn_fin_outCat', JSON.stringify(outCategories)); }, [outCategories]);
+  useEffect(() => { localStorage.setItem('cn_fin_payMethods', JSON.stringify(paymentMethods)); }, [paymentMethods]);
   const [transactions, setTransactions] = useState<Transaction[]>(() => {
     const saved = localStorage.getItem('cn_financas');
     return saved ? JSON.parse(saved) : [];
@@ -37,14 +63,19 @@ const FinancasApp: React.FC = () => {
   
   const [inName, setInName] = useState('');
   const [inAmount, setInAmount] = useState('');
-  const [inCategory, setInCategory] = useState(ENTRADA_CATEGORIES[0]);
+  const [inCategory, setInCategory] = useState(inCategories[0]?.name || '');
   const [inDate, setInDate] = useState('');
 
   const [outName, setOutName] = useState('');
   const [outAmount, setOutAmount] = useState('');
-  const [outCategory, setOutCategory] = useState(SAIDA_CATEGORIES[0]);
+  const [outCategory, setOutCategory] = useState(outCategories[0]?.name || '');
   const [outDate, setOutDate] = useState('');
-  const [outMethod, setOutMethod] = useState(PAYMENT_METHODS[0]);
+  const [outMethod, setOutMethod] = useState(paymentMethods[0]?.name || '');
+
+  // Atualizar seleções caso a categoria ativa seja apagada
+  useEffect(() => { if (!inCategories.find(c => c.name === inCategory) && inCategories.length) setInCategory(inCategories[0].name); }, [inCategories]);
+  useEffect(() => { if (!outCategories.find(c => c.name === outCategory) && outCategories.length) setOutCategory(outCategories[0].name); }, [outCategories]);
+  useEffect(() => { if (!paymentMethods.find(c => c.name === outMethod) && paymentMethods.length) setOutMethod(paymentMethods[0].name); }, [paymentMethods]);
 
   const [inPending, setInPending] = useState(false);
   const [outPending, setOutPending] = useState(false);
@@ -209,10 +240,28 @@ const FinancasApp: React.FC = () => {
 
           <div className="flex flex-col gap-2">
             <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Navegação</span>
-            <div className="flex items-center justify-between bg-zinc-100 dark:bg-zinc-800 rounded-xl p-1 mb-4">
-              <button onClick={() => changeMonth(-1)} className="p-2 hover:bg-white dark:hover:bg-zinc-700 rounded-lg transition-colors"><ChevronLeft size={16} /></button>
-              <span className="font-bold uppercase tracking-wider text-xs text-center">{monthName.replace('. de ', '/')}</span>
-              <button onClick={() => changeMonth(1)} className="p-2 hover:bg-white dark:hover:bg-zinc-700 rounded-lg transition-colors"><ChevronRight size={16} /></button>
+            <div className="flex flex-col gap-1 mb-4">
+              <button 
+                onClick={() => setActiveTab('dashboard')} 
+                className={`p-3 rounded-xl flex items-center gap-3 transition-colors text-xs font-bold uppercase tracking-wider ${activeTab === 'dashboard' ? 'bg-zinc-900 dark:bg-zinc-800 text-white shadow-md' : 'text-zinc-500 hover:bg-white dark:hover:bg-zinc-800'}`}
+              >
+                <TrendingUp size={16} /> Dashboard
+              </button>
+              <button 
+                onClick={() => setActiveTab('ajustes')} 
+                className={`p-3 rounded-xl flex items-center gap-3 transition-colors text-xs font-bold uppercase tracking-wider ${activeTab === 'ajustes' ? 'bg-zinc-900 dark:bg-zinc-800 text-white shadow-md' : 'text-zinc-500 hover:bg-white dark:hover:bg-zinc-800'}`}
+              >
+                <Wallet size={16} /> Ajustes
+              </button>
+            </div>
+            
+            <div className="flex flex-col gap-2 mt-4">
+              <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Calendário</span>
+              <div className="flex items-center justify-between bg-zinc-100 dark:bg-zinc-800 rounded-xl p-1">
+                <button onClick={() => changeMonth(-1)} className="p-2 hover:bg-white dark:hover:bg-zinc-700 rounded-lg transition-colors"><ChevronLeft size={16} /></button>
+                <span className="font-bold uppercase tracking-wider text-xs text-center">{monthName.replace('. de ', '/')}</span>
+                <button onClick={() => changeMonth(1)} className="p-2 hover:bg-white dark:hover:bg-zinc-700 rounded-lg transition-colors"><ChevronRight size={16} /></button>
+              </div>
             </div>
           </div>
         </div>
@@ -226,7 +275,14 @@ const FinancasApp: React.FC = () => {
 
       {/* Main Content - 3 Colunas flexíveis */}
       <main className="flex-1 overflow-y-auto p-6 relative custom-scrollbar">
-        <div className="max-w-[1440px] mx-auto min-h-full grid grid-cols-1 xl:grid-cols-3 gap-6 animate-in fade-in duration-500">
+        {activeTab === 'ajustes' ? (
+          <AjustesFinancas 
+            inCategories={inCategories} setInCategories={setInCategories}
+            outCategories={outCategories} setOutCategories={setOutCategories}
+            paymentMethods={paymentMethods} setPaymentMethods={setPaymentMethods}
+          />
+        ) : (
+          <div className="max-w-[1440px] mx-auto min-h-full grid grid-cols-1 xl:grid-cols-3 gap-6 animate-in fade-in duration-500">
           
           {/* Coluna 1: Visão Geral */}
           <section className="flex flex-col gap-3 h-full min-h-0">
@@ -279,7 +335,7 @@ const FinancasApp: React.FC = () => {
                         cx="50%" cy="50%" innerRadius={35} outerRadius={60} paddingAngle={2} dataKey="value"
                         style={{ filter: 'url(#shadow3d)' }}
                       >
-                        {gastosPorCartao.map((_, index) => <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />)}
+                        {gastosPorCartao.map(([name], index) => <Cell key={`cell-${index}`} fill={paymentMethods.find(c => c.name === name)?.color || CHART_COLORS[index % CHART_COLORS.length]} />)}
                       </Pie>
                       <RechartsTooltip formatter={(value: number) => formatCurrency(value)} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '12px', fontWeight: 'bold' }} />
                       <Legend verticalAlign="bottom" height={24} iconType="circle" wrapperStyle={{ fontSize: '10px', fontWeight: 'bold' }} />
@@ -316,7 +372,7 @@ const FinancasApp: React.FC = () => {
                         cx="50%" cy="50%" innerRadius={35} outerRadius={60} paddingAngle={2} dataKey="value"
                         style={{ filter: 'url(#shadow3d)' }}
                       >
-                        {gastosPorCategoria.map((_, index) => <Cell key={`cell-${index}`} fill={CHART_COLORS[(index + 3) % CHART_COLORS.length]} />)}
+                        {gastosPorCategoria.map(([name], index) => <Cell key={`cell-${index}`} fill={outCategories.find(c => c.name === name)?.color || CHART_COLORS[(index + 3) % CHART_COLORS.length]} />)}
                       </Pie>
                       <RechartsTooltip formatter={(value: number) => formatCurrency(value)} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '12px', fontWeight: 'bold' }} />
                       <Legend verticalAlign="bottom" height={24} iconType="circle" wrapperStyle={{ fontSize: '10px', fontWeight: 'bold' }} />
@@ -353,7 +409,7 @@ const FinancasApp: React.FC = () => {
                         cx="50%" cy="50%" innerRadius={35} outerRadius={60} paddingAngle={2} dataKey="value"
                         style={{ filter: 'url(#shadow3d)' }}
                       >
-                        {entradasPorCategoria.map((_, index) => <Cell key={`cell-${index}`} fill={CHART_COLORS[(index + 6) % CHART_COLORS.length]} />)}
+                        {entradasPorCategoria.map(([name], index) => <Cell key={`cell-${index}`} fill={inCategories.find(c => c.name === name)?.color || CHART_COLORS[(index + 6) % CHART_COLORS.length]} />)}
                       </Pie>
                       <RechartsTooltip formatter={(value: number) => formatCurrency(value)} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '12px', fontWeight: 'bold' }} />
                       <Legend verticalAlign="bottom" height={24} iconType="circle" wrapperStyle={{ fontSize: '10px', fontWeight: 'bold' }} />
@@ -385,7 +441,7 @@ const FinancasApp: React.FC = () => {
                 </div>
                 <div className="flex gap-2">
                   <select value={inCategory} onChange={e => setInCategory(e.target.value)} className="w-1/2 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer dark:text-white">
-                    {ENTRADA_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                    {inCategories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
                   </select>
                   <input type="text" placeholder="R$" value={inAmount} onChange={e => setInAmount(e.target.value)} className="w-1/2 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:ring-1 focus:ring-blue-500 font-bold dark:text-white" />
                 </div>
@@ -444,12 +500,12 @@ const FinancasApp: React.FC = () => {
                 </div>
                 <div className="flex gap-2">
                   <select value={outCategory} onChange={e => setOutCategory(e.target.value)} className="w-1/2 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:ring-1 focus:ring-rose-500 cursor-pointer dark:text-white">
-                    {SAIDA_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                    {outCategories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
                   </select>
                   <input type="text" placeholder="R$" value={outAmount} onChange={e => setOutAmount(e.target.value)} className="w-1/2 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:ring-1 focus:ring-rose-500 font-bold dark:text-white" />
                 </div>
                 <select value={outMethod} onChange={e => setOutMethod(e.target.value)} className="w-full bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:ring-1 focus:ring-rose-500 cursor-pointer dark:text-white">
-                  {PAYMENT_METHODS.map(m => <option key={m} value={m}>{m}</option>)}
+                  {paymentMethods.map(m => <option key={m.id} value={m.name}>{m.name}</option>)}
                 </select>
                 <div className="flex gap-2 mt-1">
                   <button type="button" onClick={() => setOutPending(!outPending)} className={`w-1/3 border rounded-lg px-2 text-[10px] font-bold uppercase tracking-wider transition-colors ${outPending ? 'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-500/20 dark:text-amber-400 dark:border-amber-500/30' : 'bg-zinc-50 text-zinc-400 border-zinc-200 dark:bg-zinc-900 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}>
@@ -490,7 +546,8 @@ const FinancasApp: React.FC = () => {
             </div>
           </section>
 
-        </div>
+          </div>
+        )}
       </main>
     </div>
   );

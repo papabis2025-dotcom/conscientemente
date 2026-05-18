@@ -370,11 +370,6 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
                 {dateStr}
               </span>
             </div>
-            <div className="w-px h-12 bg-zinc-200 dark:bg-zinc-700" />
-            <div className="flex flex-col items-center justify-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-[9px] font-black text-emerald-600 dark:text-emerald-500 uppercase tracking-widest">Ao vivo</span>
-            </div>
           </div>
 
           {/* Status pills */}

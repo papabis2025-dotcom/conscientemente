@@ -501,7 +501,7 @@ const Dashboard: React.FC<DashboardProps> = ({
 
         subjects.forEach(sub => {
           (sub.topics || []).forEach(topic => {
-            const topicSessions = sessions.filter(s => s.subjectId === sub.id && s.topicId === topic.id);
+            const topicSessions = sessions.filter(s => s.subjectId === sub.id && s.topicId === topic.id && s.activityType !== 'Simulado' && !s.isSimulado);
             if (topicSessions.length > 0) {
               const lastTopicDate = new Date([...topicSessions].sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime())[0]?.date || 0);
               lastTopicDate.setHours(0, 0, 0, 0);
@@ -648,8 +648,8 @@ const Dashboard: React.FC<DashboardProps> = ({
         const days = Array.from({ length: daysInMonth }, (_, i) => {
           const date = new Date(year, month, i + 1);
           const dateStr = date.toISOString().split('T')[0];
-          const daySessions = sessions.filter(s => s.date?.startsWith(dateStr));
-          const dayPlannerRealized = scheduledStudies.filter(s => s.date === dateStr && s.status === 'realizado');
+          const daySessions = sessions.filter(s => s.date?.startsWith(dateStr) && s.activityType !== 'Simulado' && !s.isSimulado);
+          const dayPlannerRealized = scheduledStudies.filter(s => s.date === dateStr && s.status === 'realizado' && s.activityType !== 'Simulado');
           
           const sessionSubjectIds = daySessions.map(s => s.subjectId);
           const plannerSubjectIds = dayPlannerRealized.map(s => s.subjectId);

@@ -120,6 +120,20 @@ const SaudeApp: React.FC = () => {
     }));
   }, [activities]);
 
+  const muscleData = useMemo(() => {
+    const counts: Record<string, number> = {};
+    activities.forEach(a => {
+      if (a.type === 'Musculação' && a.muscles) {
+        a.muscles.forEach(m => {
+          counts[m] = (counts[m] || 0) + 1;
+        });
+      }
+    });
+    return Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([name, count]) => ({
+      name, count
+    }));
+  }, [activities]);
+
   const todayDateObj = new Date();
   const currentYear = todayDateObj.getFullYear();
   const currentMonth = todayDateObj.getMonth();
@@ -268,8 +282,8 @@ const SaudeApp: React.FC = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 flex-1 min-h-0">
-                <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-4 rounded-2xl shadow-sm flex flex-col min-h-0">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 flex-1 overflow-y-auto custom-scrollbar pb-6">
+                <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-4 rounded-2xl shadow-sm flex flex-col min-h-[300px]">
                   <h3 className="text-[11px] font-black uppercase tracking-tight text-zinc-500 mb-2">Distribuição de Atividades</h3>
                   {freqData.length > 0 ? (
                     <div className="flex-1 w-full min-h-0">
@@ -284,8 +298,8 @@ const SaudeApp: React.FC = () => {
                             data={freqData}
                             cx="50%"
                             cy="50%"
-                            innerRadius={40}
-                            outerRadius={65}
+                            innerRadius={50}
+                            outerRadius={80}
                             paddingAngle={3}
                             dataKey="count"
                             style={{ filter: 'url(#saudeShadow3d)' }}
@@ -307,9 +321,9 @@ const SaudeApp: React.FC = () => {
                   )}
                 </div>
 
-                <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-4 rounded-2xl shadow-sm flex flex-col min-h-0">
+                <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-4 rounded-2xl shadow-sm flex flex-col min-h-[300px]">
                   <h3 className="text-[11px] font-black uppercase tracking-tight text-zinc-500 mb-2">Calendário Mensal</h3>
-                  <div className="grid grid-cols-7 gap-1 flex-1 min-h-0 auto-rows-fr">
+                  <div className="grid grid-cols-7 gap-1 flex-1 auto-rows-fr">
                     {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(d => (
                       <div key={d} className="text-center text-[9px] font-bold text-zinc-400 uppercase flex items-end justify-center pb-1">{d}</div>
                     ))}
@@ -329,7 +343,7 @@ const SaudeApp: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-4 rounded-2xl shadow-sm flex flex-col min-h-0">
+                <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-4 rounded-2xl shadow-sm flex flex-col min-h-[300px]">
                   <h3 className="text-[11px] font-black uppercase tracking-tight text-zinc-500 mb-2">Volume de Exercícios (Min/Dia)</h3>
                   <div className="flex-1 w-full min-h-0">
                     <ResponsiveContainer width="100%" height="100%">
@@ -348,6 +362,25 @@ const SaudeApp: React.FC = () => {
                       </AreaChart>
                     </ResponsiveContainer>
                   </div>
+                </div>
+
+                <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-4 rounded-2xl shadow-sm flex flex-col min-h-[300px]">
+                  <h3 className="text-[11px] font-black uppercase tracking-tight text-zinc-500 mb-2">Músculos mais Treinados</h3>
+                  {muscleData.length > 0 ? (
+                    <div className="flex-1 w-full min-h-0">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={muscleData} margin={{ top: 10, right: 0, left: -25, bottom: 0 }} layout="vertical">
+                          <CartesianGrid strokeDasharray="3 3" horizontal={false} strokeOpacity={0.1} />
+                          <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#888' }} />
+                          <YAxis dataKey="name" type="category" width={80} axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 600, fill: '#666' }} />
+                          <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                          <Bar dataKey="count" fill="#6366f1" radius={[0, 4, 4, 0]} barSize={20} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  ) : (
+                    <div className="flex-1 flex items-center justify-center text-zinc-400 text-[10px] font-medium">Nenhum dado de musculação.</div>
+                  )}
                 </div>
               </div>
             </div>

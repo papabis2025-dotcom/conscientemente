@@ -110,7 +110,8 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                     id: session.user.id,
                     name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Estudante',
                     password: '',
-                    avatar: session.user.user_metadata?.avatar || '🎓'
+                    avatar: session.user.user_metadata?.avatar || '🎓',
+                    email: session.user.email
                 });
             } else {
                 setIsLoading(false);
@@ -123,7 +124,8 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                     id: session.user.id,
                     name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Estudante',
                     password: '',
-                    avatar: session.user.user_metadata?.avatar || '🎓'
+                    avatar: session.user.user_metadata?.avatar || '🎓',
+                    email: session.user.email
                 });
             } else {
                 setCurrentUser(null);
@@ -172,8 +174,6 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         return activeConcurso?.subjects || [];
     }, [selectedConcursoId, activeConcurso, allSubjects]);
 
-    const toggleTheme = () => setTheme(theme === 'light' ? 'dark' : 'light');
-
     const updateUser = (users: User[]) => setUsers(users); // Legacy
 
     const handleLogout = async () => {
@@ -202,7 +202,8 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                 activityType: activityType as any,
                 durationInMinutes: session.durationInMinutes,
                 questionsDone: session.questionsDone,
-                questionsCorrect: session.questionsCorrect
+                questionsCorrect: session.questionsCorrect,
+                status: 'realizado'
             };
             setScheduledStudies(prev => {
                 const updated = [...prev, newScheduled];
@@ -437,6 +438,49 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         }
     };
 
+    const toggleScheduledStudyStatus = async (id: string) => {
+        const study = scheduledStudies.find(s => s.id === id);
+        if (!study) return;
+
+        const newStatus: 'planejado' | 'realizado' = study.status === 'realizado' ? 'planejado' : 'realizado';
+
+        const newStudy: ScheduledStudy = { ...study, status: newStatus };
+        setScheduledStudies(prev => {
+            const updated = prev.map(s => s.id === id ? newStudy : s);
+            localStorage.setItem('cp_scheduled_studies', JSON.stringify(updated));
+            return updated;
+        });
+
+        try {
+            if (id.includes('temp-')) {
+                await api.schedule.create(newStudy);
+            } else {
+                await api.schedule.update(id, newStudy);
+            }
+
+            if (newStatus === 'planejado') {
+                setSessions(prev => prev.filter(s => s.id !== id));
+                await api.sessions.delete(id);
+            } else {
+                const session: StudySession = {
+                    id: study.id,
+                    subjectId: study.subjectId,
+                    topicId: study.topicId,
+                    durationInMinutes: study.durationInMinutes || 0,
+                    date: new Date(`${study.date}T12:00:00`).toISOString(),
+                    questionsDone: study.questionsDone,
+                    questionsCorrect: study.questionsCorrect,
+                    activityType: study.activityType
+                };
+                setSessions(prev => [...prev, session]);
+                await api.sessions.create(session);
+            }
+            setLastSaved(new Date().toLocaleTimeString());
+        } catch (e) {
+            console.error('Error toggling status:', e);
+        }
+    };
+
     return {
         currentUser, setCurrentUser,
         users, setUsers: updateUser,
@@ -465,6 +509,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         setGlobalDailyGoal,
         studyTasks,
         setStudyTasks: updateStudyTasks,
+        toggleScheduledStudyStatus,
         updateProfile: async (name: string, avatar: string) => {
             if (!currentUser) return;
             const updated = { ...currentUser, name, avatar };

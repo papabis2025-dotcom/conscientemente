@@ -143,7 +143,7 @@ export const api = {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) throw new Error('Not authenticated');
 
-            return handleRequest<ScheduledStudy>(supabase.from('scheduled_studies').insert({
+            const result = await handleRequest<any>(supabase.from('scheduled_studies').insert({
                 id: item.id, // Allow explicit ID
                 user_id: user.id,
                 date: item.date,
@@ -156,15 +156,33 @@ export const api = {
                 questions_correct: item.questionsCorrect,
                 status: item.status || 'planejado'
             }).select().single());
+            
+            if (!result) return null;
+            
+            return {
+                id: result.id,
+                date: result.date.split('T')[0],
+                subjectId: result.subject_id,
+                topicId: result.topic_id,
+                activityType: result.activity_type,
+                notes: result.notes,
+                durationInMinutes: result.duration_minutes,
+                questionsDone: result.questions_done,
+                questionsCorrect: result.questions_correct,
+                status: result.status || 'planejado'
+            } as ScheduledStudy;
         },
         update: async (id: string, updates: Partial<ScheduledStudy>) => {
             const dbPayload: any = {};
             if (updates.subjectId) dbPayload.subject_id = updates.subjectId;
             if (updates.topicId) dbPayload.topic_id = updates.topicId;
             if (updates.activityType) dbPayload.activity_type = updates.activityType;
+            if (updates.notes !== undefined) dbPayload.notes = updates.notes;
+            if (updates.durationInMinutes !== undefined) dbPayload.duration_minutes = updates.durationInMinutes;
             if (updates.questionsDone !== undefined) dbPayload.questions_done = updates.questionsDone;
             if (updates.questionsCorrect !== undefined) dbPayload.questions_correct = updates.questionsCorrect;
             if (updates.status) dbPayload.status = updates.status;
+            if (updates.date) dbPayload.date = updates.date;
 
             return handleRequest(supabase.from('scheduled_studies').update(dbPayload).eq('id', id));
         },
@@ -195,7 +213,7 @@ export const api = {
 
     // Logs
     logs: {
-        list: async () => handleRequest(supabase.from('logs').select('*').order('timestamp', { ascending: false }).limit(50)),
+        list: async () => handleRequest<LogEntry[]>(supabase.from('logs').select('*').order('timestamp', { ascending: false }).limit(50)),
         create: async (log: LogEntry) => {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return null; // Silent fail if no user

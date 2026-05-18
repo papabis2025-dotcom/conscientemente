@@ -203,7 +203,7 @@ const Dashboard: React.FC<DashboardProps> = ({
       // Weekly view: Rolling last 7 days
       const days = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
-      const dataMap = [];
+      const dataMap: { n: string; h: number; q: number; dateStr: string }[] = [];
       for (let i = 6; i >= 0; i--) {
         const d = new Date(today);
         d.setDate(today.getDate() - i);
@@ -471,9 +471,33 @@ const Dashboard: React.FC<DashboardProps> = ({
           </div>
         );
       case 'study_tasks': {
-        // Find upcoming reviews (topics with sessions 7 or 30 days ago)
         const todayMs = new Date().setHours(0, 0, 0, 0);
+        const todayStr = new Date().toISOString().split('T')[0];
         const upcomingReviews: { subjectName: string; topicName: string; daysUntil: number; reviewType: string }[] = [];
+
+        // Add Planner Pending Tasks (Planejado para hoje ou atrasado)
+        const pendingStudies = (scheduledStudies || []).filter(s => s.status === 'planejado' && s.date <= todayStr);
+        pendingStudies.forEach(s => {
+          const sub = subjects.find(sub => sub.id === s.subjectId);
+          if (sub) {
+            const topic = sub.topics?.find(t => t.id === s.topicId);
+            let sDateMs = new Date(s.date).getTime();
+            // Handle timezone issues manually
+            sDateMs += new Date(s.date).getTimezoneOffset() * 60000;
+            const sDateNoon = new Date(sDateMs).setHours(12, 0, 0, 0);
+            const todayNoon = new Date().setHours(12, 0, 0, 0);
+            
+            const diffDays = Math.round((todayNoon - sDateNoon) / (1000 * 60 * 60 * 24));
+            upcomingReviews.push({ 
+              subjectName: sub.name, 
+              topicName: topic?.title || s.activityType || 'Estudo Pendente', 
+              daysUntil: diffDays < 0 ? 0 : diffDays, // 0 means Today, diffDays > 0 means Delayed
+              reviewType: diffDays > 0 ? 'Atrasado' : 'Pendente'
+            });
+          }
+        });
+
+        // Find upcoming reviews (topics with sessions 7 or 30 days ago)
 
         subjects.forEach(sub => {
           (sub.topics || []).forEach(topic => {
@@ -500,7 +524,7 @@ const Dashboard: React.FC<DashboardProps> = ({
             {upcomingReviews.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full opacity-60 space-y-2">
                 <div className="w-9 h-9 rounded-full bg-zinc-50 dark:bg-zinc-800 flex items-center justify-center text-base shadow-sm">✅</div>
-                <p className="text-[10px] font-bold text-zinc-600 dark:text-zinc-300">Nenhuma revisão pendente!</p>
+                <p className="text-[10px] font-bold text-zinc-600 dark:text-zinc-300">Nenhuma atividade pendente!</p>
               </div>
             ) : (
               <div className="space-y-2">
@@ -630,7 +654,7 @@ const Dashboard: React.FC<DashboardProps> = ({
           const allDaySubjectIds = Array.from(new Set([...sessionSubjectIds, ...plannerSubjectIds]));
           const daySubjects = allDaySubjectIds
             .map(id => subjects.find(sub => sub.id === id))
-            .filter(Boolean);
+            .filter(Boolean) as Subject[];
 
           return {
             day: i + 1,

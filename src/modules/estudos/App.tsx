@@ -11,7 +11,7 @@ import SettingsView from './pages/SettingsView';
 import LogView from './pages/LogView';
 import StatisticsView from './pages/StatisticsView';
 import LoginView from './pages/LoginView';
-import { Concurso, ActivityType, StudySession } from './types';
+import { Concurso, ActivityType, StudySession, Topic } from './types';
 import { useAppData } from './hooks/useAppData';
 import { useTimer } from './hooks/useTimer';
 import { Clock, Save, X } from 'lucide-react';
@@ -38,7 +38,7 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
     activeConcurso,
     handleLogout: logout, addSession, addSimulado,
     deleteSimulado, deleteSession, clearLogs, deleteLog, updateProfile,
-    globalDailyGoal, studyTasks, setStudyTasks
+    globalDailyGoal, studyTasks, setStudyTasks, toggleScheduledStudyStatus
   } = useAppData(extTheme, extToggleTheme);
 
   const {
@@ -108,6 +108,7 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
           onUpdateSchedule={setScheduledStudies}
           onDelete={deleteScheduledStudy}
           onAddSession={addSession}
+          onToggleStatus={toggleScheduledStudyStatus}
         />;
       case 'study_plan':
         return <StudyPlan
@@ -206,7 +207,7 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
                   <label className="text-[10px] font-bold text-zinc-400 uppercase mb-1.5 block">Assunto / Tópico</label>
                   <select value={activityFormData.topicId} onChange={(e) => setActivityFormData({ ...activityFormData, topicId: e.target.value })} className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 border-none rounded-2xl outline-none text-sm font-bold dark:text-white ring-1 ring-zinc-100 dark:ring-zinc-800 focus:ring-zinc-500">
                     <option value="">Geral / Outros</option>
-                    {(filteredSubjects.find(s => s.id === activityFormData.subjectId)?.topics || []).map(t => (
+                    {(filteredSubjects.find(s => s.id === activityFormData.subjectId)?.topics || []).map((t: Topic) => (
                       <option key={t.id} value={t.id}>{t.title}</option>
                     ))}
                   </select>

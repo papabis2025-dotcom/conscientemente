@@ -11,11 +11,12 @@ interface CalendarViewProps {
   onUpdateSchedule: (studies: ScheduledStudy[]) => void;
   onDelete: (id: string) => void;
   onAddSession?: (session: StudySession) => void;
+  onToggleStatus?: (id: string) => void;
 }
 
 type ViewMode = 'semanal' | 'mensal' | 'semestral' | 'anual';
 
-const CalendarView: React.FC<CalendarViewProps> = ({ subjects, allSubjects, scheduledStudies, onUpdateSchedule, onDelete, onAddSession }) => {
+const CalendarView: React.FC<CalendarViewProps> = ({ subjects, allSubjects, scheduledStudies, onUpdateSchedule, onDelete, onAddSession, onToggleStatus }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<ViewMode>('mensal');
   const [selectedDayKey, setSelectedDayKey] = useState<string | null>(null);
@@ -57,22 +58,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ subjects, allSubjects, sche
   const handleSave = () => {
     if (!formData.subjectId || selectedDayKey === null) return;
 
-    const newEntry: ScheduledStudy = {
-      id: crypto.randomUUID(),
-      date: selectedDayKey,
-      subjectId: formData.subjectId,
-      topicId: formData.topicId || undefined,
-      activityType: formData.activityType,
-      notes: formData.notes,
-      durationInMinutes: parseInt(formData.duration) || undefined,
-      questionsDone: formData.activityType === 'Questões' ? (parseInt(formData.questionsDone) || undefined) : undefined,
-      questionsCorrect: formData.activityType === 'Questões' ? (parseInt(formData.questionsCorrect) || undefined) : undefined,
-      status: 'planejado'
-    };
-
-    onUpdateSchedule([...scheduledStudies, newEntry]);
-
-    if (onAddSession && (formData.duration || formData.questionsDone)) {
+    if (onAddSession) {
       onAddSession({
         id: crypto.randomUUID(),
         subjectId: formData.subjectId,
@@ -83,6 +69,20 @@ const CalendarView: React.FC<CalendarViewProps> = ({ subjects, allSubjects, sche
         questionsCorrect: formData.activityType === 'Questões' ? (parseInt(formData.questionsCorrect) || undefined) : undefined,
         activityType: formData.activityType
       });
+    } else {
+      const newEntry: ScheduledStudy = {
+        id: crypto.randomUUID(),
+        date: selectedDayKey,
+        subjectId: formData.subjectId,
+        topicId: formData.topicId || undefined,
+        activityType: formData.activityType,
+        notes: formData.notes,
+        durationInMinutes: parseInt(formData.duration) || undefined,
+        questionsDone: formData.activityType === 'Questões' ? (parseInt(formData.questionsDone) || undefined) : undefined,
+        questionsCorrect: formData.activityType === 'Questões' ? (parseInt(formData.questionsCorrect) || undefined) : undefined,
+        status: 'realizado'
+      };
+      onUpdateSchedule([...scheduledStudies, newEntry]);
     }
 
     setShowModal(false);
@@ -161,10 +161,14 @@ const CalendarView: React.FC<CalendarViewProps> = ({ subjects, allSubjects, sche
                           style={{ ...style, opacity: task.status === 'realizado' ? 0.4 : 1 }} 
                           onClick={(e) => {
                             e.stopPropagation();
-                            const newStudies = scheduledStudies.map(s => 
-                              s.id === task.id ? { ...s, status: s.status === 'realizado' ? 'planejado' : 'realizado' } : s
-                            );
-                            onUpdateSchedule(newStudies);
+                            if (onToggleStatus) {
+                              onToggleStatus(task.id);
+                            } else {
+                              const newStudies = scheduledStudies.map((s): ScheduledStudy => 
+                                s.id === task.id ? { ...s, status: s.status === 'realizado' ? 'planejado' : 'realizado' } : s
+                              );
+                              onUpdateSchedule(newStudies);
+                            }
                           }}
                           className={`p-4 rounded-2xl text-xs font-bold border border-white/10 ${className} cursor-pointer transition-all hover:scale-[1.02] active:scale-95`}
                         >
@@ -219,10 +223,14 @@ const CalendarView: React.FC<CalendarViewProps> = ({ subjects, allSubjects, sche
                             style={{ ...style, opacity: t.status === 'realizado' ? 0.4 : 1 }} 
                             onClick={(e) => {
                               e.stopPropagation();
-                              const newStudies = scheduledStudies.map(s => 
-                                s.id === t.id ? { ...s, status: s.status === 'realizado' ? 'planejado' : 'realizado' } : s
-                              );
-                              onUpdateSchedule(newStudies);
+                              if (onToggleStatus) {
+                                onToggleStatus(t.id);
+                              } else {
+                                const newStudies = scheduledStudies.map((s): ScheduledStudy => 
+                                  s.id === t.id ? { ...s, status: s.status === 'realizado' ? 'planejado' : 'realizado' } : s
+                                );
+                                onUpdateSchedule(newStudies);
+                              }
                             }}
                             className={`px-2 py-1.5 rounded-lg text-[10px] leading-tight font-bold line-clamp-2 ${className} cursor-pointer transition-all hover:scale-[1.02] active:scale-95`}
                           >

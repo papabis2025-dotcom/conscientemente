@@ -21,7 +21,8 @@ import {
   X,
   GripVertical,
   Clock,
-  BookOpen
+  BookOpen,
+  Check
 } from 'lucide-react';
 import logoImg from '../assets/logo.png';
 

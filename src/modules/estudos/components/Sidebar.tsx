@@ -19,9 +19,9 @@ import {
   Plus,
   Trophy,
   X,
-  Check,
   GripVertical,
-  Clock
+  Clock,
+  BookOpen
 } from 'lucide-react';
 import logoImg from '../assets/logo.png';
 
@@ -173,18 +173,15 @@ const Sidebar: React.FC<SidebarProps> = ({
         {isCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
       </button>
 
-      <div className={`mb-6 px-1 flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'}`}>
-        <div className="flex items-center gap-3">
-          <img src={logoImg} alt="Logo" className="w-8 h-8 rounded-lg shrink-0 object-contain" />
+      <div className={`mb-8 px-1 flex items-center ${isCollapsed ? 'justify-center' : ''}`}>
+        <div className="flex items-center gap-3 text-indigo-500">
+          <BookOpen size={28} className="drop-shadow-sm shrink-0" />
           {!isCollapsed && (
-            <div className="animate-in fade-in slide-in-from-left-4 duration-300">
-              <h1 className="text-sm font-bold text-zinc-800 dark:text-white leading-none tracking-tight">Estudos</h1>
-              <p className="text-[10px] font-medium text-zinc-900 dark:text-zinc-100 tracking-wide">Hub</p>
-            </div>
+            <span className="text-xl font-black uppercase tracking-widest text-zinc-900 dark:text-white animate-in fade-in slide-in-from-left-4 duration-300">
+              Estudos
+            </span>
           )}
         </div>
-
-
       </div>
 
       <div className={`mb-6 p-3 bg-zinc-50 dark:bg-zinc-800/40 rounded-2xl flex items-center gap-3 border border-zinc-100 dark:border-zinc-700 ${isCollapsed ? 'justify-center' : ''}`}>

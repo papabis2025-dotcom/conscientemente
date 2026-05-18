@@ -20,13 +20,6 @@ const StudyPlan: React.FC<StudyPlanProps> = ({ subjects, sessions, studyTasks, o
         // Check if we already have tasks for today
         let tasksForToday = studyTasks.filter(t => t.date === today);
 
-        // FORCE REGENERATION FIX: If tasks exist but have no topic (legacy data from before the fix), clear them to regenerate.
-        if (tasksForToday.length > 0 && tasksForToday.some(t => !t.topicId)) {
-            console.log("Found legacy tasks without topics. clearing to regenerate...");
-            tasksForToday = []; // valid for this scope to trigger generation
-            // Cleanup will happen below when otherTasks is reconstructed
-        }
-
         if (tasksForToday.length === 0 && subjects.length > 0) {
             console.log("Generating study plan for", today);
 

@@ -120,6 +120,19 @@ const SaudeApp: React.FC = () => {
     }));
   }, [activities]);
 
+  const todayDateObj = new Date();
+  const currentYear = todayDateObj.getFullYear();
+  const currentMonth = todayDateObj.getMonth();
+  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+  const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay();
+
+  const calendarDays = Array.from({ length: daysInMonth }, (_, i) => {
+    const day = i + 1;
+    const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const dayActivities = activities.filter(a => a.date === dateStr);
+    return { day, dateStr, activities: dayActivities };
+  });
+
   return (
     <div className="flex h-screen bg-[#fdfdfc] dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 font-sans overflow-hidden selection:bg-cyan-200 dark:selection:bg-cyan-900/50">
       
@@ -255,27 +268,51 @@ const SaudeApp: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6 rounded-2xl shadow-sm min-h-[300px] flex flex-col">
-                <h3 className="text-sm font-black uppercase tracking-tight text-zinc-500 mb-6">Distribuição de Atividades</h3>
-                {freqData.length > 0 ? (
-                  <div className="flex-1 w-full min-h-0">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={freqData} margin={{ top: 20, right: 0, bottom: 0, left: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
-                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 'bold', fill: '#888' }} />
-                        <YAxis width={30} axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#888' }} allowDecimals={false} />
-                        <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                        <Bar dataKey="count" radius={[8, 8, 0, 0]} maxBarSize={60}>
-                          {freqData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.fill} />
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 flex-1 min-h-0">
+                <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6 rounded-2xl shadow-sm min-h-[300px] flex flex-col">
+                  <h3 className="text-sm font-black uppercase tracking-tight text-zinc-500 mb-6">Distribuição de Atividades</h3>
+                  {freqData.length > 0 ? (
+                    <div className="flex-1 w-full min-h-0">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={freqData} margin={{ top: 20, right: 0, bottom: 0, left: 0 }}>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
+                          <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 'bold', fill: '#888' }} />
+                          <YAxis width={30} axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#888' }} allowDecimals={false} />
+                          <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                          <Bar dataKey="count" radius={[8, 8, 0, 0]} maxBarSize={60}>
+                            {freqData.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={entry.fill} />
+                            ))}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  ) : (
+                    <div className="flex-1 flex items-center justify-center text-zinc-400 text-sm font-medium">Nenhum treino registrado ainda.</div>
+                  )}
+                </div>
+
+                <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6 rounded-2xl shadow-sm min-h-[300px] flex flex-col">
+                  <h3 className="text-sm font-black uppercase tracking-tight text-zinc-500 mb-6">Calendário Mensal</h3>
+                  <div className="grid grid-cols-7 gap-1 flex-1">
+                    {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(d => (
+                      <div key={d} className="text-center text-[10px] font-bold text-zinc-400 uppercase pb-2">{d}</div>
+                    ))}
+                    {Array.from({ length: firstDayOfMonth }).map((_, i) => (
+                      <div key={`empty-${i}`} className="p-1"></div>
+                    ))}
+                    {calendarDays.map(({ day, activities }) => (
+                      <div key={day} className={`min-h-[50px] border rounded-lg p-1.5 flex flex-col ${activities.length > 0 ? 'bg-cyan-50 dark:bg-cyan-900/10 border-cyan-200 dark:border-cyan-800' : 'bg-zinc-50 dark:bg-zinc-900/50 border-zinc-100 dark:border-zinc-800'}`}>
+                        <span className="text-[10px] font-bold text-zinc-500">{day}</span>
+                        <div className="flex flex-wrap gap-0.5 mt-1">
+                          {activities.map((a, i) => (
+                            <span key={i} className={`w-2.5 h-2.5 rounded-full ${a.type === 'Corrida' ? 'bg-emerald-400' : a.type === 'Musculação' ? 'bg-indigo-400' : a.type === 'Ciclismo' ? 'bg-amber-400' : 'bg-sky-400'}`} title={a.type}></span>
                           ))}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ) : (
-                  <div className="flex-1 flex items-center justify-center text-zinc-400 text-sm">Nenhum treino registrado ainda.</div>
-                )}
+                </div>
               </div>
             </div>
           )}

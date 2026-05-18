@@ -178,8 +178,8 @@ const Sidebar: React.FC<SidebarProps> = ({
           <img src={logoImg} alt="Logo" className="w-8 h-8 rounded-lg shrink-0 object-contain" />
           {!isCollapsed && (
             <div className="animate-in fade-in slide-in-from-left-4 duration-300">
-              <h1 className="text-sm font-bold text-zinc-800 dark:text-white leading-none tracking-tight">Legis</h1>
-              <p className="text-[10px] font-medium text-zinc-900 dark:text-zinc-100 tracking-wide">Pro</p>
+              <h1 className="text-sm font-bold text-zinc-800 dark:text-white leading-none tracking-tight">Estudos</h1>
+              <p className="text-[10px] font-medium text-zinc-900 dark:text-zinc-100 tracking-wide">Hub</p>
             </div>
           )}
         </div>

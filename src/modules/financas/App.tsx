@@ -12,6 +12,7 @@ interface Transaction {
   amount: number;
   category: string;
   paymentMethod?: string;
+  pending?: boolean;
 }
 
 const ENTRADA_CATEGORIES = ['Trabalho', 'Outros', 'Investimentos', 'Extra', 'Cashback', 'Reserva', 'Residual'];
@@ -41,6 +42,9 @@ const FinancasApp: React.FC = () => {
   const [outCategory, setOutCategory] = useState(SAIDA_CATEGORIES[0]);
   const [outDate, setOutDate] = useState('');
   const [outMethod, setOutMethod] = useState(PAYMENT_METHODS[0]);
+
+  const [inPending, setInPending] = useState(false);
+  const [outPending, setOutPending] = useState(false);
 
   const [inSort, setInSort] = useState<'date'|'value'|'category'>('date');
   const [outSort, setOutSort] = useState<'date'|'value'|'category'>('date');
@@ -125,6 +129,7 @@ const FinancasApp: React.FC = () => {
       amount: parseFloat(inAmount.replace(/\./g, '').replace(',', '.')),
       category: inCategory,
       date: finalDate,
+      pending: inPending,
       dayOnly
     };
 
@@ -132,6 +137,7 @@ const FinancasApp: React.FC = () => {
     setInName('');
     setInAmount('');
     setInDate('');
+    setInPending(false);
   };
 
   const handleAddSaida = (e: React.FormEvent) => {
@@ -156,6 +162,7 @@ const FinancasApp: React.FC = () => {
       category: outCategory,
       date: finalDate,
       paymentMethod: outMethod,
+      pending: outPending,
       dayOnly
     };
 
@@ -163,6 +170,11 @@ const FinancasApp: React.FC = () => {
     setOutName('');
     setOutAmount('');
     setOutDate('');
+    setOutPending(false);
+  };
+
+  const togglePending = (id: string) => {
+    setTransactions(prev => prev.map(t => t.id === id ? { ...t, pending: !t.pending } : t));
   };
 
   const deleteTransaction = (id: string) => {
@@ -301,7 +313,12 @@ const FinancasApp: React.FC = () => {
                   </select>
                   <input type="text" placeholder="R$" value={inAmount} onChange={e => setInAmount(e.target.value)} className="w-1/2 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:ring-1 focus:ring-blue-500 font-bold dark:text-white" />
                 </div>
-                <button disabled={!inName || !inAmount} type="submit" className="w-full bg-blue-500 hover:bg-blue-600 text-white rounded-lg py-1.5 font-bold text-[10px] uppercase tracking-wider transition-colors disabled:opacity-50 mt-1">Lançar Entrada</button>
+                <div className="flex gap-2 mt-1">
+                  <button type="button" onClick={() => setInPending(!inPending)} className={`w-1/3 border rounded-lg px-2 text-[10px] font-bold uppercase tracking-wider transition-colors ${inPending ? 'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-500/20 dark:text-amber-400 dark:border-amber-500/30' : 'bg-zinc-50 text-zinc-400 border-zinc-200 dark:bg-zinc-900 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}>
+                    {inPending ? 'Pendente' : 'Efetivado'}
+                  </button>
+                  <button disabled={!inName || !inAmount} type="submit" className="w-2/3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg py-1.5 font-bold text-[10px] uppercase tracking-wider transition-colors disabled:opacity-50">Lançar Entrada</button>
+                </div>
               </form>
             </div>
 
@@ -319,7 +336,10 @@ const FinancasApp: React.FC = () => {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="font-bold text-xs text-blue-500">{formatCurrency(t.amount)}</span>
+                      <button onClick={() => togglePending(t.id)} className={`p-1 rounded-lg transition-colors ${t.pending ? 'text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950 opacity-100' : 'text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-950 opacity-0 group-hover:opacity-100'}`} title={t.pending ? 'Pendente (Clique para Efetivar)' : 'Efetivado (Clique para Pendente)'}>
+                        <TrendingUp size={14}/>
+                      </button>
+                      <span className={`font-bold text-xs ${t.pending ? 'text-amber-500' : 'text-blue-500'}`}>{formatCurrency(t.amount)}</span>
                       <button onClick={() => deleteTransaction(t.id)} className="opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-rose-500 p-1"><Trash2 size={14}/></button>
                     </div>
                   </li>
@@ -355,7 +375,12 @@ const FinancasApp: React.FC = () => {
                 <select value={outMethod} onChange={e => setOutMethod(e.target.value)} className="w-full bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:ring-1 focus:ring-rose-500 cursor-pointer dark:text-white">
                   {PAYMENT_METHODS.map(m => <option key={m} value={m}>{m}</option>)}
                 </select>
-                <button disabled={!outName || !outAmount} type="submit" className="w-full bg-rose-500 hover:bg-rose-600 text-white rounded-lg py-1.5 font-bold text-[10px] uppercase tracking-wider transition-colors disabled:opacity-50 mt-1">Lançar Saída</button>
+                <div className="flex gap-2 mt-1">
+                  <button type="button" onClick={() => setOutPending(!outPending)} className={`w-1/3 border rounded-lg px-2 text-[10px] font-bold uppercase tracking-wider transition-colors ${outPending ? 'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-500/20 dark:text-amber-400 dark:border-amber-500/30' : 'bg-zinc-50 text-zinc-400 border-zinc-200 dark:bg-zinc-900 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}>
+                    {outPending ? 'Pendente' : 'Efetivado'}
+                  </button>
+                  <button disabled={!outName || !outAmount} type="submit" className="w-2/3 bg-rose-500 hover:bg-rose-600 text-white rounded-lg py-1.5 font-bold text-[10px] uppercase tracking-wider transition-colors disabled:opacity-50">Lançar Saída</button>
+                </div>
               </form>
             </div>
 
@@ -377,7 +402,10 @@ const FinancasApp: React.FC = () => {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="font-bold text-xs text-rose-500">{formatCurrency(t.amount)}</span>
+                      <button onClick={() => togglePending(t.id)} className={`p-1 rounded-lg transition-colors ${t.pending ? 'text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950 opacity-100' : 'text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-950 opacity-0 group-hover:opacity-100'}`} title={t.pending ? 'Pendente (Clique para Efetivar)' : 'Efetivado (Clique para Pendente)'}>
+                        <TrendingDown size={14}/>
+                      </button>
+                      <span className={`font-bold text-xs ${t.pending ? 'text-amber-500' : 'text-rose-500'}`}>{formatCurrency(t.amount)}</span>
                       <button onClick={() => deleteTransaction(t.id)} className="opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-rose-500 p-1"><Trash2 size={14}/></button>
                     </div>
                   </li>

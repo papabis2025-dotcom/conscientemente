@@ -80,11 +80,11 @@ const SaudePlannerView: React.FC<SaudePlannerViewProps> = ({ activities, onAddAc
 
   return (
     <div className="flex flex-col h-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-sm overflow-hidden">
-      <div className="flex items-center justify-between p-6 border-b border-zinc-200 dark:border-zinc-800 shrink-0">
+      <div className="flex items-center justify-between p-4 border-b border-zinc-200 dark:border-zinc-800 shrink-0">
         <div className="flex items-center gap-4">
-          <button onClick={prevMonth} className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl transition-colors"><ChevronLeft size={20} /></button>
-          <h2 className="text-xl font-black uppercase tracking-widest min-w-[200px] text-center">{monthNames[month]} {year}</h2>
-          <button onClick={nextMonth} className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl transition-colors"><ChevronRight size={20} /></button>
+          <button onClick={prevMonth} className="p-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl transition-colors"><ChevronLeft size={18} /></button>
+          <h2 className="text-sm font-black uppercase tracking-widest min-w-[140px] text-center">{monthNames[month]} {year}</h2>
+          <button onClick={nextMonth} className="p-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl transition-colors"><ChevronRight size={18} /></button>
         </div>
         <div className="flex gap-2">
           <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase bg-zinc-100 dark:bg-zinc-800 text-zinc-500">
@@ -96,14 +96,14 @@ const SaudePlannerView: React.FC<SaudePlannerViewProps> = ({ activities, onAddAc
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
-        <div className="grid grid-cols-7 gap-3 mb-2">
+      <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+        <div className="grid grid-cols-7 gap-1.5 mb-1.5">
           {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(d => (
-            <div key={d} className="text-center text-[10px] font-black text-zinc-400 uppercase tracking-widest">{d}</div>
+            <div key={d} className="text-center text-[9px] font-black text-zinc-400 uppercase tracking-widest">{d}</div>
           ))}
         </div>
         
-        <div className="grid grid-cols-7 gap-3 auto-rows-[minmax(120px,auto)]">
+        <div className="grid grid-cols-7 gap-1.5 auto-rows-[minmax(70px,1fr)]">
           {Array.from({ length: firstDay }).map((_, i) => <div key={`empty-${i}`} />)}
           
           {calendarDays.map(({ date, dayKey, day }) => {
@@ -114,7 +114,7 @@ const SaudePlannerView: React.FC<SaudePlannerViewProps> = ({ activities, onAddAc
               <div 
                 key={dayKey} 
                 onClick={() => handleDayClick(dayKey)}
-                className={`border rounded-2xl p-2.5 transition-all cursor-pointer hover:border-cyan-400 dark:hover:border-cyan-600 flex flex-col gap-1.5
+                className={`border rounded-xl p-1.5 transition-all cursor-pointer hover:border-cyan-400 dark:hover:border-cyan-600 flex flex-col gap-1
                   ${isToday ? 'bg-cyan-50 dark:bg-cyan-950/30 border-cyan-300 dark:border-cyan-800 ring-1 ring-cyan-400/50' : 'bg-zinc-50 dark:bg-zinc-900/50 border-zinc-200 dark:border-zinc-800 hover:shadow-md'}
                 `}
               >
@@ -122,12 +122,12 @@ const SaudePlannerView: React.FC<SaudePlannerViewProps> = ({ activities, onAddAc
                   <span className={`text-xs font-black ${isToday ? 'text-cyan-600 dark:text-cyan-400' : 'text-zinc-500 dark:text-zinc-400'}`}>{day}</span>
                 </div>
                 
-                <div className="flex flex-col gap-1.5 overflow-y-auto custom-scrollbar flex-1 pr-1">
+                <div className="flex flex-col gap-1 overflow-y-auto custom-scrollbar flex-1 pr-1">
                   {dayActs.map(act => (
                     <div 
                       key={act.id} 
                       onClick={(e) => { e.stopPropagation(); onToggleStatus(act.id); }}
-                      className={`text-[10px] font-bold p-2 rounded-xl border flex flex-col gap-1 transition-all
+                      className={`text-[9px] font-bold px-1.5 py-1 rounded-lg border flex flex-col gap-0.5 transition-all
                         ${act.status === 'planejado' ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 border-dashed border-zinc-300 dark:border-zinc-700 opacity-60 hover:opacity-100' : getBadgeColor(act.type)}
                       `}
                       title="Clique para alternar o status"

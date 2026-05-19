@@ -150,7 +150,7 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
   const [bgType, setBgType] = useState<'default' | 'color' | 'image'>(() => (localStorage.getItem('hub_bg_type') as any) || 'default');
   const [bgColor, setBgColor] = useState(() => localStorage.getItem('hub_bg_color') || '#ffffff');
   const [bgImage, setBgImage] = useState(() => localStorage.getItem('hub_bg_image') || '');
-  const [bgSize, setBgSize] = useState<'cover' | 'contain'>(() => (localStorage.getItem('hub_bg_size') as any) || 'cover');
+  const [bgSize, setBgSize] = useState<'cover' | 'repeat'>(() => (localStorage.getItem('hub_bg_size') as any) || 'cover');
   const bgImageRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -357,7 +357,7 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
       className={`min-h-screen ${bgType === 'default' ? 'bg-zinc-50 dark:bg-zinc-950' : ''} flex flex-col relative overflow-hidden transition-colors duration-300`}
       style={{
         ...(bgType === 'color' ? { backgroundColor: bgColor } : {}),
-        ...(bgType === 'image' && bgImage ? { backgroundImage: `url(${bgImage})`, backgroundSize: bgSize === 'contain' ? 'contain' : 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed', backgroundRepeat: 'no-repeat' } : {})
+        ...(bgType === 'image' && bgImage ? { backgroundImage: `url(${bgImage})`, backgroundSize: bgSize === 'repeat' ? 'auto' : 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed', backgroundRepeat: bgSize === 'repeat' ? 'repeat' : 'no-repeat' } : {})
       }}
     >
 
@@ -609,8 +609,8 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
                      <span className={`text-[10px] font-black uppercase tracking-widest flex items-center justify-between w-full ${bgType === 'image' ? 'text-indigo-700 dark:text-indigo-300' : 'text-zinc-600 dark:text-zinc-400'}`}>
                        <span>Imagem</span>
                        {bgType === 'image' && (
-                         <button onClick={() => setBgSize(s => s === 'cover' ? 'contain' : 'cover')} className="text-[9px] bg-white dark:bg-zinc-800 px-2 py-0.5 rounded border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-900 transition-colors">
-                           {bgSize === 'cover' ? 'Centralizar' : 'Estender'}
+                         <button onClick={() => setBgSize(s => s === 'cover' ? 'repeat' : 'cover')} className="text-[9px] bg-white dark:bg-zinc-800 px-2 py-0.5 rounded border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-900 transition-colors">
+                           {bgSize === 'cover' ? 'Lado a lado' : 'Preencher'}
                          </button>
                        )}
                      </span>

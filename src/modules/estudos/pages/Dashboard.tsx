@@ -234,24 +234,26 @@ const Dashboard: React.FC<DashboardProps> = ({
       for (let i = 6; i >= 0; i--) {
         const d = new Date(today);
         d.setDate(today.getDate() - i);
+        const dStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
         dataMap.push({
           n: days[d.getDay()],
           h: 0,
           q: 0,
-          dateStr: d.toDateString() // Use Key for matching strings
+          dateStr: dStr
         });
       }
 
       relevantSessions.forEach(s => {
-        const sDate = new Date(s.date);
-        const match = dataMap.find(d => d.dateStr === sDate.toDateString());
+        if (!s.date) return;
+        const sDateStr = s.date.split('T')[0];
+        const match = dataMap.find(d => d.dateStr === sDateStr);
         if (match) {
-          match.h += (s.durationInMinutes / 60);
+          match.h += (s.durationInMinutes || 0) / 60;
           match.q += (s.questionsDone || 0);
         }
       });
 
-      const finalData = dataMap.map(d => ({ ...d, h: parseFloat(d.h.toFixed(1)) }));
+      const finalData = dataMap.map(d => ({ ...d, h: parseFloat(d.h.toFixed(2)) }));
       return { weeklyData: finalData, weeklyQuestionsData: finalData };
     }
 
@@ -272,18 +274,20 @@ const Dashboard: React.FC<DashboardProps> = ({
       }));
 
       relevantSessions.forEach(s => {
-        const sDate = new Date(s.date);
-        if (sDate >= startOfMonth && sDate <= endOfMonth) {
-          const dayOfMonth = sDate.getDate();
-          const weekIndex = Math.floor((dayOfMonth - 1 + firstDayOfWeek) / 7);
+        if (!s.date) return;
+        const sDateStr = s.date.split('T')[0];
+        const [sYear, sMonth, sDay] = sDateStr.split('-').map(Number);
+        
+        if (sYear === today.getFullYear() && sMonth - 1 === today.getMonth()) {
+          const weekIndex = Math.floor((sDay - 1 + firstDayOfWeek) / 7);
           if (weekIndex < weeksInMonth) {
-            dataMap[weekIndex].h += (s.durationInMinutes / 60);
+            dataMap[weekIndex].h += (s.durationInMinutes || 0) / 60;
             dataMap[weekIndex].q += (s.questionsDone || 0);
           }
         }
       });
 
-      const finalData = dataMap.map(d => ({ ...d, h: parseFloat(d.h.toFixed(1)) }));
+      const finalData = dataMap.map(d => ({ ...d, h: parseFloat(d.h.toFixed(2)) }));
       return { weeklyData: finalData, weeklyQuestionsData: finalData };
     }
 
@@ -294,15 +298,18 @@ const Dashboard: React.FC<DashboardProps> = ({
       const currentYear = today.getFullYear();
 
       relevantSessions.forEach(s => {
-        const sDate = new Date(s.date);
-        if (sDate.getFullYear() === currentYear) {
-          const monthIdx = sDate.getMonth();
-          dataMap[monthIdx].h += (s.durationInMinutes / 60);
+        if (!s.date) return;
+        const sDateStr = s.date.split('T')[0];
+        const [sYear, sMonth] = sDateStr.split('-').map(Number);
+        
+        if (sYear === currentYear) {
+          const monthIdx = sMonth - 1;
+          dataMap[monthIdx].h += (s.durationInMinutes || 0) / 60;
           dataMap[monthIdx].q += (s.questionsDone || 0);
         }
       });
 
-      const finalData = dataMap.map(d => ({ ...d, h: parseFloat(d.h.toFixed(1)) }));
+      const finalData = dataMap.map(d => ({ ...d, h: parseFloat(d.h.toFixed(2)) }));
       return { weeklyData: finalData, weeklyQuestionsData: finalData };
     }
   }, [relevantSessions, activeWeeklyPeriod]);

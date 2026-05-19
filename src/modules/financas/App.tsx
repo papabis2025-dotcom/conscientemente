@@ -86,24 +86,30 @@ const FinancasApp: React.FC = () => {
 
   const [currentDate, setCurrentDate] = useState(() => new Date());
   
-  const [inName, setInName] = useState('');
-  const [inAmount, setInAmount] = useState('');
-  const [inCategory, setInCategory] = useState(inCategories[0]?.name || '');
-  const [inDate, setInDate] = useState('');
+  const [txType, setTxType] = useState<TransactionType>('saida');
+  const [txName, setTxName] = useState('');
+  const [txAmount, setTxAmount] = useState('');
+  const [txCategory, setTxCategory] = useState('');
+  const [txDate, setTxDate] = useState('');
+  const [txMethod, setTxMethod] = useState('');
+  const [txPending, setTxPending] = useState(false);
+  const [activeChartTab, setActiveChartTab] = useState<'cartoes' | 'saidas' | 'entradas'>('cartoes');
 
-  const [outName, setOutName] = useState('');
-  const [outAmount, setOutAmount] = useState('');
-  const [outCategory, setOutCategory] = useState(outCategories[0]?.name || '');
-  const [outDate, setOutDate] = useState('');
-  const [outMethod, setOutMethod] = useState(paymentMethods[0]?.name || '');
-
-  // Atualizar seleções caso a categoria ativa seja apagada
-  useEffect(() => { if (!inCategories.find(c => c.name === inCategory) && inCategories.length) setInCategory(inCategories[0].name); }, [inCategories]);
-  useEffect(() => { if (!outCategories.find(c => c.name === outCategory) && outCategories.length) setOutCategory(outCategories[0].name); }, [outCategories]);
-  useEffect(() => { if (!paymentMethods.find(c => c.name === outMethod) && paymentMethods.length) setOutMethod(paymentMethods[0].name); }, [paymentMethods]);
-
-  const [inPending, setInPending] = useState(false);
-  const [outPending, setOutPending] = useState(false);
+  // Atualizar seleções caso a categoria ativa seja apagada ou mude o tipo
+  useEffect(() => {
+    if (txType === 'entrada') {
+      if (inCategories.length > 0 && (!txCategory || !inCategories.find(c => c.name === txCategory))) {
+        setTxCategory(inCategories[0].name);
+      }
+    } else {
+      if (outCategories.length > 0 && (!txCategory || !outCategories.find(c => c.name === txCategory))) {
+        setTxCategory(outCategories[0].name);
+      }
+      if (paymentMethods.length > 0 && (!txMethod || !paymentMethods.find(m => m.name === txMethod))) {
+        setTxMethod(paymentMethods[0].name);
+      }
+    }
+  }, [txType, inCategories, outCategories, paymentMethods]);
 
   const [inSort, setInSort] = useState<'date'|'value'|'category'>('date');
   const [outSort, setOutSort] = useState<'date'|'value'|'category'>('date');
@@ -173,11 +179,11 @@ const FinancasApp: React.FC = () => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
   };
 
-  const handleAddEntrada = (e: React.FormEvent) => {
+  const handleAddTransaction = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inName || !inAmount) return;
+    if (!txName || !txAmount) return;
 
-    let finalDate = inDate;
+    let finalDate = txDate;
     let dayOnly = false;
     if (!finalDate) {
       finalDate = new Date().toISOString().split('T')[0];
@@ -189,55 +195,22 @@ const FinancasApp: React.FC = () => {
 
     const t: Transaction = {
       id: crypto.randomUUID(),
-      type: 'entrada',
-      name: inName,
-      amount: parseFloat(inAmount.replace(/\./g, '').replace(',', '.')),
-      category: inCategory,
+      type: txType,
+      name: txName,
+      amount: parseFloat(txAmount.replace(/\./g, '').replace(',', '.')),
+      category: txCategory,
       date: finalDate,
-      pending: inPending,
-      dayOnly
+      pending: txPending,
+      dayOnly,
+      ...(txType === 'saida' ? { paymentMethod: txMethod } : {})
     };
 
     financasApi.createTransaction(t).catch(err => console.error('Error creating transaction:', err));
     setTransactions(prev => [...prev, t]);
-    setInName('');
-    setInAmount('');
-    setInDate('');
-    setInPending(false);
-  };
-
-  const handleAddSaida = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!outName || !outAmount) return;
-
-    let finalDate = outDate;
-    let dayOnly = false;
-    if (!finalDate) {
-      finalDate = new Date().toISOString().split('T')[0];
-    } else if (finalDate.length <= 2) {
-      dayOnly = true;
-      const day = String(parseInt(finalDate)).padStart(2, '0');
-      finalDate = `${currentMonthStr}-${day}`;
-    }
-
-    const t: Transaction = {
-      id: crypto.randomUUID(),
-      type: 'saida',
-      name: outName,
-      amount: parseFloat(outAmount.replace(/\./g, '').replace(',', '.')),
-      category: outCategory,
-      date: finalDate,
-      paymentMethod: outMethod,
-      pending: outPending,
-      dayOnly
-    };
-
-    financasApi.createTransaction(t).catch(err => console.error('Error creating transaction:', err));
-    setTransactions(prev => [...prev, t]);
-    setOutName('');
-    setOutAmount('');
-    setOutDate('');
-    setOutPending(false);
+    setTxName('');
+    setTxAmount('');
+    setTxDate('');
+    setTxPending(false);
   };
 
   const togglePending = (id: string) => {
@@ -307,33 +280,35 @@ const FinancasApp: React.FC = () => {
       </aside>
 
       {/* Main Content - 3 Colunas flexíveis */}
-      <main className="flex-1 overflow-y-auto p-6 relative custom-scrollbar">
+      <main className="flex-1 p-6 overflow-hidden flex flex-col bg-zinc-50 dark:bg-[#0c0c0e]">
         {activeTab === 'ajustes' ? (
-          <AjustesFinancas 
-            inCategories={inCategories} setInCategories={setInCategories}
-            outCategories={outCategories} setOutCategories={setOutCategories}
-            paymentMethods={paymentMethods} setPaymentMethods={setPaymentMethods}
-          />
+          <div className="flex-1 overflow-y-auto custom-scrollbar">
+            <AjustesFinancas 
+              inCategories={inCategories} setInCategories={setInCategories}
+              outCategories={outCategories} setOutCategories={setOutCategories}
+              paymentMethods={paymentMethods} setPaymentMethods={setPaymentMethods}
+            />
+          </div>
         ) : (
-          <div className="max-w-[1440px] mx-auto min-h-full grid grid-cols-1 xl:grid-cols-3 gap-6 animate-in fade-in duration-500">
+          <div className="max-w-[1440px] mx-auto w-full h-full grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in duration-500 overflow-hidden">
           
           {/* Coluna 1: Visão Geral */}
-          <section className="flex flex-col gap-3 h-full min-h-0">
+          <section className="flex flex-col gap-4 h-full min-h-0 overflow-y-auto custom-scrollbar pr-1">
             
             {/* Saldo Cards */}
-            <div className="bg-emerald-500 text-white p-4 rounded-2xl shadow-lg shadow-emerald-500/20 shrink-0">
-              <p className="text-emerald-100 font-bold uppercase tracking-widest text-[10px] mb-0.5">Saldo do Mês</p>
+            <div className={`p-4 rounded-2xl shadow-lg shrink-0 transition-colors ${saldo < 0 ? 'bg-red-500 shadow-red-500/25 text-white' : 'bg-emerald-500 shadow-emerald-500/25 text-white'}`}>
+              <p className="opacity-90 font-bold uppercase tracking-widest text-[9px] mb-0.5">Saldo do Mês</p>
               <h2 className="text-2xl font-black">{formatCurrency(saldo)}</h2>
             </div>
 
             <div className="grid grid-cols-2 gap-3 shrink-0">
-              <div className="bg-white dark:bg-zinc-900 p-3 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col justify-center">
+              <div className="bg-white dark:bg-[#121214] p-3 rounded-2xl border border-zinc-200 dark:border-zinc-800/50 shadow-sm flex flex-col justify-center">
                 <div className="flex items-center gap-2 text-blue-500 mb-0.5">
                   <TrendingUp size={14} /><span className="text-[9px] font-bold uppercase tracking-wider">Entradas</span>
                 </div>
                 <p className="text-sm font-bold dark:text-white">{formatCurrency(totalEntradas)}</p>
               </div>
-              <div className="bg-white dark:bg-zinc-900 p-3 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col justify-center">
+              <div className="bg-white dark:bg-[#121214] p-3 rounded-2xl border border-zinc-200 dark:border-zinc-800/50 shadow-sm flex flex-col justify-center">
                 <div className="flex items-center gap-2 text-rose-500 mb-0.5">
                   <TrendingDown size={14} /><span className="text-[9px] font-bold uppercase tracking-wider">Saídas</span>
                 </div>
@@ -341,124 +316,233 @@ const FinancasApp: React.FC = () => {
               </div>
             </div>
 
-            {/* Faturas Cartões */}
-            <div className="bg-white dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col flex-1 min-h-0">
-              <div className="flex items-center justify-between mb-2 shrink-0">
-                <h3 className="flex items-center gap-2 text-[11px] font-black uppercase tracking-tight text-zinc-800 dark:text-zinc-100"><CreditCard size={14} className="text-zinc-400" /> Cartões</h3>
-                <select value={paymentSort} onChange={e => setPaymentSort(e.target.value as any)} className="text-[9px] uppercase font-bold tracking-wider bg-transparent text-zinc-400 outline-none cursor-pointer">
-                  <option value="value">Valor</option>
-                  <option value="type">Tipo</option>
-                </select>
+            {/* Caixa Única de Transação */}
+            <div className="bg-white dark:bg-[#121214] p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800/50 shadow-sm flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-black uppercase tracking-wider text-zinc-700 dark:text-zinc-300">Nova Transação</h3>
+                
+                {/* Selector de tipo de transação (Entrada/Saída) */}
+                <div className="flex bg-zinc-100 dark:bg-zinc-900 rounded-lg p-0.5">
+                  <button 
+                    type="button"
+                    onClick={() => setTxType('saida')}
+                    className={`flex items-center gap-1 px-3 py-1.5 text-[9px] font-black uppercase tracking-wider rounded-md transition-colors ${txType === 'saida' ? 'bg-rose-500 text-white shadow-md' : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'}`}
+                  >
+                    <TrendingDown size={10} /> Saída
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={() => setTxType('entrada')}
+                    className={`flex items-center gap-1 px-3 py-1.5 text-[9px] font-black uppercase tracking-wider rounded-md transition-colors ${txType === 'entrada' ? 'bg-blue-500 text-white shadow-md' : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'}`}
+                  >
+                    <TrendingUp size={10} /> Entrada
+                  </button>
+                </div>
               </div>
-              <div className="flex-1 w-full min-h-0 relative">
-                {gastosPorCartao.length === 0 ? (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <p className="text-[10px] text-zinc-400">Nenhum gasto.</p>
+
+              <form onSubmit={handleAddTransaction} className="space-y-2.5">
+                <div className="flex gap-2">
+                  <div className="w-1/3 flex flex-col gap-1">
+                    <label className="text-[9px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Dia ou Data</label>
+                    <input 
+                      type="text" 
+                      placeholder="Ex: 19" 
+                      value={txDate} 
+                      onChange={e => setTxDate(e.target.value)} 
+                      className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-850 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:ring-1 focus:ring-rose-500 dark:text-white font-semibold" 
+                    />
                   </div>
-                ) : (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <defs>
-                        <filter id="shadow3d" x="-20%" y="-20%" width="140%" height="140%">
-                          <feDropShadow dx="2" dy="6" stdDeviation="4" floodOpacity="0.3" />
-                        </filter>
-                      </defs>
-                      <Pie
-                        data={gastosPorCartao.map(([name, value]) => ({ name, value }))}
-                        cx="50%" cy="50%" innerRadius={35} outerRadius={60} paddingAngle={2} dataKey="value"
-                        style={{ filter: 'url(#shadow3d)' }}
-                      >
-                        {gastosPorCartao.map(([name], index) => <Cell key={`cell-${index}`} fill={paymentMethods.find(c => c.name === name)?.color || CHART_COLORS[index % CHART_COLORS.length]} />)}
-                      </Pie>
-                      <RechartsTooltip formatter={(value: number) => formatCurrency(value)} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '12px', fontWeight: 'bold' }} />
-                      <Legend verticalAlign="bottom" height={24} iconType="circle" wrapperStyle={{ fontSize: '10px', fontWeight: 'bold' }} />
-                    </PieChart>
-                  </ResponsiveContainer>
+                  <div className="w-2/3 flex flex-col gap-1">
+                    <label className="text-[9px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Nome / Descrição</label>
+                    <input 
+                      type="text" 
+                      placeholder="Ex: Supermercado" 
+                      value={txName} 
+                      onChange={e => setTxName(e.target.value)} 
+                      className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-850 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:ring-1 focus:ring-rose-500 dark:text-white font-semibold" 
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  <div className="w-1/2 flex flex-col gap-1">
+                    <label className="text-[9px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Categoria</label>
+                    <select 
+                      value={txCategory} 
+                      onChange={e => setTxCategory(e.target.value)} 
+                      className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-850 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:ring-1 focus:ring-rose-500 cursor-pointer dark:text-white font-semibold"
+                    >
+                      {txType === 'entrada' 
+                        ? inCategories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)
+                        : outCategories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)
+                      }
+                    </select>
+                  </div>
+                  <div className="w-1/2 flex flex-col gap-1">
+                    <label className="text-[9px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Valor (R$)</label>
+                    <input 
+                      type="text" 
+                      placeholder="0,00" 
+                      value={txAmount} 
+                      onChange={e => setTxAmount(e.target.value)} 
+                      className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-850 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:ring-1 focus:ring-rose-500 font-bold dark:text-white" 
+                    />
+                  </div>
+                </div>
+
+                {txType === 'saida' && (
+                  <div className="flex flex-col gap-1 animate-in slide-in-from-top-1 duration-150">
+                    <label className="text-[9px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Forma de Pagamento</label>
+                    <select 
+                      value={txMethod} 
+                      onChange={e => setTxMethod(e.target.value)} 
+                      className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-850 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:ring-1 focus:ring-rose-500 cursor-pointer dark:text-white font-semibold"
+                    >
+                      {paymentMethods.map(m => <option key={m.id} value={m.name}>{m.name}</option>)}
+                    </select>
+                  </div>
                 )}
-              </div>
+
+                <div className="flex gap-2 items-center pt-2.5 border-t border-zinc-100 dark:border-zinc-800/50">
+                  <button 
+                    type="button" 
+                    onClick={() => setTxPending(!txPending)} 
+                    className={`flex-1 border rounded-lg py-2 text-[9px] font-black uppercase tracking-wider transition-colors ${txPending ? 'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20' : 'bg-zinc-50 text-zinc-400 border-zinc-200 dark:bg-zinc-900 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800/55'}`}
+                  >
+                    {txPending ? 'Pendente' : 'Efetivado'}
+                  </button>
+                  <button 
+                    disabled={!txName || !txAmount} 
+                    type="submit" 
+                    className={`flex-[2] text-white rounded-lg py-2 font-black text-[9px] uppercase tracking-wider transition-colors disabled:opacity-50 ${txType === 'saida' ? 'bg-rose-500 hover:bg-rose-600 shadow-md shadow-rose-500/10' : 'bg-blue-500 hover:bg-blue-600 shadow-md shadow-blue-500/10'}`}
+                  >
+                    Lançar {txType === 'saida' ? 'Saída' : 'Entrada'}
+                  </button>
+                </div>
+              </form>
             </div>
 
-            {/* Top Categorias - Saídas */}
-            <div className="bg-white dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col flex-1 min-h-0">
+            {/* Gráficos */}
+            <div className="bg-white dark:bg-[#121214] p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800/50 shadow-sm flex flex-col h-[280px]">
               <div className="flex items-center justify-between mb-2 shrink-0">
-                <h3 className="flex items-center gap-2 text-[11px] font-black uppercase tracking-tight text-zinc-800 dark:text-zinc-100"><PieChartIcon size={14} className="text-zinc-400" /> Saídas por Categoria</h3>
-                <select value={categorySort} onChange={e => setCategorySort(e.target.value as any)} className="text-[9px] uppercase font-bold tracking-wider bg-transparent text-zinc-400 outline-none cursor-pointer">
-                  <option value="value">Valor</option>
-                  <option value="type">Tipo</option>
-                </select>
+                <h3 className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-tight text-zinc-800 dark:text-zinc-100">
+                  <PieChartIcon size={14} className="text-zinc-400" /> Gráficos
+                </h3>
+                <div className="flex bg-zinc-100 dark:bg-zinc-900 rounded-lg p-0.5">
+                  <button 
+                    onClick={() => setActiveChartTab('cartoes')}
+                    className={`px-2 py-1 text-[9px] font-black uppercase tracking-wider rounded-md transition-colors ${activeChartTab === 'cartoes' ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white shadow-sm' : 'text-zinc-550 hover:text-zinc-700 dark:hover:text-zinc-300'}`}
+                  >
+                    Cartões
+                  </button>
+                  <button 
+                    onClick={() => setActiveChartTab('saidas')}
+                    className={`px-2 py-1 text-[9px] font-black uppercase tracking-wider rounded-md transition-colors ${activeChartTab === 'saidas' ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white shadow-sm' : 'text-zinc-555 hover:text-zinc-700 dark:hover:text-zinc-300'}`}
+                  >
+                    Saídas
+                  </button>
+                  <button 
+                    onClick={() => setActiveChartTab('entradas')}
+                    className={`px-2 py-1 text-[9px] font-black uppercase tracking-wider rounded-md transition-colors ${activeChartTab === 'entradas' ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white shadow-sm' : 'text-zinc-555 hover:text-zinc-700 dark:hover:text-zinc-300'}`}
+                  >
+                    Entradas
+                  </button>
+                </div>
               </div>
+              
               <div className="flex-1 w-full min-h-0 relative">
-                {gastosPorCategoria.length === 0 ? (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <p className="text-[10px] text-zinc-400">Nenhum gasto.</p>
-                  </div>
-                ) : (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <defs>
-                        <filter id="shadow3d" x="-20%" y="-20%" width="140%" height="140%">
-                          <feDropShadow dx="2" dy="6" stdDeviation="4" floodOpacity="0.3" />
-                        </filter>
-                      </defs>
-                      <Pie
-                        data={gastosPorCategoria.map(([name, value]) => ({ name, value }))}
-                        cx="50%" cy="50%" innerRadius={35} outerRadius={60} paddingAngle={2} dataKey="value"
-                        style={{ filter: 'url(#shadow3d)' }}
-                      >
-                        {gastosPorCategoria.map(([name], index) => <Cell key={`cell-${index}`} fill={outCategories.find(c => c.name === name)?.color || CHART_COLORS[(index + 3) % CHART_COLORS.length]} />)}
-                      </Pie>
-                      <RechartsTooltip formatter={(value: number) => formatCurrency(value)} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '12px', fontWeight: 'bold' }} />
-                      <Legend verticalAlign="bottom" height={24} iconType="circle" wrapperStyle={{ fontSize: '10px', fontWeight: 'bold' }} />
-                    </PieChart>
-                  </ResponsiveContainer>
+                {activeChartTab === 'cartoes' && (
+                  gastosPorCartao.length === 0 ? (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <p className="text-[10px] text-zinc-400 font-semibold uppercase tracking-wider">Nenhum gasto registrado</p>
+                    </div>
+                  ) : (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <defs>
+                          <filter id="shadow3d" x="-20%" y="-20%" width="140%" height="140%">
+                            <feDropShadow dx="1" dy="4" stdDeviation="3" floodOpacity="0.2" />
+                          </filter>
+                        </defs>
+                        <Pie
+                          data={gastosPorCartao.map(([name, value]) => ({ name, value }))}
+                          cx="50%" cy="50%" innerRadius={42} outerRadius={62} paddingAngle={3} dataKey="value"
+                          style={{ filter: 'url(#shadow3d)' }}
+                          isAnimationActive={true}
+                        >
+                          {gastosPorCartao.map(([name], index) => <Cell key={`cell-${index}`} fill={paymentMethods.find(c => c.name === name)?.color || CHART_COLORS[index % CHART_COLORS.length]} />)}
+                        </Pie>
+                        <RechartsTooltip formatter={(value: number) => formatCurrency(value)} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '10px', fontWeight: 'bold' }} />
+                        <Legend verticalAlign="bottom" height={24} iconType="circle" wrapperStyle={{ fontSize: '9px', fontWeight: 'bold' }} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  )
                 )}
-              </div>
-            </div>
 
-            {/* Top Categorias - Entradas */}
-            <div className="bg-white dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col flex-1 min-h-0">
-              <div className="flex items-center justify-between mb-2 shrink-0">
-                <h3 className="flex items-center gap-2 text-[11px] font-black uppercase tracking-tight text-zinc-800 dark:text-zinc-100"><PieChartIcon size={14} className="text-zinc-400" /> Entradas por Categoria</h3>
-                <select value={categorySort} onChange={e => setCategorySort(e.target.value as any)} className="text-[9px] uppercase font-bold tracking-wider bg-transparent text-zinc-400 outline-none cursor-pointer">
-                  <option value="value">Valor</option>
-                  <option value="type">Tipo</option>
-                </select>
-              </div>
-              <div className="flex-1 w-full min-h-0 relative">
-                {entradasPorCategoria.length === 0 ? (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <p className="text-[10px] text-zinc-400">Nenhuma entrada.</p>
-                  </div>
-                ) : (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <defs>
-                        <filter id="shadow3d" x="-20%" y="-20%" width="140%" height="140%">
-                          <feDropShadow dx="2" dy="6" stdDeviation="4" floodOpacity="0.3" />
-                        </filter>
-                      </defs>
-                      <Pie
-                        data={entradasPorCategoria.map(([name, value]) => ({ name, value }))}
-                        cx="50%" cy="50%" innerRadius={35} outerRadius={60} paddingAngle={2} dataKey="value"
-                        style={{ filter: 'url(#shadow3d)' }}
-                      >
-                        {entradasPorCategoria.map(([name], index) => <Cell key={`cell-${index}`} fill={inCategories.find(c => c.name === name)?.color || CHART_COLORS[(index + 6) % CHART_COLORS.length]} />)}
-                      </Pie>
-                      <RechartsTooltip formatter={(value: number) => formatCurrency(value)} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '12px', fontWeight: 'bold' }} />
-                      <Legend verticalAlign="bottom" height={24} iconType="circle" wrapperStyle={{ fontSize: '10px', fontWeight: 'bold' }} />
-                    </PieChart>
-                  </ResponsiveContainer>
+                {activeChartTab === 'saidas' && (
+                  gastosPorCategoria.length === 0 ? (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <p className="text-[10px] text-zinc-400 font-semibold uppercase tracking-wider">Nenhum gasto registrado</p>
+                    </div>
+                  ) : (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <defs>
+                          <filter id="shadow3d" x="-20%" y="-20%" width="140%" height="140%">
+                            <feDropShadow dx="1" dy="4" stdDeviation="3" floodOpacity="0.2" />
+                          </filter>
+                        </defs>
+                        <Pie
+                          data={gastosPorCategoria.map(([name, value]) => ({ name, value }))}
+                          cx="50%" cy="50%" innerRadius={42} outerRadius={62} paddingAngle={3} dataKey="value"
+                          style={{ filter: 'url(#shadow3d)' }}
+                          isAnimationActive={true}
+                        >
+                          {gastosPorCategoria.map(([name], index) => <Cell key={`cell-${index}`} fill={outCategories.find(c => c.name === name)?.color || CHART_COLORS[(index + 3) % CHART_COLORS.length]} />)}
+                        </Pie>
+                        <RechartsTooltip formatter={(value: number) => formatCurrency(value)} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '10px', fontWeight: 'bold' }} />
+                        <Legend verticalAlign="bottom" height={24} iconType="circle" wrapperStyle={{ fontSize: '9px', fontWeight: 'bold' }} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  )
+                )}
+
+                {activeChartTab === 'entradas' && (
+                  entradasPorCategoria.length === 0 ? (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <p className="text-[10px] text-zinc-400 font-semibold uppercase tracking-wider">Nenhuma entrada registrada</p>
+                    </div>
+                  ) : (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <defs>
+                          <filter id="shadow3d" x="-20%" y="-20%" width="140%" height="140%">
+                            <feDropShadow dx="1" dy="4" stdDeviation="3" floodOpacity="0.2" />
+                          </filter>
+                        </defs>
+                        <Pie
+                          data={entradasPorCategoria.map(([name, value]) => ({ name, value }))}
+                          cx="50%" cy="50%" innerRadius={42} outerRadius={62} paddingAngle={3} dataKey="value"
+                          style={{ filter: 'url(#shadow3d)' }}
+                          isAnimationActive={true}
+                        >
+                          {entradasPorCategoria.map(([name], index) => <Cell key={`cell-${index}`} fill={inCategories.find(c => c.name === name)?.color || CHART_COLORS[(index + 6) % CHART_COLORS.length]} />)}
+                        </Pie>
+                        <RechartsTooltip formatter={(value: number) => formatCurrency(value)} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '10px', fontWeight: 'bold' }} />
+                        <Legend verticalAlign="bottom" height={24} iconType="circle" wrapperStyle={{ fontSize: '9px', fontWeight: 'bold' }} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  )
                 )}
               </div>
             </div>
 
           </section>
 
-
           {/* Coluna 2: Entradas */}
-          <section className="flex flex-col h-full bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden xl:col-span-1">
+          <section className="flex flex-col h-full bg-white dark:bg-[#121214] rounded-2xl border border-zinc-200 dark:border-zinc-800/50 shadow-sm overflow-hidden xl:col-span-1">
             <div className="p-4 bg-blue-50/50 dark:bg-blue-900/10 border-b border-zinc-200 dark:border-zinc-800">
-              <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center justify-between">
                 <h3 className="text-sm font-black uppercase tracking-tight text-blue-600 dark:text-blue-400 flex items-center gap-2"><TrendingUp size={16} /> Entradas</h3>
                 <select value={inSort} onChange={e => setInSort(e.target.value as any)} className="text-[9px] uppercase font-bold tracking-wider bg-transparent text-zinc-400 outline-none cursor-pointer">
                   <option value="date">Data</option>
@@ -466,58 +550,44 @@ const FinancasApp: React.FC = () => {
                   <option value="category">Categ</option>
                 </select>
               </div>
-              
-              <form onSubmit={handleAddEntrada} className="space-y-2">
-                <div className="flex gap-2">
-                  <input type="text" placeholder="Data/Dia" value={inDate} onChange={e => setInDate(e.target.value)} className="w-1/3 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:ring-1 focus:ring-blue-500 dark:text-white" />
-                  <input type="text" placeholder="Nome" value={inName} onChange={e => setInName(e.target.value)} className="w-2/3 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:ring-1 focus:ring-blue-500 dark:text-white" />
-                </div>
-                <div className="flex gap-2">
-                  <select value={inCategory} onChange={e => setInCategory(e.target.value)} className="w-1/2 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer dark:text-white">
-                    {inCategories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
-                  </select>
-                  <input type="text" placeholder="R$" value={inAmount} onChange={e => setInAmount(e.target.value)} className="w-1/2 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:ring-1 focus:ring-blue-500 font-bold dark:text-white" />
-                </div>
-                <div className="flex gap-2 mt-1">
-                  <button type="button" onClick={() => setInPending(!inPending)} className={`w-1/3 border rounded-lg px-2 text-[10px] font-bold uppercase tracking-wider transition-colors ${inPending ? 'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-500/20 dark:text-amber-400 dark:border-amber-500/30' : 'bg-zinc-50 text-zinc-400 border-zinc-200 dark:bg-zinc-900 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}>
-                    {inPending ? 'Pendente' : 'Efetivado'}
-                  </button>
-                  <button disabled={!inName || !inAmount} type="submit" className="w-2/3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg py-1.5 font-bold text-[10px] uppercase tracking-wider transition-colors disabled:opacity-50">Lançar Entrada</button>
-                </div>
-              </form>
             </div>
 
             <div className="flex-1 overflow-y-auto p-3 custom-scrollbar">
-              <ul className="space-y-1.5">
-                {entradas.map(t => (
-                  <li key={t.id} className="group flex items-center justify-between p-2 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors border border-transparent hover:border-zinc-100 dark:hover:border-zinc-800">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-500/10 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold text-[10px]">
-                        {t.dayOnly ? t.date.split('-')[2] : new Date(`${t.date}T12:00:00`).getDate()}
+              {entradas.length === 0 ? (
+                <div className="h-full flex items-center justify-center text-center py-20 text-zinc-400 text-xs font-semibold">
+                  Nenhuma entrada este mês.
+                </div>
+              ) : (
+                <ul className="space-y-1.5">
+                  {entradas.map(t => (
+                    <li key={t.id} className="group flex items-center justify-between p-2 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/55 transition-colors border border-transparent hover:border-zinc-100 dark:hover:border-zinc-800">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-500/10 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold text-[10px]">
+                          {t.dayOnly ? t.date.split('-')[2] : new Date(`${t.date}T12:00:00`).getDate()}
+                        </div>
+                        <div>
+                          <p className="font-bold text-xs text-zinc-800 dark:text-zinc-200">{t.name}</p>
+                          <p className="text-[9px] font-bold uppercase tracking-wider text-zinc-400">{t.category}</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-bold text-xs text-zinc-800 dark:text-zinc-200">{t.name}</p>
-                        <p className="text-[9px] font-bold uppercase tracking-wider text-zinc-400">{t.category}</p>
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => togglePending(t.id)} className={`p-1 rounded-lg transition-colors ${t.pending ? 'text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950 opacity-100' : 'text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-950 opacity-0 group-hover:opacity-100'}`} title={t.pending ? 'Pendente (Clique para Efetivar)' : 'Efetivado (Clique para Pendente)'}>
+                          <TrendingUp size={14}/>
+                        </button>
+                        <span className={`font-bold text-xs ${t.pending ? 'text-amber-500' : 'text-blue-500'}`}>{formatCurrency(t.amount)}</span>
+                        <button onClick={() => deleteTransaction(t.id)} className="opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-rose-500 p-1"><Trash2 size={14}/></button>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button onClick={() => togglePending(t.id)} className={`p-1 rounded-lg transition-colors ${t.pending ? 'text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950 opacity-100' : 'text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-950 opacity-0 group-hover:opacity-100'}`} title={t.pending ? 'Pendente (Clique para Efetivar)' : 'Efetivado (Clique para Pendente)'}>
-                        <TrendingUp size={14}/>
-                      </button>
-                      <span className={`font-bold text-xs ${t.pending ? 'text-amber-500' : 'text-blue-500'}`}>{formatCurrency(t.amount)}</span>
-                      <button onClick={() => deleteTransaction(t.id)} className="opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-rose-500 p-1"><Trash2 size={14}/></button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           </section>
 
-
           {/* Coluna 3: Saídas */}
-          <section className="flex flex-col h-full bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden xl:col-span-1">
+          <section className="flex flex-col h-full bg-white dark:bg-[#121214] rounded-2xl border border-zinc-200 dark:border-zinc-800/50 shadow-sm overflow-hidden xl:col-span-1">
             <div className="p-4 bg-rose-50/50 dark:bg-rose-900/10 border-b border-zinc-200 dark:border-zinc-800">
-              <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center justify-between">
                 <h3 className="text-sm font-black uppercase tracking-tight text-rose-600 dark:text-rose-400 flex items-center gap-2"><TrendingDown size={16} /> Saídas</h3>
                 <select value={outSort} onChange={e => setOutSort(e.target.value as any)} className="text-[9px] uppercase font-bold tracking-wider bg-transparent text-zinc-400 outline-none cursor-pointer">
                   <option value="date">Data</option>
@@ -525,57 +595,41 @@ const FinancasApp: React.FC = () => {
                   <option value="category">Categ</option>
                 </select>
               </div>
-              
-              <form onSubmit={handleAddSaida} className="space-y-2">
-                <div className="flex gap-2">
-                  <input type="text" placeholder="Data/Dia" value={outDate} onChange={e => setOutDate(e.target.value)} className="w-1/3 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:ring-1 focus:ring-rose-500 dark:text-white" />
-                  <input type="text" placeholder="Nome" value={outName} onChange={e => setOutName(e.target.value)} className="w-2/3 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:ring-1 focus:ring-rose-500 dark:text-white" />
-                </div>
-                <div className="flex gap-2">
-                  <select value={outCategory} onChange={e => setOutCategory(e.target.value)} className="w-1/2 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:ring-1 focus:ring-rose-500 cursor-pointer dark:text-white">
-                    {outCategories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
-                  </select>
-                  <input type="text" placeholder="R$" value={outAmount} onChange={e => setOutAmount(e.target.value)} className="w-1/2 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:ring-1 focus:ring-rose-500 font-bold dark:text-white" />
-                </div>
-                <select value={outMethod} onChange={e => setOutMethod(e.target.value)} className="w-full bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:ring-1 focus:ring-rose-500 cursor-pointer dark:text-white">
-                  {paymentMethods.map(m => <option key={m.id} value={m.name}>{m.name}</option>)}
-                </select>
-                <div className="flex gap-2 mt-1">
-                  <button type="button" onClick={() => setOutPending(!outPending)} className={`w-1/3 border rounded-lg px-2 text-[10px] font-bold uppercase tracking-wider transition-colors ${outPending ? 'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-500/20 dark:text-amber-400 dark:border-amber-500/30' : 'bg-zinc-50 text-zinc-400 border-zinc-200 dark:bg-zinc-900 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}>
-                    {outPending ? 'Pendente' : 'Efetivado'}
-                  </button>
-                  <button disabled={!outName || !outAmount} type="submit" className="w-2/3 bg-rose-500 hover:bg-rose-600 text-white rounded-lg py-1.5 font-bold text-[10px] uppercase tracking-wider transition-colors disabled:opacity-50">Lançar Saída</button>
-                </div>
-              </form>
             </div>
 
             <div className="flex-1 overflow-y-auto p-3 custom-scrollbar">
-              <ul className="space-y-1.5">
-                {saidas.map(t => (
-                  <li key={t.id} className="group flex items-center justify-between p-2 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors border border-transparent hover:border-zinc-100 dark:hover:border-zinc-800">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-full bg-rose-100 dark:bg-rose-500/10 flex items-center justify-center text-rose-600 dark:text-rose-400 font-bold text-[10px]">
-                        {t.dayOnly ? t.date.split('-')[2] : new Date(`${t.date}T12:00:00`).getDate()}
+              {saidas.length === 0 ? (
+                <div className="h-full flex items-center justify-center text-center py-20 text-zinc-400 text-xs font-semibold">
+                  Nenhuma saída este mês.
+                </div>
+              ) : (
+                <ul className="space-y-1.5">
+                  {saidas.map(t => (
+                    <li key={t.id} className="group flex items-center justify-between p-2 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/55 transition-colors border border-transparent hover:border-zinc-100 dark:hover:border-zinc-800">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-full bg-rose-100 dark:bg-rose-500/10 flex items-center justify-center text-rose-600 dark:text-rose-400 font-bold text-[10px]">
+                          {t.dayOnly ? t.date.split('-')[2] : new Date(`${t.date}T12:00:00`).getDate()}
+                        </div>
+                        <div>
+                          <p className="font-bold text-xs text-zinc-800 dark:text-zinc-200">{t.name}</p>
+                          <p className="text-[9px] font-bold uppercase tracking-wider text-zinc-400 flex gap-1.5">
+                            <span>{t.category}</span>
+                            <span className="text-zinc-300 dark:text-zinc-700">•</span>
+                            <span>{t.paymentMethod}</span>
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-bold text-xs text-zinc-800 dark:text-zinc-200">{t.name}</p>
-                        <p className="text-[9px] font-bold uppercase tracking-wider text-zinc-400 flex gap-1.5">
-                          <span>{t.category}</span>
-                          <span className="text-zinc-300 dark:text-zinc-700">•</span>
-                          <span>{t.paymentMethod}</span>
-                        </p>
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => togglePending(t.id)} className={`p-1 rounded-lg transition-colors ${t.pending ? 'text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950 opacity-100' : 'text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-950 opacity-0 group-hover:opacity-100'}`} title={t.pending ? 'Pendente (Clique para Efetivar)' : 'Efetivado (Clique para Pendente)'}>
+                          <TrendingDown size={14}/>
+                        </button>
+                        <span className={`font-bold text-xs ${t.pending ? 'text-amber-500' : 'text-rose-500'}`}>{formatCurrency(t.amount)}</span>
+                        <button onClick={() => deleteTransaction(t.id)} className="opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-rose-500 p-1"><Trash2 size={14}/></button>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button onClick={() => togglePending(t.id)} className={`p-1 rounded-lg transition-colors ${t.pending ? 'text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950 opacity-100' : 'text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-950 opacity-0 group-hover:opacity-100'}`} title={t.pending ? 'Pendente (Clique para Efetivar)' : 'Efetivado (Clique para Pendente)'}>
-                        <TrendingDown size={14}/>
-                      </button>
-                      <span className={`font-bold text-xs ${t.pending ? 'text-amber-500' : 'text-rose-500'}`}>{formatCurrency(t.amount)}</span>
-                      <button onClick={() => deleteTransaction(t.id)} className="opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-rose-500 p-1"><Trash2 size={14}/></button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           </section>
 

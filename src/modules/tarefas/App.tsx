@@ -282,11 +282,11 @@ const TarefasApp: React.FC = () => {
 
       {/* Área Principal (Sem rolagem global de tela) */}
       <main className="flex-1 p-6 overflow-hidden flex flex-col bg-zinc-50 dark:bg-[#0c0c0e]">
-        <div className="flex-1 flex gap-6 h-full overflow-hidden max-w-5xl mx-auto w-full">
+        <div className="flex-1 flex gap-6 h-full overflow-hidden max-w-6xl mx-auto w-full">
           
           {/* Caixa de Criação de Tarefas (Só ativa se ativo tab de 'ativas') */}
           {activeTab === 'ativas' ? (
-            <div className="w-80 flex-shrink-0 flex flex-col bg-white dark:bg-[#121214] border border-zinc-200 dark:border-zinc-800/50 rounded-2xl p-5 shadow-xl shadow-zinc-200/5 dark:shadow-black/20 justify-between h-[480px]">
+            <div className="w-[360px] flex-shrink-0 flex flex-col bg-white dark:bg-[#121214] border border-zinc-200 dark:border-zinc-800/50 rounded-2xl p-5 shadow-xl shadow-zinc-200/5 dark:shadow-black/20 justify-between h-[480px]">
               <div className="space-y-4">
                 <div className="flex items-center gap-2 mb-1">
                   <div className="p-2 rounded-lg bg-rose-50 dark:bg-rose-500/10 text-rose-500">
@@ -390,7 +390,7 @@ const TarefasApp: React.FC = () => {
               </div>
             </div>
           ) : (
-            <div className="w-80 flex-shrink-0 flex flex-col bg-white dark:bg-[#121214] border border-zinc-200 dark:border-zinc-800/50 rounded-2xl p-5 shadow-xl shadow-zinc-200/5 dark:shadow-black/20 justify-between h-[260px]">
+            <div className="w-[360px] flex-shrink-0 flex flex-col bg-white dark:bg-[#121214] border border-zinc-200 dark:border-zinc-800/50 rounded-2xl p-5 shadow-xl shadow-zinc-200/5 dark:shadow-black/20 justify-between h-[260px]">
               <div className="space-y-4">
                 <div className="flex items-center gap-2 mb-1">
                   <div className="p-2 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-650 dark:text-zinc-400">

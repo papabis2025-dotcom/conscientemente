@@ -387,7 +387,7 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
         <div className={`mb-10 transition-all duration-700 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
 
           {/* Live clock widget */}
-          <div className="mt-4 inline-flex items-center gap-5 px-6 py-4 bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-md">
+          <div className="mt-4 inline-flex items-center gap-5 px-6 py-4 bg-white/40 dark:bg-zinc-900/40 backdrop-blur-md rounded-3xl border border-zinc-200/50 dark:border-zinc-800/50 shadow-md">
             <div className="flex flex-col">
               <span className="font-black text-zinc-800 dark:text-white text-4xl leading-none tracking-tight tabular-nums">
                 {timeStr}

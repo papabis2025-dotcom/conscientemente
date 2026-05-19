@@ -89,9 +89,18 @@ const ModuleCard: React.FC<{ module: Module; index: number }> = ({ module, index
     if (action === 'adicionar-estudo') {
       sessionStorage.setItem('openAddStudyModal', 'true');
       window.location.hash = 'estudos';
-    } else if (action === 'idade-fisica') {
-      sessionStorage.setItem('saudeActiveTab', 'idade-fisica');
+    } else if (action === 'novo-treino') {
+      sessionStorage.setItem('openAddSaudeModal', 'true');
       window.location.hash = 'saude';
+    } else if (action === 'financas-entrada') {
+      sessionStorage.setItem('openAddFinancasType', 'entrada');
+      window.location.hash = 'financas';
+    } else if (action === 'financas-saida') {
+      sessionStorage.setItem('openAddFinancasType', 'saida');
+      window.location.hash = 'financas';
+    } else if (action === 'nova-tarefa') {
+      sessionStorage.setItem('openAddTaskModal', 'true');
+      window.location.hash = 'tarefas';
     }
   };
 
@@ -141,21 +150,45 @@ const ModuleCard: React.FC<{ module: Module; index: number }> = ({ module, index
 
         {module.available && (
           <div className="mt-4 pt-3 border-t border-zinc-100 dark:border-zinc-800/80 flex flex-wrap items-center justify-between gap-2">
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-1.5">
               {module.id === 'estudos' && (
                 <button
                   onClick={(e) => handleShortcutClick(e, 'adicionar-estudo')}
-                  className="px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-650 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/50 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all"
+                  className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-650 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/50 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all"
                 >
-                  + Adicionar Estudo
+                  + Estudo
                 </button>
               )}
               {module.id === 'saude' && (
                 <button
-                  onClick={(e) => handleShortcutClick(e, 'idade-fisica')}
-                  className="px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider rounded-lg bg-cyan-50 dark:bg-cyan-950/40 text-cyan-650 dark:text-cyan-400 border border-cyan-100 dark:border-cyan-900/50 hover:bg-cyan-600 hover:text-white hover:border-cyan-600 transition-all"
+                  onClick={(e) => handleShortcutClick(e, 'novo-treino')}
+                  className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded-lg bg-cyan-50 dark:bg-cyan-950/40 text-cyan-650 dark:text-cyan-400 border border-cyan-100 dark:border-cyan-900/50 hover:bg-cyan-600 hover:text-white hover:border-cyan-600 transition-all"
                 >
-                  ⚡ Idade Física
+                  + Treino
+                </button>
+              )}
+              {module.id === 'financas' && (
+                <>
+                  <button
+                    onClick={(e) => handleShortcutClick(e, 'financas-entrada')}
+                    className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-650 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/50 hover:bg-emerald-600 hover:text-white hover:border-emerald-600 transition-all"
+                  >
+                    + Receita
+                  </button>
+                  <button
+                    onClick={(e) => handleShortcutClick(e, 'financas-saida')}
+                    className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded-lg bg-rose-50 dark:bg-rose-950/40 text-rose-650 dark:text-rose-400 border border-rose-100 dark:border-rose-900/50 hover:bg-rose-600 hover:text-white hover:border-rose-600 transition-all"
+                  >
+                    - Despesa
+                  </button>
+                </>
+              )}
+              {module.id === 'tarefas' && (
+                <button
+                  onClick={(e) => handleShortcutClick(e, 'nova-tarefa')}
+                  className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded-lg bg-rose-50 dark:bg-rose-950/40 text-rose-655 dark:text-rose-400 border border-rose-100 dark:border-rose-900/50 hover:bg-rose-600 hover:text-white hover:border-rose-600 transition-all"
+                >
+                  + Tarefa
                 </button>
               )}
             </div>

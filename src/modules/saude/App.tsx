@@ -56,6 +56,15 @@ const SaudeApp: React.FC = () => {
   }, []);
 
   const [showAddForm, setShowAddForm] = useState(false);
+
+  useEffect(() => {
+    if (sessionStorage.getItem('openAddSaudeModal') === 'true') {
+      sessionStorage.removeItem('openAddSaudeModal');
+      setActiveTab('atividades');
+      setShowAddForm(true);
+    }
+  }, []);
+
   const [formType, setFormType] = useState<ActivityType>('Corrida');
   const [formDate, setFormDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [formTime, setFormTime] = useState('');

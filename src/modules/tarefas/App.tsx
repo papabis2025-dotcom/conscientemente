@@ -19,6 +19,19 @@ const TarefasApp: React.FC = () => {
   const [sortBy, setSortBy] = useState<'data' | 'alfabetica' | 'prioridade'>('prioridade');
 
   useEffect(() => {
+    if (sessionStorage.getItem('openAddTaskModal') === 'true') {
+      sessionStorage.removeItem('openAddTaskModal');
+      setActiveTab('ativas');
+      setTimeout(() => {
+        const textareaEl = document.querySelector('textarea[placeholder="Ex: Ler livro, Comprar leite..."]');
+        if (textareaEl) {
+          (textareaEl as HTMLTextAreaElement).focus();
+        }
+      }, 100);
+    }
+  }, []);
+
+  useEffect(() => {
     const loadTasks = async () => {
       try {
         const data = await tarefasApi.list();

@@ -96,6 +96,21 @@ const FinancasApp: React.FC = () => {
   const [txPending, setTxPending] = useState(false);
   const [activeChartTab, setActiveChartTab] = useState<'cartoes' | 'saidas' | 'entradas'>('cartoes');
 
+  useEffect(() => {
+    const targetType = sessionStorage.getItem('openAddFinancasType');
+    if (targetType === 'entrada' || targetType === 'saida') {
+      sessionStorage.removeItem('openAddFinancasType');
+      setTxType(targetType as TransactionType);
+      setActiveTab('dashboard');
+      setTimeout(() => {
+        const inputEl = document.querySelector('input[placeholder="Ex: Supermercado"]');
+        if (inputEl) {
+          (inputEl as HTMLInputElement).focus();
+        }
+      }, 100);
+    }
+  }, []);
+
   // Atualizar seleções caso a categoria ativa seja apagada ou mude o tipo
   useEffect(() => {
     if (txType === 'entrada') {

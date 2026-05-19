@@ -145,6 +145,55 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [logs, setLogs] = useState<LogEntry[]>([]);
 
+  // Background states
+  const [bgType, setBgType] = useState<'default' | 'color' | 'image'>(() => (localStorage.getItem('hub_bg_type') as any) || 'default');
+  const [bgColor, setBgColor] = useState(() => localStorage.getItem('hub_bg_color') || '#ffffff');
+  const [bgImage, setBgImage] = useState(() => localStorage.getItem('hub_bg_image') || '');
+  const bgImageRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    localStorage.setItem('hub_bg_type', bgType);
+    localStorage.setItem('hub_bg_color', bgColor);
+    // bgImage is saved upon compression to avoid quota issues
+  }, [bgType, bgColor]);
+
+  const handleBgImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    const img = new window.Image();
+    img.src = URL.createObjectURL(file);
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const MAX_SIZE = 1920;
+      let width = img.width;
+      let height = img.height;
+
+      if (width > height && width > MAX_SIZE) {
+        height *= MAX_SIZE / width;
+        width = MAX_SIZE;
+      } else if (height > MAX_SIZE) {
+        width *= MAX_SIZE / height;
+        height = MAX_SIZE;
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx?.drawImage(img, 0, 0, width, height);
+      
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+      try {
+        localStorage.setItem('hub_bg_image', dataUrl);
+        setBgImage(dataUrl);
+        setBgType('image');
+      } catch (err) {
+        alert('A imagem é muito grande para ser salva. Escolha uma imagem com tamanho menor.');
+      }
+      URL.revokeObjectURL(img.src);
+    };
+  };
+
   // Settings states
   const fileRef = useRef<HTMLInputElement>(null);
   const [isExporting, setIsExporting] = useState(false);
@@ -297,7 +346,13 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
   const dateStr = currentTime.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
 
   return (
-    <div className={`min-h-screen bg-zinc-50 dark:bg-zinc-950 flex flex-col relative overflow-hidden transition-colors duration-300`}>
+    <div 
+      className={`min-h-screen ${bgType === 'default' ? 'bg-zinc-50 dark:bg-zinc-950' : ''} flex flex-col relative overflow-hidden transition-colors duration-300`}
+      style={{
+        ...(bgType === 'color' ? { backgroundColor: bgColor } : {}),
+        ...(bgType === 'image' && bgImage ? { backgroundImage: `url(${bgImage})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed' } : {})
+      }}
+    >
 
       {/* Ambient background orbs */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
@@ -519,6 +574,29 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
                      <input type="email" placeholder="Novo E-mail" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} className="w-full px-4 py-3 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-2xl outline-none focus:ring-2 focus:ring-zinc-500 text-zinc-800 dark:text-white" />
                      <button onClick={handleEmailChange} className="w-full bg-emerald-600 text-white py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-emerald-700">Alterar E-mail</button>
                      {emailMessage && <p className="text-xs font-bold text-emerald-500">{emailMessage}</p>}
+                   </div>
+                 </div>
+               </div>
+
+               <div className="space-y-4 pt-6 border-t border-zinc-200 dark:border-zinc-800">
+                 <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Personalização de Fundo</p>
+                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                   <button onClick={() => setBgType('default')} className={`p-4 rounded-2xl border transition-all ${bgType === 'default' ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300' : 'border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/50 text-zinc-600 dark:text-zinc-400'}`}>
+                     <span className="text-xs font-black uppercase tracking-widest">Padrão</span>
+                   </button>
+                   
+                   <div className={`p-4 rounded-2xl border transition-all flex flex-col items-center justify-center gap-3 ${bgType === 'color' ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-500/10' : 'border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/50'}`}>
+                     <span className={`text-[10px] font-black uppercase tracking-widest ${bgType === 'color' ? 'text-indigo-700 dark:text-indigo-300' : 'text-zinc-600 dark:text-zinc-400'}`}>Cor Sólida</span>
+                     <div className="flex items-center gap-2 w-full">
+                       <input type="color" value={bgColor} onChange={e => { setBgColor(e.target.value); setBgType('color'); }} className="w-8 h-8 rounded cursor-pointer border-0 p-0" />
+                       <span className="text-xs font-mono text-zinc-500">{bgColor}</span>
+                     </div>
+                   </div>
+
+                   <div className={`p-4 rounded-2xl border transition-all flex flex-col items-center justify-center gap-3 ${bgType === 'image' ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-500/10' : 'border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/50'}`}>
+                     <span className={`text-[10px] font-black uppercase tracking-widest ${bgType === 'image' ? 'text-indigo-700 dark:text-indigo-300' : 'text-zinc-600 dark:text-zinc-400'}`}>Imagem</span>
+                     <button onClick={() => bgImageRef.current?.click()} className="w-full text-[10px] font-black uppercase tracking-widest text-zinc-700 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-700 px-3 py-2 rounded-xl hover:bg-zinc-200 dark:hover:bg-zinc-600 transition-colors">Selecionar</button>
+                     <input type="file" ref={bgImageRef} onChange={handleBgImageUpload} accept="image/*" className="hidden" />
                    </div>
                  </div>
                </div>

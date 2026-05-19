@@ -12,6 +12,10 @@ interface HubHomeProps {
   theme: 'light' | 'dark';
   toggleTheme: () => void;
   onLogout: () => void;
+  bgType: 'default' | 'color';
+  setBgType: (type: 'default' | 'color') => void;
+  bgColor: string;
+  setBgColor: (color: string) => void;
 }
 
 const colorMap: Record<string, {
@@ -135,7 +139,7 @@ const ModuleCard: React.FC<{ module: Module; index: number }> = ({ module, index
   );
 };
 
-const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogout }) => {
+const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogout, bgType, setBgType, bgColor, setBgColor }) => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [pendingTarefas, setPendingTarefas] = useState(0);
   const [pendingEstudos, setPendingEstudos] = useState(0);
@@ -145,82 +149,6 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [logs, setLogs] = useState<LogEntry[]>([]);
-
-  // Background states
-  const [bgType, setBgType] = useState<'default' | 'color' | 'image'>('default');
-  const [bgColor, setBgColor] = useState('#ffffff');
-  const [bgImage, setBgImage] = useState('');
-  const [bgSize, setBgSize] = useState<'cover' | 'repeat'>('cover');
-  const [isPrefsLoaded, setIsPrefsLoaded] = useState(false);
-  const bgImageRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    const loadPreferences = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data: prefs } = await supabase
-        .from('user_preferences')
-        .select('*')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (prefs) {
-        if (prefs.hub_bg_type) setBgType(prefs.hub_bg_type as any);
-        if (prefs.hub_bg_color) setBgColor(prefs.hub_bg_color);
-        if (prefs.hub_bg_size) setBgSize(prefs.hub_bg_size as any);
-        if (prefs.hub_bg_image_url) setBgImage(prefs.hub_bg_image_url);
-      }
-      setIsPrefsLoaded(true);
-    };
-    loadPreferences();
-  }, []);
-
-  useEffect(() => {
-    if (isPrefsLoaded) {
-      const savePrefs = async () => {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-        await supabase.from('user_preferences').upsert({
-          user_id: user.id,
-          hub_bg_type: bgType,
-          hub_bg_color: bgColor,
-          hub_bg_size: bgSize,
-          hub_bg_image_url: bgImage
-        }, { onConflict: 'user_id' });
-      };
-      savePrefs().catch(err => console.error('Error saving user preferences:', err));
-    }
-  }, [bgType, bgColor, bgSize, bgImage, isPrefsLoaded]);
-
-  const handleBgImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}/bg_image_${Date.now()}.${fileExt}`;
-      
-      const { error: uploadError } = await supabase.storage
-        .from('assets')
-        .upload(fileName, file, { upsert: true });
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('assets')
-        .getPublicUrl(fileName);
-
-      setBgImage(publicUrl);
-      setBgType('image');
-    } catch (err) {
-      console.error('Failed to upload image:', err);
-      alert('Erro ao subir imagem para a nuvem.');
-    }
-  };
 
   // Settings states
   const fileRef = useRef<HTMLInputElement>(null);
@@ -400,11 +328,7 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
 
   return (
     <div 
-      className={`min-h-screen ${bgType === 'default' ? 'bg-zinc-50 dark:bg-zinc-950' : ''} flex flex-col relative overflow-hidden transition-colors duration-300`}
-      style={{
-        ...(bgType === 'color' ? { backgroundColor: bgColor } : {}),
-        ...(bgType === 'image' && bgImage ? { backgroundImage: `url(${bgImage})`, backgroundSize: bgSize === 'repeat' ? 'auto' : 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed', backgroundRepeat: bgSize === 'repeat' ? 'repeat' : 'no-repeat' } : {})
-      }}
+      className={`min-h-screen ${bgType === 'default' ? 'bg-zinc-50 dark:bg-zinc-950' : 'bg-transparent'} flex flex-col relative overflow-hidden transition-colors duration-300`}
     >
 
       {/* Top bar */}
@@ -638,7 +562,7 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
 
                <div className="space-y-4 pt-6 border-t border-zinc-200 dark:border-zinc-800">
                  <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Personalização de Fundo</p>
-                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                    <button onClick={() => setBgType('default')} className={`p-4 rounded-2xl border transition-all ${bgType === 'default' ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300' : 'border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/50 text-zinc-600 dark:text-zinc-400'}`}>
                      <span className="text-xs font-black uppercase tracking-widest">Padrão</span>
                    </button>
@@ -651,17 +575,17 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
                      </div>
                    </div>
 
-                   <div className={`p-4 rounded-2xl border transition-all flex flex-col items-center justify-center gap-3 ${bgType === 'image' ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-500/10' : 'border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/50'}`}>
-                     <span className={`text-[10px] font-black uppercase tracking-widest flex items-center justify-between w-full ${bgType === 'image' ? 'text-indigo-700 dark:text-indigo-300' : 'text-zinc-600 dark:text-zinc-400'}`}>
+                   <div className={`p-4 rounded-2xl border transition-all flex flex-col items-center justify-center gap-3 hidden`}>
+                     <span className={`text-[10px] font-black uppercase tracking-widest flex items-center justify-between w-full text-zinc-600 dark:text-zinc-400`}>
                        <span>Imagem</span>
-                       {bgType === 'image' && (
-                         <button onClick={() => setBgSize(s => s === 'cover' ? 'repeat' : 'cover')} className="text-[9px] bg-white dark:bg-zinc-800 px-2 py-0.5 rounded border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-900 transition-colors">
-                           {bgSize === 'cover' ? 'Lado a lado' : 'Preencher'}
+                       {false && (
+                         <button onClick={() => {}} className="text-[9px] bg-white dark:bg-zinc-800 px-2 py-0.5 rounded border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-900 transition-colors">
+                           'Preencher'
                          </button>
                        )}
                      </span>
-                     <button onClick={() => bgImageRef.current?.click()} className="w-full text-[10px] font-black uppercase tracking-widest text-zinc-700 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-700 px-3 py-2 rounded-xl hover:bg-zinc-200 dark:hover:bg-zinc-600 transition-colors">Selecionar</button>
-                     <input type="file" ref={bgImageRef} onChange={handleBgImageUpload} accept="image/*" className="hidden" />
+                     <button onClick={() => {}} className="w-full text-[10px] font-black uppercase tracking-widest text-zinc-700 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-700 px-3 py-2 rounded-xl hover:bg-zinc-200 dark:hover:bg-zinc-600 transition-colors">Selecionar</button>
+                     <input type="file" onChange={() => {}} accept="image/*" className="hidden" />
                    </div>
                  </div>
                </div>

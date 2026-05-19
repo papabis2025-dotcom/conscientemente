@@ -166,7 +166,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   };
 
   return (
-    <div className={`${isCollapsed ? 'w-16' : 'w-56'} h-full bg-white dark:bg-zinc-900 border-r border-zinc-200 dark:border-zinc-800 flex flex-col p-3 transition-all duration-300 z-50 shadow-xl overflow-hidden text-sm relative`}>
+    <div className={`${isCollapsed ? 'w-20' : 'w-64'} h-full bg-white/50 dark:bg-zinc-900/50 border-r border-zinc-200 dark:border-zinc-800 flex flex-col p-5 transition-all duration-300 z-50 shadow-sm overflow-hidden text-sm relative backdrop-blur-xl`}>
 
       <button
         onClick={onToggleCollapse}

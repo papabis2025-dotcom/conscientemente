@@ -261,7 +261,7 @@ const FinancasApp: React.FC = () => {
   const monthName = currentDate.toLocaleString('pt-BR', { month: 'short', year: 'numeric' });
 
   return (
-    <div className="flex h-screen bg-[#fdfdfc] dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 font-sans overflow-hidden">
+    <div className="flex h-screen bg-transparent text-zinc-900 dark:text-zinc-100 font-sans overflow-hidden">
       
       {/* Sidebar Lateral */}
       <aside className="w-64 bg-white/50 dark:bg-zinc-900/50 border-r border-zinc-200 dark:border-zinc-800 flex flex-col transition-all backdrop-blur-xl">

@@ -153,48 +153,76 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
   const [bgSize, setBgSize] = useState<'cover' | 'repeat'>(() => (localStorage.getItem('hub_bg_size') as any) || 'cover');
   const bgImageRef = useRef<HTMLInputElement>(null);
 
+  // IndexedDB helpers for high-res images
+  const initDB = (): Promise<IDBDatabase> => {
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open('ConscientementeDB', 1);
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => resolve(request.result);
+      request.onupgradeneeded = (e) => {
+        const db = (e.target as IDBOpenDBRequest).result;
+        if (!db.objectStoreNames.contains('assets')) {
+          db.createObjectStore('assets');
+        }
+      };
+    });
+  };
+
+  const saveImageToDB = async (key: string, dataUrl: string) => {
+    try {
+      const db = await initDB();
+      return new Promise<void>((resolve, reject) => {
+        const transaction = db.transaction('assets', 'readwrite');
+        const store = transaction.objectStore('assets');
+        const request = store.put(dataUrl, key);
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
+      });
+    } catch (e) {
+      console.error('IndexedDB Save Error:', e);
+    }
+  };
+
+  const getImageFromDB = async (key: string): Promise<string | undefined> => {
+    try {
+      const db = await initDB();
+      return new Promise((resolve, reject) => {
+        const transaction = db.transaction('assets', 'readonly');
+        const store = transaction.objectStore('assets');
+        const request = store.get(key);
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+    } catch (e) {
+      console.error('IndexedDB Load Error:', e);
+      return undefined;
+    }
+  };
+
   useEffect(() => {
     localStorage.setItem('hub_bg_type', bgType);
     localStorage.setItem('hub_bg_color', bgColor);
     localStorage.setItem('hub_bg_size', bgSize);
-    // bgImage is saved upon compression to avoid quota issues
   }, [bgType, bgColor, bgSize]);
+
+  useEffect(() => {
+    getImageFromDB('hub_bg_image_highres').then((dataUrl) => {
+      if (dataUrl) setBgImage(dataUrl);
+    });
+  }, []);
 
   const handleBgImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     
-    const img = new window.Image();
-    img.src = URL.createObjectURL(file);
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      const MAX_SIZE = 1920;
-      let width = img.width;
-      let height = img.height;
-
-      if (width > height && width > MAX_SIZE) {
-        height *= MAX_SIZE / width;
-        width = MAX_SIZE;
-      } else if (height > MAX_SIZE) {
-        width *= MAX_SIZE / height;
-        height = MAX_SIZE;
-      }
-
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
-      ctx?.drawImage(img, 0, 0, width, height);
-      
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
-      try {
-        localStorage.setItem('hub_bg_image', dataUrl);
-        setBgImage(dataUrl);
-        setBgType('image');
-      } catch (err) {
-        alert('A imagem é muito grande para ser salva. Escolha uma imagem com tamanho menor.');
-      }
-      URL.revokeObjectURL(img.src);
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const dataUrl = reader.result as string;
+      setBgImage(dataUrl);
+      setBgType('image');
+      await saveImageToDB('hub_bg_image_highres', dataUrl);
     };
+    reader.readAsDataURL(file);
   };
 
   // Settings states

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { MODULES } from '../constants';
 import { Module } from '../types';
 import { LogEntry } from '../modules/estudos/types';
-import { LogOut, Sun, Moon, ArrowUpRight, Lock, BookOpen, Wallet, ListTodo, Brain, ChevronRight, Activity, TrendingUp, Settings, User, X } from 'lucide-react';
+import { LogOut, Sun, Moon, ArrowUpRight, Lock, BookOpen, Wallet, ListTodo, Brain, ChevronRight, Activity, TrendingUp, Settings, User, X, HeartPulse } from 'lucide-react';
 import LogView from '../modules/estudos/pages/LogView';
 import { api } from '../modules/estudos/services/api';
 import { supabase } from '../modules/estudos/services/supabase';
@@ -139,6 +139,7 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
   const [currentTime, setCurrentTime] = useState(new Date());
   const [pendingTarefas, setPendingTarefas] = useState(0);
   const [pendingEstudos, setPendingEstudos] = useState(0);
+  const [pendingSaude, setPendingSaude] = useState(0);
   const [financeBalance, setFinanceBalance] = useState<number | null>(null);
   const [mounted, setMounted] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
@@ -149,13 +150,15 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
   const [bgType, setBgType] = useState<'default' | 'color' | 'image'>(() => (localStorage.getItem('hub_bg_type') as any) || 'default');
   const [bgColor, setBgColor] = useState(() => localStorage.getItem('hub_bg_color') || '#ffffff');
   const [bgImage, setBgImage] = useState(() => localStorage.getItem('hub_bg_image') || '');
+  const [bgSize, setBgSize] = useState<'cover' | 'contain'>(() => (localStorage.getItem('hub_bg_size') as any) || 'cover');
   const bgImageRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     localStorage.setItem('hub_bg_type', bgType);
     localStorage.setItem('hub_bg_color', bgColor);
+    localStorage.setItem('hub_bg_size', bgSize);
     // bgImage is saved upon compression to avoid quota issues
-  }, [bgType, bgColor]);
+  }, [bgType, bgColor, bgSize]);
 
   const handleBgImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -330,6 +333,10 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
 
       setPendingEstudos(pendingStudyTasks + pendingScheduled);
 
+      const saudeRaw = JSON.parse(localStorage.getItem('cn_saude') || '[]');
+      const saude = Array.isArray(saudeRaw) ? saudeRaw : [];
+      setPendingSaude(saude.filter((a: any) => a.date === todayStr && a.status === 'planejado').length);
+
       const financasRaw = JSON.parse(localStorage.getItem('cn_financas') || '[]');
       const financas = Array.isArray(financasRaw) ? financasRaw : [];
       const currentMonthStr = `${currentTime.getFullYear()}-${String(currentTime.getMonth() + 1).padStart(2, '0')}`;
@@ -350,16 +357,9 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
       className={`min-h-screen ${bgType === 'default' ? 'bg-zinc-50 dark:bg-zinc-950' : ''} flex flex-col relative overflow-hidden transition-colors duration-300`}
       style={{
         ...(bgType === 'color' ? { backgroundColor: bgColor } : {}),
-        ...(bgType === 'image' && bgImage ? { backgroundImage: `url(${bgImage})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed' } : {})
+        ...(bgType === 'image' && bgImage ? { backgroundImage: `url(${bgImage})`, backgroundSize: bgSize === 'contain' ? 'contain' : 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed', backgroundRepeat: 'no-repeat' } : {})
       }}
     >
-
-      {/* Ambient background orbs */}
-      <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute -top-40 -left-40 w-[600px] h-[600px] rounded-full bg-indigo-400/10 dark:bg-indigo-600/8 blur-3xl animate-pulse" style={{ animationDuration: '6s' }} />
-        <div className="absolute -bottom-40 -right-40 w-[500px] h-[500px] rounded-full bg-violet-400/10 dark:bg-violet-600/8 blur-3xl animate-pulse" style={{ animationDuration: '8s', animationDelay: '2s' }} />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] rounded-full bg-sky-400/5 dark:bg-sky-500/5 blur-3xl" />
-      </div>
 
       {/* Top bar */}
       <header className="relative z-10 border-b border-zinc-200/70 dark:border-zinc-800/70 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-lg px-6 py-3.5 flex items-center justify-between shadow-sm">
@@ -451,6 +451,18 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
               <span className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-full text-[10px] font-bold uppercase tracking-wider border border-emerald-200 dark:border-emerald-500/20">
                 <BookOpen size={11} />
                 Estudos ok ✓
+              </span>
+            )}
+
+            {pendingSaude > 0 ? (
+              <span className="flex items-center gap-1.5 px-3 py-1.5 bg-cyan-50 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 rounded-full text-[10px] font-black uppercase tracking-wider border border-cyan-200 dark:border-cyan-500/20">
+                <HeartPulse size={11} />
+                {pendingSaude} {pendingSaude === 1 ? 'treino pendente' : 'treinos pendentes'}
+              </span>
+            ) : (
+              <span className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-full text-[10px] font-bold uppercase tracking-wider border border-emerald-200 dark:border-emerald-500/20">
+                <HeartPulse size={11} />
+                Treinos ok ✓
               </span>
             )}
 
@@ -594,7 +606,14 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
                    </div>
 
                    <div className={`p-4 rounded-2xl border transition-all flex flex-col items-center justify-center gap-3 ${bgType === 'image' ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-500/10' : 'border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/50'}`}>
-                     <span className={`text-[10px] font-black uppercase tracking-widest ${bgType === 'image' ? 'text-indigo-700 dark:text-indigo-300' : 'text-zinc-600 dark:text-zinc-400'}`}>Imagem</span>
+                     <span className={`text-[10px] font-black uppercase tracking-widest flex items-center justify-between w-full ${bgType === 'image' ? 'text-indigo-700 dark:text-indigo-300' : 'text-zinc-600 dark:text-zinc-400'}`}>
+                       <span>Imagem</span>
+                       {bgType === 'image' && (
+                         <button onClick={() => setBgSize(s => s === 'cover' ? 'contain' : 'cover')} className="text-[9px] bg-white dark:bg-zinc-800 px-2 py-0.5 rounded border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-900 transition-colors">
+                           {bgSize === 'cover' ? 'Centralizar' : 'Estender'}
+                         </button>
+                       )}
+                     </span>
                      <button onClick={() => bgImageRef.current?.click()} className="w-full text-[10px] font-black uppercase tracking-widest text-zinc-700 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-700 px-3 py-2 rounded-xl hover:bg-zinc-200 dark:hover:bg-zinc-600 transition-colors">Selecionar</button>
                      <input type="file" ref={bgImageRef} onChange={handleBgImageUpload} accept="image/*" className="hidden" />
                    </div>

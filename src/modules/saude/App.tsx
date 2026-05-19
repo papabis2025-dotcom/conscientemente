@@ -1,16 +1,18 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Activity, Dumbbell, Footprints, HeartPulse, LayoutTemplate, Plus, Trash2, TrendingUp } from 'lucide-react';
+import { Activity, Dumbbell, Footprints, HeartPulse, LayoutTemplate, Plus, Trash2, TrendingUp, CalendarDays } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend, AreaChart, Area } from 'recharts';
+import SaudePlannerView from './pages/SaudePlannerView';
 
-type ActivityType = 'Corrida' | 'Ciclismo' | 'Natação' | 'Musculação';
-type CardioLevel = 'Leve' | 'Ritmado' | 'Arrancada' | 'Específico' | 'Moderado' | 'Longo';
-type MuscleGroup = 'Peito' | 'Costa' | 'Ombro' | 'Bíceps' | 'Tríceps' | 'Perna/Anterior' | 'Perna/Posterior';
+export type ActivityType = 'Corrida' | 'Ciclismo' | 'Natação' | 'Musculação';
+export type CardioLevel = 'Leve' | 'Ritmado' | 'Arrancada' | 'Específico' | 'Moderado' | 'Longo';
+export type MuscleGroup = 'Peito' | 'Costa' | 'Ombro' | 'Bíceps' | 'Tríceps' | 'Perna/Anterior' | 'Perna/Posterior';
 
-interface HealthActivity {
+export interface HealthActivity {
   id: string;
   type: ActivityType;
   date: string;
   timeInMinutes: number;
+  status?: 'realizado' | 'planejado';
   
   // Cardio
   distanceKm?: number;
@@ -25,7 +27,7 @@ const MUSCLE_GROUPS: MuscleGroup[] = ['Peito', 'Costa', 'Ombro', 'Bíceps', 'Tr�
 const CARDIO_LEVELS: CardioLevel[] = ['Leve', 'Ritmado', 'Arrancada', 'Específico', 'Moderado', 'Longo'];
 
 const SaudeApp: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'atividades'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'atividades' | 'planner'>('dashboard');
   const [activities, setActivities] = useState<HealthActivity[]>(() => {
     const saved = localStorage.getItem('cn_saude');
     return saved ? JSON.parse(saved) : [];
@@ -74,6 +76,7 @@ const SaudeApp: React.FC = () => {
       type: formType,
       date: formDate,
       timeInMinutes: time,
+      status: 'realizado'
     };
 
     if (formType === 'Musculação') {
@@ -107,14 +110,26 @@ const SaudeApp: React.FC = () => {
     }
   };
 
-  // Dashboard calculations
-  const totalTreinos = activities.length;
-  const horasTotais = activities.reduce((acc, a) => acc + a.timeInMinutes, 0) / 60;
-  const kmTotais = activities.filter(a => a.type !== 'Musculação').reduce((acc, a) => acc + (a.distanceKm || 0), 0);
+  const toggleStatus = (id: string) => {
+    setActivities(prev => prev.map(a => 
+      a.id === id ? { ...a, status: a.status === 'planejado' ? 'realizado' : 'planejado' } : a
+    ));
+  };
+
+  const handleAddPlannerActivity = (activity: HealthActivity) => {
+    setActivities(prev => [activity, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+  };
+
+  // Dashboard calculations - Only Realized
+  const realizedActivities = activities.filter(a => a.status !== 'planejado');
+  
+  const totalTreinos = realizedActivities.length;
+  const horasTotais = realizedActivities.reduce((acc, a) => acc + a.timeInMinutes, 0) / 60;
+  const kmTotais = realizedActivities.filter(a => a.type !== 'Musculação').reduce((acc, a) => acc + (a.distanceKm || 0), 0);
 
   const freqData = useMemo(() => {
     const counts: Record<string, number> = { 'Corrida': 0, 'Ciclismo': 0, 'Natação': 0, 'Musculação': 0 };
-    activities.forEach(a => counts[a.type]++);
+    realizedActivities.forEach(a => counts[a.type]++);
     return Object.entries(counts).filter(([_, c]) => c > 0).map(([name, count]) => ({
       name, count, fill: name === 'Musculação' ? '#6366f1' : name === 'Natação' ? '#0ea5e9' : name === 'Ciclismo' ? '#f59e0b' : '#10b981'
     }));
@@ -122,7 +137,7 @@ const SaudeApp: React.FC = () => {
 
   const muscleData = useMemo(() => {
     const counts: Record<string, number> = {};
-    activities.forEach(a => {
+    realizedActivities.forEach(a => {
       if (a.type === 'Musculação' && a.muscles) {
         a.muscles.forEach(m => {
           counts[m] = (counts[m] || 0) + 1;
@@ -143,7 +158,7 @@ const SaudeApp: React.FC = () => {
   const calendarDays = Array.from({ length: daysInMonth }, (_, i) => {
     const day = i + 1;
     const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    const dayActivities = activities.filter(a => a.date === dateStr);
+    const dayActivities = realizedActivities.filter(a => a.date === dateStr);
     return { day, dateStr, activities: dayActivities };
   });
 
@@ -174,6 +189,12 @@ const SaudeApp: React.FC = () => {
                 {activities.length}
               </span>
             </button>
+            <button 
+              onClick={() => setActiveTab('planner')} 
+              className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all font-semibold ${activeTab === 'planner' ? 'bg-cyan-500 text-white shadow-md shadow-cyan-500/20' : 'text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800/50'}`}
+            >
+              <div className="flex items-center gap-3"><CalendarDays size={20} /> Planner</div>
+            </button>
           </nav>
         </div>
 
@@ -191,16 +212,18 @@ const SaudeApp: React.FC = () => {
           <header className="flex justify-between items-center bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 shrink-0">
             <div>
               <h1 className="text-2xl font-black text-zinc-900 dark:text-white uppercase tracking-tight">
-                {activeTab === 'dashboard' ? 'Estatísticas de Saúde' : 'Histórico de Atividades'}
+                {activeTab === 'dashboard' ? 'Estatísticas de Saúde' : activeTab === 'planner' ? 'Planner de Treinos' : 'Histórico de Atividades'}
               </h1>
               <p className="text-zinc-500 font-medium mt-1 text-sm">Monitore seu progresso físico e bem-estar geral.</p>
             </div>
-            <button 
-              onClick={() => setShowAddForm(!showAddForm)}
-              className="bg-cyan-500 hover:bg-cyan-600 text-white px-5 py-3 rounded-xl font-bold uppercase tracking-wider text-xs transition-transform active:scale-95 shadow-lg shadow-cyan-500/20 flex items-center gap-2"
-            >
-              {showAddForm ? 'Cancelar' : <><Plus size={16} /> Novo Treino</>}
-            </button>
+            {activeTab !== 'planner' && (
+              <button 
+                onClick={() => setShowAddForm(!showAddForm)}
+                className="bg-cyan-500 hover:bg-cyan-600 text-white px-5 py-3 rounded-xl font-bold uppercase tracking-wider text-xs transition-transform active:scale-95 shadow-lg shadow-cyan-500/20 flex items-center gap-2"
+              >
+                {showAddForm ? 'Cancelar' : <><Plus size={16} /> Novo Treino</>}
+              </button>
+            )}
           </header>
 
           {showAddForm && (
@@ -451,6 +474,17 @@ const SaudeApp: React.FC = () => {
                   </table>
                 </div>
               )}
+            </div>
+          )}
+
+          {activeTab === 'planner' && (
+            <div className="flex-1 min-h-[500px]">
+              <SaudePlannerView 
+                activities={activities} 
+                onAddActivity={handleAddPlannerActivity} 
+                onToggleStatus={toggleStatus} 
+                onDelete={deleteActivity} 
+              />
             </div>
           )}
 

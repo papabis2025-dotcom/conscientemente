@@ -147,82 +147,79 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
   const [logs, setLogs] = useState<LogEntry[]>([]);
 
   // Background states
-  const [bgType, setBgType] = useState<'default' | 'color' | 'image'>(() => (localStorage.getItem('hub_bg_type') as any) || 'default');
-  const [bgColor, setBgColor] = useState(() => localStorage.getItem('hub_bg_color') || '#ffffff');
-  const [bgImage, setBgImage] = useState(() => localStorage.getItem('hub_bg_image') || '');
-  const [bgSize, setBgSize] = useState<'cover' | 'repeat'>(() => (localStorage.getItem('hub_bg_size') as any) || 'cover');
+  const [bgType, setBgType] = useState<'default' | 'color' | 'image'>('default');
+  const [bgColor, setBgColor] = useState('#ffffff');
+  const [bgImage, setBgImage] = useState('');
+  const [bgSize, setBgSize] = useState<'cover' | 'repeat'>('cover');
+  const [isPrefsLoaded, setIsPrefsLoaded] = useState(false);
   const bgImageRef = useRef<HTMLInputElement>(null);
 
-  // IndexedDB helpers for high-res images
-  const initDB = (): Promise<IDBDatabase> => {
-    return new Promise((resolve, reject) => {
-      const request = indexedDB.open('ConscientementeDB', 1);
-      request.onerror = () => reject(request.error);
-      request.onsuccess = () => resolve(request.result);
-      request.onupgradeneeded = (e) => {
-        const db = (e.target as IDBOpenDBRequest).result;
-        if (!db.objectStoreNames.contains('assets')) {
-          db.createObjectStore('assets');
-        }
-      };
-    });
-  };
-
-  const saveImageToDB = async (key: string, dataUrl: string) => {
-    try {
-      const db = await initDB();
-      return new Promise<void>((resolve, reject) => {
-        const transaction = db.transaction('assets', 'readwrite');
-        const store = transaction.objectStore('assets');
-        const request = store.put(dataUrl, key);
-        request.onsuccess = () => resolve();
-        request.onerror = () => reject(request.error);
-      });
-    } catch (e) {
-      console.error('IndexedDB Save Error:', e);
-    }
-  };
-
-  const getImageFromDB = async (key: string): Promise<string | undefined> => {
-    try {
-      const db = await initDB();
-      return new Promise((resolve, reject) => {
-        const transaction = db.transaction('assets', 'readonly');
-        const store = transaction.objectStore('assets');
-        const request = store.get(key);
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error);
-      });
-    } catch (e) {
-      console.error('IndexedDB Load Error:', e);
-      return undefined;
-    }
-  };
-
   useEffect(() => {
-    localStorage.setItem('hub_bg_type', bgType);
-    localStorage.setItem('hub_bg_color', bgColor);
-    localStorage.setItem('hub_bg_size', bgSize);
-  }, [bgType, bgColor, bgSize]);
+    const loadPreferences = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-  useEffect(() => {
-    getImageFromDB('hub_bg_image_highres').then((dataUrl) => {
-      if (dataUrl) setBgImage(dataUrl);
-    });
+      const { data: prefs } = await supabase
+        .from('user_preferences')
+        .select('*')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (prefs) {
+        if (prefs.hub_bg_type) setBgType(prefs.hub_bg_type as any);
+        if (prefs.hub_bg_color) setBgColor(prefs.hub_bg_color);
+        if (prefs.hub_bg_size) setBgSize(prefs.hub_bg_size as any);
+        if (prefs.hub_bg_image_url) setBgImage(prefs.hub_bg_image_url);
+      }
+      setIsPrefsLoaded(true);
+    };
+    loadPreferences();
   }, []);
 
-  const handleBgImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  useEffect(() => {
+    if (isPrefsLoaded) {
+      const savePrefs = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        await supabase.from('user_preferences').upsert({
+          user_id: user.id,
+          hub_bg_type: bgType,
+          hub_bg_color: bgColor,
+          hub_bg_size: bgSize,
+          hub_bg_image_url: bgImage
+        }, { onConflict: 'user_id' });
+      };
+      savePrefs().catch(err => console.error('Error saving user preferences:', err));
+    }
+  }, [bgType, bgColor, bgSize, bgImage, isPrefsLoaded]);
+
+  const handleBgImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    
-    const reader = new FileReader();
-    reader.onloadend = async () => {
-      const dataUrl = reader.result as string;
-      setBgImage(dataUrl);
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}/bg_image_${Date.now()}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('assets')
+        .upload(fileName, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('assets')
+        .getPublicUrl(fileName);
+
+      setBgImage(publicUrl);
       setBgType('image');
-      await saveImageToDB('hub_bg_image_highres', dataUrl);
-    };
-    reader.readAsDataURL(file);
+    } catch (err) {
+      console.error('Failed to upload image:', err);
+      alert('Erro ao subir imagem para a nuvem.');
+    }
   };
 
   // Settings states
@@ -343,11 +340,20 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
   const todayStr = new Date(currentTime.getTime() - currentTime.getTimezoneOffset() * 60000).toISOString().split('T')[0];
 
   useEffect(() => {
-    try {
-      const tarefasRaw = JSON.parse(localStorage.getItem('cn_tarefas') || '[]');
-      const tarefas = Array.isArray(tarefasRaw) ? tarefasRaw : [];
-      setPendingTarefas(tarefas.filter((t: any) => !t.completed && t.dueDate === todayStr).length);
+    const fetchCloudData = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
+      // 1. Pending Tarefas
+      const { data: tarefas } = await supabase
+        .from('tarefas')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('completed', false)
+        .eq('due_date', todayStr);
+      setPendingTarefas(tarefas?.length || 0);
+
+      // 2. Pending Estudos
       const estudosRaw = JSON.parse(localStorage.getItem('cp_study_tasks') || '[]');
       const estudos = Array.isArray(estudosRaw) ? estudosRaw : [];
       const pendingStudyTasks = estudos.filter((t: any) => t.date === todayStr && !t.done).length;
@@ -358,24 +364,36 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
         const sDate = s.date?.split('T')[0];
         return sDate === todayStr && s.status !== 'realizado';
       }).length;
-
       setPendingEstudos(pendingStudyTasks + pendingScheduled);
 
-      const saudeRaw = JSON.parse(localStorage.getItem('cn_saude') || '[]');
-      const saude = Array.isArray(saudeRaw) ? saudeRaw : [];
-      setPendingSaude(saude.filter((a: any) => a.date === todayStr && a.status === 'planejado').length);
+      // 3. Pending Saude
+      const { data: saude } = await supabase
+        .from('saude_treinos')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('date', todayStr)
+        .eq('status', 'planejado');
+      setPendingSaude(saude?.length || 0);
 
-      const financasRaw = JSON.parse(localStorage.getItem('cn_financas') || '[]');
-      const financas = Array.isArray(financasRaw) ? financasRaw : [];
+      // 4. Finance Balance
       const currentMonthStr = `${currentTime.getFullYear()}-${String(currentTime.getMonth() + 1).padStart(2, '0')}`;
-      const monthTransactions = financas.filter((t: any) => t.date?.startsWith(currentMonthStr));
-      const entradas = monthTransactions.filter((t: any) => t.type === 'entrada').reduce((acc: number, t: any) => acc + (t.amount || 0), 0);
-      const saidas = monthTransactions.filter((t: any) => t.type === 'saida').reduce((acc: number, t: any) => acc + (t.amount || 0), 0);
-      setFinanceBalance(entradas - saidas);
-    } catch (e) {
-      console.error(e);
-    }
-  }, [todayStr]);
+      const { data: financas } = await supabase
+        .from('financas_transacoes')
+        .select('type, amount')
+        .eq('user_id', user.id)
+        .like('date', `${currentMonthStr}%`);
+
+      if (financas) {
+        const entradas = financas.filter(t => t.type === 'entrada').reduce((acc, t) => acc + Number(t.amount), 0);
+        const saidas = financas.filter(t => t.type === 'saida').reduce((acc, t) => acc + Number(t.amount), 0);
+        setFinanceBalance(entradas - saidas);
+      } else {
+        setFinanceBalance(0);
+      }
+    };
+
+    fetchCloudData().catch(err => console.error('Error fetching hub data:', err));
+  }, [todayStr, currentTime]);
 
   const timeStr = currentTime.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
   const dateStr = currentTime.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });

@@ -1,25 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { CheckSquare, ListTodo, Archive, LayoutTemplate, Plus, Calendar as CalendarIcon, Clock, Tag, ArrowDownAZ, CalendarDays, Trash2, Check, Repeat } from 'lucide-react';
 
-interface Task {
-  id: string;
-  text: string;
-  completed: boolean;
-  dueDate: string;
-  dueTime: string;
-  category: string;
-  createdAt: number;
-  recurrenceType?: 'none' | 'days' | 'monthly';
-  recurrenceValue?: number;
-}
+import { tarefasApi, Task } from './api';
 
 const TarefasApp: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'ativas' | 'arquivo'>('ativas');
   
-  const [tasks, setTasks] = useState<Task[]>(() => {
-    const saved = localStorage.getItem('cn_tarefas');
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const [newTaskText, setNewTaskText] = useState('');
   const [newTaskDate, setNewTaskDate] = useState('');
@@ -31,8 +19,18 @@ const TarefasApp: React.FC = () => {
   const [sortBy, setSortBy] = useState<'data' | 'alfabetica' | 'prioridade'>('prioridade');
 
   useEffect(() => {
-    localStorage.setItem('cn_tarefas', JSON.stringify(tasks));
-  }, [tasks]);
+    const loadTasks = async () => {
+      try {
+        const data = await tarefasApi.list();
+        setTasks(data);
+      } catch (err) {
+        console.error('Failed to load tasks:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadTasks();
+  }, []);
 
   const handleAddTask = (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,6 +48,7 @@ const TarefasApp: React.FC = () => {
       recurrenceValue: newTaskRecurrenceValue
     };
 
+    tarefasApi.create(newTask).catch(err => console.error('Error creating task:', err));
     setTasks(prev => [...prev, newTask]);
     setNewTaskText('');
     setNewTaskDate('');
@@ -78,15 +77,19 @@ const TarefasApp: React.FC = () => {
         const hasNext = prev.some(t => t.text === task.text && t.dueDate === nextDateStr && !t.completed);
         
         if (!hasNext) {
-          updatedTasks.push({
+          const newRecurringTask: Task = {
             ...task,
             id: crypto.randomUUID(),
             completed: false,
             dueDate: nextDateStr,
             createdAt: Date.now()
-          });
+          };
+          updatedTasks.push(newRecurringTask);
+          tarefasApi.create(newRecurringTask).catch(err => console.error('Error creating recurring task:', err));
         }
       }
+
+      tarefasApi.update(id, { completed: !task.completed }).catch(err => console.error('Error updating task:', err));
       return updatedTasks;
     });
   };
@@ -94,6 +97,7 @@ const TarefasApp: React.FC = () => {
   const deleteTask = (id: string) => {
     if(confirm('Tem certeza que deseja excluir esta tarefa?')) {
       setTasks(prev => prev.filter(t => t.id !== id));
+      tarefasApi.delete(id).catch(err => console.error('Error deleting task:', err));
     }
   };
 
@@ -267,6 +271,7 @@ const TarefasApp: React.FC = () => {
                   onClick={() => {
                     if (confirm('Tem certeza que deseja limpar todo o arquivo?')) {
                       setTasks(prev => prev.filter(t => !t.completed));
+                      tarefasApi.clearCompleted().catch(err => console.error('Error clearing tasks:', err));
                     }
                   }}
                   className="flex items-center gap-1.5 px-3 py-1 text-[10px] uppercase tracking-wider font-bold text-rose-500 hover:text-white hover:bg-rose-500 rounded-lg transition-colors border border-rose-500"

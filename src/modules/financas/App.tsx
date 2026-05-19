@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { LayoutTemplate, Wallet, TrendingUp, TrendingDown, CreditCard, ChevronLeft, ChevronRight, Trash2, PieChart as PieChartIcon } from 'lucide-react';
 import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts';
+import { financasApi } from './api';
 
 const CHART_COLORS = ['#3b82f6', '#f43f5e', '#10b981', '#f59e0b', '#8b5cf6', '#06b6d4', '#ec4899', '#14b8a6', '#f97316', '#6366f1'];
 
@@ -38,26 +39,50 @@ const DEFAULT_PAYMENT_METHODS: FinCategoria[] = ['Pix / Dinheiro', 'Inter', 'Ban
 const FinancasApp: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'ajustes'>('dashboard');
 
-  const [inCategories, setInCategories] = useState<FinCategoria[]>(() => {
-    const saved = localStorage.getItem('cn_fin_inCat');
-    return saved ? JSON.parse(saved) : DEFAULT_ENTRADA_CATEGORIES;
-  });
-  const [outCategories, setOutCategories] = useState<FinCategoria[]>(() => {
-    const saved = localStorage.getItem('cn_fin_outCat');
-    return saved ? JSON.parse(saved) : DEFAULT_SAIDA_CATEGORIES;
-  });
-  const [paymentMethods, setPaymentMethods] = useState<FinCategoria[]>(() => {
-    const saved = localStorage.getItem('cn_fin_payMethods');
-    return saved ? JSON.parse(saved) : DEFAULT_PAYMENT_METHODS;
-  });
+  const [inCategories, setInCategories] = useState<FinCategoria[]>(DEFAULT_ENTRADA_CATEGORIES);
+  const [outCategories, setOutCategories] = useState<FinCategoria[]>(DEFAULT_SAIDA_CATEGORIES);
+  const [paymentMethods, setPaymentMethods] = useState<FinCategoria[]>(DEFAULT_PAYMENT_METHODS);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [isLoaded, setIsLoaded] = useState(false);
 
-  useEffect(() => { localStorage.setItem('cn_fin_inCat', JSON.stringify(inCategories)); }, [inCategories]);
-  useEffect(() => { localStorage.setItem('cn_fin_outCat', JSON.stringify(outCategories)); }, [outCategories]);
-  useEffect(() => { localStorage.setItem('cn_fin_payMethods', JSON.stringify(paymentMethods)); }, [paymentMethods]);
-  const [transactions, setTransactions] = useState<Transaction[]>(() => {
-    const saved = localStorage.getItem('cn_financas');
-    return saved ? JSON.parse(saved) : [];
-  });
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const trans = await financasApi.listTransactions();
+        setTransactions(trans);
+        
+        const config = await financasApi.loadConfig();
+        if (config) {
+          if (config.fin_in_categories) setInCategories(config.fin_in_categories as any);
+          if (config.fin_out_categories) setOutCategories(config.fin_out_categories as any);
+          if (config.fin_payment_methods) setPaymentMethods(config.fin_payment_methods as any);
+        }
+      } catch (err) {
+        console.error('Failed to load finance data:', err);
+      } finally {
+        setIsLoaded(true);
+      }
+    };
+    loadData();
+  }, []);
+
+  useEffect(() => {
+    if (isLoaded) {
+      financasApi.saveConfig({ fin_in_categories: inCategories }).catch(err => console.error('Error saving in categories:', err));
+    }
+  }, [inCategories, isLoaded]);
+
+  useEffect(() => {
+    if (isLoaded) {
+      financasApi.saveConfig({ fin_out_categories: outCategories }).catch(err => console.error('Error saving out categories:', err));
+    }
+  }, [outCategories, isLoaded]);
+
+  useEffect(() => {
+    if (isLoaded) {
+      financasApi.saveConfig({ fin_payment_methods: paymentMethods }).catch(err => console.error('Error saving payment methods:', err));
+    }
+  }, [paymentMethods, isLoaded]);
 
   const [currentDate, setCurrentDate] = useState(() => new Date());
   
@@ -85,9 +110,7 @@ const FinancasApp: React.FC = () => {
   const [paymentSort, setPaymentSort] = useState<'value'|'type'>('value');
   const [categorySort, setCategorySort] = useState<'value'|'type'>('value');
 
-  useEffect(() => {
-    localStorage.setItem('cn_financas', JSON.stringify(transactions));
-  }, [transactions]);
+  // localStorage triggers removed
 
   const currentMonthStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
   
@@ -175,6 +198,7 @@ const FinancasApp: React.FC = () => {
       dayOnly
     };
 
+    financasApi.createTransaction(t).catch(err => console.error('Error creating transaction:', err));
     setTransactions(prev => [...prev, t]);
     setInName('');
     setInAmount('');
@@ -208,6 +232,7 @@ const FinancasApp: React.FC = () => {
       dayOnly
     };
 
+    financasApi.createTransaction(t).catch(err => console.error('Error creating transaction:', err));
     setTransactions(prev => [...prev, t]);
     setOutName('');
     setOutAmount('');
@@ -216,12 +241,20 @@ const FinancasApp: React.FC = () => {
   };
 
   const togglePending = (id: string) => {
-    setTransactions(prev => prev.map(t => t.id === id ? { ...t, pending: !t.pending } : t));
+    setTransactions(prev => prev.map(t => {
+      if (t.id === id) {
+        const newPending = !t.pending;
+        financasApi.updateTransaction(id, { pending: newPending }).catch(err => console.error('Error updating transaction:', err));
+        return { ...t, pending: newPending };
+      }
+      return t;
+    }));
   };
 
   const deleteTransaction = (id: string) => {
     if(confirm('Excluir este lançamento?')) {
       setTransactions(prev => prev.filter(t => t.id !== id));
+      financasApi.deleteTransaction(id).catch(err => console.error('Error deleting transaction:', err));
     }
   };
 

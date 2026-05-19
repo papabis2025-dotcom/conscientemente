@@ -1,0 +1,70 @@
+import { supabase } from '../estudos/services/supabase';
+
+export interface Task {
+  id: string;
+  text: string;
+  completed: boolean;
+  dueDate: string;
+  dueTime: string;
+  category: string;
+  createdAt: number;
+  recurrenceType?: 'none' | 'days' | 'monthly';
+  recurrenceValue?: number;
+}
+
+export const tarefasApi = {
+  list: async () => {
+    const { data, error } = await supabase.from('tarefas').select('*');
+    if (error) throw error;
+    return (data || []).map(t => ({
+      id: t.id,
+      text: t.text,
+      completed: t.completed,
+      dueDate: t.due_date,
+      dueTime: t.due_time,
+      category: t.category,
+      createdAt: t.created_at,
+      recurrenceType: t.recurrence_type,
+      recurrenceValue: t.recurrence_value
+    })) as Task[];
+  },
+  
+  create: async (task: Task) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Not authenticated');
+
+    const { error } = await supabase.from('tarefas').insert({
+      id: task.id,
+      user_id: user.id,
+      text: task.text,
+      completed: task.completed,
+      due_date: task.dueDate,
+      due_time: task.dueTime,
+      category: task.category,
+      created_at: task.createdAt,
+      recurrence_type: task.recurrenceType,
+      recurrence_value: task.recurrenceValue
+    });
+    if (error) throw error;
+  },
+
+  update: async (id: string, updates: Partial<Task>) => {
+    const payload: any = {};
+    if (updates.completed !== undefined) payload.completed = updates.completed;
+    
+    const { error } = await supabase.from('tarefas').update(payload).eq('id', id);
+    if (error) throw error;
+  },
+
+  delete: async (id: string) => {
+    const { error } = await supabase.from('tarefas').delete().eq('id', id);
+    if (error) throw error;
+  },
+
+  clearCompleted: async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { error } = await supabase.from('tarefas').delete().eq('user_id', user.id).eq('completed', true);
+    if (error) throw error;
+  }
+};

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Activity, Dumbbell, Footprints, HeartPulse, LayoutTemplate, Plus, Trash2, TrendingUp, CalendarDays } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend, AreaChart, Area } from 'recharts';
 import SaudePlannerView from './pages/SaudePlannerView';
+import { saudeApi } from './api';
 
 export type ActivityType = 'Corrida' | 'Ciclismo' | 'Natação' | 'Musculação';
 export type CardioLevel = 'Leve' | 'Ritmado' | 'Arrancada' | 'Específico' | 'Moderado' | 'Longo';
@@ -28,10 +29,22 @@ const CARDIO_LEVELS: CardioLevel[] = ['Leve', 'Ritmado', 'Arrancada', 'Específi
 
 const SaudeApp: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'atividades' | 'planner'>('dashboard');
-  const [activities, setActivities] = useState<HealthActivity[]>(() => {
-    const saved = localStorage.getItem('cn_saude');
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [activities, setActivities] = useState<HealthActivity[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadActivities = async () => {
+      try {
+        const data = await saudeApi.list();
+        setActivities(data);
+      } catch (err) {
+        console.error('Failed to load health activities:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadActivities();
+  }, []);
 
   const [showAddForm, setShowAddForm] = useState(false);
   const [formType, setFormType] = useState<ActivityType>('Corrida');
@@ -41,9 +54,7 @@ const SaudeApp: React.FC = () => {
   const [formLevel, setFormLevel] = useState<CardioLevel>('Leve');
   const [formMuscles, setFormMuscles] = useState<MuscleGroup[]>([]);
 
-  useEffect(() => {
-    localStorage.setItem('cn_saude', JSON.stringify(activities));
-  }, [activities]);
+
 
   const calculatePace = (dist: number, timeMs: number, type: ActivityType) => {
     if (dist <= 0 || timeMs <= 0) return '-';
@@ -90,6 +101,7 @@ const SaudeApp: React.FC = () => {
       newActivity.pace = calculatePace(dist, time, formType);
     }
 
+    saudeApi.create(newActivity).catch(err => console.error('Error creating saude activity:', err));
     setActivities(prev => [newActivity, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
     setShowAddForm(false);
     
@@ -107,16 +119,23 @@ const SaudeApp: React.FC = () => {
   const deleteActivity = (id: string) => {
     if(confirm('Excluir este treino?')) {
       setActivities(prev => prev.filter(a => a.id !== id));
+      saudeApi.delete(id).catch(err => console.error('Error deleting saude activity:', err));
     }
   };
 
   const toggleStatus = (id: string) => {
-    setActivities(prev => prev.map(a => 
-      a.id === id ? { ...a, status: a.status === 'planejado' ? 'realizado' : 'planejado' } : a
-    ));
+    setActivities(prev => prev.map(a => {
+      if (a.id === id) {
+        const newStatus = a.status === 'planejado' ? 'realizado' : 'planejado';
+        saudeApi.update(id, { status: newStatus }).catch(err => console.error('Error updating status:', err));
+        return { ...a, status: newStatus };
+      }
+      return a;
+    }));
   };
 
   const handleAddPlannerActivity = (activity: HealthActivity) => {
+    saudeApi.create(activity).catch(err => console.error('Error creating planner activity:', err));
     setActivities(prev => [activity, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
   };
 

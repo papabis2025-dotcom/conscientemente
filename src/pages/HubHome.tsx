@@ -84,10 +84,20 @@ const ModuleCard: React.FC<{ module: Module; index: number }> = ({ module, index
     window.location.hash = module.route;
   };
 
+  const handleShortcutClick = (e: React.MouseEvent, action: string) => {
+    e.stopPropagation();
+    if (action === 'adicionar-estudo') {
+      sessionStorage.setItem('openAddStudyModal', 'true');
+      window.location.hash = 'estudos';
+    } else if (action === 'idade-fisica') {
+      sessionStorage.setItem('saudeActiveTab', 'idade-fisica');
+      window.location.hash = 'saude';
+    }
+  };
+
   return (
-    <button
+    <div
       onClick={handleClick}
-      disabled={!module.available}
       style={{ animationDelay: `${index * 80}ms` }}
       className={[
         'group relative w-full text-left rounded-2xl border transition-all duration-300',
@@ -130,12 +140,32 @@ const ModuleCard: React.FC<{ module: Module; index: number }> = ({ module, index
         </p>
 
         {module.available && (
-          <div className={`mt-4 flex items-center gap-1 text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all duration-200 translate-y-1 group-hover:translate-y-0 ${colorMap[module.color]?.badge.split(' ').filter(c => c.startsWith('text-')).join(' ') ?? 'text-zinc-500'}`}>
-            Acessar módulo <ChevronRight size={10} />
+          <div className="mt-4 pt-3 border-t border-zinc-100 dark:border-zinc-800/80 flex flex-wrap items-center justify-between gap-2">
+            <div className="flex gap-2">
+              {module.id === 'estudos' && (
+                <button
+                  onClick={(e) => handleShortcutClick(e, 'adicionar-estudo')}
+                  className="px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-650 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/50 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all"
+                >
+                  + Adicionar Estudo
+                </button>
+              )}
+              {module.id === 'saude' && (
+                <button
+                  onClick={(e) => handleShortcutClick(e, 'idade-fisica')}
+                  className="px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider rounded-lg bg-cyan-50 dark:bg-cyan-950/40 text-cyan-650 dark:text-cyan-400 border border-cyan-100 dark:border-cyan-900/50 hover:bg-cyan-600 hover:text-white hover:border-cyan-600 transition-all"
+                >
+                  ⚡ Idade Física
+                </button>
+              )}
+            </div>
+            <div className={`flex items-center gap-1 text-[9px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all duration-200 translate-y-1 group-hover:translate-y-0 ${colors.badge.split(' ').filter(c => c.startsWith('text-')).join(' ') ?? 'text-zinc-500'}`}>
+              Abrir <ChevronRight size={8} />
+            </div>
           </div>
         )}
       </div>
-    </button>
+    </div>
   );
 };
 

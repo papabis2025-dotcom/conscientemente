@@ -47,6 +47,14 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
   } = useTimer();
 
   const [showAddModal, setShowAddModal] = useState(false);
+
+  React.useEffect(() => {
+    if (sessionStorage.getItem('openAddStudyModal') === 'true') {
+      sessionStorage.removeItem('openAddStudyModal');
+      setShowAddModal(true);
+    }
+  }, []);
+
   const [activityFormData, setActivityFormData] = useState({
     subjectId: '',
     topicId: '',

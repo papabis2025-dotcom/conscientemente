@@ -126,58 +126,55 @@ const TarefasApp: React.FC = () => {
 
   const todayStr = new Date().toISOString().split('T')[0];
 
-  const groupedTasks = useMemo(() => {
-    const groups: {
-      atrasadas: Task[];
-      semana: Task[];
-      mes: Task[];
-      outras: Task[];
-    } = {
-      atrasadas: [],
-      semana: [],
-      mes: [],
-      outras: [],
-    };
-
+  const isOverdue = (task: Task) => {
+    if (!task.dueDate || task.completed) return false;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+    const taskDate = new Date(`${task.dueDate}T12:00:00`);
+    taskDate.setHours(0, 0, 0, 0);
+    return taskDate < today;
+  };
 
-    // Get start and end of current week (Monday to Sunday)
-    const day = today.getDay();
-    const diffToMonday = today.getDate() - day + (day === 0 ? -6 : 1);
-    const startOfWeek = new Date(today);
-    startOfWeek.setDate(diffToMonday);
-    startOfWeek.setHours(0, 0, 0, 0);
-    
-    const endOfWeek = new Date(startOfWeek);
-    endOfWeek.setDate(startOfWeek.getDate() + 6);
-    endOfWeek.setHours(23, 59, 59, 999);
+  const MONTH_NAMES = [
+    'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+  ];
 
-    // Get start and end of current month
-    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-    const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59, 999);
+  const groupedTasks = useMemo(() => {
+    const groups: Record<string, Task[]> = {};
+    const noDateTasks: Task[] = [];
 
     sortedTasks.forEach(task => {
       if (!task.dueDate) {
-        groups.outras.push(task);
+        noDateTasks.push(task);
         return;
       }
 
-      const taskDate = new Date(`${task.dueDate}T12:00:00`);
-      taskDate.setHours(0, 0, 0, 0);
+      const parts = task.dueDate.split('-');
+      const y = parts[0];
+      const m = parts[1];
+      const key = `${y}-${m}`;
 
-      if (taskDate < today) {
-        groups.atrasadas.push(task);
-      } else if (taskDate >= startOfWeek && taskDate <= endOfWeek) {
-        groups.semana.push(task);
-      } else if (taskDate >= startOfMonth && taskDate <= endOfMonth) {
-        groups.mes.push(task);
-      } else {
-        groups.outras.push(task);
+      if (!groups[key]) {
+        groups[key] = [];
       }
+      groups[key].push(task);
     });
 
-    return groups;
+    const sortedMonthKeys = Object.keys(groups).sort();
+
+    return {
+      months: sortedMonthKeys.map(key => {
+        const [year, month] = key.split('-');
+        const monthName = MONTH_NAMES[parseInt(month) - 1];
+        return {
+          key,
+          title: `${monthName} de ${year}`,
+          tasks: groups[key]
+        };
+      }),
+      noDate: noDateTasks
+    };
   }, [sortedTasks]);
 
   const getCategoryColor = (category: string) => {
@@ -214,11 +211,18 @@ const TarefasApp: React.FC = () => {
             </span>
           )}
           {(task.dueDate || task.dueTime) && (
-            <span className={`flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded ${task.completed ? 'text-zinc-400 bg-zinc-200/50 dark:bg-zinc-800/50' : 'text-zinc-650 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800'}`}>
+            <span className={`flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded ${
+              task.completed 
+                ? 'text-zinc-400 bg-zinc-200/50 dark:bg-zinc-800/50' 
+                : isOverdue(task)
+                  ? 'text-red-650 dark:text-red-400 bg-red-100 dark:bg-red-500/10 font-bold'
+                  : 'text-zinc-650 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800'
+            }`}>
               <CalendarIcon size={10} />
               {task.dueDate ? new Date(`${task.dueDate}T12:00:00`).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }) : ''}
               {task.dueDate && task.dueTime && ' • '}
               {task.dueTime}
+              {!task.completed && isOverdue(task) && ' (Atrasada)'}
             </span>
           )}
           {task.recurrenceType && task.recurrenceType !== 'none' && (
@@ -460,54 +464,28 @@ const TarefasApp: React.FC = () => {
                 </div>
               ) : (
                 <div className="space-y-5">
-                  {/* Grupo: Atrasadas */}
-                  {groupedTasks.atrasadas.length > 0 && (
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-red-500 dark:text-red-400">
-                        <Clock size={13} className="animate-pulse" />
-                        <h4 className="text-[10px] font-black uppercase tracking-wider">Atrasadas ({groupedTasks.atrasadas.length})</h4>
-                      </div>
-                      <ul className="space-y-2">
-                        {groupedTasks.atrasadas.map(renderTaskItem)}
-                      </ul>
-                    </div>
-                  )}
-
-                  {/* Grupo: Esta Semana */}
-                  {groupedTasks.semana.length > 0 && (
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-rose-500">
-                        <CalendarDays size={13} />
-                        <h4 className="text-[10px] font-black uppercase tracking-wider">Esta Semana ({groupedTasks.semana.length})</h4>
-                      </div>
-                      <ul className="space-y-2">
-                        {groupedTasks.semana.map(renderTaskItem)}
-                      </ul>
-                    </div>
-                  )}
-
-                  {/* Grupo: Este Mês */}
-                  {groupedTasks.mes.length > 0 && (
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-blue-500">
+                  {/* Grupos de Meses */}
+                  {groupedTasks.months.map(group => (
+                    <div key={group.key} className="space-y-2">
+                      <div className="flex items-center gap-2 text-rose-500 dark:text-rose-450">
                         <CalendarIcon size={13} />
-                        <h4 className="text-[10px] font-black uppercase tracking-wider">Este Mês ({groupedTasks.mes.length})</h4>
+                        <h4 className="text-[10px] font-black uppercase tracking-wider">{group.title} ({group.tasks.length})</h4>
                       </div>
                       <ul className="space-y-2">
-                        {groupedTasks.mes.map(renderTaskItem)}
+                        {group.tasks.map(renderTaskItem)}
                       </ul>
                     </div>
-                  )}
+                  ))}
 
-                  {/* Grupo: Mais Tarde / Sem Data */}
-                  {groupedTasks.outras.length > 0 && (
+                  {/* Grupo: Sem Data */}
+                  {groupedTasks.noDate.length > 0 && (
                     <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-zinc-400 dark:text-zinc-500">
+                      <div className="flex items-center gap-2 text-zinc-450 dark:text-zinc-500">
                         <ListTodo size={13} />
-                        <h4 className="text-[10px] font-black uppercase tracking-wider">Outras / Sem Data ({groupedTasks.outras.length})</h4>
+                        <h4 className="text-[10px] font-black uppercase tracking-wider">Sem Data Limite ({groupedTasks.noDate.length})</h4>
                       </div>
                       <ul className="space-y-2">
-                        {groupedTasks.outras.map(renderTaskItem)}
+                        {groupedTasks.noDate.map(renderTaskItem)}
                       </ul>
                     </div>
                   )}

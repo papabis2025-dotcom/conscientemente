@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { MODULES } from '../constants';
-import { Module, LogEntry } from '../types';
+import { Module } from '../types';
+import { LogEntry } from '../modules/estudos/types';
 import { LogOut, Sun, Moon, ArrowUpRight, Lock, BookOpen, Wallet, ListTodo, Brain, ChevronRight, Activity, TrendingUp, Settings, User, X } from 'lucide-react';
 import LogView from '../modules/estudos/pages/LogView';
 import { api } from '../modules/estudos/services/api';

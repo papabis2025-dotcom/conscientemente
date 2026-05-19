@@ -147,6 +147,17 @@ const Dashboard: React.FC<DashboardProps> = ({
   const isSimuladoSession = (session: any): boolean =>
     !!(session.isSimulado || session.activityType === 'Simulado');
 
+  // Convert UTC timestamp to local YYYY-MM-DD string to avoid timezone bugs
+  // where a session done at 22:00 local time becomes "tomorrow" in UTC.
+  const getLocalSessionDate = (dateStr?: string): string => {
+    if (!dateStr) return '';
+    if (dateStr.includes('T')) {
+      const d = new Date(dateStr);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+    return dateStr;
+  };
+
   const subjectStats = useMemo(() => {
     const stats: Record<string, { done: number, correct: number, minutes: number, name: string, colorClass: string }> = {};
 
@@ -192,12 +203,18 @@ const Dashboard: React.FC<DashboardProps> = ({
     concursos.forEach(c => (c.subjects || []).forEach(s => ids.add(s.id)));
     // Also include subjects from the currently filtered view
     subjects.forEach(s => ids.add(s.id));
+    console.debug('[Dashboard] allSubjectIds:', ids.size, 'total sessions:', sessions.length);
     return ids;
   }, [concursos, subjects]);
 
   // Filter sessions relevant to the weekly chart (all subjects, no simulados)
   const relevantSessions = useMemo(() => {
-    return sessions.filter(s => allSubjectIds.has(s.subjectId) && !isSimuladoSession(s));
+    const filtered = sessions.filter(s => allSubjectIds.has(s.subjectId) && !isSimuladoSession(s));
+    console.debug('[Dashboard] relevantSessions:', filtered.length, '/', sessions.length,
+      '| sample dates:', filtered.slice(0, 3).map(s => s.date),
+      '| allSubjectIds has sessions?', sessions.slice(0, 3).map(s => ({ id: s.subjectId, has: allSubjectIds.has(s.subjectId), isSimulado: isSimuladoSession(s) }))
+    );
+    return filtered;
   }, [sessions, allSubjectIds]);
 
   const progress = useMemo(() => {
@@ -208,8 +225,8 @@ const Dashboard: React.FC<DashboardProps> = ({
     const todayStr = `${year}-${month}-${day}`;
 
     const done = sessions
-      .filter(s => s.date?.startsWith(todayStr) && s.questionsDone !== undefined && !isSimuladoSession(s))
-      .reduce((acc, s) => acc + (s.questionsDone || 0), 0);
+      .filter(s => getLocalSessionDate(s.date) === todayStr && s.questionsDone !== undefined && !isSimuladoSession(s))
+      .reduce((acc, s) => acc + (Number(s.questionsDone) || 0), 0);
     return { total: done, goal: globalDailyGoal || 20 };
   }, [sessions, globalDailyGoal]);
 
@@ -234,12 +251,12 @@ const Dashboard: React.FC<DashboardProps> = ({
       }
 
       relevantSessions.forEach(s => {
-        if (!s.date) return;
-        const sDateStr = s.date.split('T')[0];
+        const sDateStr = getLocalSessionDate(s.date);
+        if (!sDateStr) return;
         const match = dataMap.find(d => d.dateStr === sDateStr);
         if (match) {
-          match.h += (s.durationInMinutes || 0) / 60;
-          match.q += (s.questionsDone || 0);
+          match.h += (Number(s.durationInMinutes) || 0) / 60;
+          match.q += (Number(s.questionsDone) || 0);
         }
       });
 
@@ -264,15 +281,15 @@ const Dashboard: React.FC<DashboardProps> = ({
       }));
 
       relevantSessions.forEach(s => {
-        if (!s.date) return;
-        const sDateStr = s.date.split('T')[0];
+        const sDateStr = getLocalSessionDate(s.date);
+        if (!sDateStr) return;
         const [sYear, sMonth, sDay] = sDateStr.split('-').map(Number);
         
         if (sYear === today.getFullYear() && sMonth - 1 === today.getMonth()) {
           const weekIndex = Math.floor((sDay - 1 + firstDayOfWeek) / 7);
           if (weekIndex < weeksInMonth) {
-            dataMap[weekIndex].h += (s.durationInMinutes || 0) / 60;
-            dataMap[weekIndex].q += (s.questionsDone || 0);
+            dataMap[weekIndex].h += (Number(s.durationInMinutes) || 0) / 60;
+            dataMap[weekIndex].q += (Number(s.questionsDone) || 0);
           }
         }
       });
@@ -288,14 +305,14 @@ const Dashboard: React.FC<DashboardProps> = ({
       const currentYear = today.getFullYear();
 
       relevantSessions.forEach(s => {
-        if (!s.date) return;
-        const sDateStr = s.date.split('T')[0];
+        const sDateStr = getLocalSessionDate(s.date);
+        if (!sDateStr) return;
         const [sYear, sMonth] = sDateStr.split('-').map(Number);
         
         if (sYear === currentYear) {
           const monthIdx = sMonth - 1;
-          dataMap[monthIdx].h += (s.durationInMinutes || 0) / 60;
-          dataMap[monthIdx].q += (s.questionsDone || 0);
+          dataMap[monthIdx].h += (Number(s.durationInMinutes) || 0) / 60;
+          dataMap[monthIdx].q += (Number(s.questionsDone) || 0);
         }
       });
 
@@ -306,7 +323,7 @@ const Dashboard: React.FC<DashboardProps> = ({
 
   const frequencyData = useMemo(() => {
     // Determine current streak
-    const uniqueDays = new Set(relevantSessions.filter(s => s.date).map(s => s.date.split('T')[0]));
+    const uniqueDays = new Set(relevantSessions.map(s => getLocalSessionDate(s.date)).filter(Boolean));
     const sortedDates = Array.from(uniqueDays).sort() as string[];
 
     let streak = 0;
@@ -461,8 +478,8 @@ const Dashboard: React.FC<DashboardProps> = ({
                 const todayStr = `${year}-${month}-${day}`;
 
                 const doneToday = sessions
-                  .filter(s => s.date?.startsWith(todayStr) && s.questionsDone !== undefined && !isSimuladoSession(s))
-                  .reduce((acc, s) => acc + (s.questionsDone || 0), 0);
+                  .filter(s => getLocalSessionDate(s.date) === todayStr && s.questionsDone !== undefined && !isSimuladoSession(s))
+                  .reduce((acc, s) => acc + (Number(s.questionsDone) || 0), 0);
                 const goal = globalDailyGoal || 20;
                 const remaining = Math.max(0, goal - doneToday);
                 const pct = Math.min(100, Math.round((doneToday / goal) * 100));
@@ -671,8 +688,9 @@ const Dashboard: React.FC<DashboardProps> = ({
 
         const days = Array.from({ length: daysInMonth }, (_, i) => {
           const date = new Date(year, month, i + 1);
-          const dateStr = date.toISOString().split('T')[0];
-          const daySessions = sessions.filter(s => s.date?.startsWith(dateStr) && !isSimuladoSession(s));
+          const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i + 1).padStart(2, '0')}`;
+          const simuladoSessions = scheduledStudies.filter(st => st.activityType === 'Simulado');
+          const daySessions = sessions.filter(s => getLocalSessionDate(s.date) === dateStr && !isSimuladoSession(s));
           const dayPlannerRealized = scheduledStudies.filter(s => s.date === dateStr && s.status === 'realizado' && s.activityType !== 'Simulado');
           
           const sessionSubjectIds = daySessions.map(s => s.subjectId);

@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { LayoutTemplate, Wallet, TrendingUp, TrendingDown, CreditCard, ChevronLeft, ChevronRight, Trash2, PieChart as PieChartIcon } from 'lucide-react';
+import { LayoutTemplate, Wallet, TrendingUp, TrendingDown, CreditCard, ChevronLeft, ChevronRight, Trash2, Calendar, PieChart as PieChartIcon } from 'lucide-react';
 import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts';
 import { financasApi } from './api';
 
 const CHART_COLORS = ['#3b82f6', '#f43f5e', '#10b981', '#f59e0b', '#8b5cf6', '#06b6d4', '#ec4899', '#14b8a6', '#f97316', '#6366f1'];
 
-type TransactionType = 'entrada' | 'saida';
+export type TransactionType = 'entrada' | 'saida';
 
-interface Transaction {
+export interface Transaction {
   id: string;
   type: TransactionType;
   date: string; // YYYY-MM-DD
@@ -20,6 +20,7 @@ interface Transaction {
 }
 
 import AjustesFinancas from './AjustesFinancas';
+import ResumoAnual from './ResumoAnual';
 
 export interface FinCategoria {
   id: string;
@@ -37,7 +38,7 @@ const DEFAULT_SAIDA_CATEGORIES: FinCategoria[] = [
 const DEFAULT_PAYMENT_METHODS: FinCategoria[] = ['Pix / Dinheiro', 'Inter', 'Banrisul', 'Mercado Pago', 'Caixa Econômica'].map((c, i) => ({ id: `pay_${i}`, name: c, color: CHART_COLORS[i % CHART_COLORS.length] }));
 
 const FinancasApp: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'ajustes'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'anual' | 'ajustes'>('dashboard');
 
   const [inCategories, setInCategories] = useState<FinCategoria[]>(DEFAULT_ENTRADA_CATEGORIES);
   const [outCategories, setOutCategories] = useState<FinCategoria[]>(DEFAULT_SAIDA_CATEGORIES);
@@ -254,6 +255,12 @@ const FinancasApp: React.FC = () => {
                 <TrendingUp size={16} /> Dashboard
               </button>
               <button 
+                onClick={() => setActiveTab('anual')} 
+                className={`p-3 rounded-xl flex items-center gap-3 transition-colors text-xs font-bold uppercase tracking-wider ${activeTab === 'anual' ? 'bg-zinc-900 dark:bg-zinc-800 text-white shadow-md' : 'text-zinc-500 hover:bg-white dark:hover:bg-zinc-800'}`}
+              >
+                <Calendar size={16} /> Resumo Anual
+              </button>
+              <button 
                 onClick={() => setActiveTab('ajustes')} 
                 className={`p-3 rounded-xl flex items-center gap-3 transition-colors text-xs font-bold uppercase tracking-wider ${activeTab === 'ajustes' ? 'bg-zinc-900 dark:bg-zinc-800 text-white shadow-md' : 'text-zinc-500 hover:bg-white dark:hover:bg-zinc-800'}`}
               >
@@ -287,6 +294,15 @@ const FinancasApp: React.FC = () => {
               inCategories={inCategories} setInCategories={setInCategories}
               outCategories={outCategories} setOutCategories={setOutCategories}
               paymentMethods={paymentMethods} setPaymentMethods={setPaymentMethods}
+            />
+          </div>
+        ) : activeTab === 'anual' ? (
+          <div className="flex-1 overflow-y-auto custom-scrollbar">
+            <ResumoAnual 
+              transactions={transactions}
+              inCategories={inCategories}
+              outCategories={outCategories}
+              paymentMethods={paymentMethods}
             />
           </div>
         ) : (

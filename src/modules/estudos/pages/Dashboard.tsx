@@ -185,11 +185,20 @@ const Dashboard: React.FC<DashboardProps> = ({
     };
   }, [sessions, subjects]);
 
-  // Filter sessions relevant to the current view (active context)
+  // Build a set of ALL subject IDs across ALL concursos (not just the active one)
+  // This ensures the weekly volume chart includes sessions from all concursos.
+  const allSubjectIds = useMemo(() => {
+    const ids = new Set<string>();
+    concursos.forEach(c => (c.subjects || []).forEach(s => ids.add(s.id)));
+    // Also include subjects from the currently filtered view
+    subjects.forEach(s => ids.add(s.id));
+    return ids;
+  }, [concursos, subjects]);
+
+  // Filter sessions relevant to the weekly chart (all subjects, no simulados)
   const relevantSessions = useMemo(() => {
-    const activeSubjectIds = new Set(subjects.map(s => s.id));
-    return sessions.filter(s => activeSubjectIds.has(s.subjectId) && !isSimuladoSession(s));
-  }, [sessions, subjects]);
+    return sessions.filter(s => allSubjectIds.has(s.subjectId) && !isSimuladoSession(s));
+  }, [sessions, allSubjectIds]);
 
   const progress = useMemo(() => {
     const today = new Date();

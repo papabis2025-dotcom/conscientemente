@@ -1,21 +1,36 @@
 import React, { useState } from 'react';
-import { ChevronLeft, ChevronRight, CheckCircle2, Clock } from 'lucide-react';
-import { HealthActivity, ActivityType } from '../App';
+import { ChevronLeft, ChevronRight, CheckCircle2, Clock, Trash2 } from 'lucide-react';
+import { HealthActivity, ActivityType, CardioLevel, MuscleGroup } from '../App';
 
 interface SaudePlannerViewProps {
   activities: HealthActivity[];
   onAddActivity: (activity: HealthActivity) => void;
   onToggleStatus: (id: string) => void;
   onDelete: (id: string) => void;
+  onUpdateActivity?: (id: string, updates: Partial<HealthActivity>) => void;
 }
 
-const SaudePlannerView: React.FC<SaudePlannerViewProps> = ({ activities, onAddActivity, onToggleStatus, onDelete }) => {
+const MUSCLE_GROUPS: MuscleGroup[] = ['Peito', 'Costa', 'Ombro', 'Bíceps', 'Tríceps', 'Perna/Anterior', 'Perna/Posterior'];
+const CARDIO_LEVELS: CardioLevel[] = ['Leve', 'Ritmado', 'Arrancada', 'Específico', 'Moderado', 'Longo'];
+
+const SaudePlannerView: React.FC<SaudePlannerViewProps> = ({ 
+  activities, 
+  onAddActivity, 
+  onToggleStatus, 
+  onDelete,
+  onUpdateActivity 
+}) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDayKey, setSelectedDayKey] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [editingActivity, setEditingActivity] = useState<HealthActivity | null>(null);
 
   const [formType, setFormType] = useState<ActivityType>('Corrida');
   const [formTime, setFormTime] = useState('');
+  const [formDistance, setFormDistance] = useState('');
+  const [formLevel, setFormLevel] = useState<CardioLevel>('Leve');
+  const [formMuscles, setFormMuscles] = useState<MuscleGroup[]>([]);
+  const [formStatus, setFormStatus] = useState<'realizado' | 'planejado'>('realizado');
   
   const monthNames = [
     "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -33,6 +48,26 @@ const SaudePlannerView: React.FC<SaudePlannerViewProps> = ({ activities, onAddAc
 
   const handleDayClick = (dayKey: string) => {
     setSelectedDayKey(dayKey);
+    setEditingActivity(null);
+    setFormType('Corrida');
+    setFormTime('');
+    setFormDistance('');
+    setFormLevel('Leve');
+    setFormMuscles([]);
+    setFormStatus('realizado');
+    setShowModal(true);
+  };
+
+  const handleActivityClick = (e: React.MouseEvent, act: HealthActivity) => {
+    e.stopPropagation();
+    setEditingActivity(act);
+    setFormType(act.type);
+    setFormTime(act.timeInMinutes.toString());
+    setFormDistance(act.distanceKm?.toString() || '');
+    setFormLevel(act.level || 'Leve');
+    setFormMuscles(act.muscles || []);
+    setFormStatus(act.status || 'realizado');
+    setSelectedDayKey(act.date);
     setShowModal(true);
   };
 
@@ -40,18 +75,43 @@ const SaudePlannerView: React.FC<SaudePlannerViewProps> = ({ activities, onAddAc
     e.preventDefault();
     if (selectedDayKey === null) return;
     const time = parseInt(formTime) || 30;
+    const dist = formType !== 'Musculação' ? (parseFloat(formDistance.replace(',', '.')) || undefined) : undefined;
+    const level = formType !== 'Musculação' ? formLevel : undefined;
+    const muscles = formType === 'Musculação' ? formMuscles : undefined;
 
-    const newActivity: HealthActivity = {
-      id: crypto.randomUUID(),
-      type: formType,
-      date: selectedDayKey,
-      timeInMinutes: time,
-      status: 'realizado' // Defaults to done, as requested
-    };
+    if (editingActivity) {
+      if (onUpdateActivity) {
+        onUpdateActivity(editingActivity.id, {
+          type: formType,
+          date: selectedDayKey,
+          timeInMinutes: time,
+          status: formStatus,
+          distanceKm: dist,
+          level: level,
+          muscles: muscles
+        });
+      }
+    } else {
+      const newActivity: HealthActivity = {
+        id: crypto.randomUUID(),
+        type: formType,
+        date: selectedDayKey,
+        timeInMinutes: time,
+        status: formStatus,
+        distanceKm: dist,
+        level: level,
+        muscles: muscles
+      };
+      onAddActivity(newActivity);
+    }
 
-    onAddActivity(newActivity);
     setShowModal(false);
+    setEditingActivity(null);
     setFormTime('');
+    setFormDistance('');
+    setFormLevel('Leve');
+    setFormMuscles([]);
+    setFormStatus('realizado');
   };
 
   const prevMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
@@ -126,17 +186,18 @@ const SaudePlannerView: React.FC<SaudePlannerViewProps> = ({ activities, onAddAc
                   {dayActs.map(act => (
                     <div 
                       key={act.id} 
-                      onClick={(e) => { e.stopPropagation(); onToggleStatus(act.id); }}
-                      className={`text-[9px] font-bold px-1.5 py-1 rounded-lg border flex flex-col gap-0.5 transition-all
-                        ${act.status === 'planejado' ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 border-dashed border-zinc-300 dark:border-zinc-700 opacity-60 hover:opacity-100' : getBadgeColor(act.type)}
+                      onClick={(e) => handleActivityClick(e, act)}
+                      className={`text-[9px] font-bold px-1.5 py-1 rounded-lg border flex flex-col gap-0.5 transition-all cursor-pointer hover:scale-[1.02] active:scale-95
+                        ${act.status === 'planejado' ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 border-dashed border-zinc-300 dark:border-zinc-700 opacity-65 hover:opacity-100' : getBadgeColor(act.type)}
                       `}
-                      title="Clique para alternar o status"
+                      title="Clique para editar o treino"
                     >
                       <div className="flex items-center justify-between">
                         <span className="uppercase tracking-wider truncate">{act.type}</span>
                         {act.status === 'planejado' ? <Clock size={10} className="shrink-0" /> : <CheckCircle2 size={10} className="shrink-0" />}
                       </div>
                       {act.timeInMinutes > 0 && <span className="opacity-80 font-medium text-[9px]">{act.timeInMinutes} min</span>}
+                      {act.distanceKm !== undefined && act.distanceKm > 0 && <span className="opacity-75 text-[8px]">{act.distanceKm} km</span>}
                     </div>
                   ))}
                 </div>
@@ -149,14 +210,42 @@ const SaudePlannerView: React.FC<SaudePlannerViewProps> = ({ activities, onAddAc
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/80 backdrop-blur-sm p-4">
           <div className="bg-white dark:bg-zinc-900 w-full max-w-md rounded-[2.5rem] p-8 shadow-2xl relative animate-in zoom-in-95">
+            <div className="absolute top-6 right-6 flex items-center gap-2">
+              {editingActivity && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (confirm('Excluir este treino?')) {
+                      onDelete(editingActivity.id);
+                      setShowModal(false);
+                      setEditingActivity(null);
+                    }
+                  }}
+                  className="p-2 text-zinc-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-xl transition-all"
+                  title="Excluir"
+                >
+                  <Trash2 size={16} />
+                </button>
+              )}
+              <button 
+                type="button" 
+                onClick={() => { setShowModal(false); setEditingActivity(null); }} 
+                className="p-2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 rounded-xl transition-all font-bold text-sm"
+              >
+                ✕
+              </button>
+            </div>
+
             <h3 className="text-xl font-black text-zinc-900 dark:text-white mb-6 uppercase tracking-widest flex items-center gap-2">
-              <span className="w-8 h-8 rounded-xl bg-cyan-100 dark:bg-cyan-500/20 text-cyan-600 flex items-center justify-center"><CheckCircle2 size={16} /></span>
-              Nova Atividade
+              <span className="w-8 h-8 rounded-xl bg-cyan-100 dark:bg-cyan-500/20 text-cyan-600 flex items-center justify-center">
+                <CheckCircle2 size={16} />
+              </span>
+              {editingActivity ? 'Editar Treino' : 'Nova Atividade'}
             </h3>
             
-            <form onSubmit={handleSave} className="space-y-5">
+            <form onSubmit={handleSave} className="space-y-4">
               <div>
-                <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 block mb-2">Atividade</label>
+                <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 block mb-1.5">Atividade</label>
                 <select value={formType} onChange={e => setFormType(e.target.value as ActivityType)} className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 text-sm font-bold text-zinc-800 dark:text-zinc-100 outline-none focus:ring-2 focus:ring-cyan-500 transition-all">
                   <option value="Corrida">Corrida</option>
                   <option value="Ciclismo">Ciclismo</option>
@@ -165,17 +254,64 @@ const SaudePlannerView: React.FC<SaudePlannerViewProps> = ({ activities, onAddAc
                 </select>
               </div>
               
-              <div>
-                <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 block mb-2">Duração (minutos)</label>
-                <input type="number" placeholder="Ex: 45" value={formTime} onChange={e => setFormTime(e.target.value)} required className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 text-sm font-bold text-zinc-800 dark:text-zinc-100 outline-none focus:ring-2 focus:ring-cyan-500 transition-all" />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 block mb-1.5">Duração (minutos)</label>
+                  <input type="number" placeholder="Ex: 45" value={formTime} onChange={e => setFormTime(e.target.value)} required className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 text-sm font-bold text-zinc-800 dark:text-zinc-100 outline-none focus:ring-2 focus:ring-cyan-500 transition-all" />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 block mb-1.5">Status</label>
+                  <select value={formStatus} onChange={e => setFormStatus(e.target.value as any)} className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 text-sm font-bold text-zinc-800 dark:text-zinc-100 outline-none focus:ring-2 focus:ring-cyan-500 transition-all">
+                    <option value="realizado">Realizado</option>
+                    <option value="planejado">Planejado</option>
+                  </select>
+                </div>
               </div>
+
+              {formType !== 'Musculação' ? (
+                <div className="grid grid-cols-2 gap-3 animate-in fade-in duration-200">
+                  <div>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 block mb-1.5">Distância (km)</label>
+                    <input type="number" step="0.01" placeholder="Ex: 5.5" value={formDistance} onChange={e => setFormDistance(e.target.value)} required className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 text-sm font-bold text-zinc-800 dark:text-zinc-100 outline-none focus:ring-2 focus:ring-cyan-500 transition-all" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 block mb-1.5">Nível / Ritmo</label>
+                    <select value={formLevel} onChange={e => setFormLevel(e.target.value as CardioLevel)} className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 text-sm font-bold text-zinc-800 dark:text-zinc-100 outline-none focus:ring-2 focus:ring-cyan-500 transition-all">
+                      {CARDIO_LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
+                    </select>
+                  </div>
+                </div>
+              ) : (
+                <div className="animate-in fade-in duration-200">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 block mb-2">Grupos Musculares Trabalhados</label>
+                  <div className="flex flex-wrap gap-2">
+                    {MUSCLE_GROUPS.map(m => (
+                      <button
+                        key={m}
+                        type="button"
+                        onClick={() => setFormMuscles(prev => prev.includes(m) ? prev.filter(x => x !== m) : [...prev, m])}
+                        className={`px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider border transition-colors ${formMuscles.includes(m) ? 'bg-cyan-500 border-cyan-500 text-white' : 'bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400'}`}
+                      >
+                        {m}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
               
               <div className="flex gap-3 pt-4">
-                <button type="button" onClick={() => setShowModal(false)} className="flex-1 py-3 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-300 rounded-xl font-black uppercase tracking-widest text-[10px] transition-colors">
+                <button 
+                  type="button" 
+                  onClick={() => { setShowModal(false); setEditingActivity(null); }} 
+                  className="flex-1 py-3 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-300 rounded-xl font-black uppercase tracking-widest text-[10px] transition-colors"
+                >
                   Cancelar
                 </button>
-                <button type="submit" className="flex-1 py-3 bg-cyan-500 hover:bg-cyan-600 text-white rounded-xl font-black uppercase tracking-widest text-[10px] transition-all shadow-lg shadow-cyan-500/20">
-                  Salvar
+                <button 
+                  type="submit" 
+                  className="flex-1 py-3 bg-cyan-500 hover:bg-cyan-600 text-white rounded-xl font-black uppercase tracking-widest text-[10px] transition-all shadow-lg shadow-cyan-500/20"
+                >
+                  {editingActivity ? 'Salvar Alterações' : 'Salvar'}
                 </button>
               </div>
             </form>

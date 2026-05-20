@@ -406,6 +406,68 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         }
     };
 
+    const updateScheduledStudy = async (id: string, updates: Partial<ScheduledStudy>) => {
+        setSaveError(null);
+        const existing = scheduledStudies.find(s => s.id === id);
+        if (!existing) return;
+
+        const merged = { ...existing, ...updates };
+
+        setScheduledStudies(prev => {
+            const updated = prev.map(s => s.id === id ? merged : s);
+            localStorage.setItem('cp_scheduled_studies', JSON.stringify(updated));
+            return updated;
+        });
+
+        if (merged.status === 'realizado') {
+            const existingSession = sessions.find(s => s.id === id);
+            const newSessionPayload: StudySession = {
+                id: id,
+                subjectId: merged.subjectId,
+                topicId: merged.topicId,
+                durationInMinutes: merged.durationInMinutes || 0,
+                date: new Date(`${merged.date}T12:00:00`).toISOString(),
+                questionsDone: merged.questionsDone,
+                questionsCorrect: merged.questionsCorrect,
+                activityType: merged.activityType
+            };
+
+            if (existingSession) {
+                setSessions(prev => prev.map(s => s.id === id ? newSessionPayload : s));
+                try {
+                    await api.sessions.update(id, newSessionPayload);
+                } catch (e) {
+                    console.error('Error updating study session:', e);
+                }
+            } else {
+                setSessions(prev => [...prev, newSessionPayload]);
+                try {
+                    await api.sessions.create(newSessionPayload);
+                } catch (e) {
+                    console.error('Error creating study session:', e);
+                }
+            }
+        } else {
+            const existingSession = sessions.find(s => s.id === id);
+            if (existingSession) {
+                setSessions(prev => prev.filter(s => s.id !== id));
+                try {
+                    await api.sessions.delete(id);
+                } catch (e) {
+                    console.error('Error deleting study session:', e);
+                }
+            }
+        }
+
+        try {
+            await api.schedule.update(id, updates);
+            setLastSaved(new Date().toLocaleTimeString());
+        } catch (e) {
+            console.error('Error updating scheduled study:', e);
+            setSaveError('Erro ao atualizar item na agenda.');
+        }
+    };
+
     const updateScheduledStudies = async (newSchedule: ScheduledStudy[]) => {
         setSaveError(null);
         const previousIds = new Set(scheduledStudies.map(s => s.id));
@@ -506,7 +568,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         selectedConcursoId, setSelectedConcursoId,
         sessions, setSessions: (s: any) => s, // Disabled direct set
         simulados, setSimulados: (s: any) => s, // Disabled direct set
-        scheduledStudies, setScheduledStudies: updateScheduledStudies, deleteScheduledStudy,
+        scheduledStudies, setScheduledStudies: updateScheduledStudies, deleteScheduledStudy, updateScheduledStudy,
         dailyGoals, setDailyGoals: updateDailyGoals,
         logs, setLogs: (s: any) => s, // Disabled direct set
         theme, toggleTheme,

@@ -152,6 +152,24 @@ const SaudeApp: React.FC = () => {
     }));
   };
 
+  const handleUpdateActivity = (id: string, updates: Partial<HealthActivity>) => {
+    const existing = activities.find(a => a.id === id);
+    if (!existing) return;
+
+    const merged = { ...existing, ...updates };
+
+    if (merged.type !== 'Musculação') {
+      const dist = merged.distanceKm || 0;
+      const time = merged.timeInMinutes || 0;
+      if (dist > 0 && time > 0) {
+        merged.pace = calculatePace(dist, time, merged.type);
+      }
+    }
+
+    saudeApi.update(id, merged).catch(err => console.error('Error updating saude activity:', err));
+    setActivities(prev => prev.map(a => a.id === id ? merged : a).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+  };
+
   const handleAddPlannerActivity = (activity: HealthActivity) => {
     saudeApi.create(activity).catch(err => console.error('Error creating planner activity:', err));
     setActivities(prev => [activity, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
@@ -527,6 +545,7 @@ const SaudeApp: React.FC = () => {
                 onAddActivity={handleAddPlannerActivity} 
                 onToggleStatus={toggleStatus} 
                 onDelete={deleteActivity} 
+                onUpdateActivity={handleUpdateActivity}
               />
             </div>
           )}

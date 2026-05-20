@@ -1,8 +1,6 @@
-
 import React, { useState, useMemo } from 'react';
 import { Subject, ScheduledStudy, ActivityType, StudySession } from '../types';
 import { getBadgeStyle } from '../utils/colors';
-// No lucide-react icons used in this file
 
 interface CalendarViewProps {
   subjects: Subject[]; // For dropdown (filtered)
@@ -12,15 +10,26 @@ interface CalendarViewProps {
   onDelete: (id: string) => void;
   onAddSession?: (session: StudySession) => void;
   onToggleStatus?: (id: string) => void;
+  onUpdateScheduledStudy: (id: string, updates: Partial<ScheduledStudy>) => void;
 }
 
 type ViewMode = 'semanal' | 'mensal' | 'anual';
 
-const CalendarView: React.FC<CalendarViewProps> = ({ subjects, allSubjects, scheduledStudies, onUpdateSchedule, onDelete, onAddSession, onToggleStatus }) => {
+const CalendarView: React.FC<CalendarViewProps> = ({ 
+  subjects, 
+  allSubjects, 
+  scheduledStudies, 
+  onUpdateSchedule, 
+  onDelete, 
+  onAddSession, 
+  onToggleStatus,
+  onUpdateScheduledStudy 
+}) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<ViewMode>('mensal');
   const [selectedDayKey, setSelectedDayKey] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [editingTask, setEditingTask] = useState<ScheduledStudy | null>(null);
 
   // Use allSubjects for lookup if available, otherwise fallback to subjects
   const lookupSubjects = allSubjects || subjects;
@@ -32,7 +41,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({ subjects, allSubjects, sche
     duration: '',
     questionsDone: '',
     questionsCorrect: '',
-    notes: ''
+    notes: '',
+    status: 'planejado' as 'planejado' | 'realizado'
   });
 
   const monthNames = [
@@ -43,7 +53,6 @@ const CalendarView: React.FC<CalendarViewProps> = ({ subjects, allSubjects, sche
   const daysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
   const firstDayOfMonth = (year: number, month: number) => new Date(year, month, 1).getDay();
 
-
   const getDayKey = (date: Date) => {
     const d = date.getDate().toString().padStart(2, '0');
     const m = (date.getMonth() + 1).toString().padStart(2, '0');
@@ -52,37 +61,67 @@ const CalendarView: React.FC<CalendarViewProps> = ({ subjects, allSubjects, sche
 
   const handleDayClick = (dayKey: string) => {
     setSelectedDayKey(dayKey);
+    setEditingTask(null);
+    setFormData({
+      subjectId: '',
+      topicId: '',
+      activityType: 'Leitura' as ActivityType,
+      duration: '',
+      questionsDone: '',
+      questionsCorrect: '',
+      notes: '',
+      status: 'realizado'
+    });
     setShowModal(true);
   };
 
   const handleSave = () => {
     if (!formData.subjectId || selectedDayKey === null) return;
 
-    if (onAddSession) {
-      onAddSession({
-        id: crypto.randomUUID(),
-        subjectId: formData.subjectId,
-        topicId: formData.topicId || undefined,
-        durationInMinutes: parseInt(formData.duration) || 0,
-        date: new Date(`${selectedDayKey}T12:00:00`).toISOString(),
-        questionsDone: formData.activityType === 'Questões' ? (parseInt(formData.questionsDone) || undefined) : undefined,
-        questionsCorrect: formData.activityType === 'Questões' ? (parseInt(formData.questionsCorrect) || undefined) : undefined,
-        activityType: formData.activityType
-      });
-    } else {
-      const newEntry: ScheduledStudy = {
-        id: crypto.randomUUID(),
-        date: selectedDayKey,
+    const durationVal = parseInt(formData.duration) || 0;
+    const questionsDoneVal = formData.activityType === 'Questões' ? (parseInt(formData.questionsDone) || undefined) : undefined;
+    const questionsCorrectVal = formData.activityType === 'Questões' ? (parseInt(formData.questionsCorrect) || undefined) : undefined;
+
+    if (editingTask) {
+      const updates: Partial<ScheduledStudy> = {
         subjectId: formData.subjectId,
         topicId: formData.topicId || undefined,
         activityType: formData.activityType,
+        durationInMinutes: durationVal || undefined,
+        questionsDone: questionsDoneVal,
+        questionsCorrect: questionsCorrectVal,
         notes: formData.notes,
-        durationInMinutes: parseInt(formData.duration) || undefined,
-        questionsDone: formData.activityType === 'Questões' ? (parseInt(formData.questionsDone) || undefined) : undefined,
-        questionsCorrect: formData.activityType === 'Questões' ? (parseInt(formData.questionsCorrect) || undefined) : undefined,
-        status: 'planejado'
+        status: formData.status
       };
-      onUpdateSchedule([...scheduledStudies, newEntry]);
+      onUpdateScheduledStudy(editingTask.id, updates);
+      setEditingTask(null);
+    } else {
+      if (formData.status === 'realizado' && onAddSession) {
+        onAddSession({
+          id: crypto.randomUUID(),
+          subjectId: formData.subjectId,
+          topicId: formData.topicId || undefined,
+          durationInMinutes: durationVal,
+          date: new Date(`${selectedDayKey}T12:00:00`).toISOString(),
+          questionsDone: questionsDoneVal,
+          questionsCorrect: questionsCorrectVal,
+          activityType: formData.activityType
+        });
+      } else {
+        const newEntry: ScheduledStudy = {
+          id: crypto.randomUUID(),
+          date: selectedDayKey,
+          subjectId: formData.subjectId,
+          topicId: formData.topicId || undefined,
+          activityType: formData.activityType,
+          notes: formData.notes,
+          durationInMinutes: durationVal || undefined,
+          questionsDone: questionsDoneVal,
+          questionsCorrect: questionsCorrectVal,
+          status: formData.status
+        };
+        onUpdateSchedule([...scheduledStudies, newEntry]);
+      }
     }
 
     setShowModal(false);
@@ -93,7 +132,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({ subjects, allSubjects, sche
       duration: '',
       questionsDone: '',
       questionsCorrect: '',
-      notes: ''
+      notes: '',
+      status: 'planejado'
     });
   };
 
@@ -136,6 +176,23 @@ const CalendarView: React.FC<CalendarViewProps> = ({ subjects, allSubjects, sche
     }
   };
 
+  const handleTaskClick = (e: React.MouseEvent, task: ScheduledStudy) => {
+    e.stopPropagation();
+    setSelectedDayKey(task.date || task.date.split('T')[0]);
+    setEditingTask(task);
+    setFormData({
+      subjectId: task.subjectId,
+      topicId: task.topicId || '',
+      activityType: task.activityType || 'Leitura',
+      duration: task.durationInMinutes?.toString() || '',
+      questionsDone: task.questionsDone?.toString() || '',
+      questionsCorrect: task.questionsCorrect?.toString() || '',
+      notes: task.notes || '',
+      status: task.status || 'planejado'
+    });
+    setShowModal(true);
+  };
+
   const renderView = () => {
     switch (viewMode) {
       case 'semanal':
@@ -159,17 +216,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ subjects, allSubjects, sche
                         <div 
                           key={task.id} 
                           style={{ ...style, opacity: task.status === 'planejado' ? 0.45 : 1 }} 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (onToggleStatus) {
-                              onToggleStatus(task.id);
-                            } else {
-                              const newStudies = scheduledStudies.map((s): ScheduledStudy => 
-                                s.id === task.id ? { ...s, status: s.status === 'realizado' ? 'planejado' : 'realizado' } : s
-                              );
-                              onUpdateSchedule(newStudies);
-                            }
-                          }}
+                          onClick={(e) => handleTaskClick(e, task)}
                           className={`p-4 rounded-2xl text-xs font-bold border border-white/10 ${className} cursor-pointer transition-all hover:scale-[1.02] active:scale-95`}
                         >
                           <span className="opacity-70 flex items-center gap-1">{getActivityIcon(task.activityType)} {task.activityType}</span>
@@ -221,17 +268,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ subjects, allSubjects, sche
                           <div 
                             key={t.id} 
                             style={{ ...style, opacity: t.status === 'planejado' ? 0.45 : 1 }} 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (onToggleStatus) {
-                                onToggleStatus(t.id);
-                              } else {
-                                const newStudies = scheduledStudies.map((s): ScheduledStudy => 
-                                  s.id === t.id ? { ...s, status: s.status === 'realizado' ? 'planejado' : 'realizado' } : s
-                                );
-                                onUpdateSchedule(newStudies);
-                              }
-                            }}
+                            onClick={(e) => handleTaskClick(e, t)}
                             className={`px-2 py-1.5 rounded-lg text-[10px] leading-tight font-bold line-clamp-2 ${className} cursor-pointer transition-all hover:scale-[1.02] active:scale-95`}
                           >
                             <div className="flex flex-col gap-0.5">
@@ -300,14 +337,55 @@ const CalendarView: React.FC<CalendarViewProps> = ({ subjects, allSubjects, sche
               <h4 className="text-[10px] font-black text-zinc-400 uppercase mb-6 tracking-widest">Logs do Dia</h4>
               <div className="space-y-3">
                 {tasksForSelectedDay.map(task => (
-                  <div key={task.id} className="p-4 bg-white dark:bg-zinc-900 rounded-[1.5rem] border border-zinc-200 dark:border-zinc-700 group relative">
-                    <button onClick={() => handleDelete(task.id)} className="absolute top-2 right-2 text-zinc-300 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-all">✕</button>
-                    <p className="text-[8px] font-black uppercase text-zinc-900 dark:text-zinc-100 mb-1">{task.activityType}</p>
+                  <div 
+                    key={task.id} 
+                    onClick={() => {
+                      setEditingTask(task);
+                      setFormData({
+                        subjectId: task.subjectId,
+                        topicId: task.topicId || '',
+                        activityType: task.activityType || 'Leitura',
+                        duration: task.durationInMinutes?.toString() || '',
+                        questionsDone: task.questionsDone?.toString() || '',
+                        questionsCorrect: task.questionsCorrect?.toString() || '',
+                        notes: task.notes || '',
+                        status: task.status || 'planejado'
+                      });
+                    }}
+                    className={`p-4 rounded-[1.5rem] border cursor-pointer transition-all hover:scale-[1.02] active:scale-95 group relative ${
+                      editingTask?.id === task.id 
+                        ? 'bg-blue-50 border-blue-300 dark:bg-blue-950/20 dark:border-blue-800' 
+                        : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700'
+                    }`}
+                  >
+                    <button 
+                      onClick={(e) => { 
+                        e.stopPropagation(); 
+                        handleDelete(task.id); 
+                        if (editingTask?.id === task.id) setEditingTask(null); 
+                      }} 
+                      className="absolute top-2 right-2 text-zinc-300 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-all"
+                    >
+                      ✕
+                    </button>
+                    <p className="text-[8px] font-black uppercase text-zinc-900 dark:text-zinc-100 mb-1 flex justify-between items-center">
+                      <span>{task.activityType}</span>
+                      <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded-full ${
+                        task.status === 'realizado' 
+                          ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-400' 
+                          : 'bg-amber-100 text-amber-800 dark:bg-amber-950/30 dark:text-amber-400'
+                      }`}>
+                        {task.status === 'realizado' ? 'Realizado' : 'Planejado'}
+                      </span>
+                    </p>
                     <h5 className="text-xs font-bold dark:text-white truncate">
                       {lookupSubjects.find(s => s.id === task.subjectId)?.name || <span className="text-rose-400 italic">Desconhecida</span>}
                     </h5>
                     {task.questionsDone !== undefined && (
                       <p className="text-[9px] text-zinc-400 mt-1 font-bold">{task.questionsCorrect}/{task.questionsDone} Questões</p>
+                    )}
+                    {task.durationInMinutes !== undefined && task.durationInMinutes > 0 && (
+                      <p className="text-[9px] text-zinc-400 font-bold">{task.durationInMinutes} min</p>
                     )}
                   </div>
                 ))}
@@ -316,9 +394,34 @@ const CalendarView: React.FC<CalendarViewProps> = ({ subjects, allSubjects, sche
             </div>
             <div className="flex-1 p-8 overflow-y-auto max-h-[80vh]">
               <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-black uppercase tracking-tighter">Novo Registro</h3>
+                <h3 className="text-xl font-black uppercase tracking-tighter">
+                  {editingTask ? 'Editar Registro' : 'Novo Registro'}
+                </h3>
                 <button onClick={() => setShowModal(false)} className="text-zinc-400">✕</button>
               </div>
+
+              {editingTask && (
+                <button 
+                  type="button" 
+                  onClick={() => {
+                    setEditingTask(null);
+                    setFormData({
+                      subjectId: '',
+                      topicId: '',
+                      activityType: 'Leitura',
+                      duration: '',
+                      questionsDone: '',
+                      questionsCorrect: '',
+                      notes: '',
+                      status: 'realizado'
+                    });
+                  }}
+                  className="text-xs font-black uppercase tracking-wider text-blue-500 hover:text-blue-600 mb-4 block"
+                >
+                  + Adicionar Novo Registro
+                </button>
+              )}
+
               <div className="space-y-4">
                 <div>
                   <label className="text-[10px] font-black text-zinc-400 uppercase mb-1 block">Tipo de Atividade</label>
@@ -347,10 +450,18 @@ const CalendarView: React.FC<CalendarViewProps> = ({ subjects, allSubjects, sche
                     </select>
                   </div>
                 )}
-                <div className="grid grid-cols-1 gap-4">
+                
+                <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="text-[10px] font-black text-zinc-400 uppercase mb-1 block">Duração (min)</label>
                     <input type="number" placeholder="Duração" value={formData.duration} onChange={(e) => setFormData({ ...formData, duration: e.target.value })} className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 border rounded-2xl outline-none text-sm dark:text-white" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-black text-zinc-400 uppercase mb-1 block">Status</label>
+                    <select value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value as any })} className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 border rounded-2xl outline-none text-sm dark:text-white">
+                      <option value="planejado">Planejado</option>
+                      <option value="realizado">Realizado</option>
+                    </select>
                   </div>
                 </div>
 
@@ -367,7 +478,14 @@ const CalendarView: React.FC<CalendarViewProps> = ({ subjects, allSubjects, sche
                   </div>
                 )}
 
-                <button onClick={handleSave} disabled={!formData.subjectId} className="w-full py-4 bg-zinc-900 dark:bg-zinc-700 text-white rounded-2xl text-[10px] font-black uppercase shadow-lg disabled:opacity-30 active:scale-95 transition-all mt-4">Salvar no Planner</button>
+                <div>
+                  <label className="text-[10px] font-black text-zinc-400 uppercase mb-1 block">Anotações</label>
+                  <textarea placeholder="Observações sobre o estudo..." value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 border rounded-2xl outline-none text-sm dark:text-white h-20 resize-none" />
+                </div>
+
+                <button onClick={handleSave} disabled={!formData.subjectId} className="w-full py-4 bg-zinc-900 dark:bg-zinc-700 text-white rounded-2xl text-[10px] font-black uppercase shadow-lg disabled:opacity-30 active:scale-95 transition-all mt-4">
+                  {editingTask ? 'Salvar Alterações' : 'Salvar no Planner'}
+                </button>
               </div>
             </div>
           </div>

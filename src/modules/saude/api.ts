@@ -37,7 +37,13 @@ export const saudeApi = {
 
   update: async (id: string, updates: Partial<HealthActivity>) => {
     const payload: any = {};
+    if (updates.type !== undefined) payload.type = updates.type;
+    if (updates.date !== undefined) payload.date = updates.date;
+    if (updates.timeInMinutes !== undefined) payload.time_in_minutes = updates.timeInMinutes;
     if (updates.status !== undefined) payload.status = updates.status;
+    if (updates.distanceKm !== undefined) payload.distance_km = updates.distanceKm;
+    if (updates.level !== undefined) payload.cardio_level = updates.level;
+    if (updates.muscles !== undefined) payload.muscles = updates.muscles;
     
     const { error } = await supabase.from('saude_treinos').update(payload).eq('id', id);
     if (error) throw error;

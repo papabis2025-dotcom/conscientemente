@@ -93,6 +93,18 @@ export const api = {
 
             return handleRequest<StudySession>(supabase.from('study_sessions').insert(dbPayload).select().single());
         },
+        update: async (id: string, updates: Partial<StudySession>) => {
+            const dbPayload: any = {};
+            if (updates.subjectId) dbPayload.subject_id = updates.subjectId;
+            if (updates.topicId !== undefined) dbPayload.topic_id = updates.topicId;
+            if (updates.durationInMinutes !== undefined) dbPayload.duration_minutes = updates.durationInMinutes;
+            if (updates.date) dbPayload.date = updates.date;
+            if (updates.questionsDone !== undefined) dbPayload.questions_done = updates.questionsDone;
+            if (updates.questionsCorrect !== undefined) dbPayload.questions_correct = updates.questionsCorrect;
+            if (updates.isSimulado !== undefined) dbPayload.is_simulado = updates.isSimulado;
+
+            return handleRequest(supabase.from('study_sessions').update(dbPayload).eq('id', id));
+        },
         delete: async (id: string) => handleRequest(supabase.from('study_sessions').delete().eq('id', id)),
         deleteBySubject: async (subjectId: string) => handleRequest(supabase.from('study_sessions').delete().eq('subject_id', subjectId)),
         deleteAll: async () => {

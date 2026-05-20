@@ -711,25 +711,22 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
       {/* Top bar */}
       <header className="relative z-20 border-b border-zinc-200/70 dark:border-zinc-800/70 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-lg px-6 py-3.5 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-500/20 shrink-0">
             <Brain size={18} className="text-white" />
           </div>
-          <div className="hidden xs:block">
-            <h1 className="text-sm font-black text-zinc-800 dark:text-white uppercase tracking-widest leading-none">
+          <div className="flex flex-col min-w-0">
+            <h1 className="text-xs sm:text-sm font-black text-zinc-800 dark:text-white uppercase tracking-widest leading-none">
               Conscientemente
             </h1>
-            <p className="text-[10px] text-zinc-400 dark:text-zinc-500 font-medium mt-0.5">Sistema operacional pessoal</p>
+            <div className="flex items-center gap-1.5 mt-1 min-w-0">
+              <span className="text-[11px] font-black text-indigo-600 dark:text-indigo-400 tracking-tight tabular-nums shrink-0">
+                {timeStr}
+              </span>
+              <span className="text-[8px] text-zinc-500 dark:text-zinc-400 font-bold capitalize border-l border-zinc-300 dark:border-zinc-700 pl-1.5 truncate">
+                {dateStr}
+              </span>
+            </div>
           </div>
-        </div>
-
-        {/* Compact Clock (Center of Header) */}
-        <div className="flex flex-col items-center justify-center bg-zinc-50/50 dark:bg-zinc-800/30 px-3 py-1 rounded-xl border border-zinc-200/40 dark:border-zinc-700/20 backdrop-blur-sm mx-2 max-w-[155px] sm:max-w-none text-center">
-          <span className="text-xs font-black text-zinc-800 dark:text-white tracking-tight tabular-nums leading-none">
-            {timeStr}
-          </span>
-          <span className="text-[8px] text-zinc-400 dark:text-zinc-500 font-bold capitalize leading-none mt-1 truncate max-w-[100px] sm:max-w-none">
-            {dateStr}
-          </span>
         </div>
 
         <div className="flex items-center gap-2">

@@ -387,6 +387,11 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
     });
   };
 
+  const handleClearAllNotifications = () => {
+    setNotifications([]);
+    localStorage.removeItem('cn_notifications');
+  };
+
   const toggleHabit = (habitId: string) => {
     setHabitHistory(prev => {
       const todayLogs = prev[todayStr] || [];
@@ -635,17 +640,27 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
     >
 
       {/* Top bar */}
-      <header className="relative z-10 border-b border-zinc-200/70 dark:border-zinc-800/70 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-lg px-6 py-3.5 flex items-center justify-between shadow-sm">
+      <header className="relative z-20 border-b border-zinc-200/70 dark:border-zinc-800/70 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-lg px-6 py-3.5 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
             <Brain size={18} className="text-white" />
           </div>
-          <div>
+          <div className="hidden xs:block">
             <h1 className="text-sm font-black text-zinc-800 dark:text-white uppercase tracking-widest leading-none">
               Conscientemente
             </h1>
             <p className="text-[10px] text-zinc-400 dark:text-zinc-500 font-medium mt-0.5">Sistema operacional pessoal</p>
           </div>
+        </div>
+
+        {/* Compact Clock (Center of Header) */}
+        <div className="flex flex-col items-center justify-center bg-zinc-50/50 dark:bg-zinc-800/30 px-3 py-1 rounded-xl border border-zinc-200/40 dark:border-zinc-700/20 backdrop-blur-sm mx-2 max-w-[155px] sm:max-w-none text-center">
+          <span className="text-xs font-black text-zinc-800 dark:text-white tracking-tight tabular-nums leading-none">
+            {timeStr}
+          </span>
+          <span className="text-[8px] text-zinc-400 dark:text-zinc-500 font-bold capitalize leading-none mt-1 truncate max-w-[100px] sm:max-w-none">
+            {dateStr}
+          </span>
         </div>
 
         <div className="flex items-center gap-2">
@@ -700,41 +715,48 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
                       Nenhuma notificação por enquanto.
                     </div>
                   ) : (
-                    displayedNotifications.map(n => (
-                      <div
-                        key={n.id}
-                        className={`p-2.5 rounded-xl border text-left transition-all ${
-                          n.read
-                            ? 'bg-zinc-50/50 dark:bg-zinc-950/20 border-zinc-100 dark:border-zinc-900/50 opacity-60'
-                            : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-805 shadow-sm hover:border-zinc-300 dark:hover:border-zinc-700'
-                        } relative group/item`}
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-1.5">
-                              {!n.read && <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse shrink-0 inline-block" />}
-                              <p className="text-[11px] font-black text-zinc-800 dark:text-zinc-200 leading-tight truncate">
-                                {n.title}
+                    displayedNotifications.map(n => {
+                      const notifTitle = n.title || 'Alerta';
+                      const notifDesc = n.description || '';
+                      const notifTime = n.timestamp ? new Date(n.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '';
+                      return (
+                        <div
+                          key={n.id}
+                          className={`p-2.5 rounded-xl border text-left transition-all ${
+                            n.read
+                              ? 'bg-zinc-50/50 dark:bg-zinc-950/20 border-zinc-100 dark:border-zinc-900/50 opacity-60'
+                              : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-805 shadow-sm hover:border-zinc-300 dark:hover:border-zinc-700'
+                          } relative group/item`}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                {!n.read && <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse shrink-0 inline-block" />}
+                                <p className="text-[11px] font-black text-zinc-800 dark:text-zinc-200 leading-tight truncate">
+                                  {notifTitle}
+                                </p>
+                              </div>
+                              <p className="text-[10px] text-zinc-550 dark:text-zinc-400 mt-0.5 leading-snug break-words font-medium">
+                                {notifDesc}
                               </p>
+                              {notifTime && (
+                                <p className="text-[8px] text-zinc-400 dark:text-zinc-500 mt-1 font-mono">
+                                  {notifTime}
+                                </p>
+                              )}
                             </div>
-                            <p className="text-[10px] text-zinc-550 dark:text-zinc-400 mt-0.5 leading-snug break-words font-medium">
-                              {n.description}
-                            </p>
-                            <p className="text-[8px] text-zinc-400 dark:text-zinc-500 mt-1 font-mono">
-                              {new Date(n.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                            </p>
+                            {!n.read && (
+                              <button
+                                onClick={() => handleMarkAsRead(n.id)}
+                                className="opacity-0 group-hover/item:opacity-100 text-[8px] font-black uppercase tracking-wider text-indigo-500 dark:text-indigo-400 hover:underline shrink-0 self-center transition-all px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800"
+                              >
+                                Lido
+                              </button>
+                            )}
                           </div>
-                          {!n.read && (
-                            <button
-                              onClick={() => handleMarkAsRead(n.id)}
-                              className="opacity-0 group-hover/item:opacity-100 text-[8px] font-black uppercase tracking-wider text-indigo-500 dark:text-indigo-400 hover:underline shrink-0 self-center transition-all px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800"
-                            >
-                              Lido
-                            </button>
-                          )}
                         </div>
-                      </div>
-                    ))
+                      );
+                    })
                   )}
                 </div>
               </div>
@@ -779,22 +801,10 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
       <main className="relative z-10 flex-1 max-w-2xl mx-auto w-full px-6 py-10 flex flex-col">
 
         {/* Hero section */}
-        <div className={`mb-10 transition-all duration-700 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
-
-          {/* Live clock widget */}
-          <div className="mt-4 inline-flex items-center gap-5 px-6 py-4 bg-white/40 dark:bg-zinc-900/40 backdrop-blur-md rounded-3xl border border-zinc-200/50 dark:border-zinc-800/50 shadow-md">
-            <div className="flex flex-col">
-              <span className="font-black text-zinc-800 dark:text-white text-4xl leading-none tracking-tight tabular-nums">
-                {timeStr}
-              </span>
-              <span className="text-sm text-zinc-500 dark:text-zinc-400 font-bold capitalize mt-1.5">
-                {dateStr}
-              </span>
-            </div>
-          </div>
+        <div className={`mb-6 transition-all duration-700 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
 
           {/* Status pills */}
-          <div className="flex flex-wrap gap-2 mt-4">
+          <div className="flex flex-wrap gap-2">
             {pendingTarefas > 0 ? (
               <span className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 rounded-full text-[10px] font-black uppercase tracking-wider border border-rose-200 dark:border-rose-500/20 animate-in fade-in duration-300">
                 <ListTodo size={11} />

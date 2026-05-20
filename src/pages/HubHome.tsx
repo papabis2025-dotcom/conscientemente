@@ -2,10 +2,26 @@ import React, { useState, useEffect, useRef } from 'react';
 import { MODULES } from '../constants';
 import { Module } from '../types';
 import { LogEntry } from '../modules/estudos/types';
-import { LogOut, Sun, Moon, ArrowUpRight, Lock, BookOpen, Wallet, ListTodo, Brain, ChevronRight, Activity, TrendingUp, Settings, User, X, HeartPulse } from 'lucide-react';
+import { LogOut, Sun, Moon, ArrowUpRight, Lock, BookOpen, Wallet, ListTodo, Brain, ChevronRight, Activity, TrendingUp, Settings, User, X, HeartPulse, Bell, Plus, Trash2, Check, ClipboardList } from 'lucide-react';
 import LogView from '../modules/estudos/pages/LogView';
 import { api } from '../modules/estudos/services/api';
 import { supabase } from '../modules/estudos/services/supabase';
+
+interface AppNotification {
+  id: string;
+  title: string;
+  description: string;
+  date: string;
+  read: boolean;
+  type: 'tarefa' | 'estudo' | 'saude' | 'financas' | 'sistema';
+  timestamp: number;
+}
+
+interface Habit {
+  id: string;
+  name: string;
+  createdAt: number;
+}
 
 interface HubHomeProps {
   userName: string;
@@ -213,6 +229,219 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [logs, setLogs] = useState<LogEntry[]>([]);
 
+  // Notifications state
+  const [notifications, setNotifications] = useState<AppNotification[]>(() => {
+    try {
+      const saved = localStorage.getItem('cn_notifications');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [showNotificationsPopover, setShowNotificationsPopover] = useState(false);
+  const popoverRef = useRef<HTMLDivElement>(null);
+
+  // Habits state
+  const [habits, setHabits] = useState<Habit[]>(() => {
+    try {
+      const saved = localStorage.getItem('cn_habits');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    const defaultHabits: Habit[] = [
+      { id: 'h1', name: 'Beber 2L de água', createdAt: Date.now() },
+      { id: 'h2', name: 'Estudar 1 hora', createdAt: Date.now() },
+      { id: 'h3', name: 'Treino físico', createdAt: Date.now() },
+      { id: 'h4', name: 'Ler 10 páginas', createdAt: Date.now() }
+    ];
+    localStorage.setItem('cn_habits', JSON.stringify(defaultHabits));
+    return defaultHabits;
+  });
+
+  const [habitHistory, setHabitHistory] = useState<Record<string, string[]>>(() => {
+    try {
+      const saved = localStorage.getItem('cn_habit_history');
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  const [newHabitName, setNewHabitName] = useState('');
+  const [showManageHabits, setShowManageHabits] = useState(false);
+
+  const todayStr = new Date(currentTime.getTime() - currentTime.getTimezoneOffset() * 60000).toISOString().split('T')[0];
+
+  const requestNotificationPermission = async () => {
+    if (!('Notification' in window)) return false;
+    const permission = await Notification.requestPermission();
+    return permission === 'granted';
+  };
+
+  const triggerLocalNotification = (title: string, body: string) => {
+    if (!('Notification' in window) || Notification.permission !== 'granted') return;
+    if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+      navigator.serviceWorker.ready.then(registration => {
+        registration.showNotification(title, {
+          body,
+          icon: '/favicon.ico',
+          badge: '/favicon.ico',
+          tag: 'conscientemente-alert'
+        });
+      }).catch(() => {
+        new Notification(title, { body });
+      });
+    } else {
+      new Notification(title, { body });
+    }
+  };
+
+  const generateNotifications = (data: {
+    todayStr: string;
+    tarefas: { id: string; text: string }[];
+    pendingEstudos: number;
+    saude: { id: string; type: string }[];
+    balance: number;
+  }) => {
+    setNotifications(prev => {
+      let updated = [...prev];
+      let changed = false;
+
+      const addNotify = (id: string, title: string, description: string, type: AppNotification['type']) => {
+        if (updated.some(n => n.id === id)) return;
+        const newNotif: AppNotification = {
+          id,
+          title,
+          description,
+          date: data.todayStr,
+          read: false,
+          type,
+          timestamp: Date.now()
+        };
+        updated = [newNotif, ...updated];
+        changed = true;
+        triggerLocalNotification(title, description);
+      };
+
+      // 1. Check Tasks
+      data.tarefas.forEach(task => {
+        addNotify(
+          `task_${task.id}`,
+          'Tarefa Pendente',
+          `A tarefa "${task.text}" está agendada para hoje.`,
+          'tarefa'
+        );
+      });
+
+      // 2. Check Studies
+      if (data.pendingEstudos > 0) {
+        addNotify(
+          `estudos_${data.todayStr}`,
+          'Estudos Pendentes',
+          `Você tem ${data.pendingEstudos} ${data.pendingEstudos === 1 ? 'atividade de estudo' : 'atividades de estudo'} para realizar hoje.`,
+          'estudo'
+        );
+      }
+
+      // 3. Check Workouts
+      data.saude.forEach(workout => {
+        addNotify(
+          `workout_${workout.id}`,
+          'Treino Planejado',
+          `Você tem um treino de "${workout.type}" agendado para hoje.`,
+          'saude'
+        );
+      });
+
+      // 4. Check Balance
+      if (data.balance < 0) {
+        const formatted = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(data.balance);
+        addNotify(
+          `finance_neg_${data.todayStr}`,
+          'Saldo Negativo',
+          `Atenção: seu saldo atual no mês é ${formatted}.`,
+          'financas'
+        );
+      }
+
+      if (changed) {
+        localStorage.setItem('cn_notifications', JSON.stringify(updated));
+        return updated;
+      }
+      return prev;
+    });
+  };
+
+  const handleMarkAsRead = (id: string) => {
+    setNotifications(prev => {
+      const updated = prev.map(n => n.id === id ? { ...n, read: true } : n);
+      localStorage.setItem('cn_notifications', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const handleMarkAllAsRead = () => {
+    setNotifications(prev => {
+      const updated = prev.map(n => ({ ...n, read: true }));
+      localStorage.setItem('cn_notifications', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const toggleHabit = (habitId: string) => {
+    setHabitHistory(prev => {
+      const todayLogs = prev[todayStr] || [];
+      let newTodayLogs: string[];
+      if (todayLogs.includes(habitId)) {
+        newTodayLogs = todayLogs.filter(id => id !== habitId);
+      } else {
+        newTodayLogs = [...todayLogs, habitId];
+      }
+      const updated = { ...prev, [todayStr]: newTodayLogs };
+      localStorage.setItem('cn_habit_history', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const addHabit = (name: string) => {
+    if (!name.trim()) return;
+    const newHabit: Habit = {
+      id: `habit_${Date.now()}`,
+      name: name.trim(),
+      createdAt: Date.now()
+    };
+    setHabits(prev => {
+      const updated = [...prev, newHabit];
+      localStorage.setItem('cn_habits', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const deleteHabit = (habitId: string) => {
+    setHabits(prev => {
+      const updated = prev.filter(h => h.id !== habitId);
+      localStorage.setItem('cn_habits', JSON.stringify(updated));
+      return updated;
+    });
+    setHabitHistory(prev => {
+      const updated = { ...prev };
+      Object.keys(updated).forEach(date => {
+        updated[date] = updated[date].filter(id => id !== habitId);
+      });
+      localStorage.setItem('cn_habit_history', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (popoverRef.current && !popoverRef.current.contains(event.target as Node)) {
+        setShowNotificationsPopover(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   // Settings states
   const fileRef = useRef<HTMLInputElement>(null);
   const [isExporting, setIsExporting] = useState(false);
@@ -328,8 +557,6 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
     return () => clearInterval(timer);
   }, []);
 
-  const todayStr = new Date(currentTime.getTime() - currentTime.getTimezoneOffset() * 60000).toISOString().split('T')[0];
-
   useEffect(() => {
     const fetchCloudData = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -338,7 +565,7 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
       // 1. Pending Tarefas
       const { data: tarefas } = await supabase
         .from('tarefas')
-        .select('id')
+        .select('id, text')
         .eq('user_id', user.id)
         .eq('completed', false)
         .eq('due_date', todayStr);
@@ -360,7 +587,7 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
       // 3. Pending Saude
       const { data: saude } = await supabase
         .from('saude_treinos')
-        .select('id')
+        .select('id, type')
         .eq('user_id', user.id)
         .eq('date', todayStr)
         .eq('status', 'planejado');
@@ -374,13 +601,23 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
         .eq('user_id', user.id)
         .like('date', `${currentMonthStr}%`);
 
+      let calculatedBalance = 0;
       if (financas) {
         const entradas = financas.filter(t => t.type === 'entrada').reduce((acc, t) => acc + Number(t.amount), 0);
         const saidas = financas.filter(t => t.type === 'saida').reduce((acc, t) => acc + Number(t.amount), 0);
-        setFinanceBalance(entradas - saidas);
+        calculatedBalance = entradas - saidas;
+        setFinanceBalance(calculatedBalance);
       } else {
         setFinanceBalance(0);
       }
+
+      generateNotifications({
+        todayStr,
+        tarefas: (tarefas || []) as { id: string; text: string }[],
+        pendingEstudos: pendingStudyTasks + pendingScheduled,
+        saude: (saude || []) as { id: string; type: string }[],
+        balance: calculatedBalance
+      });
     };
 
     fetchCloudData().catch(err => console.error('Error fetching hub data:', err));
@@ -388,6 +625,9 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
 
   const timeStr = currentTime.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
   const dateStr = currentTime.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
+
+  const displayedNotifications = notifications.filter(n => n.date === todayStr || !n.read);
+  const unreadCount = displayedNotifications.filter(n => !n.read).length;
 
   return (
     <div 
@@ -409,6 +649,98 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Notifications Button & Popover */}
+          <div className="relative" ref={popoverRef}>
+            <button
+              onClick={() => {
+                setShowNotificationsPopover(!showNotificationsPopover);
+                requestNotificationPermission();
+              }}
+              className="w-9 h-9 rounded-xl flex items-center justify-center border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-500 hover:text-zinc-800 dark:hover:text-white transition-all hover:scale-105 hover:shadow-sm"
+              title="Notificações"
+            >
+              <Bell size={15} />
+            </button>
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-455 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-rose-500 text-[7px] font-black text-white items-center justify-center">
+                  {unreadCount}
+                </span>
+              </span>
+            )}
+
+            {showNotificationsPopover && (
+              <div className="absolute right-0 mt-2 w-80 max-w-[calc(100vw-2rem)] bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-2xl z-50 p-4 animate-in slide-in-from-top-2 duration-200">
+                <div className="flex items-center justify-between pb-3 border-b border-zinc-100 dark:border-zinc-800/80">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-zinc-750 dark:text-zinc-300">Notificações</span>
+                  <div className="flex gap-2">
+                    {unreadCount > 0 && (
+                      <button
+                        onClick={handleMarkAllAsRead}
+                        className="text-[9px] font-black uppercase tracking-wider text-indigo-500 hover:text-indigo-650 dark:hover:text-indigo-400 transition-colors"
+                      >
+                        Ler todas
+                      </button>
+                    )}
+                    {notifications.length > 0 && (
+                      <button
+                        onClick={handleClearAllNotifications}
+                        className="text-[9px] font-black uppercase tracking-wider text-zinc-400 hover:text-rose-500 transition-colors"
+                      >
+                        Limpar
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="mt-2 max-h-64 overflow-y-auto space-y-2 custom-scrollbar">
+                  {displayedNotifications.length === 0 ? (
+                    <div className="py-8 text-center text-xs text-zinc-400 dark:text-zinc-500 font-medium">
+                      Nenhuma notificação por enquanto.
+                    </div>
+                  ) : (
+                    displayedNotifications.map(n => (
+                      <div
+                        key={n.id}
+                        className={`p-2.5 rounded-xl border text-left transition-all ${
+                          n.read
+                            ? 'bg-zinc-50/50 dark:bg-zinc-950/20 border-zinc-100 dark:border-zinc-900/50 opacity-60'
+                            : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-805 shadow-sm hover:border-zinc-300 dark:hover:border-zinc-700'
+                        } relative group/item`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              {!n.read && <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse shrink-0 inline-block" />}
+                              <p className="text-[11px] font-black text-zinc-800 dark:text-zinc-200 leading-tight truncate">
+                                {n.title}
+                              </p>
+                            </div>
+                            <p className="text-[10px] text-zinc-550 dark:text-zinc-400 mt-0.5 leading-snug break-words font-medium">
+                              {n.description}
+                            </p>
+                            <p className="text-[8px] text-zinc-400 dark:text-zinc-500 mt-1 font-mono">
+                              {new Date(n.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                            </p>
+                          </div>
+                          {!n.read && (
+                            <button
+                              onClick={() => handleMarkAsRead(n.id)}
+                              className="opacity-0 group-hover/item:opacity-100 text-[8px] font-black uppercase tracking-wider text-indigo-500 dark:text-indigo-400 hover:underline shrink-0 self-center transition-all px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800"
+                            >
+                              Lido
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
           <button
             onClick={() => { setShowSettingsModal(true); fetchLogs(); }}
             className="w-9 h-9 rounded-xl flex items-center justify-center border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-500 hover:text-zinc-800 dark:hover:text-white transition-all hover:scale-105 hover:shadow-sm"
@@ -464,37 +796,37 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
           {/* Status pills */}
           <div className="flex flex-wrap gap-2 mt-4">
             {pendingTarefas > 0 ? (
-              <span className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 rounded-full text-[10px] font-black uppercase tracking-wider border border-rose-200 dark:border-rose-500/20">
+              <span className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 rounded-full text-[10px] font-black uppercase tracking-wider border border-rose-200 dark:border-rose-500/20 animate-in fade-in duration-300">
                 <ListTodo size={11} />
                 {pendingTarefas} {pendingTarefas === 1 ? 'tarefa' : 'tarefas'} hoje
               </span>
             ) : (
-              <span className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-full text-[10px] font-bold uppercase tracking-wider border border-emerald-200 dark:border-emerald-500/20">
-                <ListTodo size={11} />
+              <span className="flex items-center gap-1.5 px-3 py-1.5 bg-white/40 dark:bg-zinc-900/40 backdrop-blur-sm text-zinc-500 dark:text-zinc-400 rounded-full text-[10px] font-bold uppercase tracking-wider border border-zinc-200/50 dark:border-zinc-800/50">
+                <ListTodo size={11} className="text-zinc-400 dark:text-zinc-550" />
                 Dia livre ✓
               </span>
             )}
 
             {pendingEstudos > 0 ? (
-              <span className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-full text-[10px] font-black uppercase tracking-wider border border-indigo-200 dark:border-indigo-500/20">
+              <span className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-full text-[10px] font-black uppercase tracking-wider border border-indigo-200 dark:border-indigo-500/20 animate-in fade-in duration-300">
                 <BookOpen size={11} />
                 {pendingEstudos} {pendingEstudos === 1 ? 'estudo pendente' : 'estudos pendentes'}
               </span>
             ) : (
-              <span className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-full text-[10px] font-bold uppercase tracking-wider border border-emerald-200 dark:border-emerald-500/20">
-                <BookOpen size={11} />
+              <span className="flex items-center gap-1.5 px-3 py-1.5 bg-white/40 dark:bg-zinc-900/40 backdrop-blur-sm text-zinc-550 dark:text-zinc-400 rounded-full text-[10px] font-bold uppercase tracking-wider border border-zinc-200/50 dark:border-zinc-800/50">
+                <BookOpen size={11} className="text-zinc-400 dark:text-zinc-550" />
                 Estudos ok ✓
               </span>
             )}
 
             {pendingSaude > 0 ? (
-              <span className="flex items-center gap-1.5 px-3 py-1.5 bg-cyan-50 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 rounded-full text-[10px] font-black uppercase tracking-wider border border-cyan-200 dark:border-cyan-500/20">
+              <span className="flex items-center gap-1.5 px-3 py-1.5 bg-cyan-50 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 rounded-full text-[10px] font-black uppercase tracking-wider border border-cyan-200 dark:border-cyan-500/20 animate-in fade-in duration-300">
                 <HeartPulse size={11} />
                 {pendingSaude} {pendingSaude === 1 ? 'treino pendente' : 'treinos pendentes'}
               </span>
             ) : (
-              <span className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-full text-[10px] font-bold uppercase tracking-wider border border-emerald-200 dark:border-emerald-500/20">
-                <HeartPulse size={11} />
+              <span className="flex items-center gap-1.5 px-3 py-1.5 bg-white/40 dark:bg-zinc-900/40 backdrop-blur-sm text-zinc-550 dark:text-zinc-400 rounded-full text-[10px] font-bold uppercase tracking-wider border border-zinc-200/50 dark:border-zinc-800/50">
+                <HeartPulse size={11} className="text-zinc-400 dark:text-zinc-550" />
                 Treinos ok ✓
               </span>
             )}
@@ -502,12 +834,134 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
             {financeBalance !== null && (
               <span className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${
                 financeBalance >= 0
-                  ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/20'
-                  : 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-500/20'
+                  ? 'bg-white/40 dark:bg-zinc-900/40 backdrop-blur-sm text-zinc-550 dark:text-zinc-400 border-zinc-200/50 dark:border-zinc-800/50 font-bold'
+                  : 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-500/20 animate-in fade-in duration-300 font-black'
               }`}>
-                <Wallet size={11} />
+                <Wallet size={11} className={financeBalance >= 0 ? "text-zinc-400 dark:text-zinc-550" : ""} />
                 {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(financeBalance)}
               </span>
+            )}
+          </div>
+        </div>
+
+        {/* Habit Tracker Section */}
+        <div className="mb-8 p-5 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm rounded-[2rem] border border-zinc-200/80 dark:border-zinc-800/80 shadow-md">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-xs font-black text-zinc-700 dark:text-zinc-300 uppercase tracking-widest flex items-center gap-1.5">
+                <ClipboardList size={13} className="text-indigo-500" />
+                Hábitos de Hoje
+              </h3>
+              <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5">Mantenha sua rotina consistente</p>
+            </div>
+            
+            <button
+              onClick={() => setShowManageHabits(!showManageHabits)}
+              className="text-[9px] font-black uppercase tracking-wider text-indigo-500 hover:text-indigo-650 dark:hover:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-2.5 py-1 rounded-lg border border-indigo-155 dark:border-indigo-900/40 transition-colors"
+            >
+              {showManageHabits ? 'Fechar' : 'Gerenciar'}
+            </button>
+          </div>
+
+          {/* Progress Indicator */}
+          {habits.length > 0 && (
+            <div className="mb-4 animate-in fade-in duration-300">
+              <div className="flex justify-between items-center text-[10px] font-bold text-zinc-500 dark:text-zinc-400 mb-1.5">
+                <span>Progresso</span>
+                <span>
+                  {habits.filter(h => (habitHistory[todayStr] || []).includes(h.id)).length} de {habits.length} ({Math.round((habits.filter(h => (habitHistory[todayStr] || []).includes(h.id)).length / habits.length) * 100)}%)
+                </span>
+              </div>
+              <div className="w-full h-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-indigo-500 to-violet-600 transition-all duration-500"
+                  style={{ width: `${(habits.filter(h => (habitHistory[todayStr] || []).includes(h.id)).length / habits.length) * 100}%` }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Manage Habits view */}
+          {showManageHabits && (
+            <div className="mb-4 p-3 bg-zinc-50 dark:bg-zinc-950 rounded-2xl border border-zinc-200/50 dark:border-zinc-800/80 space-y-3 animate-in fade-in slide-in-from-top-1 duration-200">
+              <p className="text-[9px] font-black text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">Meus Hábitos</p>
+              
+              <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1 custom-scrollbar">
+                {habits.length === 0 ? (
+                  <p className="text-[10px] text-zinc-400 text-center py-2">Nenhum hábito cadastrado.</p>
+                ) : (
+                  habits.map(h => (
+                    <div key={h.id} className="flex items-center justify-between bg-white dark:bg-zinc-900 px-3 py-1.5 rounded-xl border border-zinc-150 dark:border-zinc-800/80 animate-in fade-in duration-200">
+                      <span className="text-[11px] font-medium text-zinc-750 dark:text-zinc-300">{h.name}</span>
+                      <button
+                        onClick={() => deleteHabit(h.id)}
+                        className="text-zinc-400 hover:text-rose-500 transition-colors p-1"
+                        title="Excluir hábito"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              <div className="flex gap-1.5 pt-1.5 border-t border-zinc-200 dark:border-zinc-800">
+                <input
+                  type="text"
+                  placeholder="Novo hábito (ex: Meditar)"
+                  value={newHabitName}
+                  onChange={e => setNewHabitName(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') { addHabit(newHabitName); setNewHabitName(''); } }}
+                  className="flex-1 px-3 py-1.5 text-xs bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl outline-none focus:ring-1 focus:ring-indigo-500 text-zinc-800 dark:text-white"
+                />
+                <button
+                  onClick={() => { addHabit(newHabitName); setNewHabitName(''); }}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1 transition-all"
+                >
+                  <Plus size={12} /> Add
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* List of habits checkboxes */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+            {habits.length === 0 ? (
+              <div className="col-span-2 py-4 text-center text-xs text-zinc-400 dark:text-zinc-500">
+                Você não possui hábitos definidos. Clique em "Gerenciar" para criar.
+              </div>
+            ) : (
+              habits.map(h => {
+                const isCompleted = (habitHistory[todayStr] || []).includes(h.id);
+                return (
+                  <div
+                    key={h.id}
+                    onClick={() => toggleHabit(h.id)}
+                    className={`flex items-center gap-3 p-3 rounded-2xl border transition-all duration-200 cursor-pointer ${
+                      isCompleted
+                        ? 'bg-zinc-50/50 dark:bg-zinc-950/20 border-zinc-150 dark:border-zinc-900/50 opacity-60'
+                        : 'bg-white dark:bg-zinc-900 border-zinc-200/80 dark:border-zinc-800/80 shadow-sm hover:border-indigo-200 dark:hover:border-indigo-900/50 hover:shadow-md'
+                    }`}
+                  >
+                    <div className="relative flex items-center justify-center shrink-0">
+                      <div className={`w-5 h-5 rounded-lg border flex items-center justify-center transition-all ${
+                        isCompleted
+                          ? 'bg-gradient-to-br from-indigo-500 to-violet-600 border-indigo-500 text-white'
+                          : 'border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800'
+                      }`}>
+                        {isCompleted && <Check size={11} strokeWidth={3} />}
+                      </div>
+                    </div>
+                    <span className={`text-[11px] font-bold transition-all truncate leading-none ${
+                      isCompleted
+                        ? 'line-through text-zinc-400 dark:text-zinc-500'
+                        : 'text-zinc-700 dark:text-zinc-300'
+                    }`}>
+                      {h.name}
+                    </span>
+                  </div>
+                );
+              })
             )}
           </div>
         </div>

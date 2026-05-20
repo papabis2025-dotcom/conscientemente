@@ -39,6 +39,13 @@ const DEFAULT_PAYMENT_METHODS: FinCategoria[] = ['Pix / Dinheiro', 'Inter', 'Ban
 
 const FinancasApp: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'anual' | 'ajustes'>('dashboard');
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    return localStorage.getItem('isSidebarCollapsed_financas') === 'true';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('isSidebarCollapsed_financas', String(isSidebarCollapsed));
+  }, [isSidebarCollapsed]);
 
   const [inCategories, setInCategories] = useState<FinCategoria[]>(DEFAULT_ENTRADA_CATEGORIES);
   const [outCategories, setOutCategories] = useState<FinCategoria[]>(DEFAULT_SAIDA_CATEGORIES);
@@ -253,50 +260,74 @@ const FinancasApp: React.FC = () => {
     <div className="flex h-screen bg-transparent text-zinc-900 dark:text-zinc-100 font-sans overflow-hidden">
       
       {/* Sidebar Lateral */}
-      <aside className="w-64 bg-white/50 dark:bg-zinc-900/50 border-r border-zinc-200 dark:border-zinc-800 flex flex-col transition-all backdrop-blur-xl">
-        <div className="p-6">
-          <div className="flex items-center gap-3 text-emerald-500 mb-8">
-            <Wallet size={28} className="drop-shadow-sm" />
-            <span className="text-xl font-black uppercase tracking-widest text-zinc-900 dark:text-white">Finanças</span>
+      <aside className={`relative ${isSidebarCollapsed ? 'w-20' : 'w-64'} bg-white/50 dark:bg-zinc-900/50 border-r border-zinc-200 dark:border-zinc-800 flex flex-col transition-all duration-300 backdrop-blur-xl`}>
+        <button
+          onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+          className="absolute -right-3 top-9 w-6 h-6 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-full flex items-center justify-center text-zinc-500 hover:text-zinc-900 dark:text-zinc-100 shadow-sm z-50 hover:scale-110 transition-transform"
+        >
+          {isSidebarCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+        </button>
+
+        <div className={`flex-1 flex flex-col min-h-0 ${isSidebarCollapsed ? 'p-3' : 'p-5'}`}>
+          <div className={`flex items-center gap-3 text-emerald-500 mb-8 ${isSidebarCollapsed ? 'justify-center' : ''}`}>
+            <Wallet size={28} className="drop-shadow-sm shrink-0" />
+            {!isSidebarCollapsed && (
+              <span className="text-xl font-black uppercase tracking-widest text-zinc-900 dark:text-white animate-in fade-in slide-in-from-left-4 duration-300">
+                Finanças
+              </span>
+            )}
           </div>
 
           <div className="flex flex-col gap-2">
-            <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Navegação</span>
+            {!isSidebarCollapsed && <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Navegação</span>}
             <div className="flex flex-col gap-1 mb-4">
               <button 
                 onClick={() => setActiveTab('dashboard')} 
-                className={`p-3 rounded-xl flex items-center gap-3 transition-colors text-xs font-bold uppercase tracking-wider ${activeTab === 'dashboard' ? 'bg-zinc-900 dark:bg-zinc-800 text-white shadow-md' : 'text-zinc-500 hover:bg-white dark:hover:bg-zinc-800'}`}
+                className={`rounded-xl flex items-center transition-all text-xs font-bold uppercase tracking-wider ${isSidebarCollapsed ? 'justify-center p-3' : 'p-3 gap-3'} ${activeTab === 'dashboard' ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/20' : 'text-zinc-500 hover:bg-white dark:hover:bg-zinc-800'}`}
+                title={isSidebarCollapsed ? 'Dashboard' : ''}
               >
-                <TrendingUp size={16} /> Dashboard
+                <TrendingUp size={16} className="shrink-0" />
+                {!isSidebarCollapsed && <span>Dashboard</span>}
               </button>
               <button 
                 onClick={() => setActiveTab('anual')} 
-                className={`p-3 rounded-xl flex items-center gap-3 transition-colors text-xs font-bold uppercase tracking-wider ${activeTab === 'anual' ? 'bg-zinc-900 dark:bg-zinc-800 text-white shadow-md' : 'text-zinc-500 hover:bg-white dark:hover:bg-zinc-800'}`}
+                className={`rounded-xl flex items-center transition-all text-xs font-bold uppercase tracking-wider ${isSidebarCollapsed ? 'justify-center p-3' : 'p-3 gap-3'} ${activeTab === 'anual' ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/20' : 'text-zinc-500 hover:bg-white dark:hover:bg-zinc-800'}`}
+                title={isSidebarCollapsed ? 'Resumo Anual' : ''}
               >
-                <Calendar size={16} /> Resumo Anual
+                <Calendar size={16} className="shrink-0" />
+                {!isSidebarCollapsed && <span>Resumo Anual</span>}
               </button>
               <button 
                 onClick={() => setActiveTab('ajustes')} 
-                className={`p-3 rounded-xl flex items-center gap-3 transition-colors text-xs font-bold uppercase tracking-wider ${activeTab === 'ajustes' ? 'bg-zinc-900 dark:bg-zinc-800 text-white shadow-md' : 'text-zinc-500 hover:bg-white dark:hover:bg-zinc-800'}`}
+                className={`rounded-xl flex items-center transition-all text-xs font-bold uppercase tracking-wider ${isSidebarCollapsed ? 'justify-center p-3' : 'p-3 gap-3'} ${activeTab === 'ajustes' ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/20' : 'text-zinc-500 hover:bg-white dark:hover:bg-zinc-800'}`}
+                title={isSidebarCollapsed ? 'Ajustes' : ''}
               >
-                <Wallet size={16} /> Ajustes
+                <Wallet size={16} className="shrink-0" />
+                {!isSidebarCollapsed && <span>Ajustes</span>}
               </button>
             </div>
             
             <div className="flex flex-col gap-2 mt-4">
-              <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Calendário</span>
-              <div className="flex items-center justify-between bg-zinc-100 dark:bg-zinc-800 rounded-xl p-1">
-                <button onClick={() => changeMonth(-1)} className="p-2 hover:bg-white dark:hover:bg-zinc-700 rounded-lg transition-colors"><ChevronLeft size={16} /></button>
-                <span className="font-bold uppercase tracking-wider text-xs text-center">{monthName.replace('. de ', '/')}</span>
-                <button onClick={() => changeMonth(1)} className="p-2 hover:bg-white dark:hover:bg-zinc-700 rounded-lg transition-colors"><ChevronRight size={16} /></button>
+              {!isSidebarCollapsed && <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Calendário</span>}
+              <div className={`flex items-center justify-between bg-zinc-100 dark:bg-zinc-800 rounded-xl p-1 ${isSidebarCollapsed ? 'flex-col gap-1' : ''}`}>
+                <button onClick={() => changeMonth(-1)} className="p-1 hover:bg-white dark:hover:bg-zinc-700 rounded-lg transition-colors"><ChevronLeft size={14} /></button>
+                <span className={`font-bold uppercase tracking-wider text-center ${isSidebarCollapsed ? 'text-[9px] leading-tight my-0.5' : 'text-xs'}`}>
+                  {isSidebarCollapsed ? currentDate.toLocaleString('pt-BR', { month: 'narrow' }) : monthName.replace('. de ', '/')}
+                </span>
+                <button onClick={() => changeMonth(1)} className="p-1 hover:bg-white dark:hover:bg-zinc-700 rounded-lg transition-colors"><ChevronRight size={14} /></button>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="mt-auto p-6">
-          <button onClick={() => window.location.hash = ''} className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 rounded-xl transition-colors font-bold text-sm uppercase tracking-wider">
-            <LayoutTemplate size={18} /> Voltar ao Hub
+        <div className={`mt-auto ${isSidebarCollapsed ? 'p-3' : 'p-5'}`}>
+          <button 
+            onClick={() => window.location.hash = ''} 
+            className={`w-full flex items-center justify-center ${isSidebarCollapsed ? 'p-3' : 'gap-2 py-3 px-4'} bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 rounded-xl transition-colors font-bold text-sm uppercase tracking-wider`}
+            title="Voltar ao Hub"
+          >
+            <LayoutTemplate size={18} className="shrink-0" />
+            {!isSidebarCollapsed && <span>Voltar ao Hub</span>}
           </button>
         </div>
       </aside>

@@ -186,40 +186,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         </div>
       </div>
 
-      <div className={`mb-6 p-3 bg-zinc-50 dark:bg-zinc-800/40 rounded-2xl flex items-center gap-3 border border-zinc-100 dark:border-zinc-700 ${isCollapsed ? 'justify-center' : ''}`}>
-        {!isEditingProfile || isCollapsed ? (
-          <>
-            {/* Profile Picture Removed */}
-            {!isCollapsed && (
-              <div className="flex-1 min-w-0 animate-in fade-in slide-in-from-left-4 duration-300 cursor-pointer" onClick={() => setIsEditingProfile(true)}>
-                <p className="text-[10px] font-semibold text-zinc-400 leading-none mb-1">Bem-vindo,</p>
-                <p className="text-lg font-bold text-zinc-800 dark:text-white truncate">{currentUser.name}</p>
-              </div>
-            )}
-          </>
-        ) : (
-          <div className="w-full space-y-2 animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex flex-col gap-2">
-              <input
-                type="text"
-                value={editName}
-                onChange={(e) => setEditName(e.target.value)}
-                className="w-full px-2 py-1 text-xs font-medium border rounded-lg dark:bg-zinc-700 dark:text-white dark:border-zinc-600 focus:ring-2 focus:ring-zinc-500 outline-none"
-                placeholder="Seu nome"
-                autoFocus
-              />
-              <div className="flex gap-2 items-center">
-                {/* Avatar selection removed */}
 
-                <div className="flex-1 flex justify-end gap-1">
-                  <button onClick={() => { setIsEditingProfile(false); setEditName(currentUser.name); setEditAvatar(currentUser.avatar); }} className="text-zinc-400 hover:text-zinc-600 p-1"><X size={14} /></button>
-                  <button onClick={handleSaveProfile} className="text-emerald-500 hover:text-emerald-600 p-1"><Check size={14} /></button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
       
       <button 
         onClick={onOpenAddModal}
@@ -282,7 +249,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             onDragEnd={handleDragEnd}
             onClick={() => !isReorderMode && setActiveTab(item.id)}
             className={`w-full flex items-center ${isCollapsed ? 'justify-center px-1' : 'gap-3 px-3'} py-2.5 rounded-xl transition-all ${activeTab === item.id
-              ? 'bg-zinc-900 dark:bg-zinc-700 text-white font-semibold shadow-md shadow-zinc-900/10 dark:shadow-zinc-900/50'
+              ? 'bg-indigo-600 text-white font-semibold shadow-md shadow-indigo-600/20'
               : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 font-medium'
               } ${isReorderMode ? 'cursor-move' : ''} ${draggedIndex === index ? 'opacity-50 scale-95' : ''}`}
             title={isCollapsed ? item.label : ''}
@@ -313,7 +280,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       </nav>
 
       <div className="mt-auto pt-4 border-t border-zinc-100 dark:border-zinc-800 space-y-2">
-        <button onClick={() => setActiveTab('settings')} className={`w-full flex items-center ${isCollapsed ? 'justify-center px-1' : 'gap-3 px-3'} py-2 rounded-xl transition-colors ${activeTab === 'settings' ? 'text-zinc-900 bg-zinc-100 dark:bg-zinc-800 dark:text-white font-semibold' : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-white font-medium'}`} title="Ajustes">
+        <button onClick={() => setActiveTab('settings')} className={`w-full flex items-center ${isCollapsed ? 'justify-center px-1' : 'gap-3 px-3'} py-2.5 rounded-xl transition-all ${activeTab === 'settings' ? 'bg-indigo-600 text-white font-semibold shadow-md shadow-indigo-600/20' : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-white font-medium'}`} title="Ajustes">
           <Settings size={20} />
           {!isCollapsed && <span className="text-sm">Ajustes</span>}
         </button>

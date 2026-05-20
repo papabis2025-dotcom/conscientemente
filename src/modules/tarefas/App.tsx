@@ -1,10 +1,17 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { CheckSquare, ListTodo, Archive, LayoutTemplate, Plus, Calendar as CalendarIcon, Clock, Tag, ArrowDownAZ, CalendarDays, Trash2, Check, Repeat } from 'lucide-react';
+import { CheckSquare, ListTodo, Archive, LayoutTemplate, Plus, Calendar as CalendarIcon, Clock, Tag, ArrowDownAZ, CalendarDays, Trash2, Check, Repeat, ChevronLeft, ChevronRight } from 'lucide-react';
 
 import { tarefasApi, Task } from './api';
 
 const TarefasApp: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'ativas' | 'arquivo'>('ativas');
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    return localStorage.getItem('isSidebarCollapsed_tarefas') === 'true';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('isSidebarCollapsed_tarefas', String(isSidebarCollapsed));
+  }, [isSidebarCollapsed]);
   
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
@@ -261,38 +268,66 @@ const TarefasApp: React.FC = () => {
     <div className="flex h-screen bg-transparent text-zinc-900 dark:text-zinc-100 font-sans overflow-hidden selection:bg-rose-200 dark:selection:bg-rose-900/50">
       
       {/* Sidebar Lateral */}
-      <aside className="w-64 bg-white/50 dark:bg-zinc-900/50 border-r border-zinc-200 dark:border-zinc-800 flex flex-col transition-all backdrop-blur-xl">
-        <div className="p-6">
-          <div className="flex items-center gap-3 text-rose-500 mb-8">
-            <CheckSquare size={28} className="drop-shadow-sm" />
-            <span className="text-xl font-black uppercase tracking-widest text-zinc-900 dark:text-white">Tarefas</span>
+      <aside className={`relative ${isSidebarCollapsed ? 'w-20' : 'w-64'} bg-white/50 dark:bg-zinc-900/50 border-r border-zinc-200 dark:border-zinc-800 flex flex-col transition-all duration-300 backdrop-blur-xl`}>
+        <button
+          onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+          className="absolute -right-3 top-9 w-6 h-6 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-full flex items-center justify-center text-zinc-500 hover:text-zinc-900 dark:text-zinc-100 shadow-sm z-50 hover:scale-110 transition-transform"
+        >
+          {isSidebarCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+        </button>
+
+        <div className="p-5 flex-1 flex flex-col min-h-0">
+          <div className={`flex items-center gap-3 text-rose-500 mb-8 ${isSidebarCollapsed ? 'justify-center' : ''}`}>
+            <CheckSquare size={28} className="drop-shadow-sm shrink-0" />
+            {!isSidebarCollapsed && (
+              <span className="text-xl font-black uppercase tracking-widest text-zinc-900 dark:text-white animate-in fade-in slide-in-from-left-4 duration-300">
+                Tarefas
+              </span>
+            )}
           </div>
 
           <nav className="space-y-2">
             <button 
               onClick={() => setActiveTab('ativas')} 
-              className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all font-semibold ${activeTab === 'ativas' ? 'bg-rose-500 text-white shadow-md shadow-rose-500/20' : 'text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800/50'}`}
+              className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center p-3' : 'justify-between px-4 py-3'} rounded-xl transition-all font-semibold ${activeTab === 'ativas' ? 'bg-rose-500 text-white shadow-md shadow-rose-500/20' : 'text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800/50'}`}
+              title={isSidebarCollapsed ? 'Ativas' : ''}
             >
-              <div className="flex items-center gap-3"><ListTodo size={20} /> Ativas</div>
-              <span className={`text-xs px-2 py-0.5 rounded-full ${activeTab === 'ativas' ? 'bg-white/20' : 'bg-zinc-200 dark:bg-zinc-800'}`}>
-                {tasks.filter(t => !t.completed).length}
-              </span>
+              <div className="flex items-center gap-3">
+                <ListTodo size={20} className="shrink-0" />
+                {!isSidebarCollapsed && <span>Ativas</span>}
+              </div>
+              {!isSidebarCollapsed && (
+                <span className={`text-xs px-2 py-0.5 rounded-full ${activeTab === 'ativas' ? 'bg-white/20' : 'bg-zinc-200 dark:bg-zinc-800'}`}>
+                  {tasks.filter(t => !t.completed).length}
+                </span>
+              )}
             </button>
             <button 
               onClick={() => setActiveTab('arquivo')} 
-              className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all font-semibold ${activeTab === 'arquivo' ? 'bg-rose-500 text-white shadow-md shadow-rose-500/20' : 'text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800/50'}`}
+              className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center p-3' : 'justify-between px-4 py-3'} rounded-xl transition-all font-semibold ${activeTab === 'arquivo' ? 'bg-rose-500 text-white shadow-md shadow-rose-500/20' : 'text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800/50'}`}
+              title={isSidebarCollapsed ? 'Arquivo' : ''}
             >
-              <div className="flex items-center gap-3"><Archive size={20} /> Arquivo</div>
-              <span className={`text-xs px-2 py-0.5 rounded-full ${activeTab === 'arquivo' ? 'bg-white/20' : 'bg-zinc-200 dark:bg-zinc-800'}`}>
-                {tasks.filter(t => t.completed).length}
-              </span>
+              <div className="flex items-center gap-3">
+                <Archive size={20} className="shrink-0" />
+                {!isSidebarCollapsed && <span>Arquivo</span>}
+              </div>
+              {!isSidebarCollapsed && (
+                <span className={`text-xs px-2 py-0.5 rounded-full ${activeTab === 'arquivo' ? 'bg-white/20' : 'bg-zinc-200 dark:bg-zinc-800'}`}>
+                  {tasks.filter(t => t.completed).length}
+                </span>
+              )}
             </button>
           </nav>
         </div>
 
-        <div className="mt-auto p-6">
-          <button onClick={() => window.location.hash = ''} className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 rounded-xl transition-colors font-bold text-sm uppercase tracking-wider">
-            <LayoutTemplate size={18} /> Voltar ao Hub
+        <div className="p-5 mt-auto">
+          <button 
+            onClick={() => window.location.hash = ''} 
+            className={`w-full flex items-center justify-center ${isSidebarCollapsed ? 'p-3' : 'gap-2 py-3 px-4'} bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 rounded-xl transition-colors font-bold text-sm uppercase tracking-wider`}
+            title="Voltar ao Hub"
+          >
+            <LayoutTemplate size={18} className="shrink-0" />
+            {!isSidebarCollapsed && <span>Voltar ao Hub</span>}
           </button>
         </div>
       </aside>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Activity, Dumbbell, Footprints, HeartPulse, LayoutTemplate, Plus, Trash2, TrendingUp, CalendarDays } from 'lucide-react';
+import { Activity, Dumbbell, Footprints, HeartPulse, LayoutTemplate, Plus, Trash2, TrendingUp, CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend, AreaChart, Area } from 'recharts';
 import SaudePlannerView from './pages/SaudePlannerView';
 import { SaudeIdadeFisicaView } from './pages/SaudeIdadeFisicaView';
@@ -30,6 +30,14 @@ const CARDIO_LEVELS: CardioLevel[] = ['Leve', 'Ritmado', 'Arrancada', 'Específi
 
 const SaudeApp: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'atividades' | 'planner' | 'idade-fisica'>('dashboard');
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    return localStorage.getItem('isSidebarCollapsed_saude') === 'true';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('isSidebarCollapsed_saude', String(isSidebarCollapsed));
+  }, [isSidebarCollapsed]);
+
   const [activities, setActivities] = useState<HealthActivity[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -221,47 +229,81 @@ const SaudeApp: React.FC = () => {
     <div className="flex h-screen bg-transparent text-zinc-900 dark:text-zinc-100 font-sans overflow-hidden selection:bg-cyan-200 dark:selection:bg-cyan-900/50">
       
       {/* Sidebar Lateral */}
-      <aside className="w-64 bg-white/50 dark:bg-zinc-900/50 border-r border-zinc-200 dark:border-zinc-800 flex flex-col transition-all backdrop-blur-xl">
-        <div className="p-6">
-          <div className="flex items-center gap-3 text-cyan-500 mb-8">
-            <HeartPulse size={28} className="drop-shadow-sm" />
-            <span className="text-xl font-black uppercase tracking-widest text-zinc-900 dark:text-white">Saúde</span>
+      <aside className={`relative ${isSidebarCollapsed ? 'w-20' : 'w-64'} bg-white/50 dark:bg-zinc-900/50 border-r border-zinc-200 dark:border-zinc-800 flex flex-col transition-all duration-300 backdrop-blur-xl`}>
+        <button
+          onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+          className="absolute -right-3 top-9 w-6 h-6 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-full flex items-center justify-center text-zinc-500 hover:text-zinc-900 dark:text-zinc-100 shadow-sm z-50 hover:scale-110 transition-transform"
+        >
+          {isSidebarCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+        </button>
+
+        <div className="p-5 flex-1 flex flex-col min-h-0">
+          <div className={`flex items-center gap-3 text-cyan-500 mb-8 ${isSidebarCollapsed ? 'justify-center' : ''}`}>
+            <HeartPulse size={28} className="drop-shadow-sm shrink-0" />
+            {!isSidebarCollapsed && (
+              <span className="text-xl font-black uppercase tracking-widest text-zinc-900 dark:text-white animate-in fade-in slide-in-from-left-4 duration-300">
+                Saúde
+              </span>
+            )}
           </div>
 
           <nav className="space-y-2">
             <button 
               onClick={() => setActiveTab('dashboard')} 
-              className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all font-semibold ${activeTab === 'dashboard' ? 'bg-cyan-500 text-white shadow-md shadow-cyan-500/20' : 'text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800/50'}`}
+              className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center p-3' : 'justify-between px-4 py-3'} rounded-xl transition-all font-semibold ${activeTab === 'dashboard' ? 'bg-cyan-500 text-white shadow-md shadow-cyan-500/20' : 'text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800/50'}`}
+              title={isSidebarCollapsed ? 'Dashboard' : ''}
             >
-              <div className="flex items-center gap-3"><TrendingUp size={20} /> Dashboard</div>
+              <div className="flex items-center gap-3">
+                <TrendingUp size={20} className="shrink-0" />
+                {!isSidebarCollapsed && <span>Dashboard</span>}
+              </div>
             </button>
             <button 
               onClick={() => setActiveTab('atividades')} 
-              className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all font-semibold ${activeTab === 'atividades' ? 'bg-cyan-500 text-white shadow-md shadow-cyan-500/20' : 'text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800/50'}`}
+              className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center p-3' : 'justify-between px-4 py-3'} rounded-xl transition-all font-semibold ${activeTab === 'atividades' ? 'bg-cyan-500 text-white shadow-md shadow-cyan-500/20' : 'text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800/50'}`}
+              title={isSidebarCollapsed ? 'Atividades' : ''}
             >
-              <div className="flex items-center gap-3"><Activity size={20} /> Atividades</div>
-              <span className={`text-xs px-2 py-0.5 rounded-full ${activeTab === 'atividades' ? 'bg-white/20' : 'bg-zinc-200 dark:bg-zinc-800'}`}>
-                {activities.length}
-              </span>
+              <div className="flex items-center gap-3">
+                <Activity size={20} className="shrink-0" />
+                {!isSidebarCollapsed && <span>Atividades</span>}
+              </div>
+              {!isSidebarCollapsed && (
+                <span className={`text-xs px-2 py-0.5 rounded-full ${activeTab === 'atividades' ? 'bg-white/20' : 'bg-zinc-200 dark:bg-zinc-800'}`}>
+                  {activities.length}
+                </span>
+              )}
             </button>
             <button 
               onClick={() => setActiveTab('planner')} 
-              className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all font-semibold ${activeTab === 'planner' ? 'bg-cyan-500 text-white shadow-md shadow-cyan-500/20' : 'text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800/50'}`}
+              className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center p-3' : 'justify-between px-4 py-3'} rounded-xl transition-all font-semibold ${activeTab === 'planner' ? 'bg-cyan-500 text-white shadow-md shadow-cyan-500/20' : 'text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800/50'}`}
+              title={isSidebarCollapsed ? 'Planner' : ''}
             >
-              <div className="flex items-center gap-3"><CalendarDays size={20} /> Planner</div>
+              <div className="flex items-center gap-3">
+                <CalendarDays size={20} className="shrink-0" />
+                {!isSidebarCollapsed && <span>Planner</span>}
+              </div>
             </button>
             <button 
               onClick={() => setActiveTab('idade-fisica')} 
-              className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all font-semibold ${activeTab === 'idade-fisica' ? 'bg-cyan-500 text-white shadow-md shadow-cyan-500/20' : 'text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800/50'}`}
+              className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center p-3' : 'justify-between px-4 py-3'} rounded-xl transition-all font-semibold ${activeTab === 'idade-fisica' ? 'bg-cyan-500 text-white shadow-md shadow-cyan-500/20' : 'text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800/50'}`}
+              title={isSidebarCollapsed ? 'Idade Física' : ''}
             >
-              <div className="flex items-center gap-3"><HeartPulse size={20} /> Idade Física</div>
+              <div className="flex items-center gap-3">
+                <HeartPulse size={20} className="shrink-0" />
+                {!isSidebarCollapsed && <span>Idade Física</span>}
+              </div>
             </button>
           </nav>
         </div>
 
-        <div className="mt-auto p-6">
-          <button onClick={() => window.location.hash = ''} className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 rounded-xl transition-colors font-bold text-sm uppercase tracking-wider">
-            <LayoutTemplate size={18} /> Voltar ao Hub
+        <div className="p-5 mt-auto">
+          <button 
+            onClick={() => window.location.hash = ''} 
+            className={`w-full flex items-center justify-center ${isSidebarCollapsed ? 'p-3' : 'gap-2 py-3 px-4'} bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 rounded-xl transition-colors font-bold text-sm uppercase tracking-wider`}
+            title="Voltar ao Hub"
+          >
+            <LayoutTemplate size={18} className="shrink-0" />
+            {!isSidebarCollapsed && <span>Voltar ao Hub</span>}
           </button>
         </div>
       </aside>

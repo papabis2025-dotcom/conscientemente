@@ -709,7 +709,7 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
     >
 
       {/* Top bar */}
-      <header className="relative z-20 border-b border-zinc-200/70 dark:border-zinc-800/70 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-lg px-6 py-3.5 flex items-center justify-between shadow-sm">
+      <header className="relative z-20 border-b border-zinc-200/70 dark:border-zinc-800/70 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-lg px-6 py-3 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-500/20 shrink-0">
             <Brain size={18} className="text-white" />
@@ -718,11 +718,12 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
             <h1 className="text-xs sm:text-sm font-black text-zinc-800 dark:text-white uppercase tracking-widest leading-none">
               Conscientemente
             </h1>
-            <div className="flex items-center gap-1.5 mt-1 min-w-0">
-              <span className="text-[11px] font-black text-indigo-600 dark:text-indigo-400 tracking-tight tabular-nums shrink-0">
+            <div className="flex items-center gap-2 mt-1">
+              <span className="text-sm font-black text-indigo-600 dark:text-indigo-400 tabular-nums shrink-0 leading-none">
                 {timeStr}
               </span>
-              <span className="text-[8px] text-zinc-500 dark:text-zinc-400 font-bold capitalize border-l border-zinc-300 dark:border-zinc-700 pl-1.5 truncate">
+              <span className="w-px h-3.5 bg-zinc-300 dark:bg-zinc-600 shrink-0" />
+              <span className="text-[11px] font-semibold text-zinc-600 dark:text-zinc-300 capitalize leading-none whitespace-nowrap">
                 {dateStr}
               </span>
             </div>

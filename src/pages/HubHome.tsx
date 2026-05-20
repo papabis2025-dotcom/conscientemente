@@ -505,7 +505,29 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
       const [concursos, sessions, simulados, schedule, goals] = await Promise.all([
         api.concursos.list(), api.sessions.list(), api.simulados.list(), api.schedule.list(), api.dailyGoals.list()
       ]);
-      const exportData = { version: '1.0', exportDate: new Date().toISOString(), data: { concursos, sessions, simulados, scheduledStudies: schedule, dailyGoals: goals } };
+      
+      const localData: Record<string, string | null> = {
+        cn_habits: localStorage.getItem('cn_habits'),
+        cn_habit_history: localStorage.getItem('cn_habit_history'),
+        cp_study_tasks: localStorage.getItem('cp_study_tasks'),
+        cp_global_daily_goal: localStorage.getItem('cp_global_daily_goal'),
+        cp_selected_concurso_id: localStorage.getItem('cp_selected_concurso_id'),
+        cp_dashboard_layout_v19: localStorage.getItem('cp_dashboard_layout_v19'),
+        cp_menu_order: localStorage.getItem('cp_menu_order'),
+        cn_theme: localStorage.getItem('cn_theme'),
+        isSidebarCollapsed_financas: localStorage.getItem('isSidebarCollapsed_financas'),
+        isSidebarCollapsed_saude: localStorage.getItem('isSidebarCollapsed_saude'),
+        isSidebarCollapsed_tarefas: localStorage.getItem('isSidebarCollapsed_tarefas'),
+        cn_notifications: localStorage.getItem('cn_notifications')
+      };
+
+      const exportData = { 
+        version: '1.1', 
+        exportDate: new Date().toISOString(), 
+        data: { concursos, sessions, simulados, scheduledStudies: schedule, dailyGoals: goals },
+        localSettings: localData
+      };
+      
       const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -527,11 +549,23 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
       if (!importData.data) throw new Error('Formato inválido');
       const { concursos, sessions, simulados, scheduledStudies, dailyGoals } = importData.data;
       if (!confirm('Importar itens? Isso pode sobrescrever dados existentes.')) { setIsImporting(false); return; }
+      
+      // Sync cloud data
       if (concursos) for (const c of concursos) await api.concursos.upsert(c);
       if (sessions) for (const s of sessions) await api.sessions.create(s);
       if (simulados) for (const s of simulados) await api.simulados.create(s);
       if (scheduledStudies) for (const s of scheduledStudies) await api.schedule.create(s);
       if (dailyGoals) for (const g of dailyGoals) await api.dailyGoals.upsert(g);
+      
+      // Sync local settings if present
+      if (importData.localSettings) {
+        Object.entries(importData.localSettings).forEach(([key, val]) => {
+          if (val !== null && val !== undefined) {
+            localStorage.setItem(key, val as string);
+          }
+        });
+      }
+
       alert('✅ Dados importados com sucesso! Recarregue a página.');
       window.location.reload();
     } catch (error) {

@@ -53,6 +53,11 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
       sessionStorage.removeItem('openAddStudyModal');
       setShowAddModal(true);
     }
+    const targetTab = sessionStorage.getItem('estudosActiveTab');
+    if (targetTab) {
+      sessionStorage.removeItem('estudosActiveTab');
+      setActiveTab(targetTab);
+    }
   }, []);
 
   const [activityFormData, setActivityFormData] = useState({

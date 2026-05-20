@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { MODULES } from '../constants';
 import { Module } from '../types';
 import { LogEntry } from '../modules/estudos/types';
-import { LogOut, Sun, Moon, ArrowUpRight, Lock, BookOpen, Wallet, ListTodo, Brain, ChevronRight, Activity, TrendingUp, Settings, User, X, HeartPulse, Bell, Plus, Trash2, Check, ClipboardList } from 'lucide-react';
+import { LogOut, Sun, Moon, ArrowUpRight, Lock, BookOpen, Wallet, ListTodo, Brain, ChevronRight, Activity, TrendingUp, Settings, User, X, HeartPulse, Bell, Plus, Trash2, Check, ClipboardList, BarChart3, ChevronLeft, Calendar, Award, CheckCircle2 } from 'lucide-react';
 import LogView from '../modules/estudos/pages/LogView';
 import { api } from '../modules/estudos/services/api';
 import { supabase } from '../modules/estudos/services/supabase';
@@ -268,6 +268,7 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
 
   const [newHabitName, setNewHabitName] = useState('');
   const [showManageHabits, setShowManageHabits] = useState(false);
+  const [showHabitsReport, setShowHabitsReport] = useState(false);
 
   const todayStr = new Date(currentTime.getTime() - currentTime.getTimezoneOffset() * 60000).toISOString().split('T')[0];
 
@@ -634,6 +635,74 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
   const displayedNotifications = notifications.filter(n => n.date === todayStr || !n.read);
   const unreadCount = displayedNotifications.filter(n => !n.read).length;
 
+  // Habit Report calculations
+  const getLast7Days = () => {
+    const list = [];
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(currentTime.getTime() - i * 24 * 60 * 60 * 1000);
+      const dStr = new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().split('T')[0];
+      list.push({
+        dateStr: dStr,
+        label: date.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', ''),
+        dayNum: date.getDate()
+      });
+    }
+    return list;
+  };
+  const last7Days = getLast7Days();
+
+  // Habit consistency calculations
+  let last7DaysCompletions = 0;
+  const last7DaysTotalPossible = last7Days.length * habits.length;
+  last7Days.forEach(day => {
+    const completedOnDay = habitHistory[day.dateStr] || [];
+    const activeCompleted = completedOnDay.filter(id => habits.some(h => h.id === id)).length;
+    last7DaysCompletions += activeCompleted;
+  });
+  const last7DaysRate = last7DaysTotalPossible > 0 ? Math.round((last7DaysCompletions / last7DaysTotalPossible) * 100) : 0;
+
+  // Streak calculations
+  let currentStreak = 0;
+  const tempDate = new Date(currentTime);
+  for (let i = 0; i < 30; i++) {
+    const dStr = new Date(tempDate.getTime() - tempDate.getTimezoneOffset() * 60000).toISOString().split('T')[0];
+    const completedCount = (habitHistory[dStr] || []).filter(id => habits.some(h => h.id === id)).length;
+    if (completedCount > 0) {
+      currentStreak++;
+      tempDate.setDate(tempDate.getDate() - 1);
+    } else {
+      if (i === 0) {
+        tempDate.setDate(tempDate.getDate() - 1);
+        continue;
+      }
+      break;
+    }
+  }
+
+  const totalCompletions = Object.values(habitHistory).reduce((acc, list) => {
+    return acc + list.filter(id => habits.some(h => h.id === id)).length;
+  }, 0);
+
+  const getDaysInMonthList = () => {
+    const list = [];
+    for (let i = 29; i >= 0; i--) {
+      const date = new Date(currentTime.getTime() - i * 24 * 60 * 60 * 1000);
+      const dStr = new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().split('T')[0];
+      const completed = (habitHistory[dStr] || []).filter(id => habits.some(h => h.id === id)).length;
+      const total = habits.length;
+      const rate = total > 0 ? completed / total : 0;
+      list.push({
+        dateStr: dStr,
+        dayNum: date.getDate(),
+        rate,
+        completed,
+        total
+      });
+    }
+    return list;
+  };
+  const last30DaysList = getDaysInMonthList();
+
   return (
     <div 
       className={`min-h-screen ${bgType === 'default' ? 'bg-zinc-50 dark:bg-zinc-950' : 'bg-transparent'} flex flex-col relative overflow-hidden transition-colors duration-300`}
@@ -800,8 +869,147 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
       {/* Main content */}
       <main className="relative z-10 flex-1 max-w-2xl mx-auto w-full px-6 py-10 flex flex-col">
 
-        {/* Hero section */}
-        <div className={`mb-6 transition-all duration-700 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+        {showHabitsReport ? (
+          /* Habits Report Panel */
+          <div className="space-y-6 animate-in fade-in duration-300">
+            {/* Header / Nav */}
+            <div className="flex items-center justify-between pb-4 border-b border-zinc-200 dark:border-zinc-800/80">
+              <button
+                onClick={() => setShowHabitsReport(false)}
+                className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-zinc-500 hover:text-zinc-800 dark:hover:text-white bg-zinc-100 dark:bg-zinc-800 px-3 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-700 transition-colors"
+              >
+                <ChevronLeft size={12} /> Voltar
+              </button>
+              <div className="text-right">
+                <h2 className="text-sm font-black text-zinc-800 dark:text-white uppercase tracking-widest leading-none">
+                  Relatório de Consistência
+                </h2>
+                <p className="text-[9px] text-zinc-400 dark:text-zinc-550 font-bold mt-1">Análise de hábitos diários</p>
+              </div>
+            </div>
+
+            {/* Overview Stats */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="p-4 bg-white/60 dark:bg-zinc-900/60 backdrop-blur-sm rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 shadow-sm">
+                <span className="text-[9px] font-black text-zinc-400 dark:text-zinc-500 uppercase tracking-wider block">Consistência</span>
+                <span className="text-xl font-black text-indigo-500 block mt-1">{last7DaysRate}%</span>
+                <span className="text-[8px] text-zinc-450 dark:text-zinc-500 font-bold">Últimos 7 dias</span>
+              </div>
+              <div className="p-4 bg-white/60 dark:bg-zinc-900/60 backdrop-blur-sm rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 shadow-sm">
+                <span className="text-[9px] font-black text-zinc-400 dark:text-zinc-500 uppercase tracking-wider block">Frequência</span>
+                <span className="text-xl font-black text-emerald-500 block mt-1">{currentStreak} dias</span>
+                <span className="text-[8px] text-zinc-455 dark:text-zinc-500 font-bold">Streak ativa</span>
+              </div>
+              <div className="p-4 bg-white/60 dark:bg-zinc-900/60 backdrop-blur-sm rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 shadow-sm">
+                <span className="text-[9px] font-black text-zinc-400 dark:text-zinc-500 uppercase tracking-wider block">Hábitos</span>
+                <span className="text-xl font-black text-cyan-500 block mt-1">{habits.length}</span>
+                <span className="text-[8px] text-zinc-455 dark:text-zinc-500 font-bold">Monitorados</span>
+              </div>
+              <div className="p-4 bg-white/60 dark:bg-zinc-900/60 backdrop-blur-sm rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 shadow-sm">
+                <span className="text-[9px] font-black text-zinc-400 dark:text-zinc-500 uppercase tracking-wider block">Conclusões</span>
+                <span className="text-xl font-black text-rose-500 block mt-1">{totalCompletions}</span>
+                <span className="text-[8px] text-zinc-455 dark:text-zinc-500 font-bold">Total histórico</span>
+              </div>
+            </div>
+
+            {/* Heatmap */}
+            <div className="p-4 bg-white/60 dark:bg-zinc-900/60 backdrop-blur-sm rounded-[2rem] border border-zinc-200/80 dark:border-zinc-800/80 shadow-sm space-y-4">
+              <div>
+                <h4 className="text-xs font-black text-zinc-700 dark:text-zinc-300 uppercase tracking-widest flex items-center gap-1.5">
+                  <Calendar size={13} className="text-indigo-500" />
+                  Consistência nos Últimos 30 Dias
+                </h4>
+                <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5">Mapa de conclusão de todos os hábitos ativos</p>
+              </div>
+
+              <div className="grid grid-cols-6 sm:grid-cols-10 gap-2">
+                {last30DaysList.map(day => {
+                  let bgStyleClass = 'bg-zinc-100 dark:bg-zinc-800/50 text-zinc-400 dark:text-zinc-650';
+                  if (day.rate > 0 && day.rate <= 0.35) bgStyleClass = 'bg-indigo-50 dark:bg-indigo-950/20 text-indigo-400 dark:text-indigo-500 border border-indigo-100/40 dark:border-indigo-950/40';
+                  else if (day.rate > 0.35 && day.rate <= 0.7) bgStyleClass = 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 border border-indigo-200/40 dark:border-indigo-900/30';
+                  else if (day.rate > 0.7 && day.rate < 1.0) bgStyleClass = 'bg-indigo-550/60 dark:bg-indigo-600/50 text-white';
+                  else if (day.rate === 1.0) bgStyleClass = 'bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-md shadow-indigo-500/10';
+
+                  const isToday = day.dateStr === todayStr;
+
+                  return (
+                    <div
+                      key={day.dateStr}
+                      title={`${day.dateStr}: ${day.completed}/${day.total} concluídos`}
+                      className={`h-10 rounded-xl flex flex-col items-center justify-center transition-all ${bgStyleClass} ${isToday ? 'ring-2 ring-indigo-500 ring-offset-2 dark:ring-offset-zinc-900' : ''}`}
+                    >
+                      <span className="text-[10px] font-black">{day.dayNum}</span>
+                      <span className="text-[7px] font-bold opacity-75">{day.completed}/{day.total}</span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="flex items-center justify-between text-[8px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500 pt-2 border-t border-zinc-100 dark:border-zinc-800/50">
+                <span>Inativo</span>
+                <div className="flex gap-1 items-center">
+                  <div className="w-2.5 h-2.5 rounded bg-zinc-100 dark:bg-zinc-800/50" />
+                  <div className="w-2.5 h-2.5 rounded bg-indigo-50 dark:bg-indigo-950/20" />
+                  <div className="w-2.5 h-2.5 rounded bg-indigo-100 dark:bg-indigo-900/30" />
+                  <div className="w-2.5 h-2.5 rounded bg-indigo-550/60 dark:bg-indigo-600/50" />
+                  <div className="w-2.5 h-2.5 rounded bg-gradient-to-br from-indigo-500 to-violet-600" />
+                </div>
+                <span>100% completo</span>
+              </div>
+            </div>
+
+            {/* Per Habit Details */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <p className="text-[10px] font-black text-zinc-400 dark:text-zinc-650 uppercase tracking-widest">Aproveitamento por Hábito</p>
+                <div className="flex-1 h-px bg-zinc-200 dark:bg-zinc-800" />
+              </div>
+
+              {habits.map(h => {
+                const habitTotal = Object.values(habitHistory).filter(list => list.includes(h.id)).length;
+                const habit7DayCount = last7Days.filter(day => (habitHistory[day.dateStr] || []).includes(h.id)).length;
+                const habit7DayRate = Math.round((habit7DayCount / 7) * 100);
+                
+                return (
+                  <div key={h.id} className="p-4 bg-white/60 dark:bg-zinc-900/60 backdrop-blur-sm rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 shadow-sm flex flex-col gap-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs font-black text-zinc-800 dark:text-white uppercase tracking-wider">{h.name}</p>
+                        <p className="text-[10px] text-zinc-400 dark:text-zinc-550 mt-0.5">Histórico total: {habitTotal} {habitTotal === 1 ? 'conclusão' : 'conclusões'}</p>
+                      </div>
+                      <span className="text-xs font-black text-indigo-500">{habit7DayRate}% de consistência semanal</span>
+                    </div>
+
+                    {/* 7-day grid */}
+                    <div className="flex items-center justify-between gap-1.5 bg-zinc-50/50 dark:bg-zinc-950/20 p-2.5 rounded-xl border border-zinc-150 dark:border-zinc-800/50">
+                      {last7Days.map(day => {
+                        const dayCompleted = (habitHistory[day.dateStr] || []).includes(h.id);
+                        const isToday = day.dateStr === todayStr;
+                        return (
+                          <div key={day.dateStr} className="flex flex-col items-center gap-1.5 flex-1">
+                            <span className={`text-[8px] font-black uppercase tracking-wider ${isToday ? 'text-indigo-500' : 'text-zinc-400 dark:text-zinc-550'}`}>
+                              {day.label}
+                            </span>
+                            <div className={`w-6 h-6 rounded-lg flex items-center justify-center transition-all ${
+                              dayCompleted
+                                ? 'bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-sm'
+                                : 'border border-zinc-250 dark:border-zinc-700 bg-white dark:bg-zinc-800 opacity-40'
+                            }`}>
+                              {dayCompleted ? <Check size={11} strokeWidth={3} /> : <span className="text-[8px] text-zinc-350 dark:text-zinc-550 font-bold">{day.dayNum}</span>}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ) : (
+          <>
+            {/* Hero section */}
+            <div className={`mb-6 transition-all duration-700 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
 
           {/* Status pills */}
           <div className="flex flex-wrap gap-2">
@@ -865,12 +1073,21 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
               <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5">Mantenha sua rotina consistente</p>
             </div>
             
-            <button
-              onClick={() => setShowManageHabits(!showManageHabits)}
-              className="text-[9px] font-black uppercase tracking-wider text-indigo-500 hover:text-indigo-650 dark:hover:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-2.5 py-1 rounded-lg border border-indigo-155 dark:border-indigo-900/40 transition-colors"
-            >
-              {showManageHabits ? 'Fechar' : 'Gerenciar'}
-            </button>
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => setShowHabitsReport(true)}
+                className="flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-indigo-500 hover:text-indigo-650 dark:hover:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-2.5 py-1.5 rounded-lg border border-indigo-155 dark:border-indigo-900/40 transition-colors"
+                title="Ver Relatório Completo"
+              >
+                <BarChart3 size={11} /> Relatório
+              </button>
+              <button
+                onClick={() => setShowManageHabits(!showManageHabits)}
+                className="text-[9px] font-black uppercase tracking-wider text-indigo-500 hover:text-indigo-650 dark:hover:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-2.5 py-1.5 rounded-lg border border-indigo-155 dark:border-indigo-900/40 transition-colors"
+              >
+                {showManageHabits ? 'Fechar' : 'Gerenciar'}
+              </button>
+            </div>
           </div>
 
           {/* Progress Indicator */}
@@ -988,6 +1205,9 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
             <ModuleCard key={mod.id} module={mod} index={i} />
           ))}
         </div>
+
+          </>
+        )}
 
         {/* Footer */}
         <div className="mt-10 text-center">

@@ -691,12 +691,13 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
         setFinanceBalance(0);
       }
 
-      // 5. Finance Pending Transactions for today or earlier (overdue)
+      // 5. Finance Pending SAÍDAS for today or earlier (overdue)
       const { data: pendingFinanceTx } = await supabase
         .from('financas_transacoes')
         .select('id, name, amount, type')
         .eq('user_id', user.id)
         .eq('pending', true)
+        .eq('type', 'saida')
         .lte('date', todayStr);
       
       const countPending = pendingFinanceTx?.length || 0;
@@ -1102,8 +1103,8 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
             {/* Hero section */}
             <div className={`mb-6 transition-all duration-700 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
 
-          {/* Status pills — single compact row */}
-          <div className="flex items-center gap-2 flex-nowrap overflow-x-auto pb-0.5 scrollbar-hide">
+          {/* Status pills — wraps to next line if needed, no horizontal scroll */}
+          <div className="flex items-center gap-2 flex-wrap">
             {/* Estudos */}
             <span className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider border whitespace-nowrap shrink-0 ${
               pendingEstudos > 0

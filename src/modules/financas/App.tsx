@@ -5,6 +5,32 @@ import { financasApi } from './api';
 
 const CHART_COLORS = ['#3b82f6', '#f43f5e', '#10b981', '#f59e0b', '#8b5cf6', '#06b6d4', '#ec4899', '#14b8a6', '#f97316', '#6366f1'];
 
+// Custom label with leader lines for pie chart slices
+const renderCustomLabel = ({ cx, cy, midAngle, outerRadius, name, value, percent }: any, formatCurrencyFn: (v: number) => string) => {
+  if (percent < 0.04) return null; // Skip tiny slices
+  const RADIAN = Math.PI / 180;
+  const sin = Math.sin(-RADIAN * midAngle);
+  const cos = Math.cos(-RADIAN * midAngle);
+  const mx = cx + (outerRadius + 18) * cos;
+  const my = cy + (outerRadius + 18) * sin;
+  const ex = mx + (cos >= 0 ? 1 : -1) * 14;
+  const ey = my;
+  const textAnchor = cos >= 0 ? 'start' : 'end';
+  const shortName = name.length > 14 ? name.slice(0, 13) + '…' : name;
+  return (
+    <g>
+      <line x1={mx} y1={my} x2={ex} y2={ey} stroke="#a1a1aa" strokeWidth={1} />
+      <circle cx={ex} cy={ey} r={2} fill="#a1a1aa" />
+      <text x={ex + (cos >= 0 ? 4 : -4)} y={ey - 4} textAnchor={textAnchor} fill="currentColor" fontSize={9} fontWeight={700} className="fill-zinc-700 dark:fill-zinc-300">
+        {shortName}
+      </text>
+      <text x={ex + (cos >= 0 ? 4 : -4)} y={ey + 7} textAnchor={textAnchor} fill="currentColor" fontSize={9} fontWeight={600} className="fill-zinc-500 dark:fill-zinc-400">
+        {formatCurrencyFn(value)}
+      </text>
+    </g>
+  );
+};
+
 export type TransactionType = 'entrada' | 'saida';
 
 export interface Transaction {
@@ -553,7 +579,7 @@ const FinancasApp: React.FC = () => {
             </div>
 
             {/* Gráficos */}
-            <div className="bg-white dark:bg-[#121214] p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800/50 shadow-sm flex flex-col h-[320px]">
+            <div className="bg-white dark:bg-[#121214] p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800/50 shadow-sm flex flex-col h-[420px]">
               <div className="flex items-center justify-between mb-2 shrink-0">
                 <h3 className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-tight text-zinc-800 dark:text-zinc-100">
                   <PieChartIcon size={14} className="text-zinc-400" /> Gráficos
@@ -588,7 +614,7 @@ const FinancasApp: React.FC = () => {
                     </div>
                   ) : (
                     <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
+                      <PieChart margin={{ top: 20, right: 60, bottom: 20, left: 60 }}>
                         <defs>
                           <filter id="shadow3d" x="-20%" y="-20%" width="140%" height="140%">
                             <feDropShadow dx="1" dy="4" stdDeviation="3" floodOpacity="0.2" />
@@ -596,14 +622,15 @@ const FinancasApp: React.FC = () => {
                         </defs>
                         <Pie
                           data={gastosPorCartao.map(([name, value]) => ({ name, value }))}
-                          cx="50%" cy="50%" innerRadius={42} outerRadius={62} paddingAngle={3} dataKey="value"
+                          cx="50%" cy="50%" innerRadius={60} outerRadius={95} paddingAngle={3} dataKey="value"
                           style={{ filter: 'url(#shadow3d)' }}
                           isAnimationActive={true}
+                          label={(props) => renderCustomLabel(props, formatCurrency)}
+                          labelLine={false}
                         >
                           {gastosPorCartao.map(([name], index) => <Cell key={`cell-${index}`} fill={paymentMethods.find(c => c.name === name)?.color || CHART_COLORS[index % CHART_COLORS.length]} />)}
                         </Pie>
-                        <RechartsTooltip formatter={(value: number) => formatCurrency(value)} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '10px', fontWeight: 'bold' }} />
-                        <Legend formatter={(value, entry: any) => `${value}: ${formatCurrency(entry.payload?.value || 0)}`} verticalAlign="bottom" iconType="circle" wrapperStyle={{ fontSize: '9px', fontWeight: 'bold' }} />
+                        <RechartsTooltip formatter={(value: number) => formatCurrency(value)} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '11px', fontWeight: 'bold' }} />
                       </PieChart>
                     </ResponsiveContainer>
                   )
@@ -616,22 +643,23 @@ const FinancasApp: React.FC = () => {
                     </div>
                   ) : (
                     <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
+                      <PieChart margin={{ top: 20, right: 60, bottom: 20, left: 60 }}>
                         <defs>
-                          <filter id="shadow3d" x="-20%" y="-20%" width="140%" height="140%">
+                          <filter id="shadow3d2" x="-20%" y="-20%" width="140%" height="140%">
                             <feDropShadow dx="1" dy="4" stdDeviation="3" floodOpacity="0.2" />
                           </filter>
                         </defs>
                         <Pie
                           data={gastosPorCategoria.map(([name, value]) => ({ name, value }))}
-                          cx="50%" cy="50%" innerRadius={42} outerRadius={62} paddingAngle={3} dataKey="value"
-                          style={{ filter: 'url(#shadow3d)' }}
+                          cx="50%" cy="50%" innerRadius={60} outerRadius={95} paddingAngle={3} dataKey="value"
+                          style={{ filter: 'url(#shadow3d2)' }}
                           isAnimationActive={true}
+                          label={(props) => renderCustomLabel(props, formatCurrency)}
+                          labelLine={false}
                         >
                           {gastosPorCategoria.map(([name], index) => <Cell key={`cell-${index}`} fill={outCategories.find(c => c.name === name)?.color || CHART_COLORS[(index + 3) % CHART_COLORS.length]} />)}
                         </Pie>
-                        <RechartsTooltip formatter={(value: number) => formatCurrency(value)} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '10px', fontWeight: 'bold' }} />
-                        <Legend formatter={(value, entry: any) => `${value}: ${formatCurrency(entry.payload?.value || 0)}`} verticalAlign="bottom" iconType="circle" wrapperStyle={{ fontSize: '9px', fontWeight: 'bold' }} />
+                        <RechartsTooltip formatter={(value: number) => formatCurrency(value)} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '11px', fontWeight: 'bold' }} />
                       </PieChart>
                     </ResponsiveContainer>
                   )
@@ -644,22 +672,23 @@ const FinancasApp: React.FC = () => {
                     </div>
                   ) : (
                     <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
+                      <PieChart margin={{ top: 20, right: 60, bottom: 20, left: 60 }}>
                         <defs>
-                          <filter id="shadow3d" x="-20%" y="-20%" width="140%" height="140%">
+                          <filter id="shadow3d3" x="-20%" y="-20%" width="140%" height="140%">
                             <feDropShadow dx="1" dy="4" stdDeviation="3" floodOpacity="0.2" />
                           </filter>
                         </defs>
                         <Pie
                           data={entradasPorCategoria.map(([name, value]) => ({ name, value }))}
-                          cx="50%" cy="50%" innerRadius={42} outerRadius={62} paddingAngle={3} dataKey="value"
-                          style={{ filter: 'url(#shadow3d)' }}
+                          cx="50%" cy="50%" innerRadius={60} outerRadius={95} paddingAngle={3} dataKey="value"
+                          style={{ filter: 'url(#shadow3d3)' }}
                           isAnimationActive={true}
+                          label={(props) => renderCustomLabel(props, formatCurrency)}
+                          labelLine={false}
                         >
                           {entradasPorCategoria.map(([name], index) => <Cell key={`cell-${index}`} fill={inCategories.find(c => c.name === name)?.color || CHART_COLORS[(index + 6) % CHART_COLORS.length]} />)}
                         </Pie>
-                        <RechartsTooltip formatter={(value: number) => formatCurrency(value)} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '10px', fontWeight: 'bold' }} />
-                        <Legend formatter={(value, entry: any) => `${value}: ${formatCurrency(entry.payload?.value || 0)}`} verticalAlign="bottom" iconType="circle" wrapperStyle={{ fontSize: '9px', fontWeight: 'bold' }} />
+                        <RechartsTooltip formatter={(value: number) => formatCurrency(value)} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '11px', fontWeight: 'bold' }} />
                       </PieChart>
                     </ResponsiveContainer>
                   )

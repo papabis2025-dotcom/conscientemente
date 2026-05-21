@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { LayoutTemplate, Wallet, TrendingUp, TrendingDown, CreditCard, ChevronLeft, ChevronRight, Trash2, Calendar, PieChart as PieChartIcon } from 'lucide-react';
+import { LayoutTemplate, Wallet, TrendingUp, TrendingDown, CreditCard, ChevronLeft, ChevronRight, Trash2, Calendar, PieChart as PieChartIcon, Edit3 } from 'lucide-react';
 import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts';
 import { financasApi } from './api';
 
@@ -101,6 +101,7 @@ const FinancasApp: React.FC = () => {
   const [txDate, setTxDate] = useState('');
   const [txMethod, setTxMethod] = useState('');
   const [txPending, setTxPending] = useState(false);
+  const [editingTxId, setEditingTxId] = useState<string | null>(null);
   const [activeChartTab, setActiveChartTab] = useState<'cartoes' | 'saidas' | 'entradas'>('cartoes');
 
   useEffect(() => {
@@ -202,6 +203,38 @@ const FinancasApp: React.FC = () => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
   };
 
+  const startEditTransaction = (t: Transaction) => {
+    setEditingTxId(t.id);
+    setTxType(t.type);
+    setTxName(t.name);
+    // Format amount cleanly for editing text box (e.g. 1500,50 or 1500.5 -> 1500,50)
+    setTxAmount(t.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+    setTxCategory(t.category);
+    if (t.dayOnly) {
+      setTxDate(t.date.split('-')[2]);
+    } else {
+      setTxDate(t.date);
+    }
+    setTxPending(t.pending || false);
+    setTxMethod(t.paymentMethod || '');
+
+    // Focus input
+    setTimeout(() => {
+      const inputEl = document.querySelector('input[placeholder="Ex: Supermercado"]');
+      if (inputEl) {
+        (inputEl as HTMLInputElement).focus();
+      }
+    }, 50);
+  };
+
+  const cancelEdit = () => {
+    setEditingTxId(null);
+    setTxName('');
+    setTxAmount('');
+    setTxDate('');
+    setTxPending(false);
+  };
+
   const handleAddTransaction = (e: React.FormEvent) => {
     e.preventDefault();
     if (!txName || !txAmount) return;
@@ -216,24 +249,48 @@ const FinancasApp: React.FC = () => {
       finalDate = `${currentMonthStr}-${day}`;
     }
 
-    const t: Transaction = {
-      id: crypto.randomUUID(),
-      type: txType,
-      name: txName,
-      amount: parseFloat(txAmount.replace(/\./g, '').replace(',', '.')),
-      category: txCategory,
-      date: finalDate,
-      pending: txPending,
-      dayOnly,
-      ...(txType === 'saida' ? { paymentMethod: txMethod } : {})
-    };
+    const amountNum = parseFloat(txAmount.replace(/\./g, '').replace(',', '.'));
 
-    financasApi.createTransaction(t).catch(err => console.error('Error creating transaction:', err));
-    setTransactions(prev => [...prev, t]);
-    setTxName('');
-    setTxAmount('');
-    setTxDate('');
-    setTxPending(false);
+    if (editingTxId) {
+      const updatedTx: Transaction = {
+        id: editingTxId,
+        type: txType,
+        name: txName,
+        amount: amountNum,
+        category: txCategory,
+        date: finalDate,
+        pending: txPending,
+        dayOnly,
+        ...(txType === 'saida' ? { paymentMethod: txMethod } : {})
+      };
+
+      financasApi.updateTransaction(editingTxId, updatedTx).catch(err => console.error('Error updating transaction:', err));
+      setTransactions(prev => prev.map(t => t.id === editingTxId ? updatedTx : t));
+      setEditingTxId(null);
+      setTxName('');
+      setTxAmount('');
+      setTxDate('');
+      setTxPending(false);
+    } else {
+      const t: Transaction = {
+        id: crypto.randomUUID(),
+        type: txType,
+        name: txName,
+        amount: amountNum,
+        category: txCategory,
+        date: finalDate,
+        pending: txPending,
+        dayOnly,
+        ...(txType === 'saida' ? { paymentMethod: txMethod } : {})
+      };
+
+      financasApi.createTransaction(t).catch(err => console.error('Error creating transaction:', err));
+      setTransactions(prev => [...prev, t]);
+      setTxName('');
+      setTxAmount('');
+      setTxDate('');
+      setTxPending(false);
+    }
   };
 
   const togglePending = (id: string) => {
@@ -381,21 +438,23 @@ const FinancasApp: React.FC = () => {
             {/* Caixa Única de Transação */}
             <div className="bg-white dark:bg-[#121214] p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800/50 shadow-sm flex flex-col gap-3">
               <div className="flex items-center justify-between">
-                <h3 className="text-xs font-black uppercase tracking-wider text-zinc-700 dark:text-zinc-300">Nova Transação</h3>
+                <h3 className="text-xs font-black uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
+                  {editingTxId ? 'Editar Transação' : 'Nova Transação'}
+                </h3>
                 
                 {/* Selector de tipo de transação (Entrada/Saída) */}
                 <div className="flex bg-zinc-100 dark:bg-zinc-900 rounded-lg p-0.5">
                   <button 
                     type="button"
                     onClick={() => setTxType('saida')}
-                    className={`flex items-center gap-1 px-3 py-1.5 text-[9px] font-black uppercase tracking-wider rounded-md transition-colors ${txType === 'saida' ? 'bg-rose-500 text-white shadow-md' : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'}`}
+                    className={`flex items-center gap-1 px-3 py-1.5 text-[9px] font-black uppercase tracking-wider rounded-md transition-colors ${txType === 'saida' ? 'bg-rose-500 text-white shadow-md' : 'text-zinc-555 hover:text-zinc-750 dark:hover:text-zinc-350'}`}
                   >
                     <TrendingDown size={10} /> Saída
                   </button>
                   <button 
                     type="button"
                     onClick={() => setTxType('entrada')}
-                    className={`flex items-center gap-1 px-3 py-1.5 text-[9px] font-black uppercase tracking-wider rounded-md transition-colors ${txType === 'entrada' ? 'bg-blue-500 text-white shadow-md' : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'}`}
+                    className={`flex items-center gap-1 px-3 py-1.5 text-[9px] font-black uppercase tracking-wider rounded-md transition-colors ${txType === 'entrada' ? 'bg-blue-500 text-white shadow-md' : 'text-zinc-555 hover:text-zinc-750 dark:hover:text-zinc-350'}`}
                   >
                     <TrendingUp size={10} /> Entrada
                   </button>
@@ -478,14 +537,23 @@ const FinancasApp: React.FC = () => {
                     type="submit" 
                     className={`flex-[2] text-white rounded-lg py-2 font-black text-[9px] uppercase tracking-wider transition-colors disabled:opacity-50 ${txType === 'saida' ? 'bg-rose-500 hover:bg-rose-600 shadow-md shadow-rose-500/10' : 'bg-blue-500 hover:bg-blue-600 shadow-md shadow-blue-500/10'}`}
                   >
-                    Lançar {txType === 'saida' ? 'Saída' : 'Entrada'}
+                    {editingTxId ? 'Salvar' : `Lançar ${txType === 'saida' ? 'Saída' : 'Entrada'}`}
                   </button>
                 </div>
+                {editingTxId && (
+                  <button 
+                    type="button" 
+                    onClick={cancelEdit} 
+                    className="w-full mt-2 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 rounded-lg py-2 text-[9px] font-black uppercase tracking-wider transition-colors border border-zinc-200 dark:border-zinc-700/50"
+                  >
+                    Cancelar Edição
+                  </button>
+                )}
               </form>
             </div>
 
             {/* Gráficos */}
-            <div className="bg-white dark:bg-[#121214] p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800/50 shadow-sm flex flex-col h-[280px]">
+            <div className="bg-white dark:bg-[#121214] p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800/50 shadow-sm flex flex-col h-[320px]">
               <div className="flex items-center justify-between mb-2 shrink-0">
                 <h3 className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-tight text-zinc-800 dark:text-zinc-100">
                   <PieChartIcon size={14} className="text-zinc-400" /> Gráficos
@@ -535,7 +603,7 @@ const FinancasApp: React.FC = () => {
                           {gastosPorCartao.map(([name], index) => <Cell key={`cell-${index}`} fill={paymentMethods.find(c => c.name === name)?.color || CHART_COLORS[index % CHART_COLORS.length]} />)}
                         </Pie>
                         <RechartsTooltip formatter={(value: number) => formatCurrency(value)} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '10px', fontWeight: 'bold' }} />
-                        <Legend verticalAlign="bottom" height={24} iconType="circle" wrapperStyle={{ fontSize: '9px', fontWeight: 'bold' }} />
+                        <Legend formatter={(value, entry: any) => `${value}: ${formatCurrency(entry.payload?.value || 0)}`} verticalAlign="bottom" iconType="circle" wrapperStyle={{ fontSize: '9px', fontWeight: 'bold' }} />
                       </PieChart>
                     </ResponsiveContainer>
                   )
@@ -563,7 +631,7 @@ const FinancasApp: React.FC = () => {
                           {gastosPorCategoria.map(([name], index) => <Cell key={`cell-${index}`} fill={outCategories.find(c => c.name === name)?.color || CHART_COLORS[(index + 3) % CHART_COLORS.length]} />)}
                         </Pie>
                         <RechartsTooltip formatter={(value: number) => formatCurrency(value)} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '10px', fontWeight: 'bold' }} />
-                        <Legend verticalAlign="bottom" height={24} iconType="circle" wrapperStyle={{ fontSize: '9px', fontWeight: 'bold' }} />
+                        <Legend formatter={(value, entry: any) => `${value}: ${formatCurrency(entry.payload?.value || 0)}`} verticalAlign="bottom" iconType="circle" wrapperStyle={{ fontSize: '9px', fontWeight: 'bold' }} />
                       </PieChart>
                     </ResponsiveContainer>
                   )
@@ -591,7 +659,7 @@ const FinancasApp: React.FC = () => {
                           {entradasPorCategoria.map(([name], index) => <Cell key={`cell-${index}`} fill={inCategories.find(c => c.name === name)?.color || CHART_COLORS[(index + 6) % CHART_COLORS.length]} />)}
                         </Pie>
                         <RechartsTooltip formatter={(value: number) => formatCurrency(value)} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '10px', fontWeight: 'bold' }} />
-                        <Legend verticalAlign="bottom" height={24} iconType="circle" wrapperStyle={{ fontSize: '9px', fontWeight: 'bold' }} />
+                        <Legend formatter={(value, entry: any) => `${value}: ${formatCurrency(entry.payload?.value || 0)}`} verticalAlign="bottom" iconType="circle" wrapperStyle={{ fontSize: '9px', fontWeight: 'bold' }} />
                       </PieChart>
                     </ResponsiveContainer>
                   )
@@ -637,7 +705,8 @@ const FinancasApp: React.FC = () => {
                           <TrendingUp size={14}/>
                         </button>
                         <span className={`font-bold text-xs ${t.pending ? 'text-amber-500' : 'text-blue-500'}`}>{formatCurrency(t.amount)}</span>
-                        <button onClick={() => deleteTransaction(t.id)} className="opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-rose-500 p-1"><Trash2 size={14}/></button>
+                        <button onClick={() => startEditTransaction(t)} className="opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-blue-500 p-1" title="Editar"><Edit3 size={14}/></button>
+                        <button onClick={() => deleteTransaction(t.id)} className="opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-rose-500 p-1" title="Excluir"><Trash2 size={14}/></button>
                       </div>
                     </li>
                   ))}
@@ -686,7 +755,8 @@ const FinancasApp: React.FC = () => {
                           <TrendingDown size={14}/>
                         </button>
                         <span className={`font-bold text-xs ${t.pending ? 'text-amber-500' : 'text-rose-500'}`}>{formatCurrency(t.amount)}</span>
-                        <button onClick={() => deleteTransaction(t.id)} className="opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-rose-500 p-1"><Trash2 size={14}/></button>
+                        <button onClick={() => startEditTransaction(t)} className="opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-blue-500 p-1" title="Editar"><Edit3 size={14}/></button>
+                        <button onClick={() => deleteTransaction(t.id)} className="opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-rose-500 p-1" title="Excluir"><Trash2 size={14}/></button>
                       </div>
                     </li>
                   ))}

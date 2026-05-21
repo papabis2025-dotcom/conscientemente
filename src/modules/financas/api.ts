@@ -57,6 +57,13 @@ export const financasApi = {
   updateTransaction: async (id: string, updates: Partial<Transaction>) => {
     const payload: any = {};
     if (updates.pending !== undefined) payload.pending = updates.pending;
+    if (updates.type !== undefined) payload.type = updates.type;
+    if (updates.date !== undefined) payload.date = updates.date;
+    if (updates.dayOnly !== undefined) payload.day_only = updates.dayOnly;
+    if (updates.name !== undefined) payload.name = updates.name;
+    if (updates.amount !== undefined) payload.amount = updates.amount;
+    if (updates.category !== undefined) payload.category = updates.category;
+    if (updates.paymentMethod !== undefined) payload.payment_method = updates.paymentMethod;
     
     const { error } = await supabase.from('financas_transacoes').update(payload).eq('id', id);
     if (error) throw error;

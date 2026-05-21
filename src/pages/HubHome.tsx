@@ -235,6 +235,7 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
   const [pendingEstudos, setPendingEstudos] = useState(0);
   const [pendingSaude, setPendingSaude] = useState(0);
   const [financeBalance, setFinanceBalance] = useState<number | null>(null);
+  const [pendingFinanceCount, setPendingFinanceCount] = useState(0);
   const [mounted, setMounted] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
@@ -313,6 +314,7 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
     pendingEstudos: number;
     saude: { id: string; type: string }[];
     balance: number;
+    pendingFinance?: { id: string; name: string; amount: number; type: string }[];
   }) => {
     setNotifications(prev => {
       let updated = [...prev];
@@ -373,6 +375,19 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
           `Atenção: seu saldo atual no mês é ${formatted}.`,
           'financas'
         );
+      }
+
+      // 5. Check Pending Transactions Today
+      if (data.pendingFinance) {
+        data.pendingFinance.forEach(tx => {
+          const formatted = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(tx.amount);
+          addNotify(
+            `finance_pending_${tx.id}`,
+            'Lançamento Pendente',
+            `O lançamento "${tx.name}" (${formatted}) está pendente para hoje.`,
+            'financas'
+          );
+        });
       }
 
       if (changed) {
@@ -676,12 +691,24 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
         setFinanceBalance(0);
       }
 
+      // 5. Finance Pending Transactions for Today
+      const { data: pendingFinanceTx } = await supabase
+        .from('financas_transacoes')
+        .select('id, name, amount, type')
+        .eq('user_id', user.id)
+        .eq('pending', true)
+        .eq('date', todayStr);
+      
+      const countPending = pendingFinanceTx?.length || 0;
+      setPendingFinanceCount(countPending);
+
       generateNotifications({
         todayStr,
         tarefas: (tarefas || []) as { id: string; text: string }[],
         pendingEstudos: pendingStudyTasks + pendingScheduled,
         saude: (saude || []) as { id: string; type: string }[],
-        balance: calculatedBalance
+        balance: calculatedBalance,
+        pendingFinance: (pendingFinanceTx || []) as { id: string; name: string; amount: number; type: string }[]
       });
     };
 
@@ -1122,6 +1149,17 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
                 <Wallet size={11} className={financeBalance >= 0 ? "text-zinc-400 dark:text-zinc-550" : ""} />
                 {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(financeBalance)}
               </span>
+            )}
+
+            {pendingFinanceCount > 0 && (
+              <button 
+                onClick={() => window.location.hash = 'financas'}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-full text-[10px] font-black uppercase tracking-wider shadow-md shadow-amber-500/25 transition-all hover:scale-105 active:scale-95 animate-bounce"
+                title={`${pendingFinanceCount} ${pendingFinanceCount === 1 ? 'lançamento pendente hoje' : 'lançamentos pendentes hoje'} (Clique para ver)`}
+              >
+                <Wallet size={11} className="animate-pulse" />
+                <span>{pendingFinanceCount} Pendente{pendingFinanceCount > 1 ? 's' : ''}</span>
+              </button>
             )}
           </div>
         </div>

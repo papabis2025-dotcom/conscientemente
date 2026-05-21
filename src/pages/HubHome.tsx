@@ -691,13 +691,13 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
         setFinanceBalance(0);
       }
 
-      // 5. Finance Pending Transactions for Today
+      // 5. Finance Pending Transactions for today or earlier (overdue)
       const { data: pendingFinanceTx } = await supabase
         .from('financas_transacoes')
         .select('id, name, amount, type')
         .eq('user_id', user.id)
         .eq('pending', true)
-        .eq('date', todayStr);
+        .lte('date', todayStr);
       
       const countPending = pendingFinanceTx?.length || 0;
       setPendingFinanceCount(countPending);
@@ -1102,62 +1102,58 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
             {/* Hero section */}
             <div className={`mb-6 transition-all duration-700 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
 
-          {/* Status pills */}
-          <div className="flex flex-wrap gap-2">
-            {pendingTarefas > 0 ? (
-              <span className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 rounded-full text-[10px] font-black uppercase tracking-wider border border-rose-200 dark:border-rose-500/20 animate-in fade-in duration-300">
-                <ListTodo size={11} />
-                {pendingTarefas} {pendingTarefas === 1 ? 'tarefa' : 'tarefas'} hoje
-              </span>
-            ) : (
-              <span className="flex items-center gap-1.5 px-3 py-1.5 bg-white/40 dark:bg-zinc-900/40 backdrop-blur-sm text-zinc-500 dark:text-zinc-400 rounded-full text-[10px] font-bold uppercase tracking-wider border border-zinc-200/50 dark:border-zinc-800/50">
-                <ListTodo size={11} className="text-zinc-400 dark:text-zinc-550" />
-                Dia livre ✓
-              </span>
-            )}
+          {/* Status pills — single compact row */}
+          <div className="flex items-center gap-2 flex-nowrap overflow-x-auto pb-0.5 scrollbar-hide">
+            {/* Estudos */}
+            <span className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider border whitespace-nowrap shrink-0 ${
+              pendingEstudos > 0
+                ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-500/20'
+                : 'bg-white/40 dark:bg-zinc-900/40 backdrop-blur-sm text-zinc-500 dark:text-zinc-400 border-zinc-200/50 dark:border-zinc-800/50 font-bold'
+            }`}>
+              <BookOpen size={11} />
+              Estudos ✓
+            </span>
 
-            {pendingEstudos > 0 ? (
-              <span className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-full text-[10px] font-black uppercase tracking-wider border border-indigo-200 dark:border-indigo-500/20 animate-in fade-in duration-300">
-                <BookOpen size={11} />
-                {pendingEstudos} {pendingEstudos === 1 ? 'estudo pendente' : 'estudos pendentes'}
-              </span>
-            ) : (
-              <span className="flex items-center gap-1.5 px-3 py-1.5 bg-white/40 dark:bg-zinc-900/40 backdrop-blur-sm text-zinc-550 dark:text-zinc-400 rounded-full text-[10px] font-bold uppercase tracking-wider border border-zinc-200/50 dark:border-zinc-800/50">
-                <BookOpen size={11} className="text-zinc-400 dark:text-zinc-550" />
-                Estudos ok ✓
-              </span>
-            )}
+            {/* Tarefas */}
+            <span className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider border whitespace-nowrap shrink-0 ${
+              pendingTarefas > 0
+                ? 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-500/20'
+                : 'bg-white/40 dark:bg-zinc-900/40 backdrop-blur-sm text-zinc-500 dark:text-zinc-400 border-zinc-200/50 dark:border-zinc-800/50 font-bold'
+            }`}>
+              <ListTodo size={11} />
+              Tarefas ✓
+            </span>
 
-            {pendingSaude > 0 ? (
-              <span className="flex items-center gap-1.5 px-3 py-1.5 bg-cyan-50 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 rounded-full text-[10px] font-black uppercase tracking-wider border border-cyan-200 dark:border-cyan-500/20 animate-in fade-in duration-300">
-                <HeartPulse size={11} />
-                {pendingSaude} {pendingSaude === 1 ? 'treino pendente' : 'treinos pendentes'}
-              </span>
-            ) : (
-              <span className="flex items-center gap-1.5 px-3 py-1.5 bg-white/40 dark:bg-zinc-900/40 backdrop-blur-sm text-zinc-550 dark:text-zinc-400 rounded-full text-[10px] font-bold uppercase tracking-wider border border-zinc-200/50 dark:border-zinc-800/50">
-                <HeartPulse size={11} className="text-zinc-400 dark:text-zinc-550" />
-                Treinos ok ✓
-              </span>
-            )}
+            {/* Treinos */}
+            <span className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider border whitespace-nowrap shrink-0 ${
+              pendingSaude > 0
+                ? 'bg-cyan-50 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-200 dark:border-cyan-500/20'
+                : 'bg-white/40 dark:bg-zinc-900/40 backdrop-blur-sm text-zinc-500 dark:text-zinc-400 border-zinc-200/50 dark:border-zinc-800/50 font-bold'
+            }`}>
+              <HeartPulse size={11} />
+              Treinos ✓
+            </span>
 
+            {/* Saldo */}
             {financeBalance !== null && (
-              <span className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${
+              <span className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider border whitespace-nowrap shrink-0 ${
                 financeBalance >= 0
                   ? 'bg-white/40 dark:bg-zinc-900/40 backdrop-blur-sm text-zinc-550 dark:text-zinc-400 border-zinc-200/50 dark:border-zinc-800/50 font-bold'
-                  : 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-500/20 animate-in fade-in duration-300 font-black'
+                  : 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-500/20'
               }`}>
-                <Wallet size={11} className={financeBalance >= 0 ? "text-zinc-400 dark:text-zinc-550" : ""} />
+                <Wallet size={11} className={financeBalance >= 0 ? 'text-zinc-400 dark:text-zinc-550' : ''} />
                 {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(financeBalance)}
               </span>
             )}
 
+            {/* Pendências financeiras (só aparece se houver) */}
             {pendingFinanceCount > 0 && (
-              <button 
+              <button
                 onClick={() => window.location.hash = 'financas'}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-full text-[10px] font-black uppercase tracking-wider shadow-md shadow-amber-500/25 transition-all hover:scale-105 active:scale-95 animate-bounce"
-                title={`${pendingFinanceCount} ${pendingFinanceCount === 1 ? 'lançamento pendente hoje' : 'lançamentos pendentes hoje'} (Clique para ver)`}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-full text-[10px] font-black uppercase tracking-wider shadow-md shadow-amber-500/25 transition-all hover:scale-105 active:scale-95 whitespace-nowrap shrink-0"
+                title={`${pendingFinanceCount} ${pendingFinanceCount === 1 ? 'lançamento pendente' : 'lançamentos pendentes'} (Clique para ver)`}
               >
-                <Wallet size={11} className="animate-pulse" />
+                <Wallet size={11} />
                 <span>{pendingFinanceCount} Pendente{pendingFinanceCount > 1 ? 's' : ''}</span>
               </button>
             )}
@@ -1269,13 +1265,13 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
                     className={`flex items-center gap-3 p-3 rounded-2xl border transition-all duration-200 cursor-pointer ${
                       isCompleted
                         ? 'bg-zinc-50/50 dark:bg-zinc-950/20 border-zinc-150 dark:border-zinc-900/50 opacity-60'
-                        : 'bg-white dark:bg-zinc-900 border-zinc-200/80 dark:border-zinc-800/80 shadow-sm hover:border-amber-250 dark:hover:border-amber-900/50 hover:shadow-md'
+                        : 'bg-white dark:bg-zinc-900 border-zinc-200/80 dark:border-zinc-800/80 shadow-sm hover:border-indigo-200 dark:hover:border-indigo-900/50 hover:shadow-md'
                     }`}
                   >
                     <div className="relative flex items-center justify-center shrink-0">
                       <div className={`w-5 h-5 rounded-lg border flex items-center justify-center transition-all ${
                         isCompleted
-                          ? 'bg-gradient-to-br from-amber-400 to-yellow-500 border-amber-500 text-white'
+                          ? 'bg-gradient-to-br from-indigo-500 to-violet-600 border-indigo-500 text-white'
                           : 'border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800'
                       }`}>
                         {isCompleted && <Check size={11} strokeWidth={3} />}
@@ -1283,7 +1279,7 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
                     </div>
                     <span className={`text-[11px] font-bold transition-all truncate leading-none ${
                       isCompleted
-                        ? 'line-through text-zinc-400 dark:text-zinc-550'
+                        ? 'line-through text-zinc-400 dark:text-zinc-500'
                         : 'text-zinc-700 dark:text-zinc-300'
                     }`}>
                       {h.name}

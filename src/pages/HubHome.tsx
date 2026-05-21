@@ -1269,13 +1269,13 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
                     className={`flex items-center gap-3 p-3 rounded-2xl border transition-all duration-200 cursor-pointer ${
                       isCompleted
                         ? 'bg-zinc-50/50 dark:bg-zinc-950/20 border-zinc-150 dark:border-zinc-900/50 opacity-60'
-                        : 'bg-white dark:bg-zinc-900 border-zinc-200/80 dark:border-zinc-800/80 shadow-sm hover:border-indigo-200 dark:hover:border-indigo-900/50 hover:shadow-md'
+                        : 'bg-white dark:bg-zinc-900 border-zinc-200/80 dark:border-zinc-800/80 shadow-sm hover:border-amber-250 dark:hover:border-amber-900/50 hover:shadow-md'
                     }`}
                   >
                     <div className="relative flex items-center justify-center shrink-0">
                       <div className={`w-5 h-5 rounded-lg border flex items-center justify-center transition-all ${
                         isCompleted
-                          ? 'bg-gradient-to-br from-indigo-500 to-violet-600 border-indigo-500 text-white'
+                          ? 'bg-gradient-to-br from-amber-400 to-yellow-500 border-amber-500 text-white'
                           : 'border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800'
                       }`}>
                         {isCompleted && <Check size={11} strokeWidth={3} />}
@@ -1283,7 +1283,7 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
                     </div>
                     <span className={`text-[11px] font-bold transition-all truncate leading-none ${
                       isCompleted
-                        ? 'line-through text-zinc-400 dark:text-zinc-500'
+                        ? 'line-through text-zinc-400 dark:text-zinc-550'
                         : 'text-zinc-700 dark:text-zinc-300'
                     }`}>
                       {h.name}

@@ -164,7 +164,7 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
         onOpenAddModal={() => setShowAddModal(true)}
       />
       <main className="flex-1 overflow-y-auto p-3 relative">
-        <div className="max-w-[1440px] mx-auto pb-8">{renderContent()}</div>
+        <div className="max-w-[1440px] mx-auto lg:pb-0 pb-8">{renderContent()}</div>
       </main>
       <footer className={`fixed bottom-0 right-0 h-9 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md border-t border-zinc-200 dark:border-zinc-800 px-4 flex items-center justify-between text-[9px] font-medium z-40 transition-all duration-300 ${isSidebarCollapsed ? 'left-20' : 'left-64'}`}>
         <div className="flex items-center gap-3">

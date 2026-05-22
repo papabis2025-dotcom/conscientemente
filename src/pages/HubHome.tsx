@@ -1158,8 +1158,21 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
           </div>
         </div>
 
+        {/* Section label */}
+        <div className="flex items-center gap-3 mb-4">
+          <p className="text-[10px] font-black text-zinc-400 dark:text-zinc-600 uppercase tracking-widest">Módulos</p>
+          <div className="flex-1 h-px bg-zinc-200 dark:bg-zinc-800" />
+        </div>
+
+        {/* Module grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
+          {MODULES.map((mod, i) => (
+            <ModuleCard key={mod.id} module={mod} index={i} />
+          ))}
+        </div>
+
         {/* Habit Tracker Section */}
-        <div className="mb-8 p-5 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm rounded-[2rem] border border-zinc-200/80 dark:border-zinc-800/80 shadow-md">
+        <div className="mt-8 p-5 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm rounded-[2rem] border border-zinc-200/80 dark:border-zinc-800/80 shadow-md">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="text-xs font-black text-zinc-700 dark:text-zinc-300 uppercase tracking-widest flex items-center gap-1.5">
@@ -1289,28 +1302,8 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
           </div>
         </div>
 
-        {/* Section label */}
-        <div className="flex items-center gap-3 mb-4">
-          <p className="text-[10px] font-black text-zinc-400 dark:text-zinc-600 uppercase tracking-widest">Módulos</p>
-          <div className="flex-1 h-px bg-zinc-200 dark:bg-zinc-800" />
-        </div>
-
-        {/* Module grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
-          {MODULES.map((mod, i) => (
-            <ModuleCard key={mod.id} module={mod} index={i} />
-          ))}
-        </div>
-
           </>
         )}
-
-        {/* Footer */}
-        <div className="mt-10 text-center">
-          <p className="text-[10px] font-bold text-zinc-300 dark:text-zinc-700 uppercase tracking-widest">
-            Conscientemente · v0.1 · Seu sistema operacional pessoal
-          </p>
-        </div>
       </main>
 
       {showSettingsModal && (

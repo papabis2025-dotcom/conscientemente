@@ -50,7 +50,7 @@ const DEFAULT_WIDGETS: WidgetState[] = [
   { id: 'study_tasks', title: 'Tarefas Pendentes', isVisible: true, size: 'normal' },
   { id: 'weekly_chart', title: 'Volume de Estudo', isVisible: true, size: 'wide' },
   { id: 'activity_calendar', title: 'Calendário de Atividades', isVisible: true, size: 'wide' },
-  { id: 'unified_subject_analysis', title: 'Análise por Disciplina', isVisible: true, size: 'wide' },
+  { id: 'unified_subject_analysis', title: 'Análise por Disciplina', isVisible: true, size: 'normal' },
 ];
 
 const getAcronym = (name: string) => {
@@ -93,7 +93,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   scheduledStudies = []
 }) => {
   const [widgets, setWidgets] = useState<WidgetState[]>(() => {
-    const saved = localStorage.getItem('cp_dashboard_layout_v19');
+    const saved = localStorage.getItem('cp_dashboard_layout_v20');
     return saved ? JSON.parse(saved) : DEFAULT_WIDGETS;
   });
   const [draggedWidgetIndex, setDraggedWidgetIndex] = useState<number | null>(null);
@@ -106,7 +106,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   const isDarkMode = theme === 'dark';
   const chartTextColor = isDarkMode ? '#94a3b8' : '#64748b';
 
-  useEffect(() => { localStorage.setItem('cp_dashboard_layout_v19', JSON.stringify(widgets)); }, [widgets]);
+  useEffect(() => { localStorage.setItem('cp_dashboard_layout_v20', JSON.stringify(widgets)); }, [widgets]);
 
   const handleDragStart = (index: number) => {
     setDraggedWidgetIndex(index);
@@ -401,6 +401,9 @@ const Dashboard: React.FC<DashboardProps> = ({
         const simColor = getPerformanceColor(simAccuracy);
         const simColorHex = getPerformanceColorHex(simAccuracy);
 
+        const totalMinutes = relevantSessions.reduce((acc, s) => acc + (Number(s.durationInMinutes) || 0), 0);
+        const totalHours = (totalMinutes / 60).toFixed(1);
+
         return (
           <div className="flex flex-row items-stretch justify-around h-full gap-4 px-4 py-2">
             {/* General Stats */}
@@ -454,6 +457,31 @@ const Dashboard: React.FC<DashboardProps> = ({
                 </div>
               </div>
               <p className="text-[9px] font-black text-zinc-500 uppercase tracking-widest shrink-0">Simulados</p>
+            </div>
+
+            {/* Divider - only on wide viewports */}
+            <div className="hidden sm:block w-px bg-zinc-100 dark:bg-zinc-800 self-stretch my-2 shrink-0" />
+
+            {/* Quick Stats Panel - only on wide viewports */}
+            <div className="hidden sm:flex flex-col justify-center flex-1 gap-2 pl-2">
+              <div className="flex justify-between items-center">
+                <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider">Tempo Total</span>
+                <span className="text-xs font-black text-zinc-750 dark:text-zinc-200">{totalHours}h</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider">Resoluções</span>
+                <span className="text-xs font-black text-zinc-750 dark:text-zinc-200">{totalDone} q</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider">Acertos</span>
+                <span className="text-xs font-black text-zinc-750 dark:text-zinc-200">{totalCorrect} q</span>
+              </div>
+              {subjectStats.best && (
+                <div className="flex justify-between items-center">
+                  <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider" title={subjectStats.best.name}>Melhor Matéria</span>
+                  <span className="text-xs font-black text-emerald-500 uppercase">{subjectStats.best.acronym}</span>
+                </div>
+              )}
             </div>
           </div>
         );
@@ -577,8 +605,8 @@ const Dashboard: React.FC<DashboardProps> = ({
                 <p className="text-[10px] font-bold text-zinc-600 dark:text-zinc-300">Nenhuma atividade pendente!</p>
               </div>
             ) : (
-              <div className="space-y-2">
-                {upcomingReviews.slice(0, 2).map((rev, i) => (
+              <div className="space-y-2 overflow-y-auto max-h-full pr-1">
+                {upcomingReviews.slice(0, 3).map((rev, i) => (
                   <div key={i} className="flex items-center gap-2.5 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl p-3">
                     <div className={`w-8 h-8 rounded-full shrink-0 flex items-center justify-center text-[9px] font-black ${
                       rev.daysUntil === 0 ? 'bg-rose-500 text-white' : rev.daysUntil <= 2 ? 'bg-amber-400 text-white' : 'bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300'
@@ -865,7 +893,7 @@ const Dashboard: React.FC<DashboardProps> = ({
 
 
     return (
-    <div className="space-y-4 animate-in fade-in duration-500 pb-6">
+    <div className="space-y-4 lg:space-y-3 animate-in fade-in duration-500 lg:pb-0 pb-6">
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 px-1">
         <div>
           <h2 className="text-xl font-black text-zinc-800 dark:text-white tracking-tight uppercase">Dashboard</h2>
@@ -893,19 +921,19 @@ const Dashboard: React.FC<DashboardProps> = ({
         </div>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 auto-rows-auto">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 auto-rows-auto lg:h-[calc(100vh-125px)] lg:grid-rows-[28fr_36fr_36fr]">
         {widgets.map((widget, index) => {
           if (!widget.isVisible && !isEditMode) return null;
           const sizeClass = widget.size === 'full' ? 'md:col-span-3' : widget.size === 'wide' ? 'md:col-span-2' : 'md:col-span-1';
 
           // Define heights for different widgets
           const heightClass = (() => {
-            if (widget.id === 'general_stats') return 'h-[180px]';
-            if (widget.id === 'study_frequency') return 'h-[180px]';
-            if (widget.id === 'study_tasks') return 'h-[180px]';
-            if (widget.id === 'weekly_chart') return 'h-[250px]';
-            if (widget.id === 'activity_calendar') return 'h-[250px]';
-            if (widget.id === 'unified_subject_analysis') return 'h-[250px]';
+            if (widget.id === 'general_stats') return 'lg:h-full md:h-[180px] h-[180px] min-h-[170px]';
+            if (widget.id === 'study_frequency') return 'lg:h-full md:h-[180px] h-[180px] min-h-[170px]';
+            if (widget.id === 'study_tasks') return 'lg:h-full md:h-[250px] h-[250px] min-h-[230px]';
+            if (widget.id === 'weekly_chart') return 'lg:h-full md:h-[250px] h-[250px] min-h-[230px]';
+            if (widget.id === 'activity_calendar') return 'lg:h-full md:h-[250px] h-[250px] min-h-[230px]';
+            if (widget.id === 'unified_subject_analysis') return 'lg:h-full md:h-[250px] h-[250px] min-h-[230px]';
             return 'h-auto';
           })();
 

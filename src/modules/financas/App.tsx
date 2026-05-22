@@ -606,33 +606,44 @@ const FinancasApp: React.FC = () => {
                 </div>
               </div>
               
-              <div className="flex-1 w-full min-h-0 relative">
+              <div className="flex-1 w-full min-h-0 relative overflow-y-auto custom-scrollbar pr-1">
                 {activeChartTab === 'cartoes' && (
                   gastosPorCartao.length === 0 ? (
                     <div className="absolute inset-0 flex items-center justify-center">
                       <p className="text-[10px] text-zinc-400 font-semibold uppercase tracking-wider">Nenhum gasto registrado</p>
                     </div>
                   ) : (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart margin={{ top: 20, right: 60, bottom: 20, left: 60 }}>
-                        <defs>
-                          <filter id="shadow3d" x="-20%" y="-20%" width="140%" height="140%">
-                            <feDropShadow dx="1" dy="4" stdDeviation="3" floodOpacity="0.2" />
-                          </filter>
-                        </defs>
-                        <Pie
-                          data={gastosPorCartao.map(([name, value]) => ({ name, value }))}
-                          cx="50%" cy="50%" innerRadius={60} outerRadius={95} paddingAngle={3} dataKey="value"
-                          style={{ filter: 'url(#shadow3d)' }}
-                          isAnimationActive={true}
-                          label={(props) => renderCustomLabel(props, formatCurrency)}
-                          labelLine={false}
-                        >
-                          {gastosPorCartao.map(([name], index) => <Cell key={`cell-${index}`} fill={paymentMethods.find(c => c.name === name)?.color || CHART_COLORS[index % CHART_COLORS.length]} />)}
-                        </Pie>
-                        <RechartsTooltip formatter={(value: number) => formatCurrency(value)} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '11px', fontWeight: 'bold' }} />
-                      </PieChart>
-                    </ResponsiveContainer>
+                    <div className="space-y-3.5 py-2">
+                      {(() => {
+                        const total = gastosPorCartao.reduce((sum, [_, val]) => sum + val, 0) || 1;
+                        return gastosPorCartao.map(([name, val], index) => {
+                          const color = paymentMethods.find(c => c.name === name)?.color || CHART_COLORS[index % CHART_COLORS.length];
+                          const percentage = (val / total) * 100;
+                          return (
+                            <div key={name} className="flex flex-col gap-1">
+                              <div className="flex items-center justify-between text-[10px] font-bold text-zinc-800 dark:text-zinc-200">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: color }}></span>
+                                  <span className="truncate max-w-[120px]">{name}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-extrabold text-[10px]">{formatCurrency(val)}</span>
+                                  <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 min-w-[36px] text-center font-bold">
+                                    {percentage.toFixed(1)}%
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="w-full bg-zinc-100 dark:bg-zinc-800/60 h-2 rounded-full overflow-hidden">
+                                <div 
+                                  className="h-full rounded-full transition-all duration-500" 
+                                  style={{ width: `${percentage}%`, backgroundColor: color }}
+                                ></div>
+                              </div>
+                            </div>
+                          );
+                        });
+                      })()}
+                    </div>
                   )
                 )}
 
@@ -642,26 +653,37 @@ const FinancasApp: React.FC = () => {
                       <p className="text-[10px] text-zinc-400 font-semibold uppercase tracking-wider">Nenhum gasto registrado</p>
                     </div>
                   ) : (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart margin={{ top: 20, right: 60, bottom: 20, left: 60 }}>
-                        <defs>
-                          <filter id="shadow3d2" x="-20%" y="-20%" width="140%" height="140%">
-                            <feDropShadow dx="1" dy="4" stdDeviation="3" floodOpacity="0.2" />
-                          </filter>
-                        </defs>
-                        <Pie
-                          data={gastosPorCategoria.map(([name, value]) => ({ name, value }))}
-                          cx="50%" cy="50%" innerRadius={60} outerRadius={95} paddingAngle={3} dataKey="value"
-                          style={{ filter: 'url(#shadow3d2)' }}
-                          isAnimationActive={true}
-                          label={(props) => renderCustomLabel(props, formatCurrency)}
-                          labelLine={false}
-                        >
-                          {gastosPorCategoria.map(([name], index) => <Cell key={`cell-${index}`} fill={outCategories.find(c => c.name === name)?.color || CHART_COLORS[(index + 3) % CHART_COLORS.length]} />)}
-                        </Pie>
-                        <RechartsTooltip formatter={(value: number) => formatCurrency(value)} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '11px', fontWeight: 'bold' }} />
-                      </PieChart>
-                    </ResponsiveContainer>
+                    <div className="space-y-3.5 py-2">
+                      {(() => {
+                        const total = gastosPorCategoria.reduce((sum, [_, val]) => sum + val, 0) || 1;
+                        return gastosPorCategoria.map(([name, val], index) => {
+                          const color = outCategories.find(c => c.name === name)?.color || CHART_COLORS[(index + 3) % CHART_COLORS.length];
+                          const percentage = (val / total) * 100;
+                          return (
+                            <div key={name} className="flex flex-col gap-1">
+                              <div className="flex items-center justify-between text-[10px] font-bold text-zinc-800 dark:text-zinc-200">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: color }}></span>
+                                  <span className="truncate max-w-[120px]">{name}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-extrabold text-[10px]">{formatCurrency(val)}</span>
+                                  <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 min-w-[36px] text-center font-bold">
+                                    {percentage.toFixed(1)}%
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="w-full bg-zinc-100 dark:bg-zinc-800/60 h-2 rounded-full overflow-hidden">
+                                <div 
+                                  className="h-full rounded-full transition-all duration-500" 
+                                  style={{ width: `${percentage}%`, backgroundColor: color }}
+                                ></div>
+                              </div>
+                            </div>
+                          );
+                        });
+                      })()}
+                    </div>
                   )
                 )}
 
@@ -671,26 +693,37 @@ const FinancasApp: React.FC = () => {
                       <p className="text-[10px] text-zinc-400 font-semibold uppercase tracking-wider">Nenhuma entrada registrada</p>
                     </div>
                   ) : (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart margin={{ top: 20, right: 60, bottom: 20, left: 60 }}>
-                        <defs>
-                          <filter id="shadow3d3" x="-20%" y="-20%" width="140%" height="140%">
-                            <feDropShadow dx="1" dy="4" stdDeviation="3" floodOpacity="0.2" />
-                          </filter>
-                        </defs>
-                        <Pie
-                          data={entradasPorCategoria.map(([name, value]) => ({ name, value }))}
-                          cx="50%" cy="50%" innerRadius={60} outerRadius={95} paddingAngle={3} dataKey="value"
-                          style={{ filter: 'url(#shadow3d3)' }}
-                          isAnimationActive={true}
-                          label={(props) => renderCustomLabel(props, formatCurrency)}
-                          labelLine={false}
-                        >
-                          {entradasPorCategoria.map(([name], index) => <Cell key={`cell-${index}`} fill={inCategories.find(c => c.name === name)?.color || CHART_COLORS[(index + 6) % CHART_COLORS.length]} />)}
-                        </Pie>
-                        <RechartsTooltip formatter={(value: number) => formatCurrency(value)} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '11px', fontWeight: 'bold' }} />
-                      </PieChart>
-                    </ResponsiveContainer>
+                    <div className="space-y-3.5 py-2">
+                      {(() => {
+                        const total = entradasPorCategoria.reduce((sum, [_, val]) => sum + val, 0) || 1;
+                        return entradasPorCategoria.map(([name, val], index) => {
+                          const color = inCategories.find(c => c.name === name)?.color || CHART_COLORS[(index + 6) % CHART_COLORS.length];
+                          const percentage = (val / total) * 100;
+                          return (
+                            <div key={name} className="flex flex-col gap-1">
+                              <div className="flex items-center justify-between text-[10px] font-bold text-zinc-800 dark:text-zinc-200">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: color }}></span>
+                                  <span className="truncate max-w-[120px]">{name}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-extrabold text-[10px]">{formatCurrency(val)}</span>
+                                  <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 min-w-[36px] text-center font-bold">
+                                    {percentage.toFixed(1)}%
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="w-full bg-zinc-100 dark:bg-zinc-800/60 h-2 rounded-full overflow-hidden">
+                                <div 
+                                  className="h-full rounded-full transition-all duration-500" 
+                                  style={{ width: `${percentage}%`, backgroundColor: color }}
+                                ></div>
+                              </div>
+                            </div>
+                          );
+                        });
+                      })()}
+                    </div>
                   )
                 )}
               </div>

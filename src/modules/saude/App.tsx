@@ -198,18 +198,22 @@ const SaudeApp: React.FC = () => {
     }));
   }, [activities]);
 
-  const muscleData = useMemo(() => {
+  const cardioLevelData = useMemo(() => {
     const counts: Record<string, number> = {};
+    CARDIO_LEVELS.forEach(l => {
+      counts[l] = 0;
+    });
     realizedActivities.forEach(a => {
-      if (a.type === 'Musculação' && a.muscles) {
-        a.muscles.forEach(m => {
-          counts[m] = (counts[m] || 0) + 1;
-        });
+      if (a.level) {
+        counts[a.level] = (counts[a.level] || 0) + 1;
       }
     });
-    return Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([name, count]) => ({
-      name, count
-    }));
+    return Object.entries(counts)
+      .filter(([_, c]) => c > 0)
+      .sort((a, b) => b[1] - a[1])
+      .map(([name, count]) => ({
+        name, count
+      }));
   }, [activities]);
 
   const todayDateObj = new Date();
@@ -412,35 +416,37 @@ const SaudeApp: React.FC = () => {
                 <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-4 rounded-2xl shadow-sm flex flex-col min-h-[300px]">
                   <h3 className="text-[11px] font-black uppercase tracking-tight text-zinc-500 mb-2">Distribuição de Atividades</h3>
                   {freqData.length > 0 ? (
-                    <div className="flex-1 w-full min-h-0">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <defs>
-                            <filter id="saudeShadow3d" x="-20%" y="-20%" width="140%" height="140%">
-                              <feDropShadow dx="2" dy="4" stdDeviation="3" floodOpacity="0.2" />
-                            </filter>
-                          </defs>
-                          <Pie
-                            data={freqData}
-                            cx="50%"
-                            cy="50%"
-                            innerRadius={50}
-                            outerRadius={80}
-                            paddingAngle={3}
-                            dataKey="count"
-                            style={{ filter: 'url(#saudeShadow3d)' }}
-                          >
-                            {freqData.map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={entry.fill} />
-                            ))}
-                          </Pie>
-                          <Tooltip 
-                            contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                            formatter={(value: number, name: string) => [`${value} treinos`, name]}
-                          />
-                          <Legend verticalAlign="bottom" height={24} iconType="circle" wrapperStyle={{ fontSize: '10px', fontWeight: 'bold' }} />
-                        </PieChart>
-                      </ResponsiveContainer>
+                    <div className="flex-1 w-full min-h-0 overflow-y-auto custom-scrollbar pr-1">
+                      <div className="space-y-3.5 py-2">
+                        {(() => {
+                          const total = freqData.reduce((sum, item) => sum + item.count, 0) || 1;
+                          return freqData.map((item) => {
+                            const percentage = (item.count / total) * 100;
+                            return (
+                              <div key={item.name} className="flex flex-col gap-1">
+                                <div className="flex items-center justify-between text-[10px] font-bold text-zinc-800 dark:text-zinc-200">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: item.fill }}></span>
+                                    <span className="truncate max-w-[120px]">{item.name}</span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-extrabold text-[10px]">{item.count} {item.count === 1 ? 'treino' : 'treinos'}</span>
+                                    <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 min-w-[36px] text-center font-bold">
+                                      {percentage.toFixed(1)}%
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="w-full bg-zinc-100 dark:bg-zinc-800/60 h-2 rounded-full overflow-hidden">
+                                  <div 
+                                    className="h-full rounded-full transition-all duration-500" 
+                                    style={{ width: `${percentage}%`, backgroundColor: item.fill }}
+                                  ></div>
+                                </div>
+                              </div>
+                            );
+                          });
+                        })()}
+                      </div>
                     </div>
                   ) : (
                     <div className="flex-1 flex items-center justify-center text-zinc-400 text-[10px] font-medium">Nenhum treino.</div>
@@ -491,21 +497,21 @@ const SaudeApp: React.FC = () => {
                 </div>
 
                 <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-4 rounded-2xl shadow-sm flex flex-col min-h-[300px]">
-                  <h3 className="text-[11px] font-black uppercase tracking-tight text-zinc-500 mb-2">Músculos mais Treinados</h3>
-                  {muscleData.length > 0 ? (
+                  <h3 className="text-[11px] font-black uppercase tracking-tight text-zinc-500 mb-2">Atividades por Nível / Ritmo</h3>
+                  {cardioLevelData.length > 0 ? (
                     <div className="flex-1 w-full min-h-0">
                       <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={muscleData} margin={{ top: 10, right: 0, left: -25, bottom: 0 }} layout="vertical">
+                        <BarChart data={cardioLevelData} margin={{ top: 10, right: 0, left: -25, bottom: 0 }} layout="vertical">
                           <CartesianGrid strokeDasharray="3 3" horizontal={false} strokeOpacity={0.1} />
                           <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#888' }} />
                           <YAxis dataKey="name" type="category" width={80} axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 600, fill: '#666' }} />
                           <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                          <Bar dataKey="count" fill="#6366f1" radius={[0, 4, 4, 0]} barSize={20} />
+                          <Bar dataKey="count" fill="#06b6d4" radius={[0, 4, 4, 0]} barSize={20} />
                         </BarChart>
                       </ResponsiveContainer>
                     </div>
                   ) : (
-                    <div className="flex-1 flex items-center justify-center text-zinc-400 text-[10px] font-medium">Nenhum dado de musculação.</div>
+                    <div className="flex-1 flex items-center justify-center text-zinc-400 text-[10px] font-medium">Nenhum treino com nível/ritmo registrado.</div>
                   )}
                 </div>
               </div>

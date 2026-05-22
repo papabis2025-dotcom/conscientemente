@@ -477,51 +477,6 @@ const ResumoAnual: React.FC<ResumoAnualProps> = ({
           </div>
         </section>
       </div>
-
-      {/* Seção Extra: Top 5 Maiores Despesas do Ano */}
-      <section className="bg-white dark:bg-[#121214] p-6 rounded-3xl border border-zinc-200 dark:border-zinc-800/50 shadow-sm">
-        <h3 className="text-sm font-black uppercase tracking-tight text-zinc-855 dark:text-zinc-150 flex items-center gap-2 mb-4">
-          <Tag className="text-rose-500" size={16} />
-          Maiores Despesas de {selectedYear}
-        </h3>
-        
-        {topExpenses.length === 0 ? (
-          <div className="text-center py-10 text-zinc-400 dark:text-zinc-500 text-xs font-semibold">
-            Nenhuma despesa para listar.
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-            {topExpenses.map((expense, idx) => (
-              <div 
-                key={expense.id} 
-                className="bg-zinc-50 dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800/60 flex flex-col justify-between gap-3 relative overflow-hidden"
-              >
-                {/* Badge de Posição */}
-                <div className="absolute top-0 right-0 w-8 h-8 bg-zinc-200/50 dark:bg-zinc-800 flex items-center justify-center font-black text-xs text-zinc-400 dark:text-zinc-500 rounded-bl-2xl">
-                  #{idx + 1}
-                </div>
-
-                <div className="flex flex-col gap-1 pr-6">
-                  <span className="text-[9px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider truncate">
-                    {expense.date ? new Date(`${expense.date}T12:00:00`).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }) : ''}
-                  </span>
-                  <h4 className="text-xs font-bold text-zinc-800 dark:text-zinc-200 truncate" title={expense.name}>
-                    {expense.name}
-                  </h4>
-                  <span className="text-[9px] font-black uppercase tracking-widest text-zinc-450 dark:text-zinc-500 mt-1">
-                    {expense.category}
-                  </span>
-                </div>
-
-                <div className="pt-2.5 border-t border-zinc-200 dark:border-zinc-800/60 flex flex-col">
-                  <span className="text-[8px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">Valor</span>
-                  <span className="text-sm font-extrabold text-rose-500">{formatCurrency(expense.amount)}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
     </div>
   );
 };

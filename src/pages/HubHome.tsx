@@ -828,7 +828,7 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
               className="w-9 h-9 rounded-xl flex items-center justify-center border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-500 hover:text-zinc-800 dark:hover:text-white transition-all hover:scale-105 hover:shadow-sm"
               title="Notificações"
             >
-              <Bell size={15} />
+              <Bell size={15} className={unreadCount > 0 ? "animate-pulse text-rose-500" : ""} />
             </button>
             {unreadCount > 0 && (
               <span className="absolute -top-1 -right-1 flex h-3 w-3">
@@ -1112,7 +1112,7 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
                 : 'bg-white/40 dark:bg-zinc-900/40 backdrop-blur-sm text-zinc-500 dark:text-zinc-400 border-zinc-200/50 dark:border-zinc-800/50 font-bold'
             }`}>
               <BookOpen size={11} />
-              Estudos ✓
+              Estudos {pendingEstudos > 0 ? '⏳' : '✓'}
             </span>
 
             {/* Tarefas */}
@@ -1122,7 +1122,7 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
                 : 'bg-white/40 dark:bg-zinc-900/40 backdrop-blur-sm text-zinc-500 dark:text-zinc-400 border-zinc-200/50 dark:border-zinc-800/50 font-bold'
             }`}>
               <ListTodo size={11} />
-              Tarefas ✓
+              Tarefas {pendingTarefas > 0 ? '⏳' : '✓'}
             </span>
 
             {/* Treinos */}
@@ -1132,7 +1132,7 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
                 : 'bg-white/40 dark:bg-zinc-900/40 backdrop-blur-sm text-zinc-500 dark:text-zinc-400 border-zinc-200/50 dark:border-zinc-800/50 font-bold'
             }`}>
               <HeartPulse size={11} />
-              Treinos ✓
+              Treinos {pendingSaude > 0 ? '⏳' : '✓'}
             </span>
 
             {/* Saldo */}

@@ -1106,33 +1106,30 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
           {/* Status pills — wraps to next line if needed, no horizontal scroll */}
           <div className="flex items-center gap-2 flex-wrap">
             {/* Estudos */}
-            <span className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider border whitespace-nowrap shrink-0 ${
+            <span className={`flex items-center justify-center px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider border whitespace-nowrap shrink-0 ${
               pendingEstudos > 0
-                ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-500/20'
+                ? 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-500/20'
                 : 'bg-white/40 dark:bg-zinc-900/40 backdrop-blur-sm text-zinc-500 dark:text-zinc-400 border-zinc-200/50 dark:border-zinc-800/50 font-bold'
             }`}>
-              <BookOpen size={11} />
-              Estudos {pendingEstudos > 0 ? '⏳' : '✓'}
+              Estudos
             </span>
 
             {/* Tarefas */}
-            <span className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider border whitespace-nowrap shrink-0 ${
+            <span className={`flex items-center justify-center px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider border whitespace-nowrap shrink-0 ${
               pendingTarefas > 0
                 ? 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-500/20'
                 : 'bg-white/40 dark:bg-zinc-900/40 backdrop-blur-sm text-zinc-500 dark:text-zinc-400 border-zinc-200/50 dark:border-zinc-800/50 font-bold'
             }`}>
-              <ListTodo size={11} />
-              Tarefas {pendingTarefas > 0 ? '⏳' : '✓'}
+              Tarefas
             </span>
 
             {/* Treinos */}
-            <span className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider border whitespace-nowrap shrink-0 ${
+            <span className={`flex items-center justify-center px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider border whitespace-nowrap shrink-0 ${
               pendingSaude > 0
-                ? 'bg-cyan-50 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-200 dark:border-cyan-500/20'
+                ? 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-500/20'
                 : 'bg-white/40 dark:bg-zinc-900/40 backdrop-blur-sm text-zinc-500 dark:text-zinc-400 border-zinc-200/50 dark:border-zinc-800/50 font-bold'
             }`}>
-              <HeartPulse size={11} />
-              Treinos {pendingSaude > 0 ? '⏳' : '✓'}
+              Treinos
             </span>
 
             {/* Saldo */}

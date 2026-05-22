@@ -196,16 +196,22 @@ const Dashboard: React.FC<DashboardProps> = ({
     };
   }, [sessions, subjects]);
 
-  // Build a set of ALL subject IDs across ALL concursos (not just the active one)
-  // This ensures the weekly volume chart includes sessions from all concursos.
+  // Build a set of subject IDs for the selected concurso/edital.
   const allSubjectIds = useMemo(() => {
     const ids = new Set<string>();
-    concursos.forEach(c => (c.subjects || []).forEach(s => ids.add(s.id)));
-    // Also include subjects from the currently filtered view
+    if (selectedConcursoId === 'all') {
+      concursos.forEach(c => (c.subjects || []).forEach(s => ids.add(s.id)));
+    } else {
+      const activeC = concursos.find(c => c.id === selectedConcursoId);
+      if (activeC) {
+        (activeC.subjects || []).forEach(s => ids.add(s.id));
+      }
+    }
+    // Also include the currently filtered subjects
     subjects.forEach(s => ids.add(s.id));
     console.debug('[Dashboard] allSubjectIds:', ids.size, 'total sessions:', sessions.length);
     return ids;
-  }, [concursos, subjects]);
+  }, [concursos, subjects, selectedConcursoId]);
 
   // Filter sessions relevant to the weekly chart (all subjects, no simulados)
   const relevantSessions = useMemo(() => {
@@ -398,9 +404,9 @@ const Dashboard: React.FC<DashboardProps> = ({
         return (
           <div className="flex flex-row items-stretch justify-around h-full gap-4 px-4 py-2">
             {/* General Stats */}
-            <div className="flex flex-col items-center justify-center flex-1 gap-2">
+            <div className="flex flex-col items-center justify-center flex-1 gap-1">
               <div className="relative w-full flex-1 min-h-0 flex items-center justify-center">
-                <div className="relative w-full h-full max-w-[140px] max-h-[140px]">
+                <div className="relative w-full h-full max-w-[105px] max-h-[105px]">
                   <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
                     <circle cx="50" cy="50" r="40" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-zinc-100 dark:text-zinc-800" />
                     <circle
@@ -414,21 +420,21 @@ const Dashboard: React.FC<DashboardProps> = ({
                     />
                   </svg>
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className={`text-2xl font-black leading-none ${globalColor}`} style={{ color: globalColorHex }}>{globalAccuracy}%</span>
-                    <span className="text-[9px] text-zinc-400 font-semibold mt-1">{totalDone} q</span>
+                    <span className={`text-xl font-black leading-none ${globalColor}`} style={{ color: globalColorHex }}>{globalAccuracy}%</span>
+                    <span className="text-[8px] text-zinc-400 font-semibold mt-0.5">{totalDone} q</span>
                   </div>
                 </div>
               </div>
-              <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest shrink-0">Questões</p>
+              <p className="text-[9px] font-black text-zinc-500 uppercase tracking-widest shrink-0">Questões</p>
             </div>
 
             {/* Divider */}
             <div className="w-px bg-zinc-100 dark:bg-zinc-800 self-stretch my-2 shrink-0" />
 
             {/* Simulado Stats */}
-            <div className="flex flex-col items-center justify-center flex-1 gap-2">
+            <div className="flex flex-col items-center justify-center flex-1 gap-1">
               <div className="relative w-full flex-1 min-h-0 flex items-center justify-center">
-                <div className="relative w-full h-full max-w-[140px] max-h-[140px]">
+                <div className="relative w-full h-full max-w-[105px] max-h-[105px]">
                   <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
                     <circle cx="50" cy="50" r="40" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-zinc-100 dark:text-zinc-800" />
                     <circle
@@ -442,12 +448,12 @@ const Dashboard: React.FC<DashboardProps> = ({
                     />
                   </svg>
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className={`text-2xl font-black leading-none ${simColor}`} style={{ color: simColorHex }}>{simAccuracy}%</span>
-                    <span className="text-[9px] text-zinc-400 font-semibold mt-1">{simDone} q</span>
+                    <span className={`text-xl font-black leading-none ${simColor}`} style={{ color: simColorHex }}>{simAccuracy}%</span>
+                    <span className="text-[8px] text-zinc-400 font-semibold mt-0.5">{simDone} q</span>
                   </div>
                 </div>
               </div>
-              <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest shrink-0">Simulados</p>
+              <p className="text-[9px] font-black text-zinc-500 uppercase tracking-widest shrink-0">Simulados</p>
             </div>
           </div>
         );
@@ -595,44 +601,43 @@ const Dashboard: React.FC<DashboardProps> = ({
       case 'weekly_chart':
         return (
           <div className="flex flex-col h-full">
-            {/* Tabs: Tempo / Questões - Aligned to Left */}
-            <div className="flex justify-start mb-2">
-              <div className="flex items-center gap-1 bg-zinc-50 dark:bg-zinc-800/50 p-1 rounded-lg">
+            {/* Controls Row */}
+            <div className="flex items-center justify-between mb-2 shrink-0 flex-wrap gap-1">
+              <div className="flex items-center gap-0.5 bg-zinc-50 dark:bg-zinc-800/50 p-0.5 rounded-lg">
                 <button
                   onClick={() => setActiveWeeklyTab('hours')}
-                  className={`py-1 px-3 rounded-md text-[10px] font-bold uppercase tracking-wide transition-all ${activeWeeklyTab === 'hours' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-sm' : 'text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}
+                  className={`py-0.5 px-2 rounded-md text-[9px] font-bold uppercase tracking-wide transition-all ${activeWeeklyTab === 'hours' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-sm' : 'text-zinc-400 hover:bg-zinc-100/50'}`}
                 >
                   Tempo
                 </button>
                 <button
                   onClick={() => setActiveWeeklyTab('questions')}
-                  className={`py-1 px-3 rounded-md text-[10px] font-bold uppercase tracking-wide transition-all ${activeWeeklyTab === 'questions' ? 'bg-white dark:bg-zinc-700 text-purple-600 shadow-sm' : 'text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}
+                  className={`py-0.5 px-2 rounded-md text-[9px] font-bold uppercase tracking-wide transition-all ${activeWeeklyTab === 'questions' ? 'bg-white dark:bg-zinc-700 text-purple-600 shadow-sm' : 'text-zinc-400 hover:bg-zinc-100/50'}`}
                 >
                   Questões
                 </button>
               </div>
-            </div>
 
-            {/* Period Filter Buttons */}
-            <div className="flex items-center gap-1 mb-3 bg-zinc-50 dark:bg-zinc-800/50 p-1 rounded-lg">
-              <button
-                onClick={() => setActiveWeeklyPeriod('weekly')}
-                className={`flex-1 py-1 px-2 rounded-md text-[9px] font-bold uppercase tracking-wide transition-all ${activeWeeklyPeriod === 'weekly' ? 'bg-white dark:bg-zinc-700 text-emerald-600 shadow-sm' : 'text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}
-              >
-                Semanal
-              </button>
-              <button
-                onClick={() => setActiveWeeklyPeriod('monthly')}
-                className={`flex-1 py-1 px-2 rounded-md text-[9px] font-bold uppercase tracking-wide transition-all ${activeWeeklyPeriod === 'monthly' ? 'bg-white dark:bg-zinc-700 text-emerald-600 shadow-sm' : 'text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}
-              >
-                Mensal
-              </button>
-              <button
-                onClick={() => setActiveWeeklyPeriod('annual')}
-                className={`flex-1 py-1 px-2 rounded-md text-[9px] font-bold uppercase tracking-wide transition-all ${activeWeeklyPeriod === 'annual' ? 'bg-white dark:bg-zinc-700 text-emerald-600 shadow-sm' : 'text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}
-              >
-                Anual
-              </button>
+              <div className="flex items-center gap-0.5 bg-zinc-50 dark:bg-zinc-800/50 p-0.5 rounded-lg">
+                <button
+                  onClick={() => setActiveWeeklyPeriod('weekly')}
+                  className={`py-0.5 px-1.5 rounded-md text-[8px] font-bold uppercase tracking-wide transition-all ${activeWeeklyPeriod === 'weekly' ? 'bg-white dark:bg-zinc-700 text-emerald-600 shadow-sm' : 'text-zinc-400 hover:bg-zinc-100/50'}`}
+                >
+                  Sem
+                </button>
+                <button
+                  onClick={() => setActiveWeeklyPeriod('monthly')}
+                  className={`py-0.5 px-1.5 rounded-md text-[8px] font-bold uppercase tracking-wide transition-all ${activeWeeklyPeriod === 'monthly' ? 'bg-white dark:bg-zinc-700 text-emerald-600 shadow-sm' : 'text-zinc-400 hover:bg-zinc-100/50'}`}
+                >
+                  Mês
+                </button>
+                <button
+                  onClick={() => setActiveWeeklyPeriod('annual')}
+                  className={`py-0.5 px-1.5 rounded-md text-[8px] font-bold uppercase tracking-wide transition-all ${activeWeeklyPeriod === 'annual' ? 'bg-white dark:bg-zinc-700 text-emerald-600 shadow-sm' : 'text-zinc-400 hover:bg-zinc-100/50'}`}
+                >
+                  Ano
+                </button>
+              </div>
             </div>
 
             <div className="flex-1 w-full min-h-0">
@@ -895,12 +900,12 @@ const Dashboard: React.FC<DashboardProps> = ({
 
           // Define heights for different widgets
           const heightClass = (() => {
-            if (widget.id === 'general_stats') return 'h-[220px]';
-            if (widget.id === 'study_frequency') return 'h-[220px]';
-            if (widget.id === 'study_tasks') return 'h-[220px]';
-            if (widget.id === 'weekly_chart') return 'h-[360px]';
-            if (widget.id === 'activity_calendar') return 'h-[360px]';
-            if (widget.id === 'unified_subject_analysis') return 'h-[360px]';
+            if (widget.id === 'general_stats') return 'h-[180px]';
+            if (widget.id === 'study_frequency') return 'h-[180px]';
+            if (widget.id === 'study_tasks') return 'h-[180px]';
+            if (widget.id === 'weekly_chart') return 'h-[250px]';
+            if (widget.id === 'activity_calendar') return 'h-[250px]';
+            if (widget.id === 'unified_subject_analysis') return 'h-[250px]';
             return 'h-auto';
           })();
 

@@ -1111,7 +1111,7 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
                 ? 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-500/20'
                 : 'bg-white/40 dark:bg-zinc-900/40 backdrop-blur-sm text-zinc-500 dark:text-zinc-400 border-zinc-200/50 dark:border-zinc-800/50 font-bold'
             }`}>
-              Estudos
+              {pendingEstudos > 0 ? `${pendingEstudos} ${pendingEstudos === 1 ? 'Estudo' : 'Estudos'}` : 'Estudos'}
             </span>
 
             {/* Tarefas */}
@@ -1120,7 +1120,7 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
                 ? 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-500/20'
                 : 'bg-white/40 dark:bg-zinc-900/40 backdrop-blur-sm text-zinc-500 dark:text-zinc-400 border-zinc-200/50 dark:border-zinc-800/50 font-bold'
             }`}>
-              Tarefas
+              {pendingTarefas > 0 ? `${pendingTarefas} ${pendingTarefas === 1 ? 'Tarefa' : 'Tarefas'}` : 'Tarefas'}
             </span>
 
             {/* Treinos */}
@@ -1129,7 +1129,7 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
                 ? 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-500/20'
                 : 'bg-white/40 dark:bg-zinc-900/40 backdrop-blur-sm text-zinc-500 dark:text-zinc-400 border-zinc-200/50 dark:border-zinc-800/50 font-bold'
             }`}>
-              Treinos
+              {pendingSaude > 0 ? `${pendingSaude} ${pendingSaude === 1 ? 'Treino' : 'Treinos'}` : 'Treinos'}
             </span>
 
             {/* Saldo */}
@@ -1148,7 +1148,7 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
             {pendingFinanceCount > 0 && (
               <button
                 onClick={() => window.location.hash = 'financas'}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-full text-[10px] font-black uppercase tracking-wider shadow-md shadow-amber-500/25 transition-all hover:scale-105 active:scale-95 whitespace-nowrap shrink-0"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-full text-[10px] font-black uppercase tracking-wider shadow-md shadow-emerald-600/25 transition-all hover:scale-105 active:scale-95 whitespace-nowrap shrink-0"
                 title={`${pendingFinanceCount} ${pendingFinanceCount === 1 ? 'lançamento pendente' : 'lançamentos pendentes'} (Clique para ver)`}
               >
                 <Wallet size={11} />

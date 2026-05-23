@@ -6,8 +6,9 @@ import { tarefasApi, Task } from './api';
 const TarefasApp: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'ativas' | 'arquivo'>('ativas');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
-    return localStorage.getItem('isSidebarCollapsed_tarefas') === 'true';
+    return localStorage.getItem('isSidebarCollapsed_tarefas') !== 'false';
   });
+  const [mobileView, setMobileView] = useState<'form' | 'list'>('list');
 
   useEffect(() => {
     localStorage.setItem('isSidebarCollapsed_tarefas', String(isSidebarCollapsed));
@@ -76,6 +77,7 @@ const TarefasApp: React.FC = () => {
     setNewTaskCategory('Tarefa');
     setNewTaskRecurrence('none');
     setNewTaskRecurrenceValue(1);
+    setMobileView('list');
   };
 
   const toggleTask = (id: string) => {
@@ -333,12 +335,30 @@ const TarefasApp: React.FC = () => {
       </aside>
 
       {/* Área Principal (Sem rolagem global de tela) */}
-      <main className="flex-1 p-6 overflow-hidden flex flex-col bg-transparent">
-        <div className="flex-1 flex gap-6 h-full overflow-hidden max-w-6xl mx-auto w-full">
+      <main className="flex-1 p-4 md:p-6 overflow-hidden flex flex-col bg-transparent">
+        {/* Selector de visualização no celular */}
+        <div className="lg:hidden flex bg-zinc-100/80 dark:bg-zinc-900/80 p-1 rounded-xl shrink-0 mb-3 border border-zinc-200/50 dark:border-zinc-800/50 backdrop-blur-md">
+          <button 
+            type="button"
+            onClick={() => setMobileView('form')}
+            className={`flex-1 py-2 text-xs font-black uppercase tracking-wider rounded-lg transition-all ${mobileView === 'form' ? 'bg-rose-500 text-white shadow-sm font-black' : 'text-zinc-500 hover:text-zinc-700 dark:text-zinc-400'}`}
+          >
+            {activeTab === 'ativas' ? 'Nova Tarefa' : 'Arquivo'}
+          </button>
+          <button 
+            type="button"
+            onClick={() => setMobileView('list')}
+            className={`flex-1 py-2 text-xs font-black uppercase tracking-wider rounded-lg transition-all ${mobileView === 'list' ? 'bg-rose-500 text-white shadow-sm font-black' : 'text-zinc-500 hover:text-zinc-700 dark:text-zinc-400'}`}
+          >
+            Ver Lista
+          </button>
+        </div>
+
+        <div className="flex-1 flex flex-col lg:flex-row gap-4 md:gap-6 h-full overflow-hidden max-w-[1440px] mx-auto w-full">
           
           {/* Caixa de Criação de Tarefas (Só ativa se ativo tab de 'ativas') */}
           {activeTab === 'ativas' ? (
-            <div className="w-[360px] flex-shrink-0 flex flex-col bg-white dark:bg-[#121214] border border-zinc-200 dark:border-zinc-800/50 rounded-2xl p-5 shadow-xl shadow-zinc-200/5 dark:shadow-black/20 justify-between h-[480px]">
+            <div className={`w-full lg:w-[360px] flex-shrink-0 flex flex-col bg-white dark:bg-[#121214] border border-zinc-200 dark:border-zinc-800/50 rounded-2xl p-5 shadow-xl shadow-zinc-200/5 dark:shadow-black/20 justify-between ${mobileView === 'form' ? 'flex' : 'hidden lg:flex'} h-full lg:h-[480px]`}>
               <div className="space-y-4">
                 <div className="flex items-center gap-2 mb-1">
                   <div className="p-2 rounded-lg bg-rose-50 dark:bg-rose-500/10 text-rose-500">
@@ -442,7 +462,7 @@ const TarefasApp: React.FC = () => {
               </div>
             </div>
           ) : (
-            <div className="w-[360px] flex-shrink-0 flex flex-col bg-white dark:bg-[#121214] border border-zinc-200 dark:border-zinc-800/50 rounded-2xl p-5 shadow-xl shadow-zinc-200/5 dark:shadow-black/20 justify-between h-[260px]">
+            <div className={`w-full lg:w-[360px] flex-shrink-0 flex flex-col bg-white dark:bg-[#121214] border border-zinc-200 dark:border-zinc-800/50 rounded-2xl p-5 shadow-xl shadow-zinc-200/5 dark:shadow-black/20 justify-between ${mobileView === 'form' ? 'flex' : 'hidden lg:flex'} h-full lg:h-[260px]`}>
               <div className="space-y-4">
                 <div className="flex items-center gap-2 mb-1">
                   <div className="p-2 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">
@@ -472,7 +492,7 @@ const TarefasApp: React.FC = () => {
           )}
 
           {/* Coluna Direita: Lista Inteligente */}
-          <div className="flex-1 flex flex-col bg-white dark:bg-[#121214] border border-zinc-200 dark:border-zinc-800/50 rounded-2xl shadow-xl shadow-zinc-200/5 dark:shadow-black/20 overflow-hidden h-full">
+          <div className={`flex-1 flex flex-col bg-white dark:bg-[#121214] border border-zinc-200 dark:border-zinc-800/50 rounded-2xl shadow-xl shadow-zinc-200/5 dark:shadow-black/20 overflow-hidden ${mobileView === 'list' ? 'flex' : 'hidden lg:flex'} h-full`}>
             
             {/* Header da Lista */}
             <div className="flex items-center justify-between p-5 border-b border-zinc-100 dark:border-zinc-800/50 shrink-0">

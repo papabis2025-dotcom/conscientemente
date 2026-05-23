@@ -28,10 +28,14 @@ interface HubHomeProps {
   theme: 'light' | 'dark';
   toggleTheme: () => void;
   onLogout: () => void;
-  bgType: 'default' | 'color';
-  setBgType: (type: 'default' | 'color') => void;
+  bgType: 'default' | 'color' | 'image';
+  setBgType: (type: 'default' | 'color' | 'image') => void;
   bgColor: string;
   setBgColor: (color: string) => void;
+  bgImage: string;
+  setBgImage: (url: string) => void;
+  bgImageStyle: string;
+  setBgImageStyle: (style: string) => void;
 }
 
 const colorMap: Record<string, {
@@ -227,7 +231,11 @@ const ModuleCard: React.FC<{ module: Module; index: number }> = ({ module, index
   );
 };
 
-const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogout, bgType, setBgType, bgColor, setBgColor }) => {
+const HubHome: React.FC<HubHomeProps> = ({ 
+  userName, theme, toggleTheme, onLogout, 
+  bgType, setBgType, bgColor, setBgColor, 
+  bgImage, setBgImage, bgImageStyle, setBgImageStyle 
+}) => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [pendingTarefas, setPendingTarefas] = useState(0);
   const [pendingEstudos, setPendingEstudos] = useState(0);
@@ -238,6 +246,49 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [logs, setLogs] = useState<LogEntry[]>([]);
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+
+        const MAX_WIDTH = 1920;
+        const MAX_HEIGHT = 1080;
+
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height;
+            height = MAX_HEIGHT;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.85);
+          localStorage.setItem('cn_custom_bg_image', compressedBase64);
+          setBgImage(compressedBase64);
+          setBgType('image');
+        }
+      };
+      img.src = event.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  };
 
   // Notifications state
   const [notifications, setNotifications] = useState<AppNotification[]>(() => {
@@ -1556,7 +1607,7 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
 
                <div className="space-y-4 pt-6 border-t border-zinc-200 dark:border-zinc-800">
                  <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Personalização de Fundo</p>
-                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                    <button onClick={() => setBgType('default')} className={`p-4 rounded-2xl border transition-all ${bgType === 'default' ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300' : 'border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/50 text-zinc-600 dark:text-zinc-400'}`}>
                      <span className="text-xs font-black uppercase tracking-widest">Padrão</span>
                    </button>
@@ -1569,19 +1620,48 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
                      </div>
                    </div>
 
-                   <div className={`p-4 rounded-2xl border transition-all flex flex-col items-center justify-center gap-3 hidden`}>
-                     <span className={`text-[10px] font-black uppercase tracking-widest flex items-center justify-between w-full text-zinc-600 dark:text-zinc-400`}>
-                       <span>Imagem</span>
-                       {false && (
-                         <button onClick={() => {}} className="text-[9px] bg-white dark:bg-zinc-800 px-2 py-0.5 rounded border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-900 transition-colors">
-                           'Preencher'
-                         </button>
-                       )}
-                     </span>
-                     <button onClick={() => {}} className="w-full text-[10px] font-black uppercase tracking-widest text-zinc-700 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-700 px-3 py-2 rounded-xl hover:bg-zinc-200 dark:hover:bg-zinc-600 transition-colors">Selecionar</button>
-                     <input type="file" onChange={() => {}} accept="image/*" className="hidden" />
+                   <div className={`p-4 rounded-2xl border transition-all flex flex-col items-center justify-center gap-3 ${bgType === 'image' ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-500/10' : 'border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/50'}`}>
+                     <span className={`text-[10px] font-black uppercase tracking-widest ${bgType === 'image' ? 'text-indigo-700 dark:text-indigo-300' : 'text-zinc-600 dark:text-zinc-400'}`}>Imagem</span>
+                     <button 
+                       onClick={() => document.getElementById('custom-bg-input')?.click()} 
+                       className="w-full text-[10px] font-black uppercase tracking-widest text-zinc-700 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-700 px-3 py-2 rounded-xl hover:bg-zinc-200 dark:hover:bg-zinc-600 transition-colors truncate"
+                     >
+                       {bgImage ? 'Alterar Imagem' : 'Selecionar'}
+                     </button>
+                     <input 
+                       id="custom-bg-input" 
+                       type="file" 
+                       onChange={handleImageUpload} 
+                       accept="image/*" 
+                       className="hidden" 
+                     />
                    </div>
                  </div>
+
+                 {bgType === 'image' && (
+                   <div className="space-y-2 mt-4 animate-in slide-in-from-top-2 duration-300">
+                     <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest block">Ajuste da Imagem</label>
+                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                       {[
+                         { val: 'cover', label: 'Preenchida' },
+                         { val: 'contain', label: 'Ajustada' },
+                         { val: 'center', label: 'Centralizada' },
+                         { val: 'repeat', label: 'Lado a lado' }
+                       ].map(opt => (
+                         <button
+                           key={opt.val}
+                           onClick={() => {
+                             localStorage.setItem('cn_custom_bg_style', opt.val);
+                             setBgImageStyle(opt.val);
+                           }}
+                           className={`py-2 px-1 text-[10px] font-bold uppercase tracking-wider rounded-xl border text-center transition-all ${bgImageStyle === opt.val ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 font-black' : 'border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/50 text-zinc-500 hover:text-zinc-700'}`}
+                         >
+                           {opt.label}
+                         </button>
+                       ))}
+                     </div>
+                   </div>
+                 )}
                </div>
              </div>
           </div>

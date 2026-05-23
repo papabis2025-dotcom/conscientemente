@@ -24,7 +24,9 @@ const SYNC_KEYS = [
   'cp_menu_order',
   'cn_theme',
   'cn_notifications',
-  'cn_anotacoes'
+  'cn_anotacoes',
+  'cn_custom_bg_image',
+  'cn_custom_bg_style'
 ];
 
 function mergeLists<T extends { id: string }>(listA: T[], listB: T[]): T[] {
@@ -117,8 +119,10 @@ const App: React.FC = () => {
     return (saved as 'light' | 'dark') || 'dark';
   });
 
-  const [bgType, setBgType] = useState<'default' | 'color'>('default');
+  const [bgType, setBgType] = useState<'default' | 'color' | 'image'>('default');
   const [bgColor, setBgColor] = useState('#ffffff');
+  const [bgImage, setBgImage] = useState<string>(() => localStorage.getItem('cn_custom_bg_image') || '');
+  const [bgImageStyle, setBgImageStyle] = useState<string>(() => localStorage.getItem('cn_custom_bg_style') || 'cover');
   const [isPrefsLoaded, setIsPrefsLoaded] = useState(false);
 
   const [lastSyncTime, setLastSyncTime] = useState<number>(0);
@@ -175,6 +179,9 @@ const App: React.FC = () => {
           if (mergedTheme && (mergedTheme === 'light' || mergedTheme === 'dark')) {
             setTheme(mergedTheme);
           }
+
+          if (merged['cn_custom_bg_image']) setBgImage(merged['cn_custom_bg_image']);
+          if (merged['cn_custom_bg_style']) setBgImageStyle(merged['cn_custom_bg_style']);
 
           const updatedTime = Date.now();
           setLastSyncTime(updatedTime);
@@ -324,6 +331,9 @@ const App: React.FC = () => {
               setTheme(mergedTheme);
             }
 
+            if (merged['cn_custom_bg_image']) setBgImage(merged['cn_custom_bg_image']);
+            if (merged['cn_custom_bg_style']) setBgImageStyle(merged['cn_custom_bg_style']);
+
             const updatedTime = Date.now();
             setLastSyncTime(updatedTime);
             setLastKnownSettings(JSON.stringify(merged));
@@ -408,7 +418,31 @@ const App: React.FC = () => {
     || session.user.email?.split('@')[0]
     || 'você';
 
-  const bgStyle = bgType === 'color' ? { backgroundColor: bgColor } : {};
+  let bgStyle: React.CSSProperties = {};
+  if (bgType === 'color') {
+    bgStyle = { backgroundColor: bgColor };
+  } else if (bgType === 'image' && bgImage) {
+    bgStyle = {
+      backgroundImage: `url(${bgImage})`,
+      backgroundAttachment: 'fixed',
+    };
+    if (bgImageStyle === 'center') {
+      bgStyle.backgroundPosition = 'center';
+      bgStyle.backgroundRepeat = 'no-repeat';
+      bgStyle.backgroundSize = 'auto';
+    } else if (bgImageStyle === 'repeat') {
+      bgStyle.backgroundRepeat = 'repeat';
+      bgStyle.backgroundSize = 'auto';
+    } else if (bgImageStyle === 'contain') {
+      bgStyle.backgroundRepeat = 'no-repeat';
+      bgStyle.backgroundPosition = 'center';
+      bgStyle.backgroundSize = 'contain';
+    } else { // cover
+      bgStyle.backgroundRepeat = 'no-repeat';
+      bgStyle.backgroundPosition = 'center';
+      bgStyle.backgroundSize = 'cover';
+    }
+  }
   const bgClass = bgType === 'default' ? 'bg-zinc-50 dark:bg-zinc-950' : 'bg-transparent';
 
   let pageContent;
@@ -433,6 +467,10 @@ const App: React.FC = () => {
         setBgType={setBgType}
         bgColor={bgColor}
         setBgColor={setBgColor}
+        bgImage={bgImage}
+        setBgImage={setBgImage}
+        bgImageStyle={bgImageStyle}
+        setBgImageStyle={setBgImageStyle}
       />
     );
   }

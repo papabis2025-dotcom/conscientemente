@@ -66,7 +66,7 @@ const DEFAULT_PAYMENT_METHODS: FinCategoria[] = ['Pix / Dinheiro', 'Inter', 'Ban
 const FinancasApp: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'anual' | 'ajustes'>('dashboard');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
-    return localStorage.getItem('isSidebarCollapsed_financas') === 'true';
+    return localStorage.getItem('isSidebarCollapsed_financas') !== 'false';
   });
 
   useEffect(() => {

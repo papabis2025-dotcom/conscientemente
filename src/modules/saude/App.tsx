@@ -30,7 +30,7 @@ const CARDIO_LEVELS: CardioLevel[] = ['Leve', 'Ritmado', 'Arrancada', 'Específi
 const SaudeApp: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'atividades' | 'planner'>('dashboard');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
-    return localStorage.getItem('isSidebarCollapsed_saude') === 'true';
+    return localStorage.getItem('isSidebarCollapsed_saude') !== 'false';
   });
 
   useEffect(() => {

@@ -24,7 +24,13 @@ interface AppProps {
 const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme }) => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isReorderMode, setIsReorderMode] = useState(false);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    return localStorage.getItem('isSidebarCollapsed_estudos') !== 'false';
+  });
+
+  React.useEffect(() => {
+    localStorage.setItem('isSidebarCollapsed_estudos', String(isSidebarCollapsed));
+  }, [isSidebarCollapsed]);
 
   const {
     currentUser, setCurrentUser, users, setUsers,

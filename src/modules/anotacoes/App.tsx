@@ -21,8 +21,9 @@ export interface FolderItem {
 const AnotacoesApp: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'Anotações' | 'Diário de Leitura'>('Anotações');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
-    return localStorage.getItem('isSidebarCollapsed_anotacoes') === 'true';
+    return localStorage.getItem('isSidebarCollapsed_anotacoes') !== 'false';
   });
+  const [mobileView, setMobileView] = useState<'list' | 'editor'>('list');
 
   const [notes, setNotes] = useState<Note[]>([]);
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
@@ -104,6 +105,7 @@ const AnotacoesApp: React.FC = () => {
     setEditorTitle('');
     setEditorContent('');
     setEditorFolderId(selectedFolderId || undefined);
+    setMobileView('editor');
   };
 
   // Save current note in editor
@@ -167,6 +169,7 @@ const AnotacoesApp: React.FC = () => {
     setEditorTitle(note.title);
     setEditorContent(note.content);
     setEditorFolderId(note.folderId);
+    setMobileView('editor');
   };
 
   // Folder CRUD handlers
@@ -434,11 +437,29 @@ const AnotacoesApp: React.FC = () => {
       </aside>
 
       {/* Área Principal */}
-      <main className="flex-1 p-6 overflow-hidden flex flex-col bg-transparent">
-        <div className="flex-1 flex gap-6 h-full overflow-hidden max-w-6xl mx-auto w-full">
+      <main className="flex-1 p-4 md:p-6 overflow-hidden flex flex-col bg-transparent">
+        {/* Selector de visualização no celular */}
+        <div className="lg:hidden flex bg-zinc-100/80 dark:bg-zinc-900/80 p-1 rounded-xl shrink-0 mb-3 border border-zinc-200/50 dark:border-zinc-800/50 backdrop-blur-md">
+          <button 
+            type="button"
+            onClick={() => setMobileView('list')}
+            className={`flex-1 py-2 text-xs font-black uppercase tracking-wider rounded-lg transition-all ${mobileView === 'list' ? 'bg-amber-500 text-white shadow-sm font-black' : 'text-zinc-500 hover:text-zinc-700 dark:text-zinc-400'}`}
+          >
+            {activeTab === 'Anotações' ? 'Ver Notas' : 'Ver Livros'}
+          </button>
+          <button 
+            type="button"
+            onClick={() => setMobileView('editor')}
+            className={`flex-1 py-2 text-xs font-black uppercase tracking-wider rounded-lg transition-all ${mobileView === 'editor' ? 'bg-amber-500 text-white shadow-sm font-black' : 'text-zinc-500 hover:text-zinc-700 dark:text-zinc-400'}`}
+          >
+            Ver Editor
+          </button>
+        </div>
+
+        <div className="flex-1 flex flex-col lg:flex-row gap-4 md:gap-6 h-full overflow-hidden max-w-[1440px] mx-auto w-full">
           
           {/* Coluna Esquerda: Listagem de Notas Minimizadas */}
-          <div className="w-[340px] flex-shrink-0 flex flex-col bg-white dark:bg-[#121214] border border-zinc-200 dark:border-zinc-800/50 rounded-2xl shadow-xl shadow-zinc-200/5 dark:shadow-black/20 overflow-hidden h-full">
+          <div className={`w-full lg:w-[340px] flex-shrink-0 flex flex-col bg-white dark:bg-[#121214] border border-zinc-200 dark:border-zinc-800/50 rounded-2xl shadow-xl shadow-zinc-200/5 dark:shadow-black/20 overflow-hidden ${mobileView === 'list' ? 'flex' : 'hidden lg:flex'} h-full`}>
             
             {/* Header da Lista & Ordenação */}
             <div className="p-4 border-b border-zinc-100 dark:border-zinc-800/50 shrink-0 space-y-3">
@@ -552,7 +573,7 @@ const AnotacoesApp: React.FC = () => {
           </div>
 
           {/* Coluna Direita: Editor Bloco de Notas Windows */}
-          <div className="flex-1 flex flex-col bg-white dark:bg-[#121214] border border-zinc-200 dark:border-zinc-800/50 rounded-2xl shadow-xl shadow-zinc-200/5 dark:shadow-black/20 overflow-hidden h-full">
+          <div className={`flex-1 flex flex-col bg-white dark:bg-[#121214] border border-zinc-200 dark:border-zinc-800/50 rounded-2xl shadow-xl shadow-zinc-200/5 dark:shadow-black/20 overflow-hidden ${mobileView === 'editor' ? 'flex' : 'hidden lg:flex'} h-full`}>
             
             {/* Header do Editor */}
             <div className="flex items-center justify-between px-5 py-3.5 border-b border-zinc-100 dark:border-zinc-800/50 shrink-0">

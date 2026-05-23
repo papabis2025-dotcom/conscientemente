@@ -147,7 +147,7 @@ const ModuleCard: React.FC<{ module: Module; index: number }> = ({ module, index
       {/* Gradient top strip — always visible subtly, bright on hover */}
       <div className={`h-0.5 w-full bg-gradient-to-r ${colors.gradient} opacity-25 group-hover:opacity-100 transition-all duration-300`} />
 
-      {/* Background sophisticated gradient and minimalist symbol */}
+      {/* Background sophisticated gradient */}
       {module.available && (
         <div className="absolute inset-0 overflow-hidden pointer-events-none z-0 select-none">
           {/* Subtle gradient overlay */}
@@ -167,25 +167,6 @@ const ModuleCard: React.FC<{ module: Module; index: number }> = ({ module, index
 
           {/* Radial glow at the bottom-right corner */}
           <div className={`absolute -right-8 -bottom-8 w-40 h-40 rounded-full blur-3xl opacity-15 dark:opacity-25 bg-gradient-to-br ${colors.gradient}`} />
-
-          {/* Minimalist transparent symbol */}
-          <div className="absolute -right-6 -bottom-6 opacity-15 dark:opacity-20 transition-all duration-500 ease-out group-hover:scale-110 group-hover:-translate-x-1 group-hover:-translate-y-1">
-            {module.id === 'financas' && (
-              <DollarSign size={130} strokeWidth={0.75} className="text-emerald-500 dark:text-emerald-400" />
-            )}
-            {module.id === 'estudos' && (
-              <BookOpen size={130} strokeWidth={0.75} className="text-indigo-500 dark:text-indigo-400" />
-            )}
-            {module.id === 'saude' && (
-              <Activity size={130} strokeWidth={0.75} className="text-cyan-500 dark:text-cyan-400" />
-            )}
-            {module.id === 'tarefas' && (
-              <ListTodo size={130} strokeWidth={0.75} className="text-rose-500 dark:text-rose-400" />
-            )}
-            {module.id === 'anotacoes' && (
-              <StickyNote size={130} strokeWidth={0.75} className="text-amber-500 dark:text-amber-400" />
-            )}
-          </div>
         </div>
       )}
 
@@ -883,6 +864,9 @@ const HubHome: React.FC<HubHomeProps> = ({
   const displayedNotifications = notifications.filter(n => n.date === todayStr || !n.read);
   const unreadCount = displayedNotifications.filter(n => !n.read).length;
 
+  const completedToday = habits.filter(h => (habitHistory[todayStr] || []).includes(h.id)).length;
+  const pendingHabits = habits.length - completedToday;
+
   // Habit Report calculations
   const getLast7Days = () => {
     const list = [];
@@ -1270,7 +1254,11 @@ const HubHome: React.FC<HubHomeProps> = ({
                 ? 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-500/20'
                 : 'bg-white/40 dark:bg-zinc-900/40 backdrop-blur-sm text-zinc-500 dark:text-zinc-400 border-zinc-200/50 dark:border-zinc-800/50'
             }`}>
-              {pendingEstudos > 0 && <Clock size={9} className="shrink-0 opacity-80" />}
+              {pendingEstudos > 0 ? (
+                <Clock size={9} className="shrink-0 opacity-80" />
+              ) : (
+                <Check size={9} className="shrink-0 opacity-85 text-emerald-550 dark:text-emerald-400" />
+              )}
               {pendingEstudos > 0 ? `${pendingEstudos} ${pendingEstudos === 1 ? 'Estudo' : 'Estudos'}` : 'Estudos'}
             </span>
 
@@ -1280,7 +1268,11 @@ const HubHome: React.FC<HubHomeProps> = ({
                 ? 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-500/20'
                 : 'bg-white/40 dark:bg-zinc-900/40 backdrop-blur-sm text-zinc-500 dark:text-zinc-400 border-zinc-200/50 dark:border-zinc-800/50'
             }`}>
-              {pendingTarefas > 0 && <Clock size={9} className="shrink-0 opacity-80" />}
+              {pendingTarefas > 0 ? (
+                <Clock size={9} className="shrink-0 opacity-80" />
+              ) : (
+                <Check size={9} className="shrink-0 opacity-85 text-emerald-550 dark:text-emerald-400" />
+              )}
               {pendingTarefas > 0 ? `${pendingTarefas} ${pendingTarefas === 1 ? 'Tarefa' : 'Tarefas'}` : 'Tarefas'}
             </span>
 
@@ -1290,8 +1282,26 @@ const HubHome: React.FC<HubHomeProps> = ({
                 ? 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-500/20'
                 : 'bg-white/40 dark:bg-zinc-900/40 backdrop-blur-sm text-zinc-500 dark:text-zinc-400 border-zinc-200/50 dark:border-zinc-800/50'
             }`}>
-              {pendingSaude > 0 && <Clock size={9} className="shrink-0 opacity-80" />}
+              {pendingSaude > 0 ? (
+                <Clock size={9} className="shrink-0 opacity-80" />
+              ) : (
+                <Check size={9} className="shrink-0 opacity-85 text-emerald-550 dark:text-emerald-400" />
+              )}
               {pendingSaude > 0 ? `${pendingSaude} ${pendingSaude === 1 ? 'Treino' : 'Treinos'}` : 'Treinos'}
+            </span>
+
+            {/* Hábitos */}
+            <span className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider border whitespace-nowrap shrink-0 ${
+              pendingHabits > 0
+                ? 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-500/20'
+                : 'bg-white/40 dark:bg-zinc-900/40 backdrop-blur-sm text-zinc-500 dark:text-zinc-400 border-zinc-200/50 dark:border-zinc-800/50'
+            }`}>
+              {pendingHabits > 0 ? (
+                <Clock size={9} className="shrink-0 opacity-80" />
+              ) : (
+                <Check size={9} className="shrink-0 opacity-85 text-emerald-550 dark:text-emerald-400" />
+              )}
+              {pendingHabits > 0 ? `${pendingHabits} ${pendingHabits === 1 ? 'Hábito' : 'Hábitos'}` : 'Hábitos'}
             </span>
 
             {/* Saldo */}
@@ -1308,22 +1318,18 @@ const HubHome: React.FC<HubHomeProps> = ({
             )}
 
             {/* Pendências financeiras */}
-            <button
-              onClick={() => window.location.hash = 'financas'}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider border whitespace-nowrap shrink-0 transition-all hover:scale-105 active:scale-95 cursor-pointer ${
-                pendingFinanceCount > 0
-                  ? 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-500/20'
-                  : 'bg-white/40 dark:bg-zinc-900/40 backdrop-blur-sm text-zinc-500 dark:text-zinc-400 border-zinc-200/50 dark:border-zinc-800/50'
-              }`}
-              title={`${pendingFinanceCount} ${pendingFinanceCount === 1 ? 'despesa pendente' : 'despesas pendentes'} (Clique para ver)`}
-            >
-              {pendingFinanceCount > 0 && <Clock size={9} className="shrink-0 opacity-80" />}
-              <span>
-                {pendingFinanceCount > 0
-                  ? `${pendingFinanceCount} Despesa${pendingFinanceCount > 1 ? 's' : ''} Pendente${pendingFinanceCount > 1 ? 's' : ''}`
-                  : 'Despesa Pendente'}
-              </span>
-            </button>
+            {pendingFinanceCount > 0 && (
+              <button
+                onClick={() => window.location.hash = 'financas'}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider border whitespace-nowrap shrink-0 transition-all hover:scale-105 active:scale-95 cursor-pointer bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-500/20"
+                title={`${pendingFinanceCount} ${pendingFinanceCount === 1 ? 'despesa pendente' : 'despesas pendentes'} (Clique para ver)`}
+              >
+                <Clock size={9} className="shrink-0 opacity-80" />
+                <span>
+                  {pendingFinanceCount} Despesa{pendingFinanceCount > 1 ? 's' : ''} Pendente{pendingFinanceCount > 1 ? 's' : ''}
+                </span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -1352,7 +1358,6 @@ const HubHome: React.FC<HubHomeProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-start">
           {/* Habit Tracker Section */}
           <div className="bg-white/70 dark:bg-zinc-900/70 backdrop-blur-md rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-lg shadow-zinc-200/40 dark:shadow-black/30 flex flex-col justify-between gap-4 p-5 overflow-hidden relative">
-            <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-indigo-400/40 via-violet-400/30 to-transparent" />
             <div>
               <div className="flex items-center justify-between mb-4">
                 <div>
@@ -1488,7 +1493,6 @@ const HubHome: React.FC<HubHomeProps> = ({
 
           {/* Quick Notes Section */}
           <div className="bg-white/70 dark:bg-zinc-900/70 backdrop-blur-md rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-lg shadow-zinc-200/40 dark:shadow-black/30 flex flex-col justify-between gap-4 p-5 overflow-hidden relative">
-            <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-amber-400/40 via-orange-400/30 to-transparent" />
             <div>
               <div className="flex items-center justify-between mb-3 shrink-0">
                 <div>

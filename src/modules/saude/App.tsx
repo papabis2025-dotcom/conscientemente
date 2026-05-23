@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Activity, Dumbbell, Footprints, HeartPulse, LayoutTemplate, Plus, Trash2, TrendingUp, CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend, AreaChart, Area } from 'recharts';
 import SaudePlannerView from './pages/SaudePlannerView';
-import { SaudeIdadeFisicaView } from './pages/SaudeIdadeFisicaView';
 import { saudeApi } from './api';
 
 export type ActivityType = 'Corrida' | 'Ciclismo' | 'Natação' | 'Musculação';
@@ -29,7 +28,7 @@ const MUSCLE_GROUPS: MuscleGroup[] = ['Peito', 'Costa', 'Ombro', 'Bíceps', 'Tr�
 const CARDIO_LEVELS: CardioLevel[] = ['Leve', 'Ritmado', 'Arrancada', 'Específico', 'Moderado', 'Longo'];
 
 const SaudeApp: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'atividades' | 'planner' | 'idade-fisica'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'atividades' | 'planner'>('dashboard');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
     return localStorage.getItem('isSidebarCollapsed_saude') === 'true';
   });
@@ -41,13 +40,7 @@ const SaudeApp: React.FC = () => {
   const [activities, setActivities] = useState<HealthActivity[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const targetTab = sessionStorage.getItem('saudeActiveTab');
-    if (targetTab === 'idade-fisica') {
-      sessionStorage.removeItem('saudeActiveTab');
-      setActiveTab('idade-fisica');
-    }
-  }, []);
+
 
   useEffect(() => {
     const loadActivities = async () => {
@@ -287,16 +280,6 @@ const SaudeApp: React.FC = () => {
                 {!isSidebarCollapsed && <span>Planner</span>}
               </div>
             </button>
-            <button 
-              onClick={() => setActiveTab('idade-fisica')} 
-              className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center p-3' : 'justify-between px-4 py-3'} rounded-xl transition-all font-semibold ${activeTab === 'idade-fisica' ? 'bg-cyan-500 text-white shadow-md shadow-cyan-500/20' : 'text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800/50'}`}
-              title={isSidebarCollapsed ? 'Idade Física' : ''}
-            >
-              <div className="flex items-center gap-3">
-                <HeartPulse size={20} className="shrink-0" />
-                {!isSidebarCollapsed && <span>Idade Física</span>}
-              </div>
-            </button>
           </nav>
         </div>
 
@@ -319,11 +302,11 @@ const SaudeApp: React.FC = () => {
           <header className="flex justify-between items-center bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 shrink-0">
             <div>
               <h1 className="text-2xl font-black text-zinc-900 dark:text-white uppercase tracking-tight">
-                {activeTab === 'dashboard' ? 'Estatísticas de Saúde' : activeTab === 'planner' ? 'Planner de Treinos' : activeTab === 'idade-fisica' ? 'Idade Física' : 'Histórico de Atividades'}
+                {activeTab === 'dashboard' ? 'Estatísticas de Saúde' : activeTab === 'planner' ? 'Planner de Treinos' : 'Histórico de Atividades'}
               </h1>
               <p className="text-zinc-500 font-medium mt-1 text-sm">Monitore seu progresso físico e bem-estar geral.</p>
             </div>
-            {activeTab !== 'planner' && activeTab !== 'idade-fisica' && (
+            {activeTab !== 'planner' && (
               <button 
                 onClick={() => setShowAddForm(!showAddForm)}
                 className="bg-cyan-500 hover:bg-cyan-600 text-white px-5 py-3 rounded-xl font-bold uppercase tracking-wider text-xs transition-transform active:scale-95 shadow-lg shadow-cyan-500/20 flex items-center gap-2"
@@ -598,11 +581,7 @@ const SaudeApp: React.FC = () => {
             </div>
           )}
 
-          {activeTab === 'idade-fisica' && (
-            <div className="flex-1 min-h-[500px]">
-              <SaudeIdadeFisicaView />
-            </div>
-          )}
+
 
         </div>
       </main>

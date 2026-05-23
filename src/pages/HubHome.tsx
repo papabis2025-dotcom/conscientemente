@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { MODULES } from '../constants';
 import { Module } from '../types';
 import { LogEntry } from '../modules/estudos/types';
-import { LogOut, Sun, Moon, ArrowUpRight, Lock, BookOpen, Wallet, ListTodo, Brain, ChevronRight, Activity, TrendingUp, Settings, User, X, HeartPulse, Bell, Plus, Trash2, Check, ClipboardList, BarChart3, ChevronLeft, Calendar, Award, CheckCircle2 } from 'lucide-react';
+import { LogOut, Sun, Moon, ArrowUpRight, Lock, BookOpen, Wallet, ListTodo, Brain, ChevronRight, Activity, TrendingUp, Settings, User, X, HeartPulse, Bell, Plus, Trash2, Check, ClipboardList, BarChart3, ChevronLeft, Calendar, Award, CheckCircle2, StickyNote } from 'lucide-react';
 import LogView from '../modules/estudos/pages/LogView';
 import { api } from '../modules/estudos/services/api';
 import { supabase } from '../modules/estudos/services/supabase';
@@ -90,6 +90,7 @@ const iconMap: Record<string, React.ReactNode> = {
   financas: <Wallet size={20} strokeWidth={2} />,
   saude: <Activity size={20} strokeWidth={2} />,
   tarefas: <ListTodo size={20} strokeWidth={2} />,
+  anotacoes: <StickyNote size={20} strokeWidth={2} />,
 };
 
 const ModuleCard: React.FC<{ module: Module; index: number }> = ({ module, index }) => {
@@ -250,7 +251,21 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
       return [];
     }
   });
+  const [clearedNotifications, setClearedNotifications] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('cn_cleared_notifications');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
   const [showNotificationsPopover, setShowNotificationsPopover] = useState(false);
+
+  // Quick Notes state
+  const [quickNoteTab, setQuickNoteTab] = useState<'Anotações' | 'Diário de Leitura'>('Anotações');
+  const [quickNoteTitle, setQuickNoteTitle] = useState('');
+  const [quickNoteContent, setQuickNoteContent] = useState('');
+  const [noteSavedFeedback, setNoteSavedFeedback] = useState(false);
   const popoverRef = useRef<HTMLDivElement>(null);
 
   // Habits state
@@ -322,6 +337,15 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
 
       const addNotify = (id: string, title: string, description: string, type: AppNotification['type']) => {
         if (updated.some(n => n.id === id)) return;
+        
+        let clearedList: string[] = [];
+        try {
+          const savedCleared = localStorage.getItem('cn_cleared_notifications');
+          if (savedCleared) clearedList = JSON.parse(savedCleared);
+        } catch (e) {}
+        
+        if (clearedList.includes(id)) return;
+
         const newNotif: AppNotification = {
           id,
           title,
@@ -415,8 +439,56 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
   };
 
   const handleClearAllNotifications = () => {
+    const idsToClear = notifications.map(n => n.id);
+    try {
+      const savedCleared = localStorage.getItem('cn_cleared_notifications');
+      const clearedList: string[] = savedCleared ? JSON.parse(savedCleared) : [];
+      const updatedCleared = Array.from(new Set([...clearedList, ...idsToClear]));
+      localStorage.setItem('cn_cleared_notifications', JSON.stringify(updatedCleared));
+      setClearedNotifications(updatedCleared);
+    } catch (e) {
+      console.error(e);
+    }
     setNotifications([]);
     localStorage.removeItem('cn_notifications');
+  };
+
+  const handleSaveQuickNote = () => {
+    if (!quickNoteContent.trim()) return;
+    
+    try {
+      const saved = localStorage.getItem('cn_anotacoes');
+      const notesList = saved ? JSON.parse(saved) : [];
+      
+      const today = new Date();
+      const dateStr = new Date(today.getTime() - today.getTimezoneOffset() * 60000).toISOString().split('T')[0];
+      
+      const newNote = {
+        id: `note_${Date.now()}`,
+        title: quickNoteTitle.trim() || 'Nota Rápida',
+        content: quickNoteContent.trim(),
+        date: dateStr,
+        category: quickNoteTab,
+        timestamp: Date.now()
+      };
+      
+      const updatedNotes = [newNote, ...notesList];
+      localStorage.setItem('cn_anotacoes', JSON.stringify(updatedNotes));
+      
+      window.dispatchEvent(new Event('storage'));
+      
+      setQuickNoteTitle('');
+      setQuickNoteContent('');
+      setNoteSavedFeedback(true);
+      setTimeout(() => setNoteSavedFeedback(false), 3000);
+    } catch (e) {
+      console.error('Failed to save quick note:', e);
+    }
+  };
+
+  const handleGoToAnotacoes = () => {
+    sessionStorage.setItem('anotacoesActiveTab', quickNoteTab);
+    window.location.hash = 'anotacoes';
   };
 
   const toggleHabit = (habitId: string) => {
@@ -952,7 +1024,7 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
       </header>
 
       {/* Main content */}
-      <main className={`relative z-10 flex-1 ${showHabitsReport ? 'max-w-4xl' : 'max-w-2xl'} mx-auto w-full px-6 py-10 flex flex-col transition-all duration-300`}>
+      <main className={`relative z-10 flex-1 ${showHabitsReport ? 'max-w-4xl' : 'max-w-5xl'} mx-auto w-full px-6 py-10 flex flex-col transition-all duration-300`}>
 
         {showHabitsReport ? (
           /* ── Habits Report ─────────────────────────────────────── */
@@ -975,14 +1047,14 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
             {/* Stats – 4 cards */}
             <div className="grid grid-cols-4 gap-3">
               {[
-                { label: 'Consistência', value: `${last7DaysRate}%`, sub: 'últimos 7 dias', color: 'text-indigo-500', bg: 'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-200 dark:border-indigo-900/50', icon: '📊' },
-                { label: 'Streak atual', value: `${currentStreak}d`, sub: 'dias seguidos', color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-900/50', icon: '🔥' },
-                { label: 'Hábitos ativos', value: habits.length, sub: 'monitorados', color: 'text-cyan-500', bg: 'bg-cyan-50 dark:bg-cyan-950/40 border-cyan-200 dark:border-cyan-900/50', icon: '✅' },
-                { label: 'Conclusões', value: totalCompletions, sub: 'no histórico', color: 'text-violet-500', bg: 'bg-violet-50 dark:bg-violet-950/40 border-violet-200 dark:border-violet-900/50', icon: '🏆' },
+                { label: 'Consistência', value: `${last7DaysRate}%`, sub: 'últimos 7 dias', color: 'text-zinc-900 dark:text-white', bg: 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 shadow-sm', icon: '📊' },
+                { label: 'Streak atual', value: `${currentStreak}d`, sub: 'dias seguidos', color: 'text-zinc-900 dark:text-white', bg: 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 shadow-sm', icon: '🔥' },
+                { label: 'Hábitos ativos', value: habits.length, sub: 'monitorados', color: 'text-zinc-900 dark:text-white', bg: 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 shadow-sm', icon: '✅' },
+                { label: 'Conclusões', value: totalCompletions, sub: 'no histórico', color: 'text-zinc-900 dark:text-white', bg: 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 shadow-sm', icon: '🏆' },
               ].map(stat => (
                 <div key={stat.label} className={`p-4 rounded-2xl border ${stat.bg} flex flex-col gap-1`}>
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">{stat.label}</span>
+                    <span className="text-[10px] font-black text-zinc-555 dark:text-zinc-400 uppercase tracking-wider">{stat.label}</span>
                     <span className="text-base leading-none">{stat.icon}</span>
                   </div>
                   <span className={`text-2xl font-black ${stat.color} leading-none`}>{stat.value}</span>
@@ -995,30 +1067,30 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
             <div className="bg-white/70 dark:bg-zinc-900/70 backdrop-blur-sm rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-5">
               <div className="flex items-center justify-between mb-4">
                 <h4 className="text-xs font-black text-zinc-700 dark:text-zinc-300 uppercase tracking-widest flex items-center gap-2">
-                  <Calendar size={13} className="text-indigo-500" /> Mapa de Consistência — Últimos 30 Dias
+                  <Calendar size={13} className="text-zinc-900 dark:text-zinc-100" /> Mapa de Consistência — Últimos 30 Dias
                 </h4>
-                <div className="flex items-center gap-1.5 text-[9px] font-bold text-zinc-400 dark:text-zinc-500">
+                <div className="flex items-center gap-1.5 text-[9px] font-bold text-zinc-400 dark:text-zinc-550">
                   <span>Menos</span>
                   <div className="w-3 h-3 rounded bg-zinc-200 dark:bg-zinc-800" />
-                  <div className="w-3 h-3 rounded bg-indigo-200 dark:bg-indigo-900/60" />
-                  <div className="w-3 h-3 rounded bg-indigo-400 dark:bg-indigo-600/80" />
-                  <div className="w-3 h-3 rounded bg-gradient-to-br from-indigo-500 to-violet-600" />
+                  <div className="w-3 h-3 rounded bg-zinc-300 dark:bg-zinc-750" />
+                  <div className="w-3 h-3 rounded bg-zinc-500 dark:bg-zinc-500" />
+                  <div className="w-3 h-3 rounded bg-zinc-900 dark:bg-white" />
                   <span>Mais</span>
                 </div>
               </div>
               <div className="grid gap-2 grid-cols-15" style={{ gridTemplateColumns: 'repeat(15, minmax(0, 1fr))' }}>
                 {last30DaysList.map(day => {
-                  let cell = 'bg-zinc-100 dark:bg-zinc-800/60 text-zinc-500 dark:text-zinc-400';
-                  if (day.rate > 0 && day.rate <= 0.33) cell = 'bg-indigo-100 dark:bg-indigo-950/60 text-indigo-500';
-                  else if (day.rate > 0.33 && day.rate <= 0.66) cell = 'bg-indigo-300 dark:bg-indigo-700/70 text-white';
-                  else if (day.rate > 0.66 && day.rate < 1) cell = 'bg-indigo-500 dark:bg-indigo-500/90 text-white';
-                  else if (day.rate === 1) cell = 'bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-md shadow-indigo-500/20';
+                  let cell = 'bg-zinc-100 dark:bg-zinc-800/60 text-zinc-500 dark:text-zinc-405';
+                  if (day.rate > 0 && day.rate <= 0.33) cell = 'bg-zinc-200 dark:bg-zinc-800 text-zinc-850 dark:text-zinc-200';
+                  else if (day.rate > 0.33 && day.rate <= 0.66) cell = 'bg-zinc-400 dark:bg-zinc-650 text-white';
+                  else if (day.rate > 0.66 && day.rate < 1) cell = 'bg-zinc-600 dark:bg-zinc-500 text-white';
+                  else if (day.rate === 1) cell = 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-950 font-black shadow-sm';
                   const isToday = day.dateStr === todayStr;
                   return (
                     <div
                       key={day.dateStr}
                       title={`${day.dateStr}: ${day.completed}/${day.total} hábitos concluídos`}
-                      className={`aspect-square rounded-xl flex flex-col items-center justify-center gap-0.5 transition-transform hover:scale-105 cursor-default ${cell} ${isToday ? 'ring-2 ring-indigo-400 ring-offset-2 dark:ring-offset-zinc-900' : ''}`}
+                      className={`aspect-square rounded-xl flex flex-col items-center justify-center gap-0.5 transition-transform hover:scale-105 cursor-default ${cell} ${isToday ? 'ring-2 ring-zinc-500 dark:ring-zinc-450 ring-offset-2 dark:ring-offset-zinc-900' : ''}`}
                     >
                       <span className="text-[11px] font-black leading-none">{day.dayNum}</span>
                       {day.total > 0 && (
@@ -1033,8 +1105,8 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
             {/* Per-habit section — full width rows with larger interactive cells */}
             <div className="bg-white/70 dark:bg-zinc-900/70 backdrop-blur-sm rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 flex flex-col gap-4">
               <h4 className="text-xs font-black text-zinc-650 dark:text-zinc-300 uppercase tracking-widest flex items-center gap-2">
-                <Award size={13} className="text-indigo-500" /> Desempenho por Hábito — Últimos 7 dias
-                <span className="ml-auto text-[10px] text-indigo-500 dark:text-indigo-400 font-bold normal-case tracking-normal">Dica: clique nos botões abaixo para marcar/desmarcar o hábito no dia</span>
+                <Award size={13} className="text-zinc-900 dark:text-zinc-100" /> Desempenho por Hábito — Últimos 7 dias
+                <span className="ml-auto text-[10px] text-zinc-500 dark:text-zinc-400 font-bold normal-case tracking-normal">Dica: clique nos botões abaixo para marcar/desmarcar o hábito no dia</span>
               </h4>
 
               <div className="flex flex-col gap-3">
@@ -1042,15 +1114,15 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
                   const habitTotal = Object.values(habitHistory).filter(list => list.includes(h.id)).length;
                   const habit7DayCount = last7Days.filter(day => (habitHistory[day.dateStr] || []).includes(h.id)).length;
                   const habit7DayRate = Math.round((habit7DayCount / 7) * 100);
-                  const rateColor = habit7DayRate >= 70 ? 'bg-emerald-500' : habit7DayRate >= 40 ? 'bg-indigo-500' : 'bg-rose-400';
-                  const textColor = habit7DayRate >= 70 ? 'text-emerald-600 dark:text-emerald-400' : habit7DayRate >= 40 ? 'text-indigo-500 dark:text-indigo-400' : 'text-rose-500';
+                  const rateColor = 'bg-zinc-900 dark:bg-white';
+                  const textColor = 'text-zinc-900 dark:text-white font-extrabold';
                   return (
                     <div key={h.id} className="flex flex-col gap-3 p-4 rounded-2xl bg-zinc-50/80 dark:bg-zinc-800/40 border border-zinc-150 dark:border-zinc-700/60 shadow-sm">
                       {/* Name row */}
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-black text-zinc-800 dark:text-white uppercase tracking-wider">{h.name}</span>
                         <div className="flex items-center gap-3">
-                          <span className="text-[10px] text-zinc-400 dark:text-zinc-550 font-medium">{habitTotal} conclusões totais</span>
+                          <span className="text-[10px] text-zinc-400 dark:text-zinc-555 font-medium">{habitTotal} conclusões totais</span>
                           <span className={`text-sm font-black ${textColor}`}>{habit7DayRate}%</span>
                         </div>
                       </div>
@@ -1073,19 +1145,19 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
                               type="button"
                               className={`flex flex-col items-center gap-1.5 py-3 rounded-2xl border-2 transition-all duration-200 hover:scale-105 active:scale-95 ${
                                 done
-                                  ? 'bg-gradient-to-b from-indigo-500 to-violet-600 border-indigo-400 shadow-md shadow-indigo-500/20 text-white'
+                                  ? 'bg-zinc-900 dark:bg-white border-zinc-900 dark:border-white shadow-sm text-white dark:text-zinc-950 font-black'
                                   : isToday
-                                    ? 'bg-white dark:bg-zinc-800 border-indigo-300 dark:border-indigo-750 hover:border-indigo-400'
-                                    : 'bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 hover:border-indigo-300 dark:hover:border-indigo-700'
+                                    ? 'bg-white dark:bg-zinc-800 border-zinc-905 dark:border-zinc-100 hover:border-zinc-950 dark:hover:border-white'
+                                    : 'bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-500'
                               }`}
                             >
-                              <span className={`text-[10px] font-black uppercase tracking-wider ${done ? 'text-indigo-100' : isToday ? 'text-indigo-500' : 'text-zinc-400 dark:text-zinc-500'}`}>
+                              <span className={`text-[10px] font-black uppercase tracking-wider ${done ? 'text-zinc-200 dark:text-zinc-700' : isToday ? 'text-zinc-900 dark:text-white font-black' : 'text-zinc-400 dark:text-zinc-500'}`}>
                                 {day.label}
                               </span>
-                              <div className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${done ? 'bg-white/20' : 'bg-zinc-100 dark:bg-zinc-700/80'}`}>
+                              <div className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${done ? 'bg-white/20 dark:bg-black/20' : 'bg-zinc-100 dark:bg-zinc-750/80'}`}>
                                 {done
-                                  ? <Check size={16} strokeWidth={3} className="text-white animate-in zoom-in-50 duration-200" />
-                                  : <span className={`text-xs font-black ${isToday ? 'text-indigo-500' : 'text-zinc-550 dark:text-zinc-400'}`}>{day.dayNum}</span>
+                                  ? <Check size={16} strokeWidth={3} className="text-white dark:text-zinc-950 animate-in zoom-in-50 duration-200" />
+                                  : <span className={`text-xs font-black ${isToday ? 'text-zinc-900 dark:text-white' : 'text-zinc-500 dark:text-zinc-400'}`}>{day.dayNum}</span>
                                 }
                               </div>
                             </button>
@@ -1165,140 +1237,229 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
         </div>
 
         {/* Module grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 w-full">
           {MODULES.map((mod, i) => (
             <ModuleCard key={mod.id} module={mod} index={i} />
           ))}
         </div>
 
-        {/* Habit Tracker Section */}
-        <div className="mt-8 p-5 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm rounded-[2rem] border border-zinc-200/80 dark:border-zinc-800/80 shadow-md">
-          <div className="flex items-center justify-between mb-4">
+        {/* Habit Tracker & Quick Notes Container */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+          {/* Habit Tracker Section */}
+          <div className="p-5 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm rounded-[2rem] border border-zinc-200/80 dark:border-zinc-800/80 shadow-md flex flex-col h-[400px] justify-between">
             <div>
-              <h3 className="text-xs font-black text-zinc-700 dark:text-zinc-300 uppercase tracking-widest flex items-center gap-1.5">
-                <ClipboardList size={13} className="text-indigo-500" />
-                Hábitos de Hoje
-              </h3>
-              <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5">Mantenha sua rotina consistente</p>
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-xs font-black text-zinc-700 dark:text-zinc-300 uppercase tracking-widest flex items-center gap-1.5">
+                    <ClipboardList size={13} className="text-zinc-900 dark:text-zinc-100" />
+                    Hábitos de Hoje
+                  </h3>
+                  <p className="text-[10px] text-zinc-405 dark:text-zinc-550 mt-0.5">Mantenha sua rotina consistente</p>
+                </div>
+                
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={() => setShowHabitsReport(true)}
+                    className="flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-zinc-800 hover:text-zinc-950 dark:text-zinc-200 dark:hover:text-white bg-zinc-100 dark:bg-zinc-800 px-2.5 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-705 transition-colors"
+                    title="Ver Relatório Completo"
+                  >
+                    <BarChart3 size={11} /> Relatório
+                  </button>
+                  <button
+                    onClick={() => setShowManageHabits(!showManageHabits)}
+                    className="text-[9px] font-black uppercase tracking-wider text-zinc-800 hover:text-zinc-950 dark:text-zinc-200 dark:hover:text-white bg-zinc-100 dark:bg-zinc-800 px-2.5 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-705 transition-colors"
+                  >
+                    {showManageHabits ? 'Fechar' : 'Gerenciar'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Manage Habits view */}
+              {showManageHabits && (
+                <div className="mb-4 p-3 bg-zinc-50 dark:bg-zinc-950 rounded-2xl border border-zinc-200/50 dark:border-zinc-800/80 space-y-3 animate-in fade-in slide-in-from-top-1 duration-200">
+                  <p className="text-[9px] font-black text-zinc-400 dark:text-zinc-550 uppercase tracking-widest">Meus Hábitos</p>
+                  
+                  <div className="space-y-1.5 max-h-24 overflow-y-auto pr-1 custom-scrollbar">
+                    {habits.length === 0 ? (
+                      <p className="text-[10px] text-zinc-400 text-center py-2">Nenhum hábito cadastrado.</p>
+                    ) : (
+                      habits.map(h => (
+                        <div key={h.id} className="flex items-center justify-between bg-white dark:bg-zinc-900 px-3 py-1.5 rounded-xl border border-zinc-150 dark:border-zinc-800/80 animate-in fade-in duration-200">
+                          <span className="text-[11px] font-medium text-zinc-750 dark:text-zinc-300">{h.name}</span>
+                          <button
+                            onClick={() => deleteHabit(h.id)}
+                            className="text-zinc-400 hover:text-rose-500 transition-colors p-1"
+                            title="Excluir hábito"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  <div className="flex gap-1.5 pt-1.5 border-t border-zinc-200 dark:border-zinc-800">
+                    <input
+                      type="text"
+                      placeholder="Novo hábito (ex: Meditar)"
+                      value={newHabitName}
+                      onChange={e => setNewHabitName(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') { addHabit(newHabitName); setNewHabitName(''); } }}
+                      className="flex-1 px-3 py-1.5 text-xs bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl outline-none focus:ring-1 focus:ring-zinc-500 text-zinc-800 dark:text-white"
+                    />
+                    <button
+                      onClick={() => { addHabit(newHabitName); setNewHabitName(''); }}
+                      className="bg-zinc-900 hover:bg-zinc-850 dark:bg-white dark:hover:bg-zinc-100 text-white dark:text-zinc-900 px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1 transition-all"
+                    >
+                      <Plus size={12} /> Add
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* List of habits checkboxes */}
+              {!showManageHabits && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2 max-h-[220px] overflow-y-auto pr-1 custom-scrollbar">
+                  {habits.length === 0 ? (
+                    <div className="col-span-2 py-4 text-center text-xs text-zinc-400 dark:text-zinc-500">
+                      Você não possui hábitos definidos. Clique em "Gerenciar" para criar.
+                    </div>
+                  ) : (
+                    habits.map(h => {
+                      const isCompleted = (habitHistory[todayStr] || []).includes(h.id);
+                      return (
+                        <div
+                          key={h.id}
+                          onClick={() => toggleHabit(h.id)}
+                          className={`flex items-center gap-3 p-3 rounded-2xl border transition-all duration-200 cursor-pointer ${
+                            isCompleted
+                              ? 'bg-zinc-50/50 dark:bg-zinc-950/20 border-zinc-150 dark:border-zinc-900/50 opacity-60'
+                              : 'bg-white dark:bg-zinc-900 border-zinc-200/80 dark:border-zinc-800/80 shadow-sm hover:border-zinc-400 dark:hover:border-zinc-650 hover:shadow-md'
+                          }`}
+                        >
+                          <div className="relative flex items-center justify-center shrink-0">
+                            <div className={`w-5 h-5 rounded-lg border flex items-center justify-center transition-all ${
+                              isCompleted
+                                ? 'bg-zinc-900 dark:bg-white border-zinc-900 dark:border-white text-white dark:text-zinc-955'
+                                : 'border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800'
+                            }`}>
+                              {isCompleted && <Check size={11} strokeWidth={3} />}
+                            </div>
+                          </div>
+                          <span className={`text-[11px] font-bold transition-all truncate leading-none ${
+                            isCompleted
+                              ? 'line-through text-zinc-405 dark:text-zinc-550'
+                              : 'text-zinc-700 dark:text-zinc-300'
+                          }`}>
+                            {h.name}
+                          </span>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              )}
             </div>
-            
-            <div className="flex items-center gap-1.5">
-              <button
-                onClick={() => setShowHabitsReport(true)}
-                className="flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-indigo-500 hover:text-indigo-650 dark:hover:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-2.5 py-1.5 rounded-lg border border-indigo-155 dark:border-indigo-900/40 transition-colors"
-                title="Ver Relatório Completo"
-              >
-                <BarChart3 size={11} /> Relatório
-              </button>
-              <button
-                onClick={() => setShowManageHabits(!showManageHabits)}
-                className="text-[9px] font-black uppercase tracking-wider text-indigo-500 hover:text-indigo-650 dark:hover:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-2.5 py-1.5 rounded-lg border border-indigo-155 dark:border-indigo-900/40 transition-colors"
-              >
-                {showManageHabits ? 'Fechar' : 'Gerenciar'}
-              </button>
-            </div>
+
+            {/* Progress Indicator */}
+            {habits.length > 0 && !showManageHabits && (
+              <div className="mt-4 pt-3 border-t border-zinc-100 dark:border-zinc-800/60 animate-in fade-in duration-300 shrink-0">
+                <div className="flex justify-between items-center text-[10px] font-bold text-zinc-555 dark:text-zinc-450 mb-1.5">
+                  <span>Progresso</span>
+                  <span>
+                    {habits.filter(h => (habitHistory[todayStr] || []).includes(h.id)).length} de {habits.length} ({Math.round((habits.filter(h => (habitHistory[todayStr] || []).includes(h.id)).length / habits.length) * 100)}%)
+                  </span>
+                </div>
+                <div className="w-full h-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-zinc-900 dark:bg-white transition-all duration-500"
+                    style={{ width: `${(habits.filter(h => (habitHistory[todayStr] || []).includes(h.id)).length / habits.length) * 100}%` }}
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* Progress Indicator */}
-          {habits.length > 0 && (
-            <div className="mb-4 animate-in fade-in duration-300">
-              <div className="flex justify-between items-center text-[10px] font-bold text-zinc-500 dark:text-zinc-400 mb-1.5">
-                <span>Progresso</span>
-                <span>
-                  {habits.filter(h => (habitHistory[todayStr] || []).includes(h.id)).length} de {habits.length} ({Math.round((habits.filter(h => (habitHistory[todayStr] || []).includes(h.id)).length / habits.length) * 100)}%)
-                </span>
+          {/* Quick Notes Section */}
+          <div className="p-5 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm rounded-[2rem] border border-zinc-200/80 dark:border-zinc-800/80 shadow-md flex flex-col h-[400px] justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-3 shrink-0">
+                <div>
+                  <h3 className="text-xs font-black text-zinc-700 dark:text-zinc-300 uppercase tracking-widest flex items-center gap-1.5">
+                    <StickyNote size={13} className="text-zinc-900 dark:text-zinc-100" />
+                    Nota Rápida
+                  </h3>
+                  <p className="text-[10px] text-zinc-450 dark:text-zinc-550 mt-0.5">Salve anotações direto no Hub</p>
+                </div>
+                
+                {/* Category tabs */}
+                <div className="flex bg-zinc-100 dark:bg-zinc-800 rounded-lg p-0.5">
+                  <button
+                    type="button"
+                    onClick={() => setQuickNoteTab('Anotações')}
+                    className={`px-2 py-1 text-[9px] uppercase tracking-wider font-bold rounded-md transition-all ${quickNoteTab === 'Anotações' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}
+                  >
+                    Notas
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setQuickNoteTab('Diário de Leitura')}
+                    className={`px-2 py-1 text-[9px] uppercase tracking-wider font-bold rounded-md transition-all ${quickNoteTab === 'Diário de Leitura' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}
+                  >
+                    Leitura
+                  </button>
+                </div>
               </div>
-              <div className="w-full h-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-indigo-500 to-violet-600 transition-all duration-500"
-                  style={{ width: `${(habits.filter(h => (habitHistory[todayStr] || []).includes(h.id)).length / habits.length) * 100}%` }}
+
+              {/* Inputs */}
+              <div className="space-y-2 flex-1">
+                <input
+                  type="text"
+                  placeholder="Título (opcional)..."
+                  value={quickNoteTitle}
+                  onChange={e => setQuickNoteTitle(e.target.value)}
+                  className="w-full px-3 py-1.5 text-xs bg-zinc-50/50 dark:bg-zinc-950/30 border border-zinc-200/60 dark:border-zinc-800/80 rounded-xl outline-none focus:ring-1 focus:ring-zinc-400 text-zinc-800 dark:text-white uppercase tracking-wider font-semibold"
+                />
+                <textarea
+                  placeholder="Escreva algo rápido..."
+                  value={quickNoteContent}
+                  onChange={e => setQuickNoteContent(e.target.value)}
+                  className="w-full h-[180px] px-3 py-2 text-xs bg-[#fcfaf2] dark:bg-[#16161a] border border-zinc-200/80 dark:border-zinc-850 rounded-xl outline-none resize-none font-mono text-zinc-800 dark:text-zinc-200 custom-scrollbar focus:ring-1 focus:ring-zinc-400"
+                  style={{ fontFamily: 'Consolas, Monaco, "Courier New", Courier, monospace' }}
                 />
               </div>
             </div>
-          )}
 
-          {/* Manage Habits view */}
-          {showManageHabits && (
-            <div className="mb-4 p-3 bg-zinc-50 dark:bg-zinc-950 rounded-2xl border border-zinc-200/50 dark:border-zinc-800/80 space-y-3 animate-in fade-in slide-in-from-top-1 duration-200">
-              <p className="text-[9px] font-black text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">Meus Hábitos</p>
-              
-              <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1 custom-scrollbar">
-                {habits.length === 0 ? (
-                  <p className="text-[10px] text-zinc-400 text-center py-2">Nenhum hábito cadastrado.</p>
+            <div className="flex items-center justify-between mt-3 pt-2 border-t border-zinc-100 dark:border-zinc-800/60 shrink-0">
+              <div>
+                {noteSavedFeedback ? (
+                  <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 animate-pulse">
+                    ✓ Nota salva!
+                  </span>
                 ) : (
-                  habits.map(h => (
-                    <div key={h.id} className="flex items-center justify-between bg-white dark:bg-zinc-900 px-3 py-1.5 rounded-xl border border-zinc-150 dark:border-zinc-800/80 animate-in fade-in duration-200">
-                      <span className="text-[11px] font-medium text-zinc-750 dark:text-zinc-300">{h.name}</span>
-                      <button
-                        onClick={() => deleteHabit(h.id)}
-                        className="text-zinc-400 hover:text-rose-500 transition-colors p-1"
-                        title="Excluir hábito"
-                      >
-                        <Trash2 size={12} />
-                      </button>
-                    </div>
-                  ))
+                  <span className="text-[9px] text-zinc-400 font-mono">
+                    {quickNoteContent.length} caracteres
+                  </span>
                 )}
               </div>
-
-              <div className="flex gap-1.5 pt-1.5 border-t border-zinc-200 dark:border-zinc-800">
-                <input
-                  type="text"
-                  placeholder="Novo hábito (ex: Meditar)"
-                  value={newHabitName}
-                  onChange={e => setNewHabitName(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter') { addHabit(newHabitName); setNewHabitName(''); } }}
-                  className="flex-1 px-3 py-1.5 text-xs bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl outline-none focus:ring-1 focus:ring-indigo-500 text-zinc-800 dark:text-white"
-                />
+              <div className="flex items-center gap-2">
                 <button
-                  onClick={() => { addHabit(newHabitName); setNewHabitName(''); }}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1 transition-all"
+                  type="button"
+                  onClick={handleGoToAnotacoes}
+                  className="text-[9px] font-black uppercase tracking-wider text-zinc-650 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors bg-zinc-100 dark:bg-zinc-850 px-3 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-700"
                 >
-                  <Plus size={12} /> Add
+                  Ver tudo
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveQuickNote}
+                  disabled={!quickNoteContent.trim()}
+                  className="bg-zinc-900 hover:bg-zinc-850 dark:bg-white dark:hover:bg-zinc-100 disabled:opacity-40 text-white dark:text-zinc-900 px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all"
+                >
+                  Salvar
                 </button>
               </div>
             </div>
-          )}
-
-          {/* List of habits checkboxes */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
-            {habits.length === 0 ? (
-              <div className="col-span-2 py-4 text-center text-xs text-zinc-400 dark:text-zinc-500">
-                Você não possui hábitos definidos. Clique em "Gerenciar" para criar.
-              </div>
-            ) : (
-              habits.map(h => {
-                const isCompleted = (habitHistory[todayStr] || []).includes(h.id);
-                return (
-                  <div
-                    key={h.id}
-                    onClick={() => toggleHabit(h.id)}
-                    className={`flex items-center gap-3 p-3 rounded-2xl border transition-all duration-200 cursor-pointer ${
-                      isCompleted
-                        ? 'bg-zinc-50/50 dark:bg-zinc-950/20 border-zinc-150 dark:border-zinc-900/50 opacity-60'
-                        : 'bg-white dark:bg-zinc-900 border-zinc-200/80 dark:border-zinc-800/80 shadow-sm hover:border-indigo-200 dark:hover:border-indigo-900/50 hover:shadow-md'
-                    }`}
-                  >
-                    <div className="relative flex items-center justify-center shrink-0">
-                      <div className={`w-5 h-5 rounded-lg border flex items-center justify-center transition-all ${
-                        isCompleted
-                          ? 'bg-gradient-to-br from-indigo-500 to-violet-600 border-indigo-500 text-white'
-                          : 'border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800'
-                      }`}>
-                        {isCompleted && <Check size={11} strokeWidth={3} />}
-                      </div>
-                    </div>
-                    <span className={`text-[11px] font-bold transition-all truncate leading-none ${
-                      isCompleted
-                        ? 'line-through text-zinc-400 dark:text-zinc-500'
-                        : 'text-zinc-700 dark:text-zinc-300'
-                    }`}>
-                      {h.name}
-                    </span>
-                  </div>
-                );
-              })
-            )}
           </div>
         </div>
 

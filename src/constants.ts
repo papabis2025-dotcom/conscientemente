@@ -45,4 +45,15 @@ export const MODULES: Module[] = [
     route: 'tarefas',
     available: true,
   },
+  {
+    id: 'anotacoes',
+    label: 'Anotações',
+    description: 'Notas rápidas, memórias e seu diário de leitura pessoal.',
+    emoji: '',
+    color: 'amber',
+    bgDark: 'dark:bg-amber-950/30',
+    borderDark: 'dark:border-amber-800/50',
+    route: 'anotacoes',
+    available: true,
+  },
 ];

@@ -6,6 +6,7 @@ import EstudosApp from './modules/estudos/App';
 import FinancasApp from './modules/financas/App';
 import SaudeApp from './modules/saude/App';
 import TarefasApp from './modules/tarefas/App';
+import AnotacoesApp from './modules/anotacoes/App';
 import type { Session } from '@supabase/supabase-js';
 
 interface SyncedPayload {
@@ -22,7 +23,8 @@ const SYNC_KEYS = [
   'cp_dashboard_layout_v19',
   'cp_menu_order',
   'cn_theme',
-  'cn_notifications'
+  'cn_notifications',
+  'cn_anotacoes'
 ];
 
 function mergeLists<T extends { id: string }>(listA: T[], listB: T[]): T[] {
@@ -70,7 +72,7 @@ function mergeSettings(
       return;
     }
 
-    if (key === 'cn_habits' || key === 'cp_study_tasks' || key === 'cn_notifications') {
+    if (key === 'cn_habits' || key === 'cp_study_tasks' || key === 'cn_anotacoes') {
       try {
         const localList = JSON.parse(localVal);
         const remoteList = JSON.parse(remoteVal);
@@ -418,6 +420,8 @@ const App: React.FC = () => {
     pageContent = <SaudeApp />;
   } else if (currentRoute === 'tarefas') {
     pageContent = <TarefasApp />;
+  } else if (currentRoute === 'anotacoes') {
+    pageContent = <AnotacoesApp />;
   } else {
     pageContent = (
       <HubHome

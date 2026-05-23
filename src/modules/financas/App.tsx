@@ -416,7 +416,7 @@ const FinancasApp: React.FC = () => {
       </aside>
 
       {/* Main Content - 3 Colunas flexíveis */}
-      <main className="flex-1 p-6 overflow-hidden flex flex-col bg-zinc-50 dark:bg-[#0c0c0e]">
+      <main className="flex-1 p-6 overflow-hidden flex flex-col bg-transparent">
         {activeTab === 'ajustes' ? (
           <div className="flex-1 overflow-y-auto custom-scrollbar">
             <AjustesFinancas 

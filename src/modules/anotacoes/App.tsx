@@ -14,7 +14,7 @@ export interface Note {
 export interface FolderItem {
   id: string;
   name: string;
-  category: 'Diário de Leitura';
+  category: 'Anotações' | 'Diário de Leitura';
   createdAt: number;
 }
 
@@ -122,7 +122,7 @@ const AnotacoesApp: React.FC = () => {
         content: editorContent,
         date: dateStr,
         timestamp: Date.now(),
-        folderId: activeTab === 'Diário de Leitura' ? editorFolderId : undefined
+        folderId: editorFolderId
       } : n);
       saveNotesToStorage(updated);
       setSelectedNote({
@@ -131,7 +131,7 @@ const AnotacoesApp: React.FC = () => {
         content: editorContent,
         date: dateStr,
         timestamp: Date.now(),
-        folderId: activeTab === 'Diário de Leitura' ? editorFolderId : undefined
+        folderId: editorFolderId
       });
     } else {
       // Create new note
@@ -142,7 +142,7 @@ const AnotacoesApp: React.FC = () => {
         date: dateStr,
         category: activeTab,
         timestamp: Date.now(),
-        folderId: activeTab === 'Diário de Leitura' ? editorFolderId : undefined
+        folderId: editorFolderId
       };
       const updated = [newNote, ...notes];
       saveNotesToStorage(updated);
@@ -311,6 +311,50 @@ const AnotacoesApp: React.FC = () => {
                   </span>
                 )}
               </button>
+
+              {activeTab === 'Anotações' && !isSidebarCollapsed && (
+                <div className="pl-4 pr-1 py-1.5 space-y-2 animate-in slide-in-from-top-2 duration-300">
+                  <div className="flex items-center justify-between text-[10px] uppercase font-black tracking-widest text-zinc-400 dark:text-zinc-500 border-b border-zinc-100 dark:border-zinc-800 pb-1 px-1">
+                    <span>Pastas</span>
+                    <button 
+                      onClick={handleAddFolder}
+                      className="p-1 hover:bg-zinc-200 dark:hover:bg-zinc-800 text-amber-500 rounded transition-all hover:scale-110"
+                      title="Nova Pasta"
+                    >
+                      <FolderPlus size={13} strokeWidth={2.5} />
+                    </button>
+                  </div>
+                  <div className="space-y-1 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
+                    <button
+                      onClick={() => setSelectedFolderId(null)}
+                      className={`w-full text-left text-xs py-1.5 px-2.5 rounded-xl font-bold transition-all truncate flex items-center gap-2 ${selectedFolderId === null ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 font-black' : 'text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}
+                    >
+                      <Folder size={12} className="shrink-0" />
+                      <span>Todas as notas</span>
+                    </button>
+                    {folders.filter(f => f.category === 'Anotações').map(f => (
+                      <div 
+                        key={f.id} 
+                        className={`group/folder flex items-center justify-between py-0.5 px-1 rounded-xl transition-all ${selectedFolderId === f.id ? 'bg-amber-500/10' : 'hover:bg-zinc-100/50 dark:hover:bg-zinc-800/50'}`}
+                      >
+                        <button
+                          onClick={() => setSelectedFolderId(f.id)}
+                          className={`text-left text-xs py-1.5 px-2 rounded-xl truncate flex-1 block font-semibold transition-all ${selectedFolderId === f.id ? 'text-amber-600 dark:text-amber-400 font-black' : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300'}`}
+                        >
+                          📁 {f.name}
+                        </button>
+                        <button
+                          onClick={(e) => handleDeleteFolder(e, f.id)}
+                          className="opacity-0 group-hover/folder:opacity-100 p-1 text-zinc-400 hover:text-rose-500 rounded transition-all hover:scale-110 shrink-0 mr-1"
+                          title="Excluir Pasta"
+                        >
+                          <Trash2 size={11} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -350,7 +394,7 @@ const AnotacoesApp: React.FC = () => {
                       <Folder size={12} className="shrink-0" />
                       <span>Todas as notas</span>
                     </button>
-                    {folders.map(f => (
+                    {folders.filter(f => f.category === 'Diário de Leitura').map(f => (
                       <div 
                         key={f.id} 
                         className={`group/folder flex items-center justify-between py-0.5 px-1 rounded-xl transition-all ${selectedFolderId === f.id ? 'bg-amber-500/10' : 'hover:bg-zinc-100/50 dark:hover:bg-zinc-800/50'}`}
@@ -390,7 +434,7 @@ const AnotacoesApp: React.FC = () => {
       </aside>
 
       {/* Área Principal */}
-      <main className="flex-1 p-6 overflow-hidden flex flex-col bg-zinc-50 dark:bg-[#0c0c0e]">
+      <main className="flex-1 p-6 overflow-hidden flex flex-col bg-transparent">
         <div className="flex-1 flex gap-6 h-full overflow-hidden max-w-6xl mx-auto w-full">
           
           {/* Coluna Esquerda: Listagem de Notas Minimizadas */}
@@ -543,21 +587,21 @@ const AnotacoesApp: React.FC = () => {
                 className="w-full bg-transparent border-b border-zinc-200 dark:border-zinc-800 pb-3 text-sm font-black text-zinc-800 dark:text-zinc-100 placeholder:text-zinc-400 outline-none uppercase tracking-wide"
               />
 
-              {activeTab === 'Diário de Leitura' && (
-                <div className="flex items-center gap-2 mt-3 pb-2 border-b border-zinc-100 dark:border-zinc-900">
-                  <span className="text-[10px] font-mono text-zinc-400 dark:text-zinc-500 uppercase tracking-widest font-black">Livro (Pasta):</span>
-                  <select
-                    value={editorFolderId || ''}
-                    onChange={e => setEditorFolderId(e.target.value || undefined)}
-                    className="bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded px-2.5 py-1 text-[11px] text-zinc-700 dark:text-zinc-300 outline-none font-sans font-bold"
-                  >
-                    <option value="" className="bg-white dark:bg-zinc-900 text-zinc-500">Nenhuma Pasta</option>
-                    {folders.map(f => (
-                      <option key={f.id} value={f.id} className="bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 font-semibold">{f.name}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
+              <div className="flex items-center gap-2 mt-3 pb-2 border-b border-zinc-100 dark:border-zinc-900">
+                <span className="text-[10px] font-mono text-zinc-400 dark:text-zinc-500 uppercase tracking-widest font-black">
+                  {activeTab === 'Diário de Leitura' ? 'Livro (Pasta):' : 'Pasta:'}
+                </span>
+                <select
+                  value={editorFolderId || ''}
+                  onChange={e => setEditorFolderId(e.target.value || undefined)}
+                  className="bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded px-2.5 py-1 text-[11px] text-zinc-700 dark:text-zinc-300 outline-none font-sans font-bold cursor-pointer"
+                >
+                  <option value="" className="bg-white dark:bg-zinc-900 text-zinc-500">Nenhuma Pasta</option>
+                  {folders.filter(f => f.category === activeTab).map(f => (
+                    <option key={f.id} value={f.id} className="bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 font-semibold">{f.name}</option>
+                  ))}
+                </select>
+              </div>
 
               <textarea
                 placeholder="Comece a digitar sua nota..."

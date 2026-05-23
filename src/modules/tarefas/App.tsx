@@ -333,7 +333,7 @@ const TarefasApp: React.FC = () => {
       </aside>
 
       {/* Área Principal (Sem rolagem global de tela) */}
-      <main className="flex-1 p-6 overflow-hidden flex flex-col bg-zinc-50 dark:bg-[#0c0c0e]">
+      <main className="flex-1 p-6 overflow-hidden flex flex-col bg-transparent">
         <div className="flex-1 flex gap-6 h-full overflow-hidden max-w-6xl mx-auto w-full">
           
           {/* Caixa de Criação de Tarefas (Só ativa se ativo tab de 'ativas') */}

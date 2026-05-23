@@ -164,9 +164,6 @@ const ModuleCard: React.FC<{ module: Module; index: number }> = ({ module, index
         <p className="text-sm font-black text-zinc-800 dark:text-white tracking-tight mb-1">
           {module.label}
         </p>
-        <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed font-medium line-clamp-2">
-          {module.description}
-        </p>
 
         {module.available && (
           <div className="mt-4 pt-3 border-t border-zinc-100 dark:border-zinc-800/80 flex flex-wrap items-center justify-between gap-2">
@@ -1246,7 +1243,7 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
         {/* Habit Tracker & Quick Notes Container */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8 items-start">
           {/* Habit Tracker Section */}
-          <div className="p-6 bg-zinc-100/90 dark:bg-zinc-900/90 backdrop-blur-sm rounded-[2rem] border border-zinc-300 dark:border-zinc-800 shadow-md flex flex-col justify-between gap-4">
+          <div className="p-6 bg-zinc-100/40 dark:bg-zinc-900/40 backdrop-blur-sm rounded-[2rem] border border-zinc-300 dark:border-zinc-800 shadow-md flex flex-col justify-between gap-4">
             <div>
               <div className="flex items-center justify-between mb-4">
                 <div>
@@ -1381,7 +1378,7 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
           </div>
 
           {/* Quick Notes Section */}
-          <div className="p-6 bg-zinc-100/90 dark:bg-zinc-900/90 backdrop-blur-sm rounded-[2rem] border border-zinc-300 dark:border-zinc-800 shadow-md flex flex-col justify-between gap-4">
+          <div className="p-6 bg-zinc-100/40 dark:bg-zinc-900/40 backdrop-blur-sm rounded-[2rem] border border-zinc-300 dark:border-zinc-800 shadow-md flex flex-col justify-between gap-4">
             <div>
               <div className="flex items-center justify-between mb-3 shrink-0">
                 <div>

@@ -133,24 +133,23 @@ const ModuleCard: React.FC<{ module: Module; index: number }> = ({ module, index
       onClick={handleClick}
       style={{ animationDelay: `${index * 80}ms` }}
       className={[
-        'group relative w-full text-left rounded-2xl border transition-all duration-300',
-        'bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm',
-        'border-zinc-200/80 dark:border-zinc-800/80',
-        'ring-2 ring-transparent',
-        colors.ring,
+        'group relative w-full text-left rounded-2xl border-2 transition-all duration-300',
+        'bg-white/90 dark:bg-zinc-900/90 backdrop-blur-sm',
+        'border-zinc-200 dark:border-zinc-800',
+        'shadow-sm',
         module.available
-          ? `cursor-pointer hover:shadow-xl hover:-translate-y-1 ${colors.glow} ${colors.border}`
-          : 'opacity-50 cursor-not-allowed',
+          ? `cursor-pointer hover:shadow-2xl hover:-translate-y-1.5 ${colors.glow} ${colors.border} hover:border-opacity-80`
+          : 'opacity-45 cursor-not-allowed',
         'animate-in fade-in slide-in-from-bottom-4 duration-500',
         'overflow-hidden',
       ].join(' ')}
     >
-      {/* Gradient top strip */}
-      <div className={`h-0.5 w-full bg-gradient-to-r ${colors.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
+      {/* Gradient top strip — always visible subtly, bright on hover */}
+      <div className={`h-0.5 w-full bg-gradient-to-r ${colors.gradient} opacity-25 group-hover:opacity-100 transition-all duration-300`} />
 
       <div className="p-5">
         <div className="flex items-start justify-between mb-3">
-          <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shadow-lg ${colors.icon} ${module.available ? '' : 'opacity-50 grayscale'}`}>
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-md group-hover:shadow-lg group-hover:scale-105 transition-all duration-300 ${colors.icon} ${module.available ? '' : 'opacity-50 grayscale'}`}>
             {iconMap[module.id] || <TrendingUp size={20} />}
           </div>
           {!module.available ? (
@@ -1221,9 +1220,26 @@ const HubHome: React.FC<HubHomeProps> = ({
         ) : (
           <>
             {/* Hero section */}
-            <div className={`mb-6 transition-all duration-700 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+          <div className={`mb-8 transition-all duration-700 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+            {/* Glass greeting card */}
+            <div className="relative bg-white/60 dark:bg-zinc-900/60 backdrop-blur-xl border border-zinc-200/80 dark:border-zinc-800/70 rounded-3xl px-7 py-5 shadow-xl shadow-zinc-200/30 dark:shadow-black/30 overflow-hidden mb-4">
+              {/* Subtle gradient orb in background */}
+              <div className="absolute -top-8 -right-8 w-36 h-36 bg-gradient-to-br from-indigo-400/10 to-violet-500/10 rounded-full blur-2xl pointer-events-none" />
+              <div className="relative flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 dark:text-zinc-500 mb-1">Bem-vindo de volta</p>
+                  <h2 className="text-2xl font-black text-zinc-900 dark:text-white tracking-tight leading-none">
+                    {userName || 'Usuário'}
+                  </h2>
+                </div>
+                <div className="text-right shrink-0">
+                  <p className="text-3xl font-black text-indigo-600 dark:text-indigo-400 tabular-nums leading-none">{timeStr}</p>
+                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-semibold capitalize mt-1">{dateStr}</p>
+                </div>
+              </div>
+            </div>
 
-          {/* Status pills — wraps to next line if needed, no horizontal scroll */}
+          {/* Status pills */}
           <div className="flex items-center gap-2 flex-wrap">
             {/* Estudos */}
             <span className={`flex items-center justify-center px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider border whitespace-nowrap shrink-0 ${
@@ -1278,10 +1294,11 @@ const HubHome: React.FC<HubHomeProps> = ({
           </div>
         </div>
 
-        {/* Section label */}
+        {/* Section label — Módulos */}
         <div className="flex items-center gap-3 mb-4">
-          <p className="text-[10px] font-black text-zinc-400 dark:text-zinc-600 uppercase tracking-widest">Módulos</p>
-          <div className="flex-1 h-px bg-zinc-200 dark:bg-zinc-800" />
+          <span className="w-1.5 h-1.5 rounded-full bg-zinc-400 dark:bg-zinc-600" />
+          <p className="text-[10px] font-black text-zinc-400 dark:text-zinc-600 uppercase tracking-[0.2em]">Módulos</p>
+          <div className="flex-1 h-px bg-gradient-to-r from-zinc-200 to-transparent dark:from-zinc-800" />
         </div>
 
         {/* Module grid */}
@@ -1293,14 +1310,16 @@ const HubHome: React.FC<HubHomeProps> = ({
 
         {/* Widgets section label */}
         <div className="flex items-center gap-3 mt-8 mb-4">
-          <p className="text-[10px] font-black text-zinc-400 dark:text-zinc-600 uppercase tracking-widest">Widgets</p>
-          <div className="flex-1 h-px bg-zinc-200 dark:bg-zinc-800" />
+          <span className="w-1.5 h-1.5 rounded-full bg-zinc-400 dark:bg-zinc-600" />
+          <p className="text-[10px] font-black text-zinc-400 dark:text-zinc-600 uppercase tracking-[0.2em]">Widgets</p>
+          <div className="flex-1 h-px bg-gradient-to-r from-zinc-200 to-transparent dark:from-zinc-800" />
         </div>
 
         {/* Habit Tracker & Quick Notes Container */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-start">
           {/* Habit Tracker Section */}
-          <div className="p-6 bg-zinc-100/40 dark:bg-zinc-900/40 backdrop-blur-sm rounded-[2rem] border border-zinc-300 dark:border-zinc-800 shadow-md flex flex-col justify-between gap-4">
+          <div className="bg-white/70 dark:bg-zinc-900/70 backdrop-blur-md rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-lg shadow-zinc-200/40 dark:shadow-black/30 flex flex-col justify-between gap-4 p-5 overflow-hidden relative">
+            <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-indigo-400/40 via-violet-400/30 to-transparent" />
             <div>
               <div className="flex items-center justify-between mb-4">
                 <div>
@@ -1435,7 +1454,8 @@ const HubHome: React.FC<HubHomeProps> = ({
           </div>
 
           {/* Quick Notes Section */}
-          <div className="p-6 bg-zinc-100/40 dark:bg-zinc-900/40 backdrop-blur-sm rounded-[2rem] border border-zinc-300 dark:border-zinc-800 shadow-md flex flex-col justify-between gap-4">
+          <div className="bg-white/70 dark:bg-zinc-900/70 backdrop-blur-md rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-lg shadow-zinc-200/40 dark:shadow-black/30 flex flex-col justify-between gap-4 p-5 overflow-hidden relative">
+            <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-amber-400/40 via-orange-400/30 to-transparent" />
             <div>
               <div className="flex items-center justify-between mb-3 shrink-0">
                 <div>

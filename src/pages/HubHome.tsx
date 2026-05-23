@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { MODULES } from '../constants';
 import { Module } from '../types';
 import { LogEntry } from '../modules/estudos/types';
-import { LogOut, Sun, Moon, ArrowUpRight, Lock, BookOpen, Wallet, ListTodo, Brain, ChevronRight, Activity, TrendingUp, Settings, User, X, HeartPulse, Bell, Plus, Trash2, Check, ClipboardList, BarChart3, ChevronLeft, Calendar, Award, CheckCircle2, StickyNote, Flame, Clock } from 'lucide-react';
+import { LogOut, Sun, Moon, ArrowUpRight, Lock, BookOpen, Wallet, ListTodo, Brain, ChevronRight, Activity, TrendingUp, Settings, User, X, HeartPulse, Bell, Plus, Trash2, Check, ClipboardList, BarChart3, ChevronLeft, Calendar, Award, CheckCircle2, StickyNote, Flame, Clock, DollarSign } from 'lucide-react';
 import LogView from '../modules/estudos/pages/LogView';
 import { api } from '../modules/estudos/services/api';
 import { supabase } from '../modules/estudos/services/supabase';
@@ -147,7 +147,49 @@ const ModuleCard: React.FC<{ module: Module; index: number }> = ({ module, index
       {/* Gradient top strip — always visible subtly, bright on hover */}
       <div className={`h-0.5 w-full bg-gradient-to-r ${colors.gradient} opacity-25 group-hover:opacity-100 transition-all duration-300`} />
 
-      <div className="p-5">
+      {/* Background sophisticated gradient and minimalist symbol */}
+      {module.available && (
+        <div className="absolute inset-0 overflow-hidden pointer-events-none z-0 select-none">
+          {/* Subtle gradient overlay */}
+          <div className={`absolute inset-0 bg-gradient-to-br ${
+            module.color === 'indigo' ? 'from-indigo-500/[0.03] via-violet-500/[0.01] to-transparent' :
+            module.color === 'emerald' ? 'from-emerald-500/[0.03] via-teal-500/[0.01] to-transparent' :
+            module.color === 'cyan' ? 'from-cyan-500/[0.03] via-sky-500/[0.01] to-transparent' :
+            module.color === 'rose' ? 'from-rose-500/[0.03] via-pink-500/[0.01] to-transparent' :
+            'from-amber-500/[0.03] via-orange-500/[0.01] to-transparent'
+          } dark:${
+            module.color === 'indigo' ? 'from-indigo-500/[0.06] via-violet-500/[0.02] to-transparent' :
+            module.color === 'emerald' ? 'from-emerald-500/[0.06] via-teal-500/[0.02] to-transparent' :
+            module.color === 'cyan' ? 'from-cyan-500/[0.06] via-sky-500/[0.02] to-transparent' :
+            module.color === 'rose' ? 'from-rose-500/[0.06] via-pink-500/[0.02] to-transparent' :
+            'from-amber-500/[0.06] via-orange-500/[0.02] to-transparent'
+          }`} />
+
+          {/* Radial glow at the bottom-right corner */}
+          <div className={`absolute -right-8 -bottom-8 w-40 h-40 rounded-full blur-3xl opacity-15 dark:opacity-25 bg-gradient-to-br ${colors.gradient}`} />
+
+          {/* Minimalist transparent symbol */}
+          <div className="absolute -right-6 -bottom-6 opacity-15 dark:opacity-20 transition-all duration-500 ease-out group-hover:scale-110 group-hover:-translate-x-1 group-hover:-translate-y-1">
+            {module.id === 'financas' && (
+              <DollarSign size={130} strokeWidth={0.75} className="text-emerald-500 dark:text-emerald-400" />
+            )}
+            {module.id === 'estudos' && (
+              <BookOpen size={130} strokeWidth={0.75} className="text-indigo-500 dark:text-indigo-400" />
+            )}
+            {module.id === 'saude' && (
+              <Activity size={130} strokeWidth={0.75} className="text-cyan-500 dark:text-cyan-400" />
+            )}
+            {module.id === 'tarefas' && (
+              <ListTodo size={130} strokeWidth={0.75} className="text-rose-500 dark:text-rose-400" />
+            )}
+            {module.id === 'anotacoes' && (
+              <StickyNote size={130} strokeWidth={0.75} className="text-amber-500 dark:text-amber-400" />
+            )}
+          </div>
+        </div>
+      )}
+
+      <div className="p-5 relative z-10">
         <div className="flex items-start justify-between mb-3">
           <div className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-md group-hover:shadow-lg group-hover:scale-105 transition-all duration-300 ${colors.icon} ${module.available ? '' : 'opacity-50 grayscale'}`}>
             {iconMap[module.id] || <TrendingUp size={20} />}
@@ -1265,18 +1307,23 @@ const HubHome: React.FC<HubHomeProps> = ({
               </span>
             )}
 
-            {/* Pendências financeiras (só aparece se houver) */}
-            {pendingFinanceCount > 0 && (
-              <button
-                onClick={() => window.location.hash = 'financas'}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-full text-[10px] font-black uppercase tracking-wider shadow-md shadow-emerald-600/25 transition-all hover:scale-105 active:scale-95 whitespace-nowrap shrink-0"
-                title={`${pendingFinanceCount} ${pendingFinanceCount === 1 ? 'lançamento pendente' : 'lançamentos pendentes'} (Clique para ver)`}
-              >
-                <Clock size={9} className="shrink-0" />
-                <Wallet size={9} className="shrink-0" />
-                <span>{pendingFinanceCount} Pendente{pendingFinanceCount > 1 ? 's' : ''}</span>
-              </button>
-            )}
+            {/* Pendências financeiras */}
+            <button
+              onClick={() => window.location.hash = 'financas'}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider border whitespace-nowrap shrink-0 transition-all hover:scale-105 active:scale-95 cursor-pointer ${
+                pendingFinanceCount > 0
+                  ? 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-500/20'
+                  : 'bg-white/40 dark:bg-zinc-900/40 backdrop-blur-sm text-zinc-500 dark:text-zinc-400 border-zinc-200/50 dark:border-zinc-800/50'
+              }`}
+              title={`${pendingFinanceCount} ${pendingFinanceCount === 1 ? 'despesa pendente' : 'despesas pendentes'} (Clique para ver)`}
+            >
+              {pendingFinanceCount > 0 && <Clock size={9} className="shrink-0 opacity-80" />}
+              <span>
+                {pendingFinanceCount > 0
+                  ? `${pendingFinanceCount} Despesa${pendingFinanceCount > 1 ? 's' : ''} Pendente${pendingFinanceCount > 1 ? 's' : ''}`
+                  : 'Despesa Pendente'}
+              </span>
+            </button>
           </div>
         </div>
 

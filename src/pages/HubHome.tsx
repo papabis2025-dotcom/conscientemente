@@ -1291,8 +1291,14 @@ const HubHome: React.FC<HubHomeProps> = ({
           ))}
         </div>
 
+        {/* Widgets section label */}
+        <div className="flex items-center gap-3 mt-8 mb-4">
+          <p className="text-[10px] font-black text-zinc-400 dark:text-zinc-600 uppercase tracking-widest">Widgets</p>
+          <div className="flex-1 h-px bg-zinc-200 dark:bg-zinc-800" />
+        </div>
+
         {/* Habit Tracker & Quick Notes Container */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8 items-start">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
           {/* Habit Tracker Section */}
           <div className="p-6 bg-zinc-100/40 dark:bg-zinc-900/40 backdrop-blur-sm rounded-[2rem] border border-zinc-300 dark:border-zinc-800 shadow-md flex flex-col justify-between gap-4">
             <div>

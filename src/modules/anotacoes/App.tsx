@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { StickyNote, BookOpen, Trash2, Plus, Save, LayoutTemplate, ArrowUpDown, ChevronLeft, ChevronRight, FileText, Folder, FolderPlus } from 'lucide-react';
+import { StickyNote, BookOpen, Trash2, Plus, Save, LayoutTemplate, ArrowUpDown, ChevronLeft, ChevronRight, FileText, Folder, FolderPlus, Calendar } from 'lucide-react';
 
 export interface Note {
   id: string;
@@ -344,7 +344,7 @@ const AnotacoesApp: React.FC = () => {
                           onClick={() => setSelectedFolderId(f.id)}
                           className={`text-left text-xs py-1.5 px-2 rounded-xl truncate flex-1 block font-semibold transition-all ${selectedFolderId === f.id ? 'text-amber-600 dark:text-amber-400 font-black' : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300'}`}
                         >
-                          📁 {f.name}
+                          <Folder size={11} className="inline mr-1.5 opacity-70" />{f.name}
                         </button>
                         <button
                           onClick={(e) => handleDeleteFolder(e, f.id)}
@@ -406,7 +406,7 @@ const AnotacoesApp: React.FC = () => {
                           onClick={() => setSelectedFolderId(f.id)}
                           className={`text-left text-xs py-1.5 px-2 rounded-xl truncate flex-1 block font-semibold transition-all ${selectedFolderId === f.id ? 'text-amber-600 dark:text-amber-400 font-black' : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300'}`}
                         >
-                          📁 {f.name}
+                          <Folder size={11} className="inline mr-1.5 opacity-70" />{f.name}
                         </button>
                         <button
                           onClick={(e) => handleDeleteFolder(e, f.id)}
@@ -513,9 +513,14 @@ const AnotacoesApp: React.FC = () => {
               ) : (
                 groupedNotes.map(group => (
                   <div key={group.key} className="space-y-1.5">
-                    <h4 className="text-[9px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-500 font-mono pl-1">
-                      {group.title} ({group.notes.length})
-                    </h4>
+                    <div className="flex items-center gap-2 pt-1 pb-0.5">
+                      <Calendar size={10} className="text-amber-500 shrink-0" />
+                      <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+                        {group.title}
+                      </span>
+                      <div className="flex-1 h-px bg-zinc-100 dark:bg-zinc-800" />
+                      <span className="text-[9px] font-bold text-zinc-400 dark:text-zinc-600 bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded-full">{group.notes.length}</span>
+                    </div>
                     <div className="space-y-1.5">
                       {group.notes.map(n => {
                         const isSelected = selectedNote?.id === n.id;
@@ -540,13 +545,15 @@ const AnotacoesApp: React.FC = () => {
                                 <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-1 leading-snug break-words">
                                   {snippet}
                                 </p>
-                                <div className="flex items-center justify-between mt-2.5">
-                                  <span className="text-[8px] font-mono text-zinc-400 dark:text-zinc-500 block">
-                                    {new Date(`${n.date}T12:00:00`).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })}
+                                <div className="flex items-center justify-between mt-2.5 gap-2">
+                                  <span className="flex items-center gap-1 text-[9px] font-semibold text-zinc-400 dark:text-zinc-500">
+                                    <Calendar size={9} className="shrink-0" />
+                                    {new Date(`${n.date}T12:00:00`).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}
                                   </span>
                                   {noteFolder && (
-                                    <span className="text-[8px] font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded border border-amber-500/15 max-w-[120px] truncate block font-mono">
-                                      📁 {noteFolder.name}
+                                    <span className="flex items-center gap-1 text-[9px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded border border-amber-500/15 max-w-[110px] truncate">
+                                      <Folder size={9} className="shrink-0" />
+                                      {noteFolder.name}
                                     </span>
                                   )}
                                 </div>
@@ -578,7 +585,8 @@ const AnotacoesApp: React.FC = () => {
             {/* Header do Editor */}
             <div className="flex items-center justify-between px-5 py-3.5 border-b border-zinc-100 dark:border-zinc-800/50 shrink-0">
               <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500 flex items-center gap-1.5 font-mono">
-                📝 Bloco de Notas {selectedNote ? `- ${selectedNote.title}` : '- Sem Título'}
+                <FileText size={12} className="text-zinc-400 dark:text-zinc-500" />
+                Bloco de Notas {selectedNote ? `- ${selectedNote.title}` : '- Sem Título'}
               </span>
 
               <div className="flex items-center gap-2">

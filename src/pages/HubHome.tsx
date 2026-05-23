@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { MODULES } from '../constants';
 import { Module } from '../types';
 import { LogEntry } from '../modules/estudos/types';
-import { LogOut, Sun, Moon, ArrowUpRight, Lock, BookOpen, Wallet, ListTodo, Brain, ChevronRight, Activity, TrendingUp, Settings, User, X, HeartPulse, Bell, Plus, Trash2, Check, ClipboardList, BarChart3, ChevronLeft, Calendar, Award, CheckCircle2, StickyNote } from 'lucide-react';
+import { LogOut, Sun, Moon, ArrowUpRight, Lock, BookOpen, Wallet, ListTodo, Brain, ChevronRight, Activity, TrendingUp, Settings, User, X, HeartPulse, Bell, Plus, Trash2, Check, ClipboardList, BarChart3, ChevronLeft, Calendar, Award, CheckCircle2, StickyNote, Flame } from 'lucide-react';
 import LogView from '../modules/estudos/pages/LogView';
 import { api } from '../modules/estudos/services/api';
 import { supabase } from '../modules/estudos/services/supabase';
@@ -1094,18 +1094,18 @@ const HubHome: React.FC<HubHomeProps> = ({
 
             {/* Stats – 4 cards */}
             <div className="grid grid-cols-4 gap-3">
-              {[
-                { label: 'Consistência', value: `${last7DaysRate}%`, sub: 'últimos 7 dias', color: 'text-zinc-900 dark:text-white', bg: 'bg-zinc-100/90 dark:bg-zinc-900/90 border-zinc-300 dark:border-zinc-800 shadow-sm', icon: '📊' },
-                { label: 'Streak atual', value: `${currentStreak}d`, sub: 'dias seguidos', color: 'text-zinc-900 dark:text-white', bg: 'bg-zinc-100/90 dark:bg-zinc-900/90 border-zinc-300 dark:border-zinc-800 shadow-sm', icon: '🔥' },
-                { label: 'Hábitos ativos', value: habits.length, sub: 'monitorados', color: 'text-zinc-900 dark:text-white', bg: 'bg-zinc-100/90 dark:bg-zinc-900/90 border-zinc-300 dark:border-zinc-800 shadow-sm', icon: '✅' },
-                { label: 'Conclusões', value: totalCompletions, sub: 'no histórico', color: 'text-zinc-900 dark:text-white', bg: 'bg-zinc-100/90 dark:bg-zinc-900/90 border-zinc-300 dark:border-zinc-800 shadow-sm', icon: '🏆' },
-              ].map(stat => (
-                <div key={stat.label} className={`p-4 rounded-2xl border ${stat.bg} flex flex-col gap-1`}>
+              {([
+                { label: 'Consistência', value: `${last7DaysRate}%`, sub: 'últimos 7 dias', Icon: BarChart3 },
+                { label: 'Streak atual', value: `${currentStreak}d`, sub: 'dias seguidos', Icon: Flame },
+                { label: 'Hábitos ativos', value: habits.length, sub: 'monitorados', Icon: Activity },
+                { label: 'Conclusões', value: totalCompletions, sub: 'no histórico', Icon: Award },
+              ] as const).map(stat => (
+                <div key={stat.label} className="p-4 rounded-2xl border bg-zinc-100/90 dark:bg-zinc-900/90 border-zinc-300 dark:border-zinc-800 shadow-sm flex flex-col gap-1">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">{stat.label}</span>
-                    <span className="text-base leading-none">{stat.icon}</span>
+                    <stat.Icon size={14} className="text-zinc-400 dark:text-zinc-500" />
                   </div>
-                  <span className={`text-2xl font-black ${stat.color} leading-none`}>{stat.value}</span>
+                  <span className="text-2xl font-black text-zinc-900 dark:text-white leading-none">{stat.value}</span>
                   <span className="text-[10px] text-zinc-400 dark:text-zinc-500 font-medium">{stat.sub}</span>
                 </div>
               ))}

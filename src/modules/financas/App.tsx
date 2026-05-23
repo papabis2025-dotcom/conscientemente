@@ -127,6 +127,8 @@ const FinancasApp: React.FC = () => {
   const [txDate, setTxDate] = useState('');
   const [txMethod, setTxMethod] = useState('');
   const [txPending, setTxPending] = useState(false);
+  const [txInstallments, setTxInstallments] = useState(''); // total number of installments
+  const [txInstallmentNum, setTxInstallmentNum] = useState(''); // current installment being paid
   const [editingTxId, setEditingTxId] = useState<string | null>(null);
   const [activeChartTab, setActiveChartTab] = useState<'cartoes' | 'saidas' | 'entradas'>('cartoes');
 
@@ -259,6 +261,15 @@ const FinancasApp: React.FC = () => {
     setTxAmount('');
     setTxDate('');
     setTxPending(false);
+    setTxInstallments('');
+    setTxInstallmentNum('');
+  };
+
+  // Helper: add months to a YYYY-MM-DD date string
+  const addMonthsToDate = (dateStr: string, months: number): string => {
+    const d = new Date(dateStr + 'T12:00:00'); // use noon to avoid DST issues
+    d.setMonth(d.getMonth() + months);
+    return d.toISOString().split('T')[0];
   };
 
   const handleAddTransaction = (e: React.FormEvent) => {
@@ -298,10 +309,17 @@ const FinancasApp: React.FC = () => {
       setTxDate('');
       setTxPending(false);
     } else {
+      const totalParcelas = parseInt(txInstallments) || 0;
+      const currentParcela = parseInt(txInstallmentNum) || 0;
+      const isParcelado = txType === 'saida' && totalParcelas > 1 && currentParcela >= 1 && currentParcela <= totalParcelas;
+
+      // Build base name: append parcel label if parcelado
+      const baseName = isParcelado ? `${txName} (${currentParcela}/${totalParcelas})` : txName;
+
       const t: Transaction = {
         id: crypto.randomUUID(),
         type: txType,
-        name: txName,
+        name: baseName,
         amount: amountNum,
         category: txCategory,
         date: finalDate,
@@ -311,11 +329,37 @@ const FinancasApp: React.FC = () => {
       };
 
       financasApi.createTransaction(t).catch(err => console.error('Error creating transaction:', err));
-      setTransactions(prev => [...prev, t]);
+      const newTransactions: Transaction[] = [t];
+
+      // Generate future installments
+      if (isParcelado) {
+        const remainingParcelas = totalParcelas - currentParcela;
+        for (let i = 1; i <= remainingParcelas; i++) {
+          const futureDate = addMonthsToDate(finalDate, i);
+          const futureParcelNum = currentParcela + i;
+          const futureTx: Transaction = {
+            id: crypto.randomUUID(),
+            type: txType,
+            name: `${txName} (${futureParcelNum}/${totalParcelas})`,
+            amount: amountNum,
+            category: txCategory,
+            date: futureDate,
+            pending: true, // future installments are always pending
+            dayOnly,
+            ...(txType === 'saida' ? { paymentMethod: txMethod } : {})
+          };
+          financasApi.createTransaction(futureTx).catch(err => console.error('Error creating installment:', err));
+          newTransactions.push(futureTx);
+        }
+      }
+
+      setTransactions(prev => [...prev, ...newTransactions]);
       setTxName('');
       setTxAmount('');
       setTxDate('');
       setTxPending(false);
+      setTxInstallments('');
+      setTxInstallmentNum('');
     }
   };
 
@@ -538,6 +582,7 @@ const FinancasApp: React.FC = () => {
                 </div>
 
                 {txType === 'saida' && (
+                  <>
                   <div className="flex flex-col gap-1 animate-in slide-in-from-top-1 duration-150">
                     <label className="text-[9px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Forma de Pagamento</label>
                     <select 
@@ -548,6 +593,44 @@ const FinancasApp: React.FC = () => {
                       {paymentMethods.map(m => <option key={m.id} value={m.name}>{m.name}</option>)}
                     </select>
                   </div>
+
+                  {/* Parcelamento */}
+                  {!editingTxId && (
+                  <div className="flex flex-col gap-1 animate-in slide-in-from-top-1 duration-150">
+                    <label className="text-[9px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Parcelado? (opcional)</label>
+                    <div className="flex gap-2 items-center">
+                      <div className="flex-1 flex flex-col gap-0.5">
+                        <span className="text-[8px] text-zinc-400 dark:text-zinc-500 font-semibold">Parcela atual</span>
+                        <input
+                          type="number"
+                          min="1"
+                          placeholder="Ex: 2"
+                          value={txInstallmentNum}
+                          onChange={e => setTxInstallmentNum(e.target.value)}
+                          className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:ring-1 focus:ring-rose-500 dark:text-white font-semibold"
+                        />
+                      </div>
+                      <span className="text-zinc-400 dark:text-zinc-500 font-black text-sm mt-4">/</span>
+                      <div className="flex-1 flex flex-col gap-0.5">
+                        <span className="text-[8px] text-zinc-400 dark:text-zinc-500 font-semibold">Total de parcelas</span>
+                        <input
+                          type="number"
+                          min="2"
+                          placeholder="Ex: 10"
+                          value={txInstallments}
+                          onChange={e => setTxInstallments(e.target.value)}
+                          className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:ring-1 focus:ring-rose-500 dark:text-white font-semibold"
+                        />
+                      </div>
+                    </div>
+                    {txInstallments && txInstallmentNum && parseInt(txInstallments) > 1 && parseInt(txInstallmentNum) >= 1 && parseInt(txInstallmentNum) <= parseInt(txInstallments) && (
+                      <p className="text-[9px] text-amber-600 dark:text-amber-400 font-bold mt-0.5">
+                        ✦ {parseInt(txInstallments) - parseInt(txInstallmentNum)} parcela(s) futura(s) serão geradas automaticamente
+                      </p>
+                    )}
+                  </div>
+                  )}
+                  </>
                 )}
 
                 <div className="flex gap-2 items-center pt-2.5 border-t border-zinc-100 dark:border-zinc-800/50">

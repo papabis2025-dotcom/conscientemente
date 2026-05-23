@@ -236,7 +236,7 @@ const TarefasApp: React.FC = () => {
                 ? 'text-zinc-400 bg-zinc-200/50 dark:bg-zinc-800/50' 
                 : isOverdue(task)
                   ? 'text-red-650 dark:text-red-400 bg-red-100 dark:bg-red-500/10 font-bold'
-                  : 'text-zinc-650 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800'
+                  : 'text-zinc-600 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800'
             }`}>
               <CalendarIcon size={10} />
               {task.dueDate ? new Date(`${task.dueDate}T12:00:00`).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }) : ''}
@@ -354,7 +354,7 @@ const TarefasApp: React.FC = () => {
                       placeholder="Ex: Ler livro, Comprar leite..." 
                       value={newTaskText}
                       onChange={(e) => setNewTaskText(e.target.value)}
-                      className="w-full text-sm font-semibold bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-850 rounded-xl p-3 outline-none focus:ring-2 focus:ring-rose-500 text-zinc-800 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-650 resize-none h-20"
+                      className="w-full text-sm font-semibold bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl p-3 outline-none focus:ring-2 focus:ring-rose-500 text-zinc-800 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-600 resize-none h-20"
                       autoFocus
                     />
                   </div>
@@ -362,26 +362,26 @@ const TarefasApp: React.FC = () => {
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1">
                       <label className="text-[9px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Data Limite</label>
-                      <div className="flex items-center bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-850 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-rose-500">
+                      <div className="flex items-center bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-rose-500">
                         <div className="pl-2.5 text-zinc-400"><CalendarIcon size={13} /></div>
                         <input 
                           type="date" 
                           value={newTaskDate}
                           onChange={(e) => setNewTaskDate(e.target.value)}
-                          className="bg-transparent border-none outline-none text-xs p-2 text-zinc-750 dark:text-zinc-350 cursor-pointer w-full"
+                          className="bg-transparent border-none outline-none text-xs p-2 text-zinc-700 dark:text-zinc-300 cursor-pointer w-full"
                         />
                       </div>
                     </div>
 
                     <div className="space-y-1">
                       <label className="text-[9px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Hora</label>
-                      <div className="flex items-center bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-850 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-rose-500">
+                      <div className="flex items-center bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-rose-500">
                         <div className="pl-2.5 text-zinc-400"><Clock size={13} /></div>
                         <input 
                           type="time" 
                           value={newTaskTime}
                           onChange={(e) => setNewTaskTime(e.target.value)}
-                          className="bg-transparent border-none outline-none text-xs p-2 text-zinc-750 dark:text-zinc-350 cursor-pointer w-full"
+                          className="bg-transparent border-none outline-none text-xs p-2 text-zinc-700 dark:text-zinc-300 cursor-pointer w-full"
                         />
                       </div>
                     </div>
@@ -389,7 +389,7 @@ const TarefasApp: React.FC = () => {
 
                   <div className="space-y-1">
                     <label className="text-[9px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Prioridade</label>
-                    <div className="flex items-center bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-850 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-rose-500">
+                    <div className="flex items-center bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-rose-500">
                       <div className="pl-2.5 text-zinc-400"><Tag size={13} /></div>
                       <select 
                         value={newTaskCategory}
@@ -406,7 +406,7 @@ const TarefasApp: React.FC = () => {
                   <div className="space-y-1">
                     <label className="text-[9px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Repetição</label>
                     <div className="flex gap-2">
-                      <div className="flex-1 flex items-center bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-850 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-rose-500">
+                      <div className="flex-1 flex items-center bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-rose-500">
                         <div className="pl-2.5 text-zinc-400"><Repeat size={13} /></div>
                         <select 
                           value={newTaskRecurrence}
@@ -424,7 +424,7 @@ const TarefasApp: React.FC = () => {
                           min="1"
                           value={newTaskRecurrenceValue}
                           onChange={(e) => setNewTaskRecurrenceValue(parseInt(e.target.value) || 1)}
-                          className="w-16 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-850 rounded-xl p-2 text-xs text-center text-zinc-750 dark:text-zinc-300 focus:ring-2 focus:ring-rose-500 outline-none font-bold"
+                          className="w-16 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl p-2 text-xs text-center text-zinc-700 dark:text-zinc-300 focus:ring-2 focus:ring-rose-500 outline-none font-bold"
                           title="Dias"
                         />
                       )}
@@ -445,12 +445,12 @@ const TarefasApp: React.FC = () => {
             <div className="w-[360px] flex-shrink-0 flex flex-col bg-white dark:bg-[#121214] border border-zinc-200 dark:border-zinc-800/50 rounded-2xl p-5 shadow-xl shadow-zinc-200/5 dark:shadow-black/20 justify-between h-[260px]">
               <div className="space-y-4">
                 <div className="flex items-center gap-2 mb-1">
-                  <div className="p-2 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-650 dark:text-zinc-400">
+                  <div className="p-2 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">
                     <Archive size={18} />
                   </div>
                   <h3 className="text-xs font-black uppercase tracking-wider text-zinc-700 dark:text-zinc-300">Arquivo</h3>
                 </div>
-                <p className="text-xs text-zinc-500 dark:text-zinc-450 leading-relaxed font-medium">
+                <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed font-medium">
                   Aqui ficam guardadas as tarefas concluídas. Se quiser liberar espaço permanentemente, você pode limpar o arquivo abaixo.
                 </p>
               </div>
@@ -506,7 +506,7 @@ const TarefasApp: React.FC = () => {
             <div className="flex-1 overflow-y-auto p-5 custom-scrollbar">
               {sortedTasks.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 text-center opacity-55">
-                  <CheckSquare size={44} className="mb-4 text-zinc-300 dark:text-zinc-750" strokeWidth={1.5} />
+                  <CheckSquare size={44} className="mb-4 text-zinc-300 dark:text-zinc-700" strokeWidth={1.5} />
                   <p className="text-sm font-semibold">{activeTab === 'ativas' ? 'Nenhuma tarefa pendente.' : 'O arquivo está vazio.'}</p>
                   {activeTab === 'ativas' && <p className="text-xs text-zinc-400 mt-1">Sua mente está livre!</p>}
                 </div>
@@ -528,7 +528,7 @@ const TarefasApp: React.FC = () => {
                   {/* Grupo: Sem Data */}
                   {groupedTasks.noDate.length > 0 && (
                     <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-zinc-450 dark:text-zinc-500">
+                      <div className="flex items-center gap-2 text-zinc-400 dark:text-zinc-500">
                         <ListTodo size={13} />
                         <h4 className="text-[10px] font-black uppercase tracking-wider">Sem Data Limite ({groupedTasks.noDate.length})</h4>
                       </div>

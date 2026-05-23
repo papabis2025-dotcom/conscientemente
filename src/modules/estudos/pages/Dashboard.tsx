@@ -466,15 +466,15 @@ const Dashboard: React.FC<DashboardProps> = ({
             <div className="hidden sm:flex flex-col justify-center flex-1 gap-2 pl-2">
               <div className="flex justify-between items-center">
                 <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider">Tempo Total</span>
-                <span className="text-xs font-black text-zinc-750 dark:text-zinc-200">{totalHours}h</span>
+                <span className="text-xs font-black text-zinc-700 dark:text-zinc-200">{totalHours}h</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider">Resoluções</span>
-                <span className="text-xs font-black text-zinc-750 dark:text-zinc-200">{totalDone} q</span>
+                <span className="text-xs font-black text-zinc-700 dark:text-zinc-200">{totalDone} q</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider">Acertos</span>
-                <span className="text-xs font-black text-zinc-750 dark:text-zinc-200">{totalCorrect} q</span>
+                <span className="text-xs font-black text-zinc-700 dark:text-zinc-200">{totalCorrect} q</span>
               </div>
               {subjectStats.best && (
                 <div className="flex justify-between items-center">

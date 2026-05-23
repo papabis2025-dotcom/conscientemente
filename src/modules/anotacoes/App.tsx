@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { StickyNote, BookOpen, Trash2, Plus, Save, LayoutTemplate, ArrowUpDown, ChevronLeft, ChevronRight, FileText } from 'lucide-react';
+import { StickyNote, BookOpen, Trash2, Plus, Save, LayoutTemplate, ArrowUpDown, ChevronLeft, ChevronRight, FileText, Folder, FolderPlus } from 'lucide-react';
 
 export interface Note {
   id: string;
@@ -8,6 +8,14 @@ export interface Note {
   date: string; // YYYY-MM-DD
   category: 'Anotações' | 'Diário de Leitura';
   timestamp: number;
+  folderId?: string;
+}
+
+export interface FolderItem {
+  id: string;
+  name: string;
+  category: 'Diário de Leitura';
+  createdAt: number;
 }
 
 const AnotacoesApp: React.FC = () => {
@@ -22,6 +30,18 @@ const AnotacoesApp: React.FC = () => {
   // Editor states
   const [editorTitle, setEditorTitle] = useState('');
   const [editorContent, setEditorContent] = useState('');
+  const [editorFolderId, setEditorFolderId] = useState<string | undefined>(undefined);
+
+  // Folders state
+  const [folders, setFolders] = useState<FolderItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('cn_anotacoes_folders');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
 
   // Sorting
   const [sortBy, setSortBy] = useState<'date' | 'title'>('date');
@@ -73,11 +93,17 @@ const AnotacoesApp: React.FC = () => {
     }
   }, []);
 
+  // Reset selected folder when active tab changes
+  useEffect(() => {
+    setSelectedFolderId(null);
+  }, [activeTab]);
+
   // Create new note in editor
   const handleNewNote = () => {
     setSelectedNote(null);
     setEditorTitle('');
     setEditorContent('');
+    setEditorFolderId(selectedFolderId || undefined);
   };
 
   // Save current note in editor
@@ -95,7 +121,8 @@ const AnotacoesApp: React.FC = () => {
         title,
         content: editorContent,
         date: dateStr,
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        folderId: activeTab === 'Diário de Leitura' ? editorFolderId : undefined
       } : n);
       saveNotesToStorage(updated);
       setSelectedNote({
@@ -103,7 +130,8 @@ const AnotacoesApp: React.FC = () => {
         title,
         content: editorContent,
         date: dateStr,
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        folderId: activeTab === 'Diário de Leitura' ? editorFolderId : undefined
       });
     } else {
       // Create new note
@@ -113,7 +141,8 @@ const AnotacoesApp: React.FC = () => {
         content: editorContent,
         date: dateStr,
         category: activeTab,
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        folderId: activeTab === 'Diário de Leitura' ? editorFolderId : undefined
       };
       const updated = [newNote, ...notes];
       saveNotesToStorage(updated);
@@ -137,12 +166,56 @@ const AnotacoesApp: React.FC = () => {
     setSelectedNote(note);
     setEditorTitle(note.title);
     setEditorContent(note.content);
+    setEditorFolderId(note.folderId);
   };
 
-  // Filter notes by active tab/category
+  // Folder CRUD handlers
+  const handleAddFolder = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const name = prompt('Digite o nome da nova pasta (Livro):');
+    if (!name || !name.trim()) return;
+
+    const newFolder: FolderItem = {
+      id: `folder_${Date.now()}`,
+      name: name.trim(),
+      category: 'Diário de Leitura',
+      createdAt: Date.now()
+    };
+    const updated = [...folders, newFolder];
+    setFolders(updated);
+    localStorage.setItem('cn_anotacoes_folders', JSON.stringify(updated));
+  };
+
+  const handleDeleteFolder = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    if (confirm('Tem certeza que deseja excluir esta pasta? As notas associadas a ela não serão excluídas, mas ficarão sem pasta.')) {
+      const updatedFolders = folders.filter(f => f.id !== id);
+      setFolders(updatedFolders);
+      localStorage.setItem('cn_anotacoes_folders', JSON.stringify(updatedFolders));
+
+      // Remove folder association from notes
+      const updatedNotes = notes.map(n => n.folderId === id ? { ...n, folderId: undefined } : n);
+      saveNotesToStorage(updatedNotes);
+
+      if (selectedFolderId === id) {
+        setSelectedFolderId(null);
+      }
+      if (editorFolderId === id) {
+        setEditorFolderId(undefined);
+      }
+    }
+  };
+
+  // Filter notes by active tab/category and selected folder
   const filteredNotes = useMemo(() => {
-    return notes.filter(n => n.category === activeTab);
-  }, [notes, activeTab]);
+    return notes.filter(n => {
+      if (n.category !== activeTab) return false;
+      if (activeTab === 'Diário de Leitura' && selectedFolderId !== null) {
+        return n.folderId === selectedFolderId;
+      }
+      return true;
+    });
+  }, [notes, activeTab, selectedFolderId]);
 
   // Sort notes
   const sortedNotes = useMemo(() => {
@@ -203,7 +276,7 @@ const AnotacoesApp: React.FC = () => {
     <div className="flex h-screen bg-transparent text-zinc-900 dark:text-zinc-100 font-sans overflow-hidden selection:bg-amber-200 dark:selection:bg-amber-900/50">
       
       {/* Sidebar Lateral */}
-      <aside className={`relative ${isSidebarCollapsed ? 'w-20' : 'w-64'} bg-white/50 dark:bg-zinc-900/50 border-r border-zinc-200 dark:border-zinc-800 flex flex-col transition-all duration-300 backdrop-blur-xl`}>
+      <aside className={`relative ${isSidebarCollapsed ? 'w-20' : 'w-64'} bg-white/50 dark:bg-zinc-900/50 border-r border-zinc-200 dark:border-zinc-800 flex flex-col transition-all duration-300 backdrop-blur-xl shrink-0`}>
         <button
           onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
           className="absolute -right-3 top-9 w-6 h-6 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-full flex items-center justify-center text-zinc-500 hover:text-zinc-900 dark:text-zinc-100 shadow-sm z-50 hover:scale-110 transition-transform"
@@ -221,37 +294,86 @@ const AnotacoesApp: React.FC = () => {
             )}
           </div>
 
-          <nav className="space-y-2">
-            <button 
-              onClick={() => { setActiveTab('Anotações'); handleNewNote(); }} 
-              className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center p-3' : 'justify-between px-4 py-3'} rounded-xl transition-all font-semibold ${activeTab === 'Anotações' ? 'bg-amber-500 text-white shadow-md shadow-amber-500/20' : 'text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800/50'}`}
-              title={isSidebarCollapsed ? 'Anotações' : ''}
-            >
-              <div className="flex items-center gap-3">
-                <FileText size={20} className="shrink-0" />
-                {!isSidebarCollapsed && <span>Anotações</span>}
-              </div>
-              {!isSidebarCollapsed && (
-                <span className={`text-xs px-2 py-0.5 rounded-full ${activeTab === 'Anotações' ? 'bg-white/20' : 'bg-zinc-200 dark:bg-zinc-800'}`}>
-                  {notes.filter(n => n.category === 'Anotações').length}
-                </span>
+          <nav className="space-y-4 flex-1 overflow-y-auto pr-1 custom-scrollbar">
+            <div className="space-y-1">
+              <button 
+                onClick={() => { setActiveTab('Anotações'); handleNewNote(); }} 
+                className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center p-3' : 'justify-between px-4 py-3'} rounded-xl transition-all font-semibold ${activeTab === 'Anotações' ? 'bg-amber-500 text-white shadow-md shadow-amber-500/20' : 'text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800/50'}`}
+                title={isSidebarCollapsed ? 'Anotações' : ''}
+              >
+                <div className="flex items-center gap-3">
+                  <FileText size={20} className="shrink-0" />
+                  {!isSidebarCollapsed && <span>Anotações</span>}
+                </div>
+                {!isSidebarCollapsed && (
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${activeTab === 'Anotações' ? 'bg-white/20' : 'bg-zinc-200 dark:bg-zinc-800'}`}>
+                    {notes.filter(n => n.category === 'Anotações').length}
+                  </span>
+                )}
+              </button>
+            </div>
+
+            <div className="space-y-2">
+              <button 
+                onClick={() => { setActiveTab('Diário de Leitura'); handleNewNote(); }} 
+                className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center p-3' : 'justify-between px-4 py-3'} rounded-xl transition-all font-semibold ${activeTab === 'Diário de Leitura' ? 'bg-amber-500 text-white shadow-md shadow-amber-500/20' : 'text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800/50'}`}
+                title={isSidebarCollapsed ? 'Diário de Leitura' : ''}
+              >
+                <div className="flex items-center gap-3">
+                  <BookOpen size={20} className="shrink-0" />
+                  {!isSidebarCollapsed && <span>Diário de Leitura</span>}
+                </div>
+                {!isSidebarCollapsed && (
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${activeTab === 'Diário de Leitura' ? 'bg-white/20' : 'bg-zinc-200 dark:bg-zinc-800'}`}>
+                    {notes.filter(n => n.category === 'Diário de Leitura').length}
+                  </span>
+                )}
+              </button>
+
+              {activeTab === 'Diário de Leitura' && !isSidebarCollapsed && (
+                <div className="pl-4 pr-1 py-1.5 space-y-2 animate-in slide-in-from-top-2 duration-300">
+                  <div className="flex items-center justify-between text-[10px] uppercase font-black tracking-widest text-zinc-400 dark:text-zinc-500 border-b border-zinc-100 dark:border-zinc-800 pb-1 px-1">
+                    <span>Livros / Pastas</span>
+                    <button 
+                      onClick={handleAddFolder}
+                      className="p-1 hover:bg-zinc-200 dark:hover:bg-zinc-800 text-amber-500 rounded transition-all hover:scale-110"
+                      title="Nova Pasta"
+                    >
+                      <FolderPlus size={13} strokeWidth={2.5} />
+                    </button>
+                  </div>
+                  <div className="space-y-1 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
+                    <button
+                      onClick={() => setSelectedFolderId(null)}
+                      className={`w-full text-left text-xs py-1.5 px-2.5 rounded-xl font-bold transition-all truncate flex items-center gap-2 ${selectedFolderId === null ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 font-black' : 'text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}
+                    >
+                      <Folder size={12} className="shrink-0" />
+                      <span>Todas as notas</span>
+                    </button>
+                    {folders.map(f => (
+                      <div 
+                        key={f.id} 
+                        className={`group/folder flex items-center justify-between py-0.5 px-1 rounded-xl transition-all ${selectedFolderId === f.id ? 'bg-amber-500/10' : 'hover:bg-zinc-100/50 dark:hover:bg-zinc-800/50'}`}
+                      >
+                        <button
+                          onClick={() => setSelectedFolderId(f.id)}
+                          className={`text-left text-xs py-1.5 px-2 rounded-xl truncate flex-1 block font-semibold transition-all ${selectedFolderId === f.id ? 'text-amber-600 dark:text-amber-400 font-black' : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300'}`}
+                        >
+                          📁 {f.name}
+                        </button>
+                        <button
+                          onClick={(e) => handleDeleteFolder(e, f.id)}
+                          className="opacity-0 group-hover/folder:opacity-100 p-1 text-zinc-400 hover:text-rose-500 rounded transition-all hover:scale-110 shrink-0 mr-1"
+                          title="Excluir Pasta"
+                        >
+                          <Trash2 size={11} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               )}
-            </button>
-            <button 
-              onClick={() => { setActiveTab('Diário de Leitura'); handleNewNote(); }} 
-              className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center p-3' : 'justify-between px-4 py-3'} rounded-xl transition-all font-semibold ${activeTab === 'Diário de Leitura' ? 'bg-amber-500 text-white shadow-md shadow-amber-500/20' : 'text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800/50'}`}
-              title={isSidebarCollapsed ? 'Diário de Leitura' : ''}
-            >
-              <div className="flex items-center gap-3">
-                <BookOpen size={20} className="shrink-0" />
-                {!isSidebarCollapsed && <span>Diário de Leitura</span>}
-              </div>
-              {!isSidebarCollapsed && (
-                <span className={`text-xs px-2 py-0.5 rounded-full ${activeTab === 'Diário de Leitura' ? 'bg-white/20' : 'bg-zinc-200 dark:bg-zinc-800'}`}>
-                  {notes.filter(n => n.category === 'Diário de Leitura').length}
-                </span>
-              )}
-            </button>
+            </div>
           </nav>
         </div>
 
@@ -307,7 +429,7 @@ const AnotacoesApp: React.FC = () => {
                 </div>
                 <button 
                   onClick={toggleSortOrder}
-                  className="p-1.5 bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 text-zinc-650 dark:text-zinc-400 rounded-lg transition-colors border border-zinc-200/50 dark:border-zinc-800"
+                  className="p-1.5 bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 text-zinc-600 dark:text-zinc-400 rounded-lg transition-colors border border-zinc-200/50 dark:border-zinc-800"
                   title={sortOrder === 'asc' ? 'Ordem Crescente' : 'Ordem Decrescente'}
                 >
                   <ArrowUpDown size={12} />
@@ -333,6 +455,8 @@ const AnotacoesApp: React.FC = () => {
                       {group.notes.map(n => {
                         const isSelected = selectedNote?.id === n.id;
                         const snippet = n.content.length > 60 ? n.content.substring(0, 60) + '...' : n.content;
+                        // Find folder name if note is in a folder
+                        const noteFolder = folders.find(f => f.id === n.folderId);
                         return (
                           <div
                             key={n.id}
@@ -340,20 +464,27 @@ const AnotacoesApp: React.FC = () => {
                             className={`p-3 rounded-xl border text-left cursor-pointer transition-all duration-200 relative group/item ${
                               isSelected
                                 ? 'bg-amber-500/10 border-amber-500 shadow-sm'
-                                : 'bg-zinc-50/50 dark:bg-zinc-900/30 border-zinc-100 dark:border-zinc-850 hover:border-zinc-300 dark:hover:border-zinc-700'
+                                : 'bg-zinc-50/50 dark:bg-zinc-900/30 border-zinc-100 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700'
                             }`}
                           >
                             <div className="flex items-start justify-between gap-2">
                               <div className="flex-1 min-w-0">
-                                <p className="text-xs font-black text-zinc-850 dark:text-zinc-200 truncate pr-4">
+                                <p className="text-xs font-black text-zinc-800 dark:text-zinc-200 truncate pr-4">
                                   {n.title}
                                 </p>
-                                <p className="text-[10px] text-zinc-500 dark:text-zinc-450 mt-1 leading-snug break-words">
+                                <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-1 leading-snug break-words">
                                   {snippet}
                                 </p>
-                                <span className="text-[8px] font-mono text-zinc-400 dark:text-zinc-550 block mt-1.5">
-                                  {new Date(`${n.date}T12:00:00`).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })}
-                                </span>
+                                <div className="flex items-center justify-between mt-2.5">
+                                  <span className="text-[8px] font-mono text-zinc-400 dark:text-zinc-500 block">
+                                    {new Date(`${n.date}T12:00:00`).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })}
+                                  </span>
+                                  {noteFolder && (
+                                    <span className="text-[8px] font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded border border-amber-500/15 max-w-[120px] truncate block font-mono">
+                                      📁 {noteFolder.name}
+                                    </span>
+                                  )}
+                                </div>
                               </div>
                               <button
                                 onClick={(e) => {
@@ -381,14 +512,14 @@ const AnotacoesApp: React.FC = () => {
             
             {/* Header do Editor */}
             <div className="flex items-center justify-between px-5 py-3.5 border-b border-zinc-100 dark:border-zinc-800/50 shrink-0">
-              <span className="text-[10px] font-black uppercase tracking-wider text-zinc-450 dark:text-zinc-500 flex items-center gap-1.5 font-mono">
+              <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500 flex items-center gap-1.5 font-mono">
                 📝 Bloco de Notas {selectedNote ? `- ${selectedNote.title}` : '- Sem Título'}
               </span>
 
               <div className="flex items-center gap-2">
                 <button
                   onClick={handleNewNote}
-                  className="px-3 py-1.5 border border-zinc-200 dark:border-zinc-850 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-xl text-xs font-bold transition-colors"
+                  className="px-3 py-1.5 border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-xl text-xs font-bold transition-colors"
                 >
                   Nova Nota
                 </button>
@@ -403,7 +534,7 @@ const AnotacoesApp: React.FC = () => {
             </div>
 
             {/* Conteúdo do Bloco de Notas */}
-            <div className="flex-1 flex flex-col p-6 bg-[#fcfaf2] dark:bg-[#16161a] border-t border-b border-zinc-150 dark:border-zinc-850 transition-colors">
+            <div className="flex-1 flex flex-col p-6 bg-[#fcfaf2] dark:bg-[#16161a] border-t border-b border-zinc-200 dark:border-zinc-800 transition-colors">
               <input
                 type="text"
                 placeholder="Título da nota..."
@@ -411,6 +542,23 @@ const AnotacoesApp: React.FC = () => {
                 onChange={e => setEditorTitle(e.target.value)}
                 className="w-full bg-transparent border-b border-zinc-200 dark:border-zinc-800 pb-3 text-sm font-black text-zinc-800 dark:text-zinc-100 placeholder:text-zinc-400 outline-none uppercase tracking-wide"
               />
+
+              {activeTab === 'Diário de Leitura' && (
+                <div className="flex items-center gap-2 mt-3 pb-2 border-b border-zinc-100 dark:border-zinc-900">
+                  <span className="text-[10px] font-mono text-zinc-400 dark:text-zinc-500 uppercase tracking-widest font-black">Livro (Pasta):</span>
+                  <select
+                    value={editorFolderId || ''}
+                    onChange={e => setEditorFolderId(e.target.value || undefined)}
+                    className="bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded px-2.5 py-1 text-[11px] text-zinc-700 dark:text-zinc-300 outline-none font-sans font-bold"
+                  >
+                    <option value="" className="bg-white dark:bg-zinc-900 text-zinc-500">Nenhuma Pasta</option>
+                    {folders.map(f => (
+                      <option key={f.id} value={f.id} className="bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 font-semibold">{f.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               <textarea
                 placeholder="Comece a digitar sua nota..."
                 value={editorContent}
@@ -421,7 +569,7 @@ const AnotacoesApp: React.FC = () => {
             </div>
             
             {/* Status bar */}
-            <div className="px-5 py-2.5 bg-zinc-50 dark:bg-zinc-950 text-[10px] text-zinc-450 dark:text-zinc-550 flex items-center justify-between font-mono shrink-0">
+            <div className="px-5 py-2.5 bg-zinc-50 dark:bg-zinc-950 text-[10px] text-zinc-400 dark:text-zinc-500 flex items-center justify-between font-mono shrink-0">
               <span>Caracteres: {editorContent.length} | Linhas: {editorContent.split('\n').length}</span>
               <span>Categoria: <span className="font-extrabold text-amber-500">{activeTab}</span></span>
             </div>

@@ -720,19 +720,19 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
         .select('id, text')
         .eq('user_id', user.id)
         .eq('completed', false)
-        .eq('due_date', todayStr);
+        .lte('due_date', todayStr);
       setPendingTarefas(tarefas?.length || 0);
 
       // 2. Pending Estudos
       const estudosRaw = JSON.parse(localStorage.getItem('cp_study_tasks') || '[]');
       const estudos = Array.isArray(estudosRaw) ? estudosRaw : [];
-      const pendingStudyTasks = estudos.filter((t: any) => t.date === todayStr && !t.done).length;
+      const pendingStudyTasks = estudos.filter((t: any) => t.date <= todayStr && !t.done).length;
 
       const scheduledRaw = JSON.parse(localStorage.getItem('cp_scheduled_studies') || '[]');
       const scheduled = Array.isArray(scheduledRaw) ? scheduledRaw : [];
       const pendingScheduled = scheduled.filter((s: any) => {
         const sDate = s.date?.split('T')[0];
-        return sDate === todayStr && s.status !== 'realizado';
+        return sDate <= todayStr && s.status !== 'realizado';
       }).length;
       setPendingEstudos(pendingStudyTasks + pendingScheduled);
 
@@ -741,7 +741,7 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
         .from('saude_treinos')
         .select('id, type')
         .eq('user_id', user.id)
-        .eq('date', todayStr)
+        .lte('date', todayStr)
         .eq('status', 'planejado');
       setPendingSaude(saude?.length || 0);
 
@@ -914,7 +914,7 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
             {showNotificationsPopover && (
               <div className="absolute right-0 mt-2 w-80 max-w-[calc(100vw-2rem)] bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-2xl z-50 p-4 animate-in slide-in-from-top-2 duration-200">
                 <div className="flex items-center justify-between pb-3 border-b border-zinc-100 dark:border-zinc-800/80">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-zinc-750 dark:text-zinc-300">Notificações</span>
+                  <span className="text-[10px] font-black uppercase tracking-wider text-zinc-700 dark:text-zinc-300">Notificações</span>
                   <div className="flex gap-2">
                     {unreadCount > 0 && (
                       <button
@@ -951,7 +951,7 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
                           className={`p-2.5 rounded-xl border text-left transition-all ${
                             n.read
                               ? 'bg-zinc-50/50 dark:bg-zinc-950/20 border-zinc-100 dark:border-zinc-900/50 opacity-60'
-                              : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-805 shadow-sm hover:border-zinc-300 dark:hover:border-zinc-700'
+                              : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 shadow-sm hover:border-zinc-300 dark:hover:border-zinc-700'
                           } relative group/item`}
                         >
                           <div className="flex items-start justify-between gap-2">
@@ -962,7 +962,7 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
                                   {notifTitle}
                                 </p>
                               </div>
-                              <p className="text-[10px] text-zinc-550 dark:text-zinc-400 mt-0.5 leading-snug break-words font-medium">
+                              <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5 leading-snug break-words font-medium">
                                 {notifDesc}
                               </p>
                               {notifTime && (
@@ -1047,14 +1047,14 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
             {/* Stats – 4 cards */}
             <div className="grid grid-cols-4 gap-3">
               {[
-                { label: 'Consistência', value: `${last7DaysRate}%`, sub: 'últimos 7 dias', color: 'text-zinc-900 dark:text-white', bg: 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 shadow-sm', icon: '📊' },
-                { label: 'Streak atual', value: `${currentStreak}d`, sub: 'dias seguidos', color: 'text-zinc-900 dark:text-white', bg: 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 shadow-sm', icon: '🔥' },
-                { label: 'Hábitos ativos', value: habits.length, sub: 'monitorados', color: 'text-zinc-900 dark:text-white', bg: 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 shadow-sm', icon: '✅' },
-                { label: 'Conclusões', value: totalCompletions, sub: 'no histórico', color: 'text-zinc-900 dark:text-white', bg: 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 shadow-sm', icon: '🏆' },
+                { label: 'Consistência', value: `${last7DaysRate}%`, sub: 'últimos 7 dias', color: 'text-zinc-900 dark:text-white', bg: 'bg-zinc-100/90 dark:bg-zinc-900/90 border-zinc-300 dark:border-zinc-800 shadow-sm', icon: '📊' },
+                { label: 'Streak atual', value: `${currentStreak}d`, sub: 'dias seguidos', color: 'text-zinc-900 dark:text-white', bg: 'bg-zinc-100/90 dark:bg-zinc-900/90 border-zinc-300 dark:border-zinc-800 shadow-sm', icon: '🔥' },
+                { label: 'Hábitos ativos', value: habits.length, sub: 'monitorados', color: 'text-zinc-900 dark:text-white', bg: 'bg-zinc-100/90 dark:bg-zinc-900/90 border-zinc-300 dark:border-zinc-800 shadow-sm', icon: '✅' },
+                { label: 'Conclusões', value: totalCompletions, sub: 'no histórico', color: 'text-zinc-900 dark:text-white', bg: 'bg-zinc-100/90 dark:bg-zinc-900/90 border-zinc-300 dark:border-zinc-800 shadow-sm', icon: '🏆' },
               ].map(stat => (
                 <div key={stat.label} className={`p-4 rounded-2xl border ${stat.bg} flex flex-col gap-1`}>
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-black text-zinc-555 dark:text-zinc-400 uppercase tracking-wider">{stat.label}</span>
+                    <span className="text-[10px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">{stat.label}</span>
                     <span className="text-base leading-none">{stat.icon}</span>
                   </div>
                   <span className={`text-2xl font-black ${stat.color} leading-none`}>{stat.value}</span>
@@ -1064,15 +1064,15 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
             </div>
 
             {/* Calendar heatmap — 15 cols × 2 rows */}
-            <div className="bg-white/70 dark:bg-zinc-900/70 backdrop-blur-sm rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-5">
+            <div className="bg-zinc-100/90 dark:bg-zinc-900/90 backdrop-blur-sm rounded-2xl border border-zinc-300 dark:border-zinc-800 p-5 shadow-sm">
               <div className="flex items-center justify-between mb-4">
                 <h4 className="text-xs font-black text-zinc-700 dark:text-zinc-300 uppercase tracking-widest flex items-center gap-2">
                   <Calendar size={13} className="text-zinc-900 dark:text-zinc-100" /> Mapa de Consistência — Últimos 30 Dias
                 </h4>
-                <div className="flex items-center gap-1.5 text-[9px] font-bold text-zinc-400 dark:text-zinc-550">
+                <div className="flex items-center gap-1.5 text-[9px] font-bold text-zinc-400 dark:text-zinc-500">
                   <span>Menos</span>
                   <div className="w-3 h-3 rounded bg-zinc-200 dark:bg-zinc-800" />
-                  <div className="w-3 h-3 rounded bg-zinc-300 dark:bg-zinc-750" />
+                  <div className="w-3 h-3 rounded bg-zinc-300 dark:bg-zinc-700" />
                   <div className="w-3 h-3 rounded bg-zinc-500 dark:bg-zinc-500" />
                   <div className="w-3 h-3 rounded bg-zinc-900 dark:bg-white" />
                   <span>Mais</span>
@@ -1080,9 +1080,9 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
               </div>
               <div className="grid gap-2 grid-cols-15" style={{ gridTemplateColumns: 'repeat(15, minmax(0, 1fr))' }}>
                 {last30DaysList.map(day => {
-                  let cell = 'bg-zinc-100 dark:bg-zinc-800/60 text-zinc-500 dark:text-zinc-405';
-                  if (day.rate > 0 && day.rate <= 0.33) cell = 'bg-zinc-200 dark:bg-zinc-800 text-zinc-850 dark:text-zinc-200';
-                  else if (day.rate > 0.33 && day.rate <= 0.66) cell = 'bg-zinc-400 dark:bg-zinc-650 text-white';
+                  let cell = 'bg-zinc-100 dark:bg-zinc-800/60 text-zinc-500 dark:text-zinc-400';
+                  if (day.rate > 0 && day.rate <= 0.33) cell = 'bg-zinc-200 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200';
+                  else if (day.rate > 0.33 && day.rate <= 0.66) cell = 'bg-zinc-400 dark:bg-zinc-600 text-white';
                   else if (day.rate > 0.66 && day.rate < 1) cell = 'bg-zinc-600 dark:bg-zinc-500 text-white';
                   else if (day.rate === 1) cell = 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-950 font-black shadow-sm';
                   const isToday = day.dateStr === todayStr;
@@ -1090,7 +1090,7 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
                     <div
                       key={day.dateStr}
                       title={`${day.dateStr}: ${day.completed}/${day.total} hábitos concluídos`}
-                      className={`aspect-square rounded-xl flex flex-col items-center justify-center gap-0.5 transition-transform hover:scale-105 cursor-default ${cell} ${isToday ? 'ring-2 ring-zinc-500 dark:ring-zinc-450 ring-offset-2 dark:ring-offset-zinc-900' : ''}`}
+                      className={`aspect-square rounded-xl flex flex-col items-center justify-center gap-0.5 transition-transform hover:scale-105 cursor-default ${cell} ${isToday ? 'ring-2 ring-zinc-500 dark:ring-zinc-400 ring-offset-2 dark:ring-offset-zinc-900' : ''}`}
                     >
                       <span className="text-[11px] font-black leading-none">{day.dayNum}</span>
                       {day.total > 0 && (
@@ -1103,8 +1103,8 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
             </div>
 
             {/* Per-habit section — full width rows with larger interactive cells */}
-            <div className="bg-white/70 dark:bg-zinc-900/70 backdrop-blur-sm rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 flex flex-col gap-4">
-              <h4 className="text-xs font-black text-zinc-650 dark:text-zinc-300 uppercase tracking-widest flex items-center gap-2">
+            <div className="bg-zinc-100/90 dark:bg-zinc-900/90 backdrop-blur-sm rounded-2xl border border-zinc-300 dark:border-zinc-800 p-5 flex flex-col gap-4 shadow-sm">
+              <h4 className="text-xs font-black text-zinc-600 dark:text-zinc-300 uppercase tracking-widest flex items-center gap-2">
                 <Award size={13} className="text-zinc-900 dark:text-zinc-100" /> Desempenho por Hábito — Últimos 7 dias
                 <span className="ml-auto text-[10px] text-zinc-500 dark:text-zinc-400 font-bold normal-case tracking-normal">Dica: clique nos botões abaixo para marcar/desmarcar o hábito no dia</span>
               </h4>
@@ -1117,12 +1117,12 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
                   const rateColor = 'bg-zinc-900 dark:bg-white';
                   const textColor = 'text-zinc-900 dark:text-white font-extrabold';
                   return (
-                    <div key={h.id} className="flex flex-col gap-3 p-4 rounded-2xl bg-zinc-50/80 dark:bg-zinc-800/40 border border-zinc-150 dark:border-zinc-700/60 shadow-sm">
+                    <div key={h.id} className="flex flex-col gap-3 p-4 rounded-2xl bg-zinc-50/80 dark:bg-zinc-800/40 border border-zinc-200 dark:border-zinc-700/60 shadow-sm">
                       {/* Name row */}
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-black text-zinc-800 dark:text-white uppercase tracking-wider">{h.name}</span>
                         <div className="flex items-center gap-3">
-                          <span className="text-[10px] text-zinc-400 dark:text-zinc-555 font-medium">{habitTotal} conclusões totais</span>
+                          <span className="text-[10px] text-zinc-400 dark:text-zinc-500 font-medium">{habitTotal} conclusões totais</span>
                           <span className={`text-sm font-black ${textColor}`}>{habit7DayRate}%</span>
                         </div>
                       </div>
@@ -1147,14 +1147,14 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
                                 done
                                   ? 'bg-zinc-900 dark:bg-white border-zinc-900 dark:border-white shadow-sm text-white dark:text-zinc-950 font-black'
                                   : isToday
-                                    ? 'bg-white dark:bg-zinc-800 border-zinc-905 dark:border-zinc-100 hover:border-zinc-950 dark:hover:border-white'
+                                    ? 'bg-white dark:bg-zinc-800 border-zinc-900 dark:border-zinc-100 hover:border-zinc-950 dark:hover:border-white'
                                     : 'bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-500'
                               }`}
                             >
                               <span className={`text-[10px] font-black uppercase tracking-wider ${done ? 'text-zinc-200 dark:text-zinc-700' : isToday ? 'text-zinc-900 dark:text-white font-black' : 'text-zinc-400 dark:text-zinc-500'}`}>
                                 {day.label}
                               </span>
-                              <div className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${done ? 'bg-white/20 dark:bg-black/20' : 'bg-zinc-100 dark:bg-zinc-750/80'}`}>
+                              <div className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${done ? 'bg-white/20 dark:bg-black/20' : 'bg-zinc-100 dark:bg-zinc-700/80'}`}>
                                 {done
                                   ? <Check size={16} strokeWidth={3} className="text-white dark:text-zinc-950 animate-in zoom-in-50 duration-200" />
                                   : <span className={`text-xs font-black ${isToday ? 'text-zinc-900 dark:text-white' : 'text-zinc-500 dark:text-zinc-400'}`}>{day.dayNum}</span>
@@ -1208,10 +1208,10 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
             {financeBalance !== null && (
               <span className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider border whitespace-nowrap shrink-0 ${
                 financeBalance >= 0
-                  ? 'bg-white/40 dark:bg-zinc-900/40 backdrop-blur-sm text-zinc-550 dark:text-zinc-400 border-zinc-200/50 dark:border-zinc-800/50 font-bold'
+                  ? 'bg-white/40 dark:bg-zinc-900/40 backdrop-blur-sm text-zinc-500 dark:text-zinc-400 border-zinc-200/50 dark:border-zinc-800/50 font-bold'
                   : 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-500/20'
               }`}>
-                <Wallet size={11} className={financeBalance >= 0 ? 'text-zinc-400 dark:text-zinc-550' : ''} />
+                <Wallet size={11} className={financeBalance >= 0 ? 'text-zinc-400 dark:text-zinc-500' : ''} />
                 {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(financeBalance)}
               </span>
             )}
@@ -1244,30 +1244,30 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
         </div>
 
         {/* Habit Tracker & Quick Notes Container */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8 items-start">
           {/* Habit Tracker Section */}
-          <div className="p-5 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm rounded-[2rem] border border-zinc-200/80 dark:border-zinc-800/80 shadow-md flex flex-col h-[400px] justify-between">
+          <div className="p-6 bg-zinc-100/90 dark:bg-zinc-900/90 backdrop-blur-sm rounded-[2rem] border border-zinc-300 dark:border-zinc-800 shadow-md flex flex-col justify-between gap-4">
             <div>
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h3 className="text-xs font-black text-zinc-700 dark:text-zinc-300 uppercase tracking-widest flex items-center gap-1.5">
+                  <h3 className="text-xs font-black text-zinc-800 dark:text-zinc-200 uppercase tracking-widest flex items-center gap-1.5">
                     <ClipboardList size={13} className="text-zinc-900 dark:text-zinc-100" />
                     Hábitos de Hoje
                   </h3>
-                  <p className="text-[10px] text-zinc-405 dark:text-zinc-550 mt-0.5">Mantenha sua rotina consistente</p>
+                  <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5 font-medium">Mantenha sua rotina consistente</p>
                 </div>
                 
                 <div className="flex items-center gap-1.5">
                   <button
                     onClick={() => setShowHabitsReport(true)}
-                    className="flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-zinc-800 hover:text-zinc-950 dark:text-zinc-200 dark:hover:text-white bg-zinc-100 dark:bg-zinc-800 px-2.5 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-705 transition-colors"
+                    className="flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-zinc-800 hover:text-zinc-950 dark:text-zinc-200 dark:hover:text-white bg-zinc-200 dark:bg-zinc-800 px-2.5 py-1.5 rounded-lg border border-zinc-300 dark:border-zinc-700 transition-colors cursor-pointer"
                     title="Ver Relatório Completo"
                   >
                     <BarChart3 size={11} /> Relatório
                   </button>
                   <button
                     onClick={() => setShowManageHabits(!showManageHabits)}
-                    className="text-[9px] font-black uppercase tracking-wider text-zinc-800 hover:text-zinc-950 dark:text-zinc-200 dark:hover:text-white bg-zinc-100 dark:bg-zinc-800 px-2.5 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-705 transition-colors"
+                    className="text-[9px] font-black uppercase tracking-wider text-zinc-800 hover:text-zinc-950 dark:text-zinc-200 dark:hover:text-white bg-zinc-200 dark:bg-zinc-800 px-2.5 py-1.5 rounded-lg border border-zinc-300 dark:border-zinc-700 transition-colors cursor-pointer"
                   >
                     {showManageHabits ? 'Fechar' : 'Gerenciar'}
                   </button>
@@ -1276,16 +1276,16 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
 
               {/* Manage Habits view */}
               {showManageHabits && (
-                <div className="mb-4 p-3 bg-zinc-50 dark:bg-zinc-950 rounded-2xl border border-zinc-200/50 dark:border-zinc-800/80 space-y-3 animate-in fade-in slide-in-from-top-1 duration-200">
-                  <p className="text-[9px] font-black text-zinc-400 dark:text-zinc-550 uppercase tracking-widest">Meus Hábitos</p>
+                <div className="mb-4 p-3 bg-zinc-200 dark:bg-zinc-950 rounded-2xl border border-zinc-300 dark:border-zinc-800 space-y-3 animate-in fade-in slide-in-from-top-1 duration-200">
+                  <p className="text-[9px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest">Meus Hábitos</p>
                   
                   <div className="space-y-1.5 max-h-24 overflow-y-auto pr-1 custom-scrollbar">
                     {habits.length === 0 ? (
-                      <p className="text-[10px] text-zinc-400 text-center py-2">Nenhum hábito cadastrado.</p>
+                      <p className="text-[10px] text-zinc-500 text-center py-2">Nenhum hábito cadastrado.</p>
                     ) : (
                       habits.map(h => (
-                        <div key={h.id} className="flex items-center justify-between bg-white dark:bg-zinc-900 px-3 py-1.5 rounded-xl border border-zinc-150 dark:border-zinc-800/80 animate-in fade-in duration-200">
-                          <span className="text-[11px] font-medium text-zinc-750 dark:text-zinc-300">{h.name}</span>
+                        <div key={h.id} className="flex items-center justify-between bg-white dark:bg-zinc-900 px-3 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-800 animate-in fade-in duration-200">
+                          <span className="text-[11px] font-semibold text-zinc-800 dark:text-zinc-200">{h.name}</span>
                           <button
                             onClick={() => deleteHabit(h.id)}
                             className="text-zinc-400 hover:text-rose-500 transition-colors p-1"
@@ -1305,11 +1305,11 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
                       value={newHabitName}
                       onChange={e => setNewHabitName(e.target.value)}
                       onKeyDown={e => { if (e.key === 'Enter') { addHabit(newHabitName); setNewHabitName(''); } }}
-                      className="flex-1 px-3 py-1.5 text-xs bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl outline-none focus:ring-1 focus:ring-zinc-500 text-zinc-800 dark:text-white"
+                      className="flex-1 px-3 py-1.5 text-xs bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-800 rounded-xl outline-none focus:ring-1 focus:ring-zinc-400 text-zinc-800 dark:text-white"
                     />
                     <button
                       onClick={() => { addHabit(newHabitName); setNewHabitName(''); }}
-                      className="bg-zinc-900 hover:bg-zinc-850 dark:bg-white dark:hover:bg-zinc-100 text-white dark:text-zinc-900 px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1 transition-all"
+                      className="bg-zinc-900 hover:bg-zinc-800 dark:bg-white dark:hover:bg-zinc-100 text-white dark:text-zinc-900 px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1 transition-all"
                     >
                       <Plus size={12} /> Add
                     </button>
@@ -1319,9 +1319,9 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
 
               {/* List of habits checkboxes */}
               {!showManageHabits && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2 max-h-[220px] overflow-y-auto pr-1 custom-scrollbar">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
                   {habits.length === 0 ? (
-                    <div className="col-span-2 py-4 text-center text-xs text-zinc-400 dark:text-zinc-500">
+                    <div className="col-span-2 py-4 text-center text-xs text-zinc-500 dark:text-zinc-400 font-medium">
                       Você não possui hábitos definidos. Clique em "Gerenciar" para criar.
                     </div>
                   ) : (
@@ -1333,14 +1333,14 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
                           onClick={() => toggleHabit(h.id)}
                           className={`flex items-center gap-3 p-3 rounded-2xl border transition-all duration-200 cursor-pointer ${
                             isCompleted
-                              ? 'bg-zinc-50/50 dark:bg-zinc-950/20 border-zinc-150 dark:border-zinc-900/50 opacity-60'
-                              : 'bg-white dark:bg-zinc-900 border-zinc-200/80 dark:border-zinc-800/80 shadow-sm hover:border-zinc-400 dark:hover:border-zinc-650 hover:shadow-md'
+                              ? 'bg-zinc-200/50 dark:bg-zinc-950/20 border-zinc-300 dark:border-zinc-900/50 opacity-60'
+                              : 'bg-white dark:bg-zinc-900 border-zinc-300 dark:border-zinc-800/80 shadow-sm hover:border-zinc-400 dark:hover:border-zinc-600 hover:shadow-md'
                           }`}
                         >
                           <div className="relative flex items-center justify-center shrink-0">
                             <div className={`w-5 h-5 rounded-lg border flex items-center justify-center transition-all ${
                               isCompleted
-                                ? 'bg-zinc-900 dark:bg-white border-zinc-900 dark:border-white text-white dark:text-zinc-955'
+                                ? 'bg-zinc-900 dark:bg-white border-zinc-900 dark:border-white text-white dark:text-zinc-950'
                                 : 'border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800'
                             }`}>
                               {isCompleted && <Check size={11} strokeWidth={3} />}
@@ -1348,8 +1348,8 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
                           </div>
                           <span className={`text-[11px] font-bold transition-all truncate leading-none ${
                             isCompleted
-                              ? 'line-through text-zinc-405 dark:text-zinc-550'
-                              : 'text-zinc-700 dark:text-zinc-300'
+                              ? 'line-through text-zinc-500 dark:text-zinc-500 font-medium'
+                              : 'text-zinc-800 dark:text-zinc-200'
                           }`}>
                             {h.name}
                           </span>
@@ -1363,14 +1363,14 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
 
             {/* Progress Indicator */}
             {habits.length > 0 && !showManageHabits && (
-              <div className="mt-4 pt-3 border-t border-zinc-100 dark:border-zinc-800/60 animate-in fade-in duration-300 shrink-0">
-                <div className="flex justify-between items-center text-[10px] font-bold text-zinc-555 dark:text-zinc-450 mb-1.5">
+              <div className="mt-2 pt-3 border-t border-zinc-300 dark:border-zinc-800/60 animate-in fade-in duration-300 shrink-0">
+                <div className="flex justify-between items-center text-[10px] font-bold text-zinc-500 dark:text-zinc-400 mb-1.5">
                   <span>Progresso</span>
                   <span>
                     {habits.filter(h => (habitHistory[todayStr] || []).includes(h.id)).length} de {habits.length} ({Math.round((habits.filter(h => (habitHistory[todayStr] || []).includes(h.id)).length / habits.length) * 100)}%)
                   </span>
                 </div>
-                <div className="w-full h-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+                <div className="w-full h-1.5 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
                   <div
                     className="h-full bg-zinc-900 dark:bg-white transition-all duration-500"
                     style={{ width: `${(habits.filter(h => (habitHistory[todayStr] || []).includes(h.id)).length / habits.length) * 100}%` }}
@@ -1381,30 +1381,30 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
           </div>
 
           {/* Quick Notes Section */}
-          <div className="p-5 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm rounded-[2rem] border border-zinc-200/80 dark:border-zinc-800/80 shadow-md flex flex-col h-[400px] justify-between">
+          <div className="p-6 bg-zinc-100/90 dark:bg-zinc-900/90 backdrop-blur-sm rounded-[2rem] border border-zinc-300 dark:border-zinc-800 shadow-md flex flex-col justify-between gap-4">
             <div>
               <div className="flex items-center justify-between mb-3 shrink-0">
                 <div>
-                  <h3 className="text-xs font-black text-zinc-700 dark:text-zinc-300 uppercase tracking-widest flex items-center gap-1.5">
+                  <h3 className="text-xs font-black text-zinc-800 dark:text-zinc-200 uppercase tracking-widest flex items-center gap-1.5">
                     <StickyNote size={13} className="text-zinc-900 dark:text-zinc-100" />
                     Nota Rápida
                   </h3>
-                  <p className="text-[10px] text-zinc-450 dark:text-zinc-550 mt-0.5">Salve anotações direto no Hub</p>
+                  <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5 font-medium">Salve anotações direto no Hub</p>
                 </div>
                 
                 {/* Category tabs */}
-                <div className="flex bg-zinc-100 dark:bg-zinc-800 rounded-lg p-0.5">
+                <div className="flex bg-zinc-200 dark:bg-zinc-800 rounded-lg p-0.5 border border-zinc-300 dark:border-zinc-700">
                   <button
                     type="button"
                     onClick={() => setQuickNoteTab('Anotações')}
-                    className={`px-2 py-1 text-[9px] uppercase tracking-wider font-bold rounded-md transition-all ${quickNoteTab === 'Anotações' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}
+                    className={`px-2 py-1 text-[9px] uppercase tracking-wider font-bold rounded-md transition-all cursor-pointer ${quickNoteTab === 'Anotações' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}
                   >
                     Notas
                   </button>
                   <button
                     type="button"
                     onClick={() => setQuickNoteTab('Diário de Leitura')}
-                    className={`px-2 py-1 text-[9px] uppercase tracking-wider font-bold rounded-md transition-all ${quickNoteTab === 'Diário de Leitura' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}
+                    className={`px-2 py-1 text-[9px] uppercase tracking-wider font-bold rounded-md transition-all cursor-pointer ${quickNoteTab === 'Diário de Leitura' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}
                   >
                     Leitura
                   </button>
@@ -1412,32 +1412,32 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
               </div>
 
               {/* Inputs */}
-              <div className="space-y-2 flex-1">
+              <div className="space-y-2">
                 <input
                   type="text"
                   placeholder="Título (opcional)..."
                   value={quickNoteTitle}
                   onChange={e => setQuickNoteTitle(e.target.value)}
-                  className="w-full px-3 py-1.5 text-xs bg-zinc-50/50 dark:bg-zinc-950/30 border border-zinc-200/60 dark:border-zinc-800/80 rounded-xl outline-none focus:ring-1 focus:ring-zinc-400 text-zinc-800 dark:text-white uppercase tracking-wider font-semibold"
+                  className="w-full px-3 py-1.5 text-xs bg-white dark:bg-zinc-950/30 border border-zinc-300 dark:border-zinc-800 rounded-xl outline-none focus:ring-1 focus:ring-zinc-400 text-zinc-900 dark:text-white uppercase tracking-wider font-semibold"
                 />
                 <textarea
                   placeholder="Escreva algo rápido..."
                   value={quickNoteContent}
                   onChange={e => setQuickNoteContent(e.target.value)}
-                  className="w-full h-[180px] px-3 py-2 text-xs bg-[#fcfaf2] dark:bg-[#16161a] border border-zinc-200/80 dark:border-zinc-850 rounded-xl outline-none resize-none font-mono text-zinc-800 dark:text-zinc-200 custom-scrollbar focus:ring-1 focus:ring-zinc-400"
+                  className="w-full h-[140px] px-3 py-2 text-xs bg-amber-50/20 dark:bg-zinc-950/40 border border-zinc-300 dark:border-zinc-800 rounded-xl outline-none resize-none font-mono text-zinc-900 dark:text-zinc-100 focus:ring-1 focus:ring-zinc-400"
                   style={{ fontFamily: 'Consolas, Monaco, "Courier New", Courier, monospace' }}
                 />
               </div>
             </div>
 
-            <div className="flex items-center justify-between mt-3 pt-2 border-t border-zinc-100 dark:border-zinc-800/60 shrink-0">
+            <div className="flex items-center justify-between mt-1 pt-2 border-t border-zinc-300 dark:border-zinc-800/60 shrink-0">
               <div>
                 {noteSavedFeedback ? (
                   <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 animate-pulse">
                     ✓ Nota salva!
                   </span>
                 ) : (
-                  <span className="text-[9px] text-zinc-400 font-mono">
+                  <span className="text-[9px] text-zinc-500 font-mono">
                     {quickNoteContent.length} caracteres
                   </span>
                 )}
@@ -1446,7 +1446,7 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
                 <button
                   type="button"
                   onClick={handleGoToAnotacoes}
-                  className="text-[9px] font-black uppercase tracking-wider text-zinc-650 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors bg-zinc-100 dark:bg-zinc-850 px-3 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-700"
+                  className="text-[9px] font-black uppercase tracking-wider text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white transition-colors bg-zinc-200 dark:bg-zinc-800 px-3 py-1.5 rounded-xl border border-zinc-300 dark:border-zinc-700 cursor-pointer"
                 >
                   Ver tudo
                 </button>
@@ -1454,7 +1454,7 @@ const HubHome: React.FC<HubHomeProps> = ({ userName, theme, toggleTheme, onLogou
                   type="button"
                   onClick={handleSaveQuickNote}
                   disabled={!quickNoteContent.trim()}
-                  className="bg-zinc-900 hover:bg-zinc-850 dark:bg-white dark:hover:bg-zinc-100 disabled:opacity-40 text-white dark:text-zinc-900 px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all"
+                  className="bg-zinc-900 hover:bg-zinc-800 dark:bg-white dark:hover:bg-zinc-100 disabled:opacity-40 text-white dark:text-zinc-900 px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer"
                 >
                   Salvar
                 </button>

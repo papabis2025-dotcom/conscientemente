@@ -473,14 +473,14 @@ const FinancasApp: React.FC = () => {
                   <button 
                     type="button"
                     onClick={() => setTxType('saida')}
-                    className={`flex items-center gap-1 px-3 py-1.5 text-[9px] font-black uppercase tracking-wider rounded-md transition-colors ${txType === 'saida' ? 'bg-rose-500 text-white shadow-md' : 'text-zinc-555 hover:text-zinc-750 dark:hover:text-zinc-350'}`}
+                    className={`flex items-center gap-1 px-3 py-1.5 text-[9px] font-black uppercase tracking-wider rounded-md transition-colors ${txType === 'saida' ? 'bg-rose-500 text-white shadow-md' : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'}`}
                   >
                     <TrendingDown size={10} /> Saída
                   </button>
                   <button 
                     type="button"
                     onClick={() => setTxType('entrada')}
-                    className={`flex items-center gap-1 px-3 py-1.5 text-[9px] font-black uppercase tracking-wider rounded-md transition-colors ${txType === 'entrada' ? 'bg-blue-500 text-white shadow-md' : 'text-zinc-555 hover:text-zinc-750 dark:hover:text-zinc-350'}`}
+                    className={`flex items-center gap-1 px-3 py-1.5 text-[9px] font-black uppercase tracking-wider rounded-md transition-colors ${txType === 'entrada' ? 'bg-blue-500 text-white shadow-md' : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'}`}
                   >
                     <TrendingUp size={10} /> Entrada
                   </button>
@@ -496,7 +496,7 @@ const FinancasApp: React.FC = () => {
                       placeholder="Ex: 19" 
                       value={txDate} 
                       onChange={e => setTxDate(e.target.value)} 
-                      className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-850 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:ring-1 focus:ring-rose-500 dark:text-white font-semibold" 
+                      className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:ring-1 focus:ring-rose-500 dark:text-white font-semibold" 
                     />
                   </div>
                   <div className="w-2/3 flex flex-col gap-1">
@@ -506,7 +506,7 @@ const FinancasApp: React.FC = () => {
                       placeholder="Ex: Supermercado" 
                       value={txName} 
                       onChange={e => setTxName(e.target.value)} 
-                      className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-850 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:ring-1 focus:ring-rose-500 dark:text-white font-semibold" 
+                      className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:ring-1 focus:ring-rose-500 dark:text-white font-semibold" 
                     />
                   </div>
                 </div>
@@ -517,7 +517,7 @@ const FinancasApp: React.FC = () => {
                     <select 
                       value={txCategory} 
                       onChange={e => setTxCategory(e.target.value)} 
-                      className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-850 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:ring-1 focus:ring-rose-500 cursor-pointer dark:text-white font-semibold"
+                      className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:ring-1 focus:ring-rose-500 cursor-pointer dark:text-white font-semibold"
                     >
                       {txType === 'entrada' 
                         ? inCategories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)
@@ -532,7 +532,7 @@ const FinancasApp: React.FC = () => {
                       placeholder="0,00" 
                       value={txAmount} 
                       onChange={e => setTxAmount(e.target.value)} 
-                      className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-850 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:ring-1 focus:ring-rose-500 font-bold dark:text-white" 
+                      className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:ring-1 focus:ring-rose-500 font-bold dark:text-white" 
                     />
                   </div>
                 </div>
@@ -543,7 +543,7 @@ const FinancasApp: React.FC = () => {
                     <select 
                       value={txMethod} 
                       onChange={e => setTxMethod(e.target.value)} 
-                      className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-850 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:ring-1 focus:ring-rose-500 cursor-pointer dark:text-white font-semibold"
+                      className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:ring-1 focus:ring-rose-500 cursor-pointer dark:text-white font-semibold"
                     >
                       {paymentMethods.map(m => <option key={m.id} value={m.name}>{m.name}</option>)}
                     </select>
@@ -587,19 +587,19 @@ const FinancasApp: React.FC = () => {
                 <div className="flex bg-zinc-100 dark:bg-zinc-900 rounded-lg p-0.5">
                   <button 
                     onClick={() => setActiveChartTab('cartoes')}
-                    className={`px-2 py-1 text-[9px] font-black uppercase tracking-wider rounded-md transition-colors ${activeChartTab === 'cartoes' ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white shadow-sm' : 'text-zinc-550 hover:text-zinc-700 dark:hover:text-zinc-300'}`}
+                    className={`px-2 py-1 text-[9px] font-black uppercase tracking-wider rounded-md transition-colors ${activeChartTab === 'cartoes' ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'}`}
                   >
                     Cartões
                   </button>
                   <button 
                     onClick={() => setActiveChartTab('saidas')}
-                    className={`px-2 py-1 text-[9px] font-black uppercase tracking-wider rounded-md transition-colors ${activeChartTab === 'saidas' ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white shadow-sm' : 'text-zinc-555 hover:text-zinc-700 dark:hover:text-zinc-300'}`}
+                    className={`px-2 py-1 text-[9px] font-black uppercase tracking-wider rounded-md transition-colors ${activeChartTab === 'saidas' ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'}`}
                   >
                     Saídas
                   </button>
                   <button 
                     onClick={() => setActiveChartTab('entradas')}
-                    className={`px-2 py-1 text-[9px] font-black uppercase tracking-wider rounded-md transition-colors ${activeChartTab === 'entradas' ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white shadow-sm' : 'text-zinc-555 hover:text-zinc-700 dark:hover:text-zinc-300'}`}
+                    className={`px-2 py-1 text-[9px] font-black uppercase tracking-wider rounded-md transition-colors ${activeChartTab === 'entradas' ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'}`}
                   >
                     Entradas
                   </button>

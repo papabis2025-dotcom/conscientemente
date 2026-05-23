@@ -169,7 +169,7 @@ const ResumoAnual: React.FC<ResumoAnualProps> = ({
 
         <div className="flex flex-wrap items-center gap-4">
           {/* Seletor de Anos */}
-          <div className="flex bg-zinc-100 dark:bg-zinc-900/60 rounded-xl p-1 border border-zinc-250/20 dark:border-zinc-800">
+          <div className="flex bg-zinc-100 dark:bg-zinc-900/60 rounded-xl p-1 border border-zinc-200/20 dark:border-zinc-800">
             {availableYears.map(year => (
               <button
                 key={year}
@@ -277,7 +277,7 @@ const ResumoAnual: React.FC<ResumoAnualProps> = ({
       <section className="bg-white dark:bg-[#121214] p-6 rounded-3xl border border-zinc-200 dark:border-zinc-800/50 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-2">
           <div>
-            <h3 className="text-sm font-black uppercase tracking-tight text-zinc-850 dark:text-zinc-150">Evolução Mensal do Fluxo</h3>
+            <h3 className="text-sm font-black uppercase tracking-tight text-zinc-800 dark:text-zinc-200">Evolução Mensal do Fluxo</h3>
             <p className="text-[10px] text-zinc-400 dark:text-zinc-500 font-semibold uppercase tracking-wider mt-0.5">Comparativo mensal de Entradas e Saídas</p>
           </div>
           <div className="flex gap-4 text-xs font-bold uppercase tracking-wider">
@@ -333,9 +333,9 @@ const ResumoAnual: React.FC<ResumoAnualProps> = ({
         
         {/* Detalhamento por Categoria (Ocupa 2 Colunas) */}
         <section className="lg:col-span-2 bg-white dark:bg-[#121214] rounded-3xl border border-zinc-200 dark:border-zinc-800/50 shadow-sm overflow-hidden flex flex-col">
-          <div className="p-5 border-b border-zinc-150 dark:border-zinc-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-zinc-50/50 dark:bg-zinc-900/20">
+          <div className="p-5 border-b border-zinc-200 dark:border-zinc-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-zinc-50/50 dark:bg-zinc-900/20">
             <div>
-              <h3 className="text-sm font-black uppercase tracking-tight text-zinc-805 dark:text-zinc-150">Valores Consolidados por Categoria</h3>
+              <h3 className="text-sm font-black uppercase tracking-tight text-zinc-800 dark:text-zinc-200">Valores Consolidados por Categoria</h3>
               <p className="text-[10px] text-zinc-400 dark:text-zinc-500 font-semibold uppercase tracking-wider mt-0.5">Distribuição percentual e média mensal das categorias</p>
             </div>
             
@@ -435,8 +435,8 @@ const ResumoAnual: React.FC<ResumoAnualProps> = ({
 
         {/* Consolidação por Meios de Pagamento */}
         <section className="bg-white dark:bg-[#121214] rounded-3xl border border-zinc-200 dark:border-zinc-800/50 shadow-sm overflow-hidden flex flex-col">
-          <div className="p-5 border-b border-zinc-150 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/20">
-            <h3 className="text-sm font-black uppercase tracking-tight text-zinc-805 dark:text-zinc-150 flex items-center gap-1.5">
+          <div className="p-5 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/20">
+            <h3 className="text-sm font-black uppercase tracking-tight text-zinc-800 dark:text-zinc-200 flex items-center gap-1.5">
               <CreditCard size={16} className="text-zinc-400" />
               Meios de Pagamento
             </h3>
@@ -452,7 +452,7 @@ const ResumoAnual: React.FC<ResumoAnualProps> = ({
               <div className="space-y-4">
                 {expensesByPayment.map(item => (
                   <div key={item.name} className="flex flex-col gap-1.5">
-                    <div className="flex items-center justify-between text-xs font-bold text-zinc-805 dark:text-zinc-200">
+                    <div className="flex items-center justify-between text-xs font-bold text-zinc-800 dark:text-zinc-200">
                       <div className="flex items-center gap-2">
                         <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }}></span>
                         <span className="truncate max-w-[120px]">{item.name}</span>

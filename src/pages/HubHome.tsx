@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { MODULES } from '../constants';
 import { Module } from '../types';
 import { LogEntry } from '../modules/estudos/types';
-import { LogOut, Sun, Moon, ArrowUpRight, Lock, BookOpen, Wallet, ListTodo, Brain, ChevronRight, Activity, TrendingUp, Settings, User, X, HeartPulse, Bell, Plus, Trash2, Check, ClipboardList, BarChart3, ChevronLeft, Calendar, Award, CheckCircle2, StickyNote, Flame } from 'lucide-react';
+import { LogOut, Sun, Moon, ArrowUpRight, Lock, BookOpen, Wallet, ListTodo, Brain, ChevronRight, Activity, TrendingUp, Settings, User, X, HeartPulse, Bell, Plus, Trash2, Check, ClipboardList, BarChart3, ChevronLeft, Calendar, Award, CheckCircle2, StickyNote, Flame, Clock } from 'lucide-react';
 import LogView from '../modules/estudos/pages/LogView';
 import { api } from '../modules/estudos/services/api';
 import { supabase } from '../modules/estudos/services/supabase';
@@ -1219,52 +1219,36 @@ const HubHome: React.FC<HubHomeProps> = ({
           </div>
         ) : (
           <>
-            {/* Hero section */}
-          <div className={`mb-8 transition-all duration-700 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
-            {/* Glass greeting card */}
-            <div className="relative bg-white/60 dark:bg-zinc-900/60 backdrop-blur-xl border border-zinc-200/80 dark:border-zinc-800/70 rounded-3xl px-7 py-5 shadow-xl shadow-zinc-200/30 dark:shadow-black/30 overflow-hidden mb-4">
-              {/* Subtle gradient orb in background */}
-              <div className="absolute -top-8 -right-8 w-36 h-36 bg-gradient-to-br from-indigo-400/10 to-violet-500/10 rounded-full blur-2xl pointer-events-none" />
-              <div className="relative flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 dark:text-zinc-500 mb-1">Bem-vindo de volta</p>
-                  <h2 className="text-2xl font-black text-zinc-900 dark:text-white tracking-tight leading-none">
-                    {userName || 'Usuário'}
-                  </h2>
-                </div>
-                <div className="text-right shrink-0">
-                  <p className="text-3xl font-black text-indigo-600 dark:text-indigo-400 tabular-nums leading-none">{timeStr}</p>
-                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-semibold capitalize mt-1">{dateStr}</p>
-                </div>
-              </div>
-            </div>
-
-          {/* Status pills */}
+            {/* Status pills */}
+          <div className={`mb-6 transition-all duration-700 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
           <div className="flex items-center gap-2 flex-wrap">
             {/* Estudos */}
-            <span className={`flex items-center justify-center px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider border whitespace-nowrap shrink-0 ${
+            <span className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider border whitespace-nowrap shrink-0 ${
               pendingEstudos > 0
                 ? 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-500/20'
-                : 'bg-white/40 dark:bg-zinc-900/40 backdrop-blur-sm text-zinc-500 dark:text-zinc-400 border-zinc-200/50 dark:border-zinc-800/50 font-bold'
+                : 'bg-white/40 dark:bg-zinc-900/40 backdrop-blur-sm text-zinc-500 dark:text-zinc-400 border-zinc-200/50 dark:border-zinc-800/50'
             }`}>
+              {pendingEstudos > 0 && <Clock size={9} className="shrink-0 opacity-80" />}
               {pendingEstudos > 0 ? `${pendingEstudos} ${pendingEstudos === 1 ? 'Estudo' : 'Estudos'}` : 'Estudos'}
             </span>
 
             {/* Tarefas */}
-            <span className={`flex items-center justify-center px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider border whitespace-nowrap shrink-0 ${
+            <span className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider border whitespace-nowrap shrink-0 ${
               pendingTarefas > 0
                 ? 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-500/20'
-                : 'bg-white/40 dark:bg-zinc-900/40 backdrop-blur-sm text-zinc-500 dark:text-zinc-400 border-zinc-200/50 dark:border-zinc-800/50 font-bold'
+                : 'bg-white/40 dark:bg-zinc-900/40 backdrop-blur-sm text-zinc-500 dark:text-zinc-400 border-zinc-200/50 dark:border-zinc-800/50'
             }`}>
+              {pendingTarefas > 0 && <Clock size={9} className="shrink-0 opacity-80" />}
               {pendingTarefas > 0 ? `${pendingTarefas} ${pendingTarefas === 1 ? 'Tarefa' : 'Tarefas'}` : 'Tarefas'}
             </span>
 
             {/* Treinos */}
-            <span className={`flex items-center justify-center px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider border whitespace-nowrap shrink-0 ${
+            <span className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider border whitespace-nowrap shrink-0 ${
               pendingSaude > 0
                 ? 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-500/20'
-                : 'bg-white/40 dark:bg-zinc-900/40 backdrop-blur-sm text-zinc-500 dark:text-zinc-400 border-zinc-200/50 dark:border-zinc-800/50 font-bold'
+                : 'bg-white/40 dark:bg-zinc-900/40 backdrop-blur-sm text-zinc-500 dark:text-zinc-400 border-zinc-200/50 dark:border-zinc-800/50'
             }`}>
+              {pendingSaude > 0 && <Clock size={9} className="shrink-0 opacity-80" />}
               {pendingSaude > 0 ? `${pendingSaude} ${pendingSaude === 1 ? 'Treino' : 'Treinos'}` : 'Treinos'}
             </span>
 
@@ -1272,10 +1256,11 @@ const HubHome: React.FC<HubHomeProps> = ({
             {financeBalance !== null && (
               <span className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider border whitespace-nowrap shrink-0 ${
                 financeBalance >= 0
-                  ? 'bg-white/40 dark:bg-zinc-900/40 backdrop-blur-sm text-zinc-500 dark:text-zinc-400 border-zinc-200/50 dark:border-zinc-800/50 font-bold'
+                  ? 'bg-white/40 dark:bg-zinc-900/40 backdrop-blur-sm text-zinc-500 dark:text-zinc-400 border-zinc-200/50 dark:border-zinc-800/50'
                   : 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-500/20'
               }`}>
-                <Wallet size={11} className={financeBalance >= 0 ? 'text-zinc-400 dark:text-zinc-500' : ''} />
+                {financeBalance < 0 && <Clock size={9} className="shrink-0 opacity-80" />}
+                <Wallet size={9} className={financeBalance >= 0 ? 'text-zinc-400 dark:text-zinc-500 shrink-0' : 'shrink-0'} />
                 {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(financeBalance)}
               </span>
             )}
@@ -1287,7 +1272,8 @@ const HubHome: React.FC<HubHomeProps> = ({
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-full text-[10px] font-black uppercase tracking-wider shadow-md shadow-emerald-600/25 transition-all hover:scale-105 active:scale-95 whitespace-nowrap shrink-0"
                 title={`${pendingFinanceCount} ${pendingFinanceCount === 1 ? 'lançamento pendente' : 'lançamentos pendentes'} (Clique para ver)`}
               >
-                <Wallet size={11} />
+                <Clock size={9} className="shrink-0" />
+                <Wallet size={9} className="shrink-0" />
                 <span>{pendingFinanceCount} Pendente{pendingFinanceCount > 1 ? 's' : ''}</span>
               </button>
             )}

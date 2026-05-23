@@ -971,167 +971,250 @@ const HubHome: React.FC<HubHomeProps> = ({
 
   return (
     <div 
-      className={`min-h-screen ${bgType === 'default' ? 'bg-zinc-50 dark:bg-zinc-950' : 'bg-transparent'} flex flex-col relative overflow-hidden transition-colors duration-300`}
+      className={`min-h-screen ${bgType === 'default' ? 'bg-zinc-50 dark:bg-zinc-950' : 'bg-transparent'} flex relative overflow-hidden transition-colors duration-300`}
     >
 
-      {/* Top bar */}
-      <header className="relative z-20 border-b border-zinc-200/70 dark:border-zinc-800/70 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-lg px-6 py-3 flex items-center justify-between shadow-sm">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-500/20 shrink-0">
-            <Brain size={18} className="text-white" />
+      {/* Sidebar Esquerda */}
+      <aside 
+        className={`relative z-20 h-screen flex flex-col justify-between py-6 border-r border-zinc-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-900/50 backdrop-blur-xl transition-all duration-300 ease-in-out shrink-0 ${
+          sidebarExpanded ? 'w-64 px-5' : 'w-20 px-3'
+        }`}
+      >
+        <div className="flex flex-col gap-6 w-full">
+          {/* Logo & Branding */}
+          <div className={`flex items-center gap-3 w-full ${sidebarExpanded ? 'justify-start px-1' : 'justify-center'}`}>
+            <div className="w-10 h-10 rounded-xl bg-zinc-900 dark:bg-zinc-100 flex items-center justify-center shadow-md shrink-0">
+              <Brain size={20} className="text-white dark:text-zinc-900" />
+            </div>
+            {sidebarExpanded && (
+              <h1 className="text-xs sm:text-sm font-black text-zinc-900 dark:text-white uppercase tracking-widest leading-none select-none animate-in fade-in duration-200">
+                Conscientemente
+              </h1>
+            )}
           </div>
-          <div className="flex flex-col min-w-0">
-            <h1 className="text-xs sm:text-sm font-black text-zinc-800 dark:text-white uppercase tracking-widest leading-none">
-              Conscientemente
-            </h1>
-            <div className="flex items-center gap-2 mt-1">
-              <span className="text-sm font-black text-indigo-600 dark:text-indigo-400 tabular-nums shrink-0 leading-none">
+
+          {/* Clock & Date */}
+          {sidebarExpanded && (
+            <div className="flex flex-col px-3 py-3 rounded-2xl bg-zinc-100/50 dark:bg-zinc-800/30 border border-zinc-200/40 dark:border-zinc-800/40 animate-in fade-in duration-200 select-none">
+              <span className="text-lg font-black text-zinc-900 dark:text-zinc-100 tabular-nums tracking-tight">
                 {timeStr}
               </span>
-              <span className="w-px h-3.5 bg-zinc-300 dark:bg-zinc-600 shrink-0" />
-              <span className="text-[11px] font-semibold text-zinc-600 dark:text-zinc-300 capitalize leading-none whitespace-nowrap">
+              <span className="text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 capitalize mt-1 tracking-wide">
                 {dateStr}
               </span>
             </div>
-          </div>
-        </div>
+          )}
 
-        <div className="flex items-center gap-2">
-          {/* Notifications Button & Popover */}
-          <div className="relative" ref={popoverRef}>
-            <button
-              onClick={() => {
-                setShowNotificationsPopover(!showNotificationsPopover);
-                requestNotificationPermission();
-              }}
-              className="w-9 h-9 rounded-xl flex items-center justify-center border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-500 hover:text-zinc-800 dark:hover:text-white transition-all hover:scale-105 hover:shadow-sm"
-              title="Notificações"
-            >
-              <Bell size={15} className={unreadCount > 0 ? "animate-pulse text-rose-500" : ""} />
-            </button>
-            {unreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-455 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-rose-500 text-[7px] font-black text-white items-center justify-center">
-                  {unreadCount}
-                </span>
-              </span>
-            )}
+          {/* Welcome User */}
+          {sidebarExpanded && (
+            <div className="px-3 select-none flex flex-col gap-0.5 animate-in fade-in duration-200">
+              <span className="text-[8px] font-black text-zinc-400 uppercase tracking-widest leading-none">Boas-vindas de volta,</span>
+              <span className="text-xs font-black text-zinc-800 dark:text-zinc-200 truncate mt-1">{userName}</span>
+            </div>
+          )}
 
-            {showNotificationsPopover && (
-              <div className="absolute right-0 mt-2 w-80 max-w-[calc(100vw-2rem)] bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-2xl z-50 p-4 animate-in slide-in-from-top-2 duration-200">
-                <div className="flex items-center justify-between pb-3 border-b border-zinc-100 dark:border-zinc-800/80">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-zinc-700 dark:text-zinc-300">Notificações</span>
-                  <div className="flex gap-2">
-                    {unreadCount > 0 && (
-                      <button
-                        onClick={handleMarkAllAsRead}
-                        className="text-[9px] font-black uppercase tracking-wider text-indigo-500 hover:text-indigo-650 dark:hover:text-indigo-400 transition-colors"
-                      >
-                        Ler todas
-                      </button>
-                    )}
-                    {notifications.length > 0 && (
-                      <button
-                        onClick={handleClearAllNotifications}
-                        className="text-[9px] font-black uppercase tracking-wider text-zinc-400 hover:text-rose-500 transition-colors"
-                      >
-                        Limpar
-                      </button>
+          {/* Divider */}
+          <div className="h-px bg-zinc-200/60 dark:bg-zinc-800/60 w-full" />
+
+          {/* Navigation Items / Buttons */}
+          <nav className="flex flex-col gap-2 w-full">
+            {/* Popover de Notificações */}
+            <div className="relative" ref={popoverRef}>
+              <button
+                onClick={() => {
+                  setShowNotificationsPopover(!showNotificationsPopover);
+                  requestNotificationPermission();
+                }}
+                className={`w-full h-11 rounded-xl flex items-center gap-3 border border-zinc-200/60 dark:border-zinc-850/50 bg-white/40 dark:bg-zinc-900/30 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white transition-all hover:scale-102 hover:shadow-sm ${
+                  sidebarExpanded ? 'px-4 justify-start' : 'justify-center'
+                }`}
+                title="Notificações"
+              >
+                <div className="relative flex items-center justify-center shrink-0">
+                  <Bell size={16} className={unreadCount > 0 ? "animate-pulse text-rose-500" : ""} />
+                  {unreadCount > 0 && !sidebarExpanded && (
+                    <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+                    </span>
+                  )}
+                </div>
+                {sidebarExpanded && (
+                  <span className="text-[10px] font-black uppercase tracking-wider shrink-0">
+                    Notificações
+                  </span>
+                )}
+                {sidebarExpanded && unreadCount > 0 && (
+                  <span className="ml-auto rounded-full px-2 py-0.5 text-[8px] font-black bg-rose-500 text-white leading-none">
+                    {unreadCount}
+                  </span>
+                )}
+              </button>
+
+              {showNotificationsPopover && (
+                <div className="absolute left-full top-0 ml-3 w-80 max-w-[calc(100vw-2rem)] bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-2xl z-50 p-4 animate-in slide-in-from-left-2 duration-200">
+                  <div className="flex items-center justify-between pb-3 border-b border-zinc-100 dark:border-zinc-800/80">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-zinc-700 dark:text-zinc-300">Notificações</span>
+                    <div className="flex gap-2">
+                      {unreadCount > 0 && (
+                        <button
+                          onClick={handleMarkAllAsRead}
+                          className="text-[9px] font-black uppercase tracking-wider text-indigo-500 hover:text-indigo-650 dark:hover:text-indigo-400 transition-colors"
+                        >
+                          Ler todas
+                        </button>
+                      )}
+                      {notifications.length > 0 && (
+                        <button
+                          onClick={handleClearAllNotifications}
+                          className="text-[9px] font-black uppercase tracking-wider text-zinc-400 hover:text-rose-500 transition-colors"
+                        >
+                          Limpar
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="mt-2 max-h-64 overflow-y-auto space-y-2 custom-scrollbar">
+                    {displayedNotifications.length === 0 ? (
+                      <div className="py-8 text-center text-xs text-zinc-400 dark:text-zinc-500 font-medium">
+                        Nenhuma notificação por enquanto.
+                      </div>
+                    ) : (
+                      displayedNotifications.map(n => {
+                        const notifTitle = n.title || 'Alerta';
+                        const notifDesc = n.description || '';
+                        const notifTime = n.timestamp ? new Date(n.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '';
+                        return (
+                          <div
+                            key={n.id}
+                            className={`p-2.5 rounded-xl border text-left transition-all ${
+                              n.read
+                                ? 'bg-zinc-50/50 dark:bg-zinc-950/20 border-zinc-100 dark:border-zinc-900/50 opacity-60'
+                                : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 shadow-sm hover:border-zinc-300 dark:hover:border-zinc-700'
+                            } relative group/item`}
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-1.5">
+                                  {!n.read && <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse shrink-0 inline-block" />}
+                                  <p className="text-[11px] font-black text-zinc-800 dark:text-zinc-200 leading-tight truncate">
+                                    {notifTitle}
+                                  </p>
+                                </div>
+                                <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5 leading-snug break-words font-medium">
+                                  {notifDesc}
+                                </p>
+                                {notifTime && (
+                                  <p className="text-[8px] text-zinc-400 dark:text-zinc-500 mt-1 font-mono">
+                                    {notifTime}
+                                  </p>
+                                )}
+                              </div>
+                              {!n.read && (
+                                <button
+                                  onClick={() => handleMarkAsRead(n.id)}
+                                  className="opacity-0 group-hover/item:opacity-100 text-[8px] font-black uppercase tracking-wider text-indigo-500 dark:text-indigo-400 hover:underline shrink-0 self-center transition-all px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800"
+                                >
+                                  Lido
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })
                     )}
                   </div>
                 </div>
+              )}
+            </div>
 
-                <div className="mt-2 max-h-64 overflow-y-auto space-y-2 custom-scrollbar">
-                  {displayedNotifications.length === 0 ? (
-                    <div className="py-8 text-center text-xs text-zinc-400 dark:text-zinc-500 font-medium">
-                      Nenhuma notificação por enquanto.
-                    </div>
-                  ) : (
-                    displayedNotifications.map(n => {
-                      const notifTitle = n.title || 'Alerta';
-                      const notifDesc = n.description || '';
-                      const notifTime = n.timestamp ? new Date(n.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '';
-                      return (
-                        <div
-                          key={n.id}
-                          className={`p-2.5 rounded-xl border text-left transition-all ${
-                            n.read
-                              ? 'bg-zinc-50/50 dark:bg-zinc-950/20 border-zinc-100 dark:border-zinc-900/50 opacity-60'
-                              : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 shadow-sm hover:border-zinc-300 dark:hover:border-zinc-700'
-                          } relative group/item`}
-                        >
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-1.5">
-                                {!n.read && <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse shrink-0 inline-block" />}
-                                <p className="text-[11px] font-black text-zinc-800 dark:text-zinc-200 leading-tight truncate">
-                                  {notifTitle}
-                                </p>
-                              </div>
-                              <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5 leading-snug break-words font-medium">
-                                {notifDesc}
-                              </p>
-                              {notifTime && (
-                                <p className="text-[8px] text-zinc-400 dark:text-zinc-500 mt-1 font-mono">
-                                  {notifTime}
-                                </p>
-                              )}
-                            </div>
-                            {!n.read && (
-                              <button
-                                onClick={() => handleMarkAsRead(n.id)}
-                                className="opacity-0 group-hover/item:opacity-100 text-[8px] font-black uppercase tracking-wider text-indigo-500 dark:text-indigo-400 hover:underline shrink-0 self-center transition-all px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800"
-                              >
-                                Lido
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
+            {/* Configurações */}
+            <button
+              onClick={() => { setShowSettingsModal(true); fetchLogs(); }}
+              className={`w-full h-11 rounded-xl flex items-center gap-3 border border-zinc-200/60 dark:border-zinc-800 bg-white/40 dark:bg-zinc-900/30 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white transition-all hover:scale-102 hover:shadow-sm ${
+                sidebarExpanded ? 'px-4 justify-start' : 'justify-center'
+              }`}
+              title="Configurações"
+            >
+              <Settings size={16} />
+              {sidebarExpanded && (
+                <span className="text-[10px] font-black uppercase tracking-wider">
+                  Configurações
+                </span>
+              )}
+            </button>
 
-          <button
-            onClick={() => { setShowSettingsModal(true); fetchLogs(); }}
-            className="w-9 h-9 rounded-xl flex items-center justify-center border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-500 hover:text-zinc-800 dark:hover:text-white transition-all hover:scale-105 hover:shadow-sm"
-            title="Configurações"
-          >
-            <Settings size={15} />
-          </button>
+            {/* Preferências de Usuário */}
+            <button
+              onClick={() => setShowProfileModal(true)}
+              className={`w-full h-11 rounded-xl flex items-center gap-3 border border-zinc-200/60 dark:border-zinc-800 bg-white/40 dark:bg-zinc-900/30 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white transition-all hover:scale-102 hover:shadow-sm ${
+                sidebarExpanded ? 'px-4 justify-start' : 'justify-center'
+              }`}
+              title="Preferências"
+            >
+              <User size={16} />
+              {sidebarExpanded && (
+                <span className="text-[10px] font-black uppercase tracking-wider">
+                  Preferências
+                </span>
+              )}
+            </button>
 
-          <button
-            onClick={() => setShowProfileModal(true)}
-            className="w-9 h-9 rounded-xl flex items-center justify-center border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-500 hover:text-zinc-800 dark:hover:text-white transition-all hover:scale-105 hover:shadow-sm"
-            title="Preferências de Usuário"
-          >
-            <User size={15} />
-          </button>
+            {/* Alternador de Tema */}
+            <button
+              onClick={toggleTheme}
+              className={`w-full h-11 rounded-xl flex items-center gap-3 border border-zinc-200/60 dark:border-zinc-800 bg-white/40 dark:bg-zinc-900/30 text-zinc-500 hover:text-zinc-800 dark:hover:text-white transition-all hover:scale-102 hover:shadow-sm ${
+                sidebarExpanded ? 'px-4 justify-start' : 'justify-center'
+              }`}
+              title={theme === 'light' ? 'Modo escuro' : 'Modo claro'}
+            >
+              {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+              {sidebarExpanded && (
+                <span className="text-[10px] font-black uppercase tracking-wider">
+                  {theme === 'light' ? 'Modo Escuro' : 'Modo Claro'}
+                </span>
+              )}
+            </button>
+          </nav>
+        </div>
 
-          <button
-            onClick={toggleTheme}
-            className="w-9 h-9 rounded-xl flex items-center justify-center border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-500 hover:text-zinc-800 dark:hover:text-white transition-all hover:scale-105 hover:shadow-sm"
-            title={theme === 'light' ? 'Modo escuro' : 'Modo claro'}
-          >
-            {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
-          </button>
-
+        {/* Footer Sidebar (Logout & Collapse Control) */}
+        <div className="flex flex-col gap-2 w-full">
+          {/* Botão Sair */}
           <button
             onClick={onLogout}
-            className="w-9 h-9 rounded-xl flex items-center justify-center border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-500 hover:text-rose-500 dark:hover:text-rose-400 transition-all hover:scale-105 hover:border-rose-300 dark:hover:border-rose-800 hover:shadow-sm"
+            className={`w-full h-11 rounded-xl flex items-center gap-3 border border-zinc-200/60 dark:border-zinc-800 bg-white/40 dark:bg-zinc-900/30 text-zinc-500 hover:text-rose-500 dark:hover:text-rose-400 hover:border-rose-300/50 dark:hover:border-rose-900/50 transition-all hover:scale-102 hover:shadow-sm ${
+              sidebarExpanded ? 'px-4 justify-start' : 'justify-center'
+            }`}
             title="Sair"
           >
-            <LogOut size={15} />
+            <LogOut size={16} />
+            {sidebarExpanded && (
+              <span className="text-[10px] font-black uppercase tracking-wider">
+                Sair
+              </span>
+            )}
+          </button>
+
+          {/* Divider */}
+          <div className="h-px bg-zinc-200/60 dark:bg-zinc-800/60 w-full my-1" />
+
+          {/* Toggle Sidebar Button */}
+          <button
+            onClick={toggleSidebar}
+            className="w-full h-9 rounded-xl flex items-center justify-center border border-zinc-200/60 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300 transition-all hover:bg-zinc-100 dark:hover:bg-zinc-800"
+            title={sidebarExpanded ? "Recolher Menu" : "Expandir Menu"}
+          >
+            {sidebarExpanded ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
           </button>
         </div>
-      </header>
+      </aside>
 
-      {/* Main content */}
-      <main className={`relative z-10 flex-1 ${showHabitsReport ? 'max-w-4xl' : 'max-w-5xl'} mx-auto w-full px-6 py-10 flex flex-col transition-all duration-300`}>
+      {/* Wrapper do Conteúdo Principal com Centralização */}
+      <div className="flex-1 h-screen overflow-y-auto flex flex-col items-center">
+        {/* Main content */}
+        <main className={`relative z-10 w-full ${showHabitsReport ? 'max-w-4xl' : 'max-w-5xl'} px-6 py-10 flex flex-col transition-all duration-300`}>
 
         {showHabitsReport ? (
           /* ── Habits Report ─────────────────────────────────────── */
@@ -1627,6 +1710,7 @@ const HubHome: React.FC<HubHomeProps> = ({
           </>
         )}
       </main>
+    </div>
 
       {showSettingsModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/80 backdrop-blur-sm p-4">

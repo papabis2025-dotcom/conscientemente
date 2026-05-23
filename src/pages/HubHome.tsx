@@ -269,6 +269,40 @@ const HubHome: React.FC<HubHomeProps> = ({
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [logs, setLogs] = useState<LogEntry[]>([]);
 
+  const [sidebarExpanded, setSidebarExpanded] = useState(() => {
+    return localStorage.getItem('cn_sidebar_expanded') !== 'false';
+  });
+  const [modulesCollapsed, setModulesCollapsed] = useState(() => {
+    return localStorage.getItem('cn_modules_collapsed') === 'true';
+  });
+  const [widgetsCollapsed, setWidgetsCollapsed] = useState(() => {
+    return localStorage.getItem('cn_widgets_collapsed') === 'true';
+  });
+
+  const toggleSidebar = () => {
+    setSidebarExpanded(prev => {
+      const next = !prev;
+      localStorage.setItem('cn_sidebar_expanded', String(next));
+      return next;
+    });
+  };
+
+  const toggleModules = () => {
+    setModulesCollapsed(prev => {
+      const next = !prev;
+      localStorage.setItem('cn_modules_collapsed', String(next));
+      return next;
+    });
+  };
+
+  const toggleWidgets = () => {
+    setWidgetsCollapsed(prev => {
+      const next = !prev;
+      localStorage.setItem('cn_widgets_collapsed', String(next));
+      return next;
+    });
+  };
+
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -1334,28 +1368,43 @@ const HubHome: React.FC<HubHomeProps> = ({
         </div>
 
         {/* Section label — Módulos */}
-        <div className="flex items-center gap-3 mb-4">
+        <div 
+          onClick={toggleModules}
+          className="flex items-center gap-3 mb-4 cursor-pointer group/section select-none"
+        >
           <span className="w-1.5 h-1.5 rounded-full bg-zinc-400 dark:bg-zinc-600" />
           <p className="text-[10px] font-black text-zinc-400 dark:text-zinc-600 uppercase tracking-[0.2em]">Módulos</p>
           <div className="flex-1 h-px bg-gradient-to-r from-zinc-200 to-transparent dark:from-zinc-800" />
+          <button className="text-[9px] font-black uppercase tracking-wider text-zinc-400 group-hover/section:text-zinc-700 dark:group-hover/section:text-zinc-300 transition-colors">
+            {modulesCollapsed ? 'Expandir' : 'Minimizar'}
+          </button>
         </div>
 
         {/* Module grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 w-full">
-          {MODULES.map((mod, i) => (
-            <ModuleCard key={mod.id} module={mod} index={i} />
-          ))}
-        </div>
+        {!modulesCollapsed && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 w-full animate-in fade-in slide-in-from-top-2 duration-300">
+            {MODULES.map((mod, i) => (
+              <ModuleCard key={mod.id} module={mod} index={i} />
+            ))}
+          </div>
+        )}
 
         {/* Widgets section label */}
-        <div className="flex items-center gap-3 mt-8 mb-4">
+        <div 
+          onClick={toggleWidgets}
+          className="flex items-center gap-3 mt-8 mb-4 cursor-pointer group/section select-none"
+        >
           <span className="w-1.5 h-1.5 rounded-full bg-zinc-400 dark:bg-zinc-600" />
           <p className="text-[10px] font-black text-zinc-400 dark:text-zinc-600 uppercase tracking-[0.2em]">Widgets</p>
           <div className="flex-1 h-px bg-gradient-to-r from-zinc-200 to-transparent dark:from-zinc-800" />
+          <button className="text-[9px] font-black uppercase tracking-wider text-zinc-400 group-hover/section:text-zinc-700 dark:group-hover/section:text-zinc-300 transition-colors">
+            {widgetsCollapsed ? 'Expandir' : 'Minimizar'}
+          </button>
         </div>
 
         {/* Habit Tracker & Quick Notes Container */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-start">
+        {!widgetsCollapsed && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-start animate-in fade-in slide-in-from-top-2 duration-300">
           {/* Habit Tracker Section */}
           <div className="bg-white/70 dark:bg-zinc-900/70 backdrop-blur-md rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-lg shadow-zinc-200/40 dark:shadow-black/30 flex flex-col justify-between gap-4 p-5 overflow-hidden relative">
             <div>
@@ -1569,10 +1618,11 @@ const HubHome: React.FC<HubHomeProps> = ({
                 >
                   Salvar
                 </button>
-              </div>
             </div>
           </div>
         </div>
+      </div>
+    )}
 
           </>
         )}

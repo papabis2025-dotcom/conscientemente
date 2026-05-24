@@ -396,8 +396,14 @@ const App: React.FC = () => {
   }, []);
 
   const handleLogout = async () => {
+    Object.keys(localStorage).forEach(key => {
+      if (key.startsWith('cn_') || key.startsWith('cp_') || key.startsWith('isSidebarCollapsed_')) {
+        localStorage.removeItem(key);
+      }
+    });
     await supabase.auth.signOut();
     setSession(null);
+    window.location.reload();
   };
 
   const toggleTheme = () => setTheme(t => t === 'dark' ? 'light' : 'dark');

@@ -62,7 +62,7 @@ const SaudePlannerView: React.FC<SaudePlannerViewProps> = ({
     e.stopPropagation();
     setEditingActivity(act);
     setFormType(act.type);
-    setFormTime(act.timeInMinutes.toString());
+    setFormTime(act.timeInMinutes?.toString() || '');
     setFormDistance(act.distanceKm?.toString() || '');
     setFormLevel(act.level || 'Leve');
     setFormMuscles(act.muscles || []);
@@ -74,8 +74,18 @@ const SaudePlannerView: React.FC<SaudePlannerViewProps> = ({
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     if (selectedDayKey === null) return;
-    const time = parseInt(formTime) || 30;
-    const dist = formType !== 'Musculação' ? (parseFloat(formDistance.replace(',', '.')) || undefined) : undefined;
+    const time = formTime ? (parseInt(formTime) || 0) : undefined;
+    if (formStatus === 'realizado' && (!time || time <= 0)) {
+      alert('Por favor, insira uma duração válida.');
+      return;
+    }
+
+    const dist = formType !== 'Musculação' && formDistance ? (parseFloat(formDistance.replace(',', '.')) || 0) : undefined;
+    if (formStatus === 'realizado' && formType !== 'Musculação' && (!dist || dist <= 0)) {
+      alert('Por favor, insira uma distância válida.');
+      return;
+    }
+
     const level = formType !== 'Musculação' ? formLevel : undefined;
     const muscles = formType === 'Musculação' ? formMuscles : undefined;
 
@@ -196,7 +206,7 @@ const SaudePlannerView: React.FC<SaudePlannerViewProps> = ({
                         <span className="uppercase tracking-wider truncate">{act.type}</span>
                         {act.status === 'planejado' ? <Clock size={10} className="shrink-0" /> : <CheckCircle2 size={10} className="shrink-0" />}
                       </div>
-                      {act.timeInMinutes > 0 && <span className="opacity-80 font-medium text-[9px]">{act.timeInMinutes} min</span>}
+                      {act.timeInMinutes !== undefined && act.timeInMinutes > 0 && <span className="opacity-80 font-medium text-[9px]">{act.timeInMinutes} min</span>}
                       {act.distanceKm !== undefined && act.distanceKm > 0 && <span className="opacity-75 text-[8px]">{act.distanceKm} km</span>}
                     </div>
                   ))}
@@ -257,7 +267,7 @@ const SaudePlannerView: React.FC<SaudePlannerViewProps> = ({
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 block mb-1.5">Duração (minutos)</label>
-                  <input type="number" placeholder="Ex: 45" value={formTime} onChange={e => setFormTime(e.target.value)} required className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 text-sm font-bold text-zinc-800 dark:text-zinc-100 outline-none focus:ring-2 focus:ring-cyan-500 transition-all" />
+                  <input type="number" placeholder="Ex: 45" value={formTime} onChange={e => setFormTime(e.target.value)} required={formStatus === 'realizado'} className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 text-sm font-bold text-zinc-800 dark:text-zinc-100 outline-none focus:ring-2 focus:ring-cyan-500 transition-all" />
                 </div>
                 <div>
                   <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 block mb-1.5">Status</label>
@@ -272,7 +282,7 @@ const SaudePlannerView: React.FC<SaudePlannerViewProps> = ({
                 <div className="grid grid-cols-2 gap-3 animate-in fade-in duration-200">
                   <div>
                     <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 block mb-1.5">Distância (km)</label>
-                    <input type="number" step="0.01" placeholder="Ex: 5.5" value={formDistance} onChange={e => setFormDistance(e.target.value)} required className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 text-sm font-bold text-zinc-800 dark:text-zinc-100 outline-none focus:ring-2 focus:ring-cyan-500 transition-all" />
+                    <input type="number" step="0.01" placeholder="Ex: 5.5" value={formDistance} onChange={e => setFormDistance(e.target.value)} required={formStatus === 'realizado'} className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 text-sm font-bold text-zinc-800 dark:text-zinc-100 outline-none focus:ring-2 focus:ring-cyan-500 transition-all" />
                   </div>
                   <div>
                     <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 block mb-1.5">Nível / Ritmo</label>

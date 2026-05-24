@@ -622,11 +622,43 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                 setScheduledStudies([]);
                 setDailyGoals([]);
                 setLogs([]);
+                setStudyTasks([]);
+                setGlobalDailyGoal(20);
                 localStorage.removeItem('cp_scheduled_studies');
+                localStorage.removeItem('cp_study_tasks');
+                localStorage.removeItem('cp_global_daily_goal');
                 setLastSaved(new Date().toLocaleTimeString());
                 return true;
             } catch (e) {
                 console.error("Error resetting data:", e);
+                return false;
+            } finally {
+                setIsLoading(false);
+            }
+        },
+        resetStudyHubDataOnly: async () => {
+            setIsLoading(true);
+            try {
+                await api.sessions.deleteAll();
+                await api.simulados.deleteAll();
+                await api.schedule.deleteAll();
+                await api.dailyGoals.deleteAll();
+                await api.logs.clear();
+
+                setSessions([]);
+                setSimulados([]);
+                setScheduledStudies([]);
+                setDailyGoals([]);
+                setLogs([]);
+                setStudyTasks([]);
+                setGlobalDailyGoal(20);
+                localStorage.removeItem('cp_scheduled_studies');
+                localStorage.removeItem('cp_study_tasks');
+                localStorage.removeItem('cp_global_daily_goal');
+                setLastSaved(new Date().toLocaleTimeString());
+                return true;
+            } catch (e) {
+                console.error("Error resetting study hub data:", e);
                 return false;
             } finally {
                 setIsLoading(false);

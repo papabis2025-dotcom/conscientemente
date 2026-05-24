@@ -12,7 +12,7 @@ export interface HealthActivity {
   id: string;
   type: ActivityType;
   date: string;
-  timeInMinutes: number;
+  timeInMinutes?: number;
   status?: 'realizado' | 'planejado';
   
   // Cardio
@@ -72,6 +72,7 @@ const SaudeApp: React.FC = () => {
   const [formDistance, setFormDistance] = useState('');
   const [formLevel, setFormLevel] = useState<CardioLevel>('Leve');
   const [formMuscles, setFormMuscles] = useState<MuscleGroup[]>([]);
+  const [formStatus, setFormStatus] = useState<'realizado' | 'planejado'>('realizado');
 
 
 
@@ -98,26 +99,39 @@ const SaudeApp: React.FC = () => {
 
   const handleAddActivity = (e: React.FormEvent) => {
     e.preventDefault();
-    const time = parseInt(formTime) || 0;
-    if (time <= 0) return;
+    const time = formTime ? (parseInt(formTime) || 0) : undefined;
+    if (formStatus === 'realizado' && (!time || time <= 0)) {
+      alert('Por favor, insira uma duração válida.');
+      return;
+    }
 
     const newActivity: HealthActivity = {
       id: crypto.randomUUID(),
       type: formType,
       date: formDate,
       timeInMinutes: time,
-      status: 'realizado'
+      status: formStatus
     };
 
     if (formType === 'Musculação') {
-      if (formMuscles.length === 0) return;
-      newActivity.muscles = formMuscles;
+      if (formStatus === 'realizado' && formMuscles.length === 0) {
+        alert('Por favor, selecione ao menos um grupo muscular.');
+        return;
+      }
+      if (formMuscles.length > 0) newActivity.muscles = formMuscles;
     } else {
-      const dist = parseFloat(formDistance.replace(',', '.')) || 0;
-      if (dist <= 0) return;
-      newActivity.distanceKm = dist;
-      newActivity.level = formLevel;
-      newActivity.pace = calculatePace(dist, time, formType);
+      const dist = formDistance ? (parseFloat(formDistance.replace(',', '.')) || 0) : undefined;
+      if (formStatus === 'realizado' && (!dist || dist <= 0)) {
+        alert('Por favor, insira uma distância válida.');
+        return;
+      }
+      if (dist !== undefined && dist > 0) {
+        newActivity.distanceKm = dist;
+        newActivity.level = formLevel;
+        if (time && time > 0) {
+          newActivity.pace = calculatePace(dist, time, formType);
+        }
+      }
     }
 
     saudeApi.create(newActivity).catch(err => console.error('Error creating saude activity:', err));
@@ -129,6 +143,7 @@ const SaudeApp: React.FC = () => {
     setFormDistance('');
     setFormMuscles([]);
     setFormLevel('Leve');
+    setFormStatus('realizado');
   };
 
   const toggleMuscle = (m: MuscleGroup) => {
@@ -335,7 +350,14 @@ const SaudeApp: React.FC = () => {
                   </div>
                   <div className="flex-1">
                     <label className="text-[10px] font-bold uppercase text-zinc-400 block mb-1.5">Duração (min)</label>
-                    <input type="number" placeholder="Ex: 60" value={formTime} onChange={e => setFormTime(e.target.value)} required className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-sm font-bold text-zinc-800 dark:text-zinc-100 outline-none focus:ring-2 focus:ring-cyan-500" />
+                    <input type="number" placeholder="Ex: 60" value={formTime} onChange={e => setFormTime(e.target.value)} required={formStatus === 'realizado'} className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-sm font-bold text-zinc-800 dark:text-zinc-100 outline-none focus:ring-2 focus:ring-cyan-500" />
+                  </div>
+                  <div className="flex-1">
+                    <label className="text-[10px] font-bold uppercase text-zinc-400 block mb-1.5">Status</label>
+                    <select value={formStatus} onChange={e => setFormStatus(e.target.value as 'realizado' | 'planejado')} className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-sm font-bold text-zinc-800 dark:text-zinc-100 outline-none focus:ring-2 focus:ring-cyan-500">
+                      <option value="realizado">Realizado</option>
+                      <option value="planejado">Planejado</option>
+                    </select>
                   </div>
                 </div>
 
@@ -343,7 +365,7 @@ const SaudeApp: React.FC = () => {
                   <div className="flex gap-4 animate-in fade-in">
                     <div className="flex-1">
                       <label className="text-[10px] font-bold uppercase text-zinc-400 block mb-1.5">Distância (km)</label>
-                      <input type="number" step="0.01" placeholder="Ex: 5.5" value={formDistance} onChange={e => setFormDistance(e.target.value)} required className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-sm font-bold text-zinc-800 dark:text-zinc-100 outline-none focus:ring-2 focus:ring-cyan-500" />
+                      <input type="number" step="0.01" placeholder="Ex: 5.5" value={formDistance} onChange={e => setFormDistance(e.target.value)} required={formStatus === 'realizado'} className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-sm font-bold text-zinc-800 dark:text-zinc-100 outline-none focus:ring-2 focus:ring-cyan-500" />
                     </div>
                     <div className="flex-1">
                       <label className="text-[10px] font-bold uppercase text-zinc-400 block mb-1.5">Nível / Ritmo</label>

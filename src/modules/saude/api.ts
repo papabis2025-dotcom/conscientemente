@@ -3,7 +3,9 @@ import { HealthActivity } from './App';
 
 export const saudeApi = {
   list: async () => {
-    const { data, error } = await supabase.from('saude_treinos').select('*');
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return [];
+    const { data, error } = await supabase.from('saude_treinos').select('*').eq('user_id', user.id);
     if (error) throw error;
     return (data || []).map(t => ({
       id: t.id,

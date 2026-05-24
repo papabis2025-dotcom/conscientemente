@@ -14,14 +14,20 @@ const handleRequest = async <T>(request: PromiseLike<{ data: T | null; error: an
 export const api = {
     // Profiles
     profiles: {
-        get: async () => handleRequest(supabase.from('profiles').select('*').single()),
+        get: async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return null;
+            return handleRequest(supabase.from('profiles').select('*').eq('id', user.id).single());
+        },
         update: async (updates: Partial<Profile>) => handleRequest(supabase.from('profiles').update(updates).eq('id', (await supabase.auth.getUser()).data.user?.id)),
     },
 
     // Concursos
     concursos: {
         list: async () => {
-            const data = await handleRequest<any[]>(supabase.from('concursos').select('*').order('created_at', { ascending: false }));
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return [];
+            const data = await handleRequest<any[]>(supabase.from('concursos').select('*').eq('user_id', user.id).order('created_at', { ascending: false }));
             return (data || []).map((c: any) => ({
                 id: c.id,
                 name: c.name,
@@ -63,7 +69,9 @@ export const api = {
     // Study Sessions
     sessions: {
         list: async () => {
-            const data = await handleRequest<any[]>(supabase.from('study_sessions').select('*').order('date', { ascending: false }));
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return [];
+            const data = await handleRequest<any[]>(supabase.from('study_sessions').select('*').eq('user_id', user.id).order('date', { ascending: false }));
             return (data || []).map((s: any) => ({
                 id: s.id,
                 subjectId: s.subject_id,
@@ -116,7 +124,9 @@ export const api = {
     // Simulados
     simulados: {
         list: async () => {
-            const data = await handleRequest<any[]>(supabase.from('simulados').select('*').order('date', { ascending: false }));
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return [];
+            const data = await handleRequest<any[]>(supabase.from('simulados').select('*').eq('user_id', user.id).order('date', { ascending: false }));
             return (data || []).map((s: any) => ({
                 id: s.id,
                 name: s.name,
@@ -149,7 +159,9 @@ export const api = {
     // Scheduled Studies
     schedule: {
         list: async () => {
-            const data = await handleRequest<any[]>(supabase.from('scheduled_studies').select('*').order('date', { ascending: true }));
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return [];
+            const data = await handleRequest<any[]>(supabase.from('scheduled_studies').select('*').eq('user_id', user.id).order('date', { ascending: true }));
             return (data || []).map((i: any) => ({
                 id: i.id,
                 date: i.date.split('T')[0], // Ensure YYYY-MM-DD only
@@ -223,7 +235,9 @@ export const api = {
     // Daily Goals
     dailyGoals: {
         list: async () => {
-            const data = await handleRequest<any[]>(supabase.from('daily_goals').select('*').order('date', { ascending: false }));
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return [];
+            const data = await handleRequest<any[]>(supabase.from('daily_goals').select('*').eq('user_id', user.id).order('date', { ascending: false }));
             return (data || []).map((g: any) => ({
                 date: g.date,
                 questionsTarget: g.questions_target
@@ -247,7 +261,11 @@ export const api = {
 
     // Logs
     logs: {
-        list: async () => handleRequest<LogEntry[]>(supabase.from('logs').select('*').order('timestamp', { ascending: false }).limit(50)),
+        list: async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return [];
+            return handleRequest<LogEntry[]>(supabase.from('logs').select('*').eq('user_id', user.id).order('timestamp', { ascending: false }).limit(50));
+        },
         create: async (log: LogEntry) => {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return null; // Silent fail if no user

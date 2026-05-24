@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { MODULES } from '../constants';
 import { Module } from '../types';
 import { LogEntry } from '../modules/estudos/types';
-import { LogOut, Sun, Moon, ArrowUpRight, Lock, BookOpen, Wallet, ListTodo, Brain, ChevronRight, Activity, TrendingUp, Settings, User, X, HeartPulse, Bell, Plus, Trash2, Check, ClipboardList, BarChart3, ChevronLeft, Calendar, Award, CheckCircle2, StickyNote, Flame, Clock, DollarSign } from 'lucide-react';
+import { LogOut, Sun, Moon, ArrowUpRight, Lock, BookOpen, Wallet, ListTodo, Brain, ChevronRight, Activity, TrendingUp, Settings, User, X, HeartPulse, Bell, Plus, Trash2, Check, ClipboardList, BarChart3, ChevronLeft, Calendar, Award, CheckCircle2, StickyNote, Flame, Clock, DollarSign, Database, Cloud, AlertTriangle, FileText } from 'lucide-react';
 import LogView from '../modules/estudos/pages/LogView';
 import { api } from '../modules/estudos/services/api';
 import { supabase } from '../modules/estudos/services/supabase';
@@ -768,17 +768,32 @@ const HubHome: React.FC<HubHomeProps> = ({
     if (confirm('⚠️ TEM CERTEZA? Isso apagará TODOS os seus dados permanentemente.') &&
         confirm('⛔ Último aviso: Essa ação não pode ser desfeita. Confirmar reset total?')) {
       try {
-        await Promise.all([
-          supabase.from('concursos').delete().neq('id', '0'),
-          supabase.from('study_sessions').delete().neq('id', '0'),
-          supabase.from('simulados').delete().neq('id', '0'),
-          supabase.from('scheduled_studies').delete().neq('id', '0'),
-          supabase.from('daily_goals').delete().neq('id', '0'),
-          supabase.from('logs').delete().neq('id', '0')
-        ]);
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          await Promise.all([
+            supabase.from('concursos').delete().eq('user_id', user.id),
+            supabase.from('study_sessions').delete().eq('user_id', user.id),
+            supabase.from('simulados').delete().eq('user_id', user.id),
+            supabase.from('scheduled_studies').delete().eq('user_id', user.id),
+            supabase.from('daily_goals').delete().eq('user_id', user.id),
+            supabase.from('logs').delete().eq('user_id', user.id),
+            supabase.from('saude_treinos').delete().eq('user_id', user.id),
+            supabase.from('financas_transacoes').delete().eq('user_id', user.id),
+            supabase.from('tarefas').delete().eq('user_id', user.id),
+            supabase.from('user_preferences').delete().eq('user_id', user.id)
+          ]);
+        }
+        Object.keys(localStorage).forEach(key => {
+          if (key.startsWith('cn_') || key.startsWith('cp_') || key.startsWith('isSidebarCollapsed_')) {
+            localStorage.removeItem(key);
+          }
+        });
         alert('✅ Todos os dados foram apagados. O sistema foi resetado.');
         window.location.reload();
-      } catch (e) { alert('Erro ao resetar dados.'); }
+      } catch (e) {
+        console.error(e);
+        alert('Erro ao resetar dados.');
+      }
     }
   };
 
@@ -1722,41 +1737,41 @@ const HubHome: React.FC<HubHomeProps> = ({
              <div className="flex-1 min-h-0 overflow-y-auto p-6 bg-zinc-50 dark:bg-zinc-950 space-y-8">
                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 shrink-0">
                  <div className="bg-white dark:bg-zinc-900 p-8 rounded-[2.5rem] border border-zinc-200 dark:border-zinc-800 shadow-sm space-y-6">
-                   <h3 className="font-bold text-lg flex items-center gap-2">📦 Backup de Dados</h3>
+                   <h3 className="font-bold text-lg flex items-center gap-2 text-zinc-800 dark:text-white"><Database size={20} className="text-zinc-500" /> Backup de Dados</h3>
                    <p className="text-sm text-zinc-500 leading-relaxed">Exporte ou importe seus dados do Supabase.</p>
                    <div className="flex flex-col gap-3">
-                     <button onClick={handleExport} disabled={isExporting} className="w-full py-4 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-zinc-900 dark:hover:bg-zinc-700 hover:text-white transition-all disabled:opacity-50">
-                       {isExporting ? '⏳ Exportando...' : '📤 Exportar JSON'}
+                     <button onClick={handleExport} disabled={isExporting} className="w-full py-4 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-zinc-900 dark:hover:bg-zinc-700 hover:text-white transition-all disabled:opacity-50 flex items-center justify-center gap-2">
+                       {isExporting ? '⏳ Exportando...' : 'Exportar JSON'}
                      </button>
-                     <button onClick={() => fileRef.current?.click()} disabled={isImporting} className="w-full py-4 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-emerald-600 hover:text-white transition-all disabled:opacity-50">
-                       {isImporting ? '⏳ Importando...' : '📥 Importar JSON'}
+                     <button onClick={() => fileRef.current?.click()} disabled={isImporting} className="w-full py-4 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-emerald-600 hover:text-white transition-all disabled:opacity-50 flex items-center justify-center gap-2">
+                       {isImporting ? '⏳ Importando...' : 'Importar JSON'}
                      </button>
                      <input type="file" ref={fileRef} onChange={handleImport} className="hidden" accept=".json" />
                    </div>
                  </div>
                  
                  <div className="bg-white dark:bg-zinc-900 p-8 rounded-[2.5rem] border border-zinc-200 dark:border-zinc-800 shadow-sm space-y-6">
-                   <h3 className="font-bold text-lg flex items-center gap-2">☁️ Sincronização</h3>
+                   <h3 className="font-bold text-lg flex items-center gap-2 text-zinc-800 dark:text-white"><Cloud size={20} className="text-zinc-500" /> Sincronização</h3>
                    <div className="p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl flex justify-between items-center border border-emerald-100 dark:border-emerald-800">
                      <div>
                        <p className="text-[10px] font-black uppercase text-emerald-600 dark:text-emerald-400">Status</p>
                        <p className="text-lg font-black text-emerald-700 dark:text-emerald-300">Conectado ao Supabase</p>
                      </div>
-                     <span className="text-2xl">✅</span>
+                     <CheckCircle2 size={24} className="text-emerald-500" />
                    </div>
                    <p className="text-xs text-zinc-500">Seus dados estão sendo salvos automaticamente na nuvem.</p>
                  </div>
                  
                  <div className="bg-rose-50 dark:bg-rose-900/10 p-8 rounded-[2.5rem] border border-rose-100 dark:border-rose-900/30 shadow-sm space-y-6 md:col-span-2">
-                   <h3 className="font-bold text-lg flex items-center gap-2 text-rose-600 dark:text-rose-400">🚨 Zona de Perigo</h3>
+                   <h3 className="font-bold text-lg flex items-center gap-2 text-rose-600 dark:text-rose-400"><AlertTriangle size={20} /> Zona de Perigo</h3>
                    <button onClick={handleResetAllData} className="w-full bg-rose-600 text-white py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-rose-700 transition-all shadow-lg shadow-rose-500/20 active:scale-95">
-                     🔥 FÁBRICA: Resetar Tudo
+                     FÁBRICA: Resetar Tudo
                    </button>
                  </div>
                </div>
 
                <div className="bg-white dark:bg-zinc-900 p-8 rounded-[2.5rem] border border-zinc-200 dark:border-zinc-800 shadow-sm shrink-0">
-                 <h3 className="font-bold text-lg flex items-center gap-2 mb-6">📝 Logs do Sistema</h3>
+                 <h3 className="font-bold text-lg flex items-center gap-2 mb-6 text-zinc-800 dark:text-white"><FileText size={20} className="text-zinc-500" /> Logs do Sistema</h3>
                  <LogView logs={logs} onClearLogs={handleClearLogs} onDeleteLog={handleDeleteLog} />
                </div>
              </div>

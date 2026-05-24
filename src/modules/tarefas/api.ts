@@ -14,7 +14,9 @@ export interface Task {
 
 export const tarefasApi = {
   list: async () => {
-    const { data, error } = await supabase.from('tarefas').select('*');
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return [];
+    const { data, error } = await supabase.from('tarefas').select('*').eq('user_id', user.id);
     if (error) throw error;
     return (data || []).map(t => ({
       id: t.id,

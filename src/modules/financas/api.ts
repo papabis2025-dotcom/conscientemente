@@ -20,7 +20,9 @@ export interface Transaction {
 
 export const financasApi = {
   listTransactions: async () => {
-    const { data, error } = await supabase.from('financas_transacoes').select('*');
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return [];
+    const { data, error } = await supabase.from('financas_transacoes').select('*').eq('user_id', user.id);
     if (error) throw error;
     return (data || []).map(t => ({
       id: t.id,

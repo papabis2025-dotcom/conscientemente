@@ -49,9 +49,14 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         return saved ? JSON.parse(saved) : [];
     });
 
-    const updateStudyTasks = (tasks: { id: string, subjectId: string, subjectName: string, topicId?: string, topicName?: string, done: boolean, date: string }[]) => {
-        setStudyTasks(tasks);
-        localStorage.setItem('cp_study_tasks', JSON.stringify(tasks));
+    const updateStudyTasks = (newTasks: { id: string, subjectId: string, subjectName: string, topicId?: string, topicName?: string, done: boolean, date: string }[]) => {
+        const subIds = new Set((concursos.find(c => c.id === selectedConcursoId)?.subjects || []).map(s => s.id));
+        setStudyTasks(prev => {
+            const preserved = prev.filter(t => !subIds.has(t.subjectId));
+            const updated = [...preserved, ...newTasks];
+            localStorage.setItem('cp_study_tasks', JSON.stringify(updated));
+            return updated;
+        });
     };
 
     // Theme logic remains local for now to avoid flickering before auth loads
@@ -185,6 +190,32 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         }
         return activeConcurso?.subjects || [];
     }, [selectedConcursoId, activeConcurso, allSubjects]);
+
+    const filteredSessions = useMemo(() => {
+        if (selectedConcursoId === 'all') return sessions;
+        const subIds = new Set((activeConcurso?.subjects || []).map(s => s.id));
+        return sessions.filter(s => subIds.has(s.subjectId));
+    }, [sessions, selectedConcursoId, activeConcurso]);
+
+    const filteredSimulados = useMemo(() => {
+        if (selectedConcursoId === 'all') return simulados;
+        const subIds = new Set((activeConcurso?.subjects || []).map(s => s.id));
+        return simulados.filter(sim => 
+            sim.results && sim.results.some(r => subIds.has(r.subjectId))
+        );
+    }, [simulados, selectedConcursoId, activeConcurso]);
+
+    const filteredScheduledStudies = useMemo(() => {
+        if (selectedConcursoId === 'all') return scheduledStudies;
+        const subIds = new Set((activeConcurso?.subjects || []).map(s => s.id));
+        return scheduledStudies.filter(s => subIds.has(s.subjectId));
+    }, [scheduledStudies, selectedConcursoId, activeConcurso]);
+
+    const filteredStudyTasks = useMemo(() => {
+        if (selectedConcursoId === 'all') return studyTasks;
+        const subIds = new Set((activeConcurso?.subjects || []).map(s => s.id));
+        return studyTasks.filter(t => subIds.has(t.subjectId));
+    }, [studyTasks, selectedConcursoId, activeConcurso]);
 
     const updateUser = (users: User[]) => setUsers(users); // Legacy
 
@@ -470,9 +501,16 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
 
     const updateScheduledStudies = async (newSchedule: ScheduledStudy[]) => {
         setSaveError(null);
-        const previousIds = new Set(scheduledStudies.map(s => s.id));
-        setScheduledStudies(newSchedule);
-        localStorage.setItem('cp_scheduled_studies', JSON.stringify(newSchedule));
+        const subIds = new Set((concursos.find(c => c.id === selectedConcursoId)?.subjects || []).map(s => s.id));
+        const previousIds = new Set(scheduledStudies.filter(s => subIds.has(s.subjectId)).map(s => s.id));
+        
+        setScheduledStudies(prev => {
+            const preserved = prev.filter(s => !subIds.has(s.subjectId));
+            const updated = [...preserved, ...newSchedule];
+            localStorage.setItem('cp_scheduled_studies', JSON.stringify(updated));
+            return updated;
+        });
+
         const newItems = newSchedule.filter(item => !previousIds.has(item.id));
         try {
             for (const item of newItems) {
@@ -566,9 +604,9 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         users, setUsers: updateUser,
         concursos, setConcursos: updateConcursos,
         selectedConcursoId, setSelectedConcursoId,
-        sessions, setSessions: (s: any) => s, // Disabled direct set
-        simulados, setSimulados: (s: any) => s, // Disabled direct set
-        scheduledStudies, setScheduledStudies: updateScheduledStudies, deleteScheduledStudy, updateScheduledStudy,
+        sessions: filteredSessions, setSessions: (s: any) => s, // Disabled direct set
+        simulados: filteredSimulados, setSimulados: (s: any) => s, // Disabled direct set
+        scheduledStudies: filteredScheduledStudies, setScheduledStudies: updateScheduledStudies, deleteScheduledStudy, updateScheduledStudy,
         dailyGoals, setDailyGoals: updateDailyGoals,
         logs, setLogs: (s: any) => s, // Disabled direct set
         theme, toggleTheme,
@@ -587,7 +625,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         addLog,
         globalDailyGoal,
         setGlobalDailyGoal,
-        studyTasks,
+        studyTasks: filteredStudyTasks,
         setStudyTasks: updateStudyTasks,
         toggleScheduledStudyStatus,
         updateProfile: async (name: string, avatar: string) => {

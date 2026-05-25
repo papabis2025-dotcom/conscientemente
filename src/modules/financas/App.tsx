@@ -129,6 +129,8 @@ const FinancasApp: React.FC = () => {
   const [txPending, setTxPending] = useState(false);
   const [txInstallments, setTxInstallments] = useState(''); // total number of installments
   const [txInstallmentNum, setTxInstallmentNum] = useState(''); // current installment being paid
+  const [txRecurrent, setTxRecurrent] = useState(false);
+  const [txRecurrences, setTxRecurrences] = useState('');
   const [editingTxId, setEditingTxId] = useState<string | null>(null);
   const [activeChartTab, setActiveChartTab] = useState<'cartoes' | 'saidas' | 'entradas'>('cartoes');
 
@@ -163,8 +165,8 @@ const FinancasApp: React.FC = () => {
     }
   }, [txType, inCategories, outCategories, paymentMethods]);
 
-  const [inSort, setInSort] = useState<'date'|'value'|'category'>('date');
-  const [outSort, setOutSort] = useState<'date'|'value'|'category'>('date');
+  const [inSort, setInSort] = useState<'date'|'value'|'category'|'name'>('date');
+  const [outSort, setOutSort] = useState<'date'|'value'|'category'|'name'>('date');
   const [paymentSort, setPaymentSort] = useState<'value'|'type'>('value');
   const [categorySort, setCategorySort] = useState<'value'|'type'>('value');
 
@@ -181,6 +183,7 @@ const FinancasApp: React.FC = () => {
     if (inSort === 'date') sorted.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     if (inSort === 'value') sorted.sort((a, b) => b.amount - a.amount);
     if (inSort === 'category') sorted.sort((a, b) => a.category.localeCompare(b.category));
+    if (inSort === 'name') sorted.sort((a, b) => a.name.localeCompare(b.name));
     return sorted;
   }, [monthTransactions, inSort]);
 
@@ -189,6 +192,7 @@ const FinancasApp: React.FC = () => {
     if (outSort === 'date') sorted.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     if (outSort === 'value') sorted.sort((a, b) => b.amount - a.amount);
     if (outSort === 'category') sorted.sort((a, b) => a.category.localeCompare(b.category));
+    if (outSort === 'name') sorted.sort((a, b) => a.name.localeCompare(b.name));
     return sorted;
   }, [monthTransactions, outSort]);
 
@@ -245,6 +249,8 @@ const FinancasApp: React.FC = () => {
     }
     setTxPending(t.pending || false);
     setTxMethod(t.paymentMethod || '');
+    setTxRecurrent(false);
+    setTxRecurrences('');
 
     // Focus input
     setTimeout(() => {
@@ -263,6 +269,8 @@ const FinancasApp: React.FC = () => {
     setTxPending(false);
     setTxInstallments('');
     setTxInstallmentNum('');
+    setTxRecurrent(false);
+    setTxRecurrences('');
   };
 
   // Helper: add months to a YYYY-MM-DD date string
@@ -353,6 +361,30 @@ const FinancasApp: React.FC = () => {
         }
       }
 
+      // Generate future recurring transactions for Pix/Dinheiro
+      const isPixOrDinheiro = txMethod?.toLowerCase().includes('pix') || txMethod?.toLowerCase().includes('dinheiro');
+      const totalRecurrencias = txRecurrent && isPixOrDinheiro ? (parseInt(txRecurrences) || 0) : 0;
+      const isRecorrente = txType === 'saida' && totalRecurrencias > 1;
+
+      if (isRecorrente) {
+        for (let i = 1; i < totalRecurrencias; i++) {
+          const futureDate = addMonthsToDate(finalDate, i);
+          const futureTx: Transaction = {
+            id: crypto.randomUUID(),
+            type: txType,
+            name: txName,
+            amount: amountNum,
+            category: txCategory,
+            date: futureDate,
+            pending: true,
+            dayOnly,
+            ...(txType === 'saida' ? { paymentMethod: txMethod } : {})
+          };
+          financasApi.createTransaction(futureTx).catch(err => console.error('Error creating recurring transaction:', err));
+          newTransactions.push(futureTx);
+        }
+      }
+
       setTransactions(prev => [...prev, ...newTransactions]);
       setTxName('');
       setTxAmount('');
@@ -360,6 +392,8 @@ const FinancasApp: React.FC = () => {
       setTxPending(false);
       setTxInstallments('');
       setTxInstallmentNum('');
+      setTxRecurrent(false);
+      setTxRecurrences('');
     }
   };
 
@@ -587,15 +621,63 @@ const FinancasApp: React.FC = () => {
                     <label className="text-[9px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Forma de Pagamento</label>
                     <select 
                       value={txMethod} 
-                      onChange={e => setTxMethod(e.target.value)} 
+                      onChange={e => {
+                        setTxMethod(e.target.value);
+                        // Reset recurrence if payment method changes to non-cash/pix
+                        const isPixOrDinheiro = e.target.value?.toLowerCase().includes('pix') || e.target.value?.toLowerCase().includes('dinheiro');
+                        if (!isPixOrDinheiro) {
+                          setTxRecurrent(false);
+                          setTxRecurrences('');
+                        }
+                      }} 
                       className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:ring-1 focus:ring-rose-500 cursor-pointer dark:text-white font-semibold"
                     >
                       {paymentMethods.map(m => <option key={m.id} value={m.name}>{m.name}</option>)}
                     </select>
                   </div>
 
+                  {/* Recorrência (Pix/Dinheiro) */}
+                  {(txMethod?.toLowerCase().includes('pix') || txMethod?.toLowerCase().includes('dinheiro')) && !editingTxId && (
+                    <div className="flex flex-col gap-1 animate-in slide-in-from-top-1 duration-150">
+                      <label className="text-[9px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Recorrência</label>
+                      <div className="flex gap-2 items-center">
+                        <label className="flex items-center gap-1.5 cursor-pointer">
+                          <input 
+                            type="checkbox" 
+                            checked={txRecurrent} 
+                            onChange={e => {
+                              setTxRecurrent(e.target.checked);
+                              if (!e.target.checked) setTxRecurrences('');
+                            }}
+                            className="rounded border-zinc-300 dark:border-zinc-700 text-rose-500 focus:ring-rose-500"
+                          />
+                          <span className="text-[10px] font-bold text-zinc-600 dark:text-zinc-300">Repetir transação?</span>
+                        </label>
+                        {txRecurrent && (
+                          <div className="flex-1 flex items-center gap-1.5 animate-in fade-in slide-in-from-left-2 duration-150">
+                            <span className="text-[8px] text-zinc-400 dark:text-zinc-500 font-semibold uppercase whitespace-nowrap">por</span>
+                            <input
+                              type="number"
+                              min="2"
+                              placeholder="Ex: 12"
+                              value={txRecurrences}
+                              onChange={e => setTxRecurrences(e.target.value)}
+                              className="w-20 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-2 py-1 text-xs outline-none focus:ring-1 focus:ring-rose-500 dark:text-white font-semibold"
+                            />
+                            <span className="text-[8px] text-zinc-400 dark:text-zinc-500 font-semibold uppercase font-bold">meses</span>
+                          </div>
+                        )}
+                      </div>
+                      {txRecurrent && txRecurrences && parseInt(txRecurrences) > 1 && (
+                        <p className="text-[9px] text-amber-600 dark:text-amber-400 font-bold mt-0.5">
+                          ✦ {parseInt(txRecurrences) - 1} transação(ões) futura(s) recorrente(s) serão geradas automaticamente
+                        </p>
+                      )}
+                    </div>
+                  )}
+
                   {/* Parcelamento */}
-                  {!editingTxId && (
+                  {!editingTxId && !txRecurrent && (
                   <div className="flex flex-col gap-1 animate-in slide-in-from-top-1 duration-150">
                     <label className="text-[9px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Parcelado? (opcional)</label>
                     <div className="flex gap-2 items-center">
@@ -823,6 +905,7 @@ const FinancasApp: React.FC = () => {
                   <option value="date">Data</option>
                   <option value="value">Valor</option>
                   <option value="category">Categ</option>
+                  <option value="name">Nome</option>
                 </select>
               </div>
             </div>
@@ -869,6 +952,7 @@ const FinancasApp: React.FC = () => {
                   <option value="date">Data</option>
                   <option value="value">Valor</option>
                   <option value="category">Categ</option>
+                  <option value="name">Nome</option>
                 </select>
               </div>
             </div>

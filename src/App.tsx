@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from './services/supabase';
 import Login from './pages/Login';
 import HubHome from './pages/HubHome';
@@ -128,22 +128,39 @@ const App: React.FC = () => {
   const [lastSyncTime, setLastSyncTime] = useState<number>(0);
   const [lastKnownSettings, setLastKnownSettings] = useState<string>('');
 
+  const prefsLoadedForUserRef = useRef<string | null>(null);
+  const initialBgRef = useRef({ bgType: 'default', bgColor: '#ffffff' });
+
   useEffect(() => {
     if (!session) {
       setIsPrefsLoaded(false);
+      prefsLoadedForUserRef.current = null;
       return;
     }
+
+    if (prefsLoadedForUserRef.current === session.user.id) {
+      return;
+    }
+    prefsLoadedForUserRef.current = session.user.id;
+
     const loadPreferences = async () => {
       try {
-        const { data: prefs } = await supabase
+        const { data: prefs, error: selectError } = await supabase
           .from('user_preferences')
           .select('hub_bg_type, hub_bg_color, hub_bg_image_url')
           .eq('user_id', session.user.id)
           .maybeSingle();
 
+        if (selectError) {
+          throw selectError;
+        }
+
         if (prefs) {
-          if (prefs.hub_bg_type) setBgType(prefs.hub_bg_type as any);
-          if (prefs.hub_bg_color) setBgColor(prefs.hub_bg_color);
+          const loadedBgType = prefs.hub_bg_type || 'default';
+          const loadedBgColor = prefs.hub_bg_color || '#ffffff';
+          setBgType(loadedBgType as any);
+          setBgColor(loadedBgColor);
+          initialBgRef.current = { bgType: loadedBgType, bgColor: loadedBgColor };
 
           const localSettings: Record<string, string | null> = {};
           SYNC_KEYS.forEach(key => {
@@ -194,12 +211,13 @@ const App: React.FC = () => {
 
           await supabase.from('user_preferences').upsert({
             user_id: session.user.id,
-            hub_bg_type: prefs.hub_bg_type || bgType,
-            hub_bg_color: prefs.hub_bg_color || bgColor,
+            hub_bg_type: loadedBgType,
+            hub_bg_color: loadedBgColor,
             hub_bg_image_url: JSON.stringify(payload)
           }, { onConflict: 'user_id' });
         } else {
           // Initialize DB row with local settings
+          initialBgRef.current = { bgType, bgColor };
           const localSettings: Record<string, string | null> = {};
           SYNC_KEYS.forEach(key => {
             localSettings[key] = localStorage.getItem(key);
@@ -231,25 +249,31 @@ const App: React.FC = () => {
   }, [session]);
 
   useEffect(() => {
-    if (isPrefsLoaded && session) {
-      const savePrefs = async () => {
-        const localSettings: Record<string, string | null> = {};
-        SYNC_KEYS.forEach(key => {
-          localSettings[key] = localStorage.getItem(key);
-        });
-        const payload: SyncedPayload = {
-          updatedAt: lastSyncTime || Date.now(),
-          settings: localSettings
-        };
-        await supabase.from('user_preferences').upsert({
-          user_id: session.user.id,
-          hub_bg_type: bgType,
-          hub_bg_color: bgColor,
-          hub_bg_image_url: JSON.stringify(payload)
-        }, { onConflict: 'user_id' });
-      };
-      savePrefs().catch(err => console.error('Error saving user preferences:', err));
+    if (!isPrefsLoaded || !session) return;
+
+    if (bgType === initialBgRef.current.bgType && bgColor === initialBgRef.current.bgColor) {
+      return;
     }
+
+    const savePrefs = async () => {
+      const localSettings: Record<string, string | null> = {};
+      SYNC_KEYS.forEach(key => {
+        localSettings[key] = localStorage.getItem(key);
+      });
+      const payload: SyncedPayload = {
+        updatedAt: lastSyncTime || Date.now(),
+        settings: localSettings
+      };
+      await supabase.from('user_preferences').upsert({
+        user_id: session.user.id,
+        hub_bg_type: bgType,
+        hub_bg_color: bgColor,
+        hub_bg_image_url: JSON.stringify(payload)
+      }, { onConflict: 'user_id' });
+
+      initialBgRef.current = { bgType, bgColor };
+    };
+    savePrefs().catch(err => console.error('Error saving user preferences:', err));
   }, [bgType, bgColor, isPrefsLoaded, session]);
 
   // Periodic background check & sync loop
@@ -375,13 +399,9 @@ const App: React.FC = () => {
 
   // Auth state listener
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      setLoading(false);
-    });
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
+      setLoading(false);
     });
 
     const handleHashChange = () => {
@@ -408,7 +428,7 @@ const App: React.FC = () => {
 
   const toggleTheme = () => setTheme(t => t === 'dark' ? 'light' : 'dark');
 
-  if (loading) {
+  if (loading || (session && !isPrefsLoaded)) {
     return (
       <div className="fixed inset-0 bg-zinc-50 dark:bg-zinc-950 flex items-center justify-center">
         <span className="text-4xl animate-pulse select-none">🧠</span>

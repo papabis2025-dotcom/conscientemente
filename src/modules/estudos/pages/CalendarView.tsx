@@ -70,7 +70,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       questionsDone: '',
       questionsCorrect: '',
       notes: '',
-      status: 'realizado'
+      status: 'planejado'
     });
     setShowModal(true);
   };
@@ -413,7 +413,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                       questionsDone: '',
                       questionsCorrect: '',
                       notes: '',
-                      status: 'realizado'
+                      status: 'planejado'
                     });
                   }}
                   className="text-xs font-black uppercase tracking-wider text-blue-500 hover:text-blue-600 mb-4 block"

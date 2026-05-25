@@ -174,7 +174,7 @@ export const api = {
                 questionsCorrect: i.questions_correct,
                 // 'status' column does NOT exist in the DB table.
                 // Status is managed purely on the client side (localStorage).
-                status: 'realizado' as const
+                status: 'planejado' as const
             }));
         },
         create: async (item: Omit<ScheduledStudy, 'id' | 'user_id' | 'created_at'> & { id?: string }) => {
@@ -207,7 +207,7 @@ export const api = {
                 durationInMinutes: result.duration_minutes,
                 questionsDone: result.questions_done,
                 questionsCorrect: result.questions_correct,
-                status: item.status || 'realizado'
+                status: item.status || 'planejado'
             } as ScheduledStudy;
         },
         update: async (id: string, updates: Partial<ScheduledStudy>) => {

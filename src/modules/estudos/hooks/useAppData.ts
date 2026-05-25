@@ -94,16 +94,24 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
             if (simuladosData) setSimulados(simuladosData);
             if (scheduleData) {
                 // Server is the source of truth for WHICH items exist.
-                // 'status' is client-only (no DB column), so merge it from localStorage.
+                // Reconstruct status based on matching session existence, falling back to local state.
                 const localRaw = localStorage.getItem('cp_scheduled_studies');
                 const localStudies: ScheduledStudy[] = localRaw ? JSON.parse(localRaw) : [];
                 const localStatusMap = new Map(localStudies.map(s => [s.id, s.status]));
+                const sessionIds = new Set(sessionsData?.map(s => s.id) || []);
 
-                // Server items get their local status if available, otherwise default 'realizado'
-                const finalSchedule: ScheduledStudy[] = scheduleData.map(s => ({
-                    ...s,
-                    status: (localStatusMap.get(s.id) || 'realizado') as 'planejado' | 'realizado'
-                }));
+                const finalSchedule: ScheduledStudy[] = scheduleData.map(s => {
+                    let status: 'planejado' | 'realizado' = 'planejado';
+                    if (localStatusMap.has(s.id)) {
+                        status = localStatusMap.get(s.id) as 'planejado' | 'realizado';
+                    } else if (sessionIds.has(s.id)) {
+                        status = 'realizado';
+                    }
+                    return {
+                        ...s,
+                        status
+                    };
+                });
 
                 setScheduledStudies(finalSchedule);
                 localStorage.setItem('cp_scheduled_studies', JSON.stringify(finalSchedule));

@@ -129,39 +129,56 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
 
     // Supabase Auth and User Setup
     useEffect(() => {
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            if (session?.user) {
-                setCurrentUser({
-                    id: session.user.id,
-                    name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Estudante',
-                    password: '',
-                    avatar: session.user.user_metadata?.avatar || '🎓',
-                    email: session.user.email
-                });
-            } else {
-                setIsLoading(false);
-            }
-        });
+        let subscription: any = null;
 
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-            if (session?.user) {
-                setCurrentUser({
-                    id: session.user.id,
-                    name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Estudante',
-                    password: '',
-                    avatar: session.user.user_metadata?.avatar || '🎓',
-                    email: session.user.email
-                });
-            } else {
-                setCurrentUser(null);
-                setConcursos([]);
-                setSessions([]);
-                setSimulados([]);
+        supabase.auth.getSession()
+            .then(({ data }) => {
+                const session = data?.session;
+                if (session?.user) {
+                    setCurrentUser({
+                        id: session.user.id,
+                        name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Estudante',
+                        password: '',
+                        avatar: session.user.user_metadata?.avatar || '🎓',
+                        email: session.user.email
+                    });
+                } else {
+                    setIsLoading(false);
+                }
+            })
+            .catch(err => {
+                console.error('Error in studies getSession:', err);
                 setIsLoading(false);
-            }
-        });
+            });
 
-        return () => subscription.unsubscribe();
+        try {
+            const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+                if (session?.user) {
+                    setCurrentUser({
+                        id: session.user.id,
+                        name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Estudante',
+                        password: '',
+                        avatar: session.user.user_metadata?.avatar || '🎓',
+                        email: session.user.email
+                    });
+                } else {
+                    setCurrentUser(null);
+                    setConcursos([]);
+                    setSessions([]);
+                    setSimulados([]);
+                    setIsLoading(false);
+                }
+            });
+            subscription = data?.subscription;
+        } catch (err) {
+            console.error('Error in studies onAuthStateChange:', err);
+        }
+
+        return () => {
+            if (subscription) {
+                subscription.unsubscribe();
+            }
+        };
     }, []);
 
     // Trigger Fetch on User Change

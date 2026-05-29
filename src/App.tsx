@@ -434,16 +434,28 @@ const App: React.FC = () => {
 
   // Auth state listener
   useEffect(() => {
-    // Get initial session on mount to ensure we load the session immediately
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setLoading(false);
-    });
+    let subscription: any = null;
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setLoading(false);
-    });
+    // Get initial session on mount to ensure we load the session immediately
+    supabase.auth.getSession()
+      .then(({ data }) => {
+        setSession(data?.session || null);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error('Error getting initial session:', err);
+        setLoading(false);
+      });
+
+    try {
+      const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+        setSession(session);
+        setLoading(false);
+      });
+      subscription = data?.subscription;
+    } catch (err) {
+      console.error('Error setting up auth state listener:', err);
+    }
 
     const handleHashChange = () => {
       setCurrentRoute(window.location.hash.replace('#', '') || 'hub');
@@ -451,14 +463,20 @@ const App: React.FC = () => {
     window.addEventListener('hashchange', handleHashChange);
 
     return () => {
-      subscription.unsubscribe();
+      if (subscription) {
+        subscription.unsubscribe();
+      }
       window.removeEventListener('hashchange', handleHashChange);
     };
   }, []);
 
   const handleLoginSuccess = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    setSession(session);
+    try {
+      const { data } = await supabase.auth.getSession();
+      setSession(data?.session || null);
+    } catch (err) {
+      console.error('Error on handleLoginSuccess:', err);
+    }
     setLoading(false);
   };
 

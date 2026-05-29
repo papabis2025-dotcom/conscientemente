@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { MODULES } from '../constants';
 import { Module } from '../types';
 import { LogEntry } from '../modules/estudos/types';
-import { LogOut, Sun, Moon, ArrowUpRight, Lock, BookOpen, Wallet, ListTodo, Brain, ChevronRight, Activity, TrendingUp, Settings, User, X, HeartPulse, Bell, Plus, Trash2, Check, ClipboardList, BarChart3, ChevronLeft, Calendar, Award, CheckCircle2, StickyNote, Flame, Clock, DollarSign, Database, Cloud, AlertTriangle, FileText } from 'lucide-react';
+import { LogOut, Sun, Moon, ArrowUpRight, Lock, BookOpen, Wallet, ListTodo, Brain, ChevronRight, Activity, TrendingUp, Settings, User, X, HeartPulse, Bell, Plus, Trash2, Check, ClipboardList, BarChart3, ChevronLeft, Calendar, Award, CheckCircle2, StickyNote, Flame, Clock, DollarSign, Database, Cloud, AlertTriangle, FileText, CalendarDays } from 'lucide-react';
 import LogView from '../modules/estudos/pages/LogView';
 import { api } from '../modules/estudos/services/api';
 import { supabase } from '../modules/estudos/services/supabase';

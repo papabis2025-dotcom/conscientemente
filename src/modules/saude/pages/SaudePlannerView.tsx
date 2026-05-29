@@ -208,6 +208,13 @@ const SaudePlannerView: React.FC<SaudePlannerViewProps> = ({
                       </div>
                       {act.timeInMinutes !== undefined && act.timeInMinutes > 0 && <span className="opacity-80 font-medium text-[9px]">{act.timeInMinutes} min</span>}
                       {act.distanceKm !== undefined && act.distanceKm > 0 && <span className="opacity-75 text-[8px]">{act.distanceKm} km</span>}
+                      {act.type === 'Musculação' && act.muscles && act.muscles.length > 0 && (
+                        <div className="flex flex-wrap gap-0.5 mt-0.5 max-h-[22px] overflow-hidden">
+                          {act.muscles.map(m => (
+                            <span key={m} className="px-1 py-px bg-zinc-200/50 dark:bg-zinc-800/50 text-[7px] text-indigo-700 dark:text-indigo-300 rounded uppercase font-black tracking-wider shrink-0 truncate max-w-[45px]">{m}</span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

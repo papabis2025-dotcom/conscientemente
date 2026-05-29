@@ -21,12 +21,16 @@ const SYNC_KEYS = [
   'cp_global_daily_goal',
   'cp_selected_concurso_id',
   'cp_dashboard_layout_v19',
+  'cp_dashboard_layout_v20',
   'cp_menu_order',
   'cn_theme',
   'cn_notifications',
+  'cn_cleared_notifications',
   'cn_anotacoes',
+  'cn_anotacoes_folders',
   'cn_custom_bg_image',
-  'cn_custom_bg_style'
+  'cn_custom_bg_style',
+  'cn_push_notifications_enabled'
 ];
 
 function mergeLists<T extends { id: string }>(listA: T[], listB: T[]): T[] {
@@ -74,7 +78,14 @@ function mergeSettings(
       return;
     }
 
-    if (key === 'cn_habits' || key === 'cp_study_tasks' || key === 'cn_anotacoes') {
+    if (
+      key === 'cn_habits' || 
+      key === 'cp_study_tasks' || 
+      key === 'cn_anotacoes' || 
+      key === 'cn_anotacoes_folders' ||
+      key === 'cp_dashboard_layout_v19' ||
+      key === 'cp_dashboard_layout_v20'
+    ) {
       try {
         const localList = JSON.parse(localVal);
         const remoteList = JSON.parse(remoteVal);
@@ -83,6 +94,18 @@ function mergeSettings(
             ? mergeLists(localList, remoteList)
             : mergeLists(remoteList, localList);
           merged[key] = JSON.stringify(mergedList);
+        } else {
+          merged[key] = preferRemote ? remoteVal : localVal;
+        }
+      } catch {
+        merged[key] = preferRemote ? remoteVal : localVal;
+      }
+    } else if (key === 'cn_cleared_notifications') {
+      try {
+        const localList = JSON.parse(localVal);
+        const remoteList = JSON.parse(remoteVal);
+        if (Array.isArray(localList) && Array.isArray(remoteList)) {
+          merged[key] = JSON.stringify(Array.from(new Set([...localList, ...remoteList])));
         } else {
           merged[key] = preferRemote ? remoteVal : localVal;
         }
@@ -144,6 +167,14 @@ const App: React.FC = () => {
     prefsLoadedForUserRef.current = session.user.id;
 
     const loadPreferences = async () => {
+      let finished = false;
+      const safetyTimeout = setTimeout(() => {
+        if (!finished) {
+          console.warn('loadPreferences timed out after 3 seconds. Proceeding.');
+          setIsPrefsLoaded(true);
+        }
+      }, 3000);
+
       try {
         const { data: prefs, error: selectError } = await supabase
           .from('user_preferences')
@@ -191,6 +222,7 @@ const App: React.FC = () => {
               localStorage.removeItem(key);
             }
           });
+          window.dispatchEvent(new Event('local-storage-sync'));
 
           const mergedTheme = merged['cn_theme'];
           if (mergedTheme && (mergedTheme === 'light' || mergedTheme === 'dark')) {
@@ -242,6 +274,8 @@ const App: React.FC = () => {
       } catch (err) {
         console.error('Error loading and syncing preferences:', err);
       } finally {
+        finished = true;
+        clearTimeout(safetyTimeout);
         setIsPrefsLoaded(true);
       }
     };
@@ -349,6 +383,7 @@ const App: React.FC = () => {
                 localStorage.removeItem(key);
               }
             });
+            window.dispatchEvent(new Event('local-storage-sync'));
 
             const mergedTheme = merged['cn_theme'];
             if (mergedTheme && (mergedTheme === 'light' || mergedTheme === 'dark')) {
@@ -399,6 +434,12 @@ const App: React.FC = () => {
 
   // Auth state listener
   useEffect(() => {
+    // Get initial session on mount to ensure we load the session immediately
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setLoading(false);
+    });
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setLoading(false);
@@ -414,6 +455,12 @@ const App: React.FC = () => {
       window.removeEventListener('hashchange', handleHashChange);
     };
   }, []);
+
+  const handleLoginSuccess = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    setSession(session);
+    setLoading(false);
+  };
 
   const handleLogout = async () => {
     Object.keys(localStorage).forEach(key => {
@@ -437,7 +484,7 @@ const App: React.FC = () => {
   }
 
   if (!session) {
-    return <Login onLogin={() => {}} />;
+    return <Login onLogin={handleLoginSuccess} />;
   }
 
   const userName = session.user.user_metadata?.name

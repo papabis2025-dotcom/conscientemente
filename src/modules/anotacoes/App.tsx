@@ -66,18 +66,26 @@ const AnotacoesApp: React.FC = () => {
     localStorage.setItem('cn_anotacoes', JSON.stringify(updatedNotes));
   };
 
-  // Sync state with local storage on window focus or storage change
+  // Sync state with local storage on window focus, local-storage-sync, or storage change
   useEffect(() => {
-    const handleFocus = () => {
+    const handleSync = () => {
       try {
-        const saved = localStorage.getItem('cn_anotacoes');
-        if (saved) {
-          setNotes(JSON.parse(saved));
+        const savedNotes = localStorage.getItem('cn_anotacoes');
+        if (savedNotes) {
+          setNotes(JSON.parse(savedNotes));
+        }
+        const savedFolders = localStorage.getItem('cn_anotacoes_folders');
+        if (savedFolders) {
+          setFolders(JSON.parse(savedFolders));
         }
       } catch (e) {}
     };
-    window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
+    window.addEventListener('focus', handleSync);
+    window.addEventListener('local-storage-sync', handleSync);
+    return () => {
+      window.removeEventListener('focus', handleSync);
+      window.removeEventListener('local-storage-sync', handleSync);
+    };
   }, []);
 
   // Handle sidebar collapse state saving

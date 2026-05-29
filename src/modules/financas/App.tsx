@@ -133,6 +133,14 @@ const FinancasApp: React.FC = () => {
   const [txRecurrences, setTxRecurrences] = useState('');
   const [editingTxId, setEditingTxId] = useState<string | null>(null);
   const [activeChartTab, setActiveChartTab] = useState<'cartoes' | 'saidas' | 'entradas'>('cartoes');
+  const [deleteModalConfig, setDeleteModalConfig] = useState<{
+    isOpen: boolean;
+    txId: string;
+    isInstallment: boolean;
+    isRecurring: boolean;
+    baseName?: string;
+    totalInst?: string;
+  } | null>(null);
 
   useEffect(() => {
     const targetType = sessionStorage.getItem('openAddFinancasType');
@@ -409,10 +417,70 @@ const FinancasApp: React.FC = () => {
   };
 
   const deleteTransaction = (id: string) => {
-    if(confirm('Excluir este lançamento?')) {
-      setTransactions(prev => prev.filter(t => t.id !== id));
-      financasApi.deleteTransaction(id).catch(err => console.error('Error deleting transaction:', err));
+    const tx = transactions.find(t => t.id === id);
+    if (!tx) return;
+
+    const isPixOrDinheiro = tx.paymentMethod?.toLowerCase().includes('pix') || tx.paymentMethod?.toLowerCase().includes('dinheiro');
+    const installmentMatch = tx.name.match(/(.+) \((\d+)\/(\d+)\)$/);
+    const isRecurring = isPixOrDinheiro && transactions.some(t => t.id !== id && t.name === tx.name && t.amount === tx.amount && t.category === tx.category && t.type === tx.type);
+
+    if (installmentMatch) {
+      const [_, baseName, currentInst, totalInst] = installmentMatch;
+      setDeleteModalConfig({
+        isOpen: true,
+        txId: id,
+        isInstallment: true,
+        isRecurring: false,
+        baseName,
+        totalInst
+      });
+    } else if (isRecurring) {
+      setDeleteModalConfig({
+        isOpen: true,
+        txId: id,
+        isInstallment: false,
+        isRecurring: true,
+        baseName: tx.name
+      });
+    } else {
+      if (confirm('Tem certeza que deseja excluir este lançamento?')) {
+        setTransactions(prev => prev.filter(t => t.id !== id));
+        financasApi.deleteTransaction(id).catch(err => console.error('Error deleting transaction:', err));
+      }
     }
+  };
+
+  const executeDeleteSingle = (id: string) => {
+    setTransactions(prev => prev.filter(t => t.id !== id));
+    financasApi.deleteTransaction(id).catch(err => console.error('Error deleting transaction:', err));
+    setDeleteModalConfig(null);
+  };
+
+  const executeDeleteAll = async (id: string) => {
+    const tx = transactions.find(t => t.id === id);
+    if (!tx) return;
+
+    let toDelete: Transaction[] = [];
+
+    const installmentMatch = tx.name.match(/(.+) \((\d+)\/(\d+)\)$/);
+    if (installmentMatch) {
+      const [_, baseName, __, totalInst] = installmentMatch;
+      toDelete = transactions.filter(t => {
+        const m = t.name.match(/(.+) \((\d+)\/(\d+)\)$/);
+        return m && m[1] === baseName && m[3] === totalInst && t.amount === tx.amount && t.category === tx.category && t.type === tx.type;
+      });
+    } else {
+      toDelete = transactions.filter(t => t.name === tx.name && t.amount === tx.amount && t.category === tx.category && t.type === tx.type && t.paymentMethod === tx.paymentMethod);
+    }
+
+    const idsToDelete = toDelete.map(t => t.id);
+    setTransactions(prev => prev.filter(t => !idsToDelete.includes(t.id)));
+
+    for (const deleteId of idsToDelete) {
+      financasApi.deleteTransaction(deleteId).catch(err => console.error('Error deleting transaction in bulk:', err));
+    }
+
+    setDeleteModalConfig(null);
   };
 
   const monthName = currentDate.toLocaleString('pt-BR', { month: 'short', year: 'numeric' });
@@ -997,6 +1065,47 @@ const FinancasApp: React.FC = () => {
           </div>
         )}
       </main>
+      {deleteModalConfig?.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/80 backdrop-blur-sm p-4">
+          <div className="bg-white dark:bg-zinc-900 w-full max-w-sm rounded-[2rem] p-6 shadow-2xl relative animate-in zoom-in-95 border border-zinc-200 dark:border-zinc-800">
+            <h3 className="text-base font-black text-zinc-950 dark:text-white mb-2 uppercase tracking-wider">
+              Excluir Lançamento
+            </h3>
+            
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-6 leading-relaxed font-semibold">
+              {deleteModalConfig.isInstallment ? (
+                <>Este lançamento faz parte de um parcelamento no cartão de crédito (<strong>{deleteModalConfig.baseName}</strong>). Deseja excluir apenas esta parcela ou todas as parcelas geradas?</>
+              ) : (
+                <>Este lançamento é um pagamento recorrente (<strong>{deleteModalConfig.baseName}</strong>). Deseja excluir apenas esta transação ou todas as recorrentes com mesmo nome e valor?</>
+              )}
+            </p>
+            
+            <div className="flex flex-col gap-2">
+              <button 
+                type="button"
+                onClick={() => executeDeleteSingle(deleteModalConfig.txId)}
+                className="w-full py-3 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 rounded-xl font-bold text-xs uppercase tracking-wider transition-colors border border-zinc-200 dark:border-zinc-700"
+              >
+                Excluir Apenas Selecionado
+              </button>
+              <button 
+                type="button"
+                onClick={() => executeDeleteAll(deleteModalConfig.txId)}
+                className="w-full py-3 bg-rose-500 hover:bg-rose-600 text-white rounded-xl font-bold text-xs uppercase tracking-wider transition-all shadow-md shadow-rose-500/10"
+              >
+                Excluir Todos os Gerados
+              </button>
+              <button 
+                type="button"
+                onClick={() => setDeleteModalConfig(null)}
+                className="w-full py-3 bg-transparent hover:bg-zinc-50 dark:hover:bg-zinc-950 text-zinc-500 dark:text-zinc-400 rounded-xl font-bold text-xs transition-colors"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -264,6 +264,18 @@ const HubHome: React.FC<HubHomeProps> = ({
   const [pendingSaude, setPendingSaude] = useState(0);
   const [financeBalance, setFinanceBalance] = useState<number | null>(null);
   const [pendingFinanceCount, setPendingFinanceCount] = useState(0);
+  const [tomorrowTasks, setTomorrowTasks] = useState<{ id: string; text: string; dueTime?: string; category?: string }[]>([]);
+  const [pushEnabled, setPushEnabled] = useState(() => {
+    return localStorage.getItem('cn_push_notifications_enabled') === 'true';
+  });
+  const [notifiedTaskIds, setNotifiedTaskIds] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('cn_notified_task_ids');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
   const [mounted, setMounted] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
@@ -821,6 +833,25 @@ const HubHome: React.FC<HubHomeProps> = ({
     } catch (error: any) { setEmailMessage(`❌ Erro: ${error.message}`); }
   };
 
+  const handleTogglePushNotifications = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const checked = e.target.checked;
+    if (checked) {
+      const granted = await requestNotificationPermission();
+      if (granted) {
+        setPushEnabled(true);
+        localStorage.setItem('cn_push_notifications_enabled', 'true');
+        triggerLocalNotification('Notificações Ativas 🔔', 'Você receberá alertas das tarefas limite.');
+      } else {
+        alert('Por favor, autorize a permissão de notificações no seu navegador/dispositivo.');
+        setPushEnabled(false);
+        localStorage.setItem('cn_push_notifications_enabled', 'false');
+      }
+    } else {
+      setPushEnabled(false);
+      localStorage.setItem('cn_push_notifications_enabled', 'false');
+    }
+  };
+
   useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
@@ -841,6 +872,18 @@ const HubHome: React.FC<HubHomeProps> = ({
         .eq('completed', false)
         .lte('due_date', todayStr);
       setPendingTarefas(tarefas?.length || 0);
+
+      // Fetch tomorrow's tasks
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const tomorrowStr = tomorrow.toISOString().split('T')[0];
+      const { data: tTasks } = await supabase
+        .from('tarefas')
+        .select('id, text, due_time, category')
+        .eq('user_id', user.id)
+        .eq('completed', false)
+        .eq('due_date', tomorrowStr);
+      setTomorrowTasks((tTasks || []).map(t => ({ id: t.id, text: t.text, dueTime: t.due_time, category: t.category })));
 
       // 2. Pending Estudos
       const estudosRaw = JSON.parse(localStorage.getItem('cp_study_tasks') || '[]');
@@ -906,6 +949,58 @@ const HubHome: React.FC<HubHomeProps> = ({
 
     fetchCloudData().catch(err => console.error('Error fetching hub data:', err));
   }, [todayStr, currentTime]);
+
+  // Task limit checker running periodically
+  useEffect(() => {
+    if (!pushEnabled || !('Notification' in window) || Notification.permission !== 'granted') return;
+
+    const checkLimitTasks = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const now = new Date();
+      // Format as YYYY-MM-DD
+      const localTodayStr = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().split('T')[0];
+      const currentHourMin = now.toTimeString().slice(0, 5); // HH:MM
+
+      const { data: todayTasks } = await supabase
+        .from('tarefas')
+        .select('id, text, due_date, due_time')
+        .eq('user_id', user.id)
+        .eq('completed', false)
+        .eq('due_date', localTodayStr);
+
+      if (todayTasks && todayTasks.length > 0) {
+        todayTasks.forEach(task => {
+          if (!task.due_time) return;
+          
+          // Check if the current time has reached/passed the due_time, and we haven't notified yet
+          if (task.due_time <= currentHourMin && !notifiedTaskIds.includes(task.id)) {
+            triggerLocalNotification(
+              'Tarefa no Limite! ⏰',
+              `A tarefa "${task.text}" chegou ao horário limite (${task.due_time}).`
+            );
+            
+            // Track notified task IDs
+            setNotifiedTaskIds(prev => {
+              const next = [...prev, task.id];
+              localStorage.setItem('cn_notified_task_ids', JSON.stringify(next));
+              return next;
+            });
+          }
+        });
+      }
+    };
+
+    // Run check immediately on mount/update, then every 30 seconds
+    const initialTimeout = setTimeout(checkLimitTasks, 3000);
+    const interval = setInterval(checkLimitTasks, 30000);
+
+    return () => {
+      clearTimeout(initialTimeout);
+      clearInterval(interval);
+    };
+  }, [pushEnabled, notifiedTaskIds]);
 
   const timeStr = currentTime.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
   const dateStr = currentTime.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
@@ -1502,7 +1597,7 @@ const HubHome: React.FC<HubHomeProps> = ({
 
         {/* Habit Tracker & Quick Notes Container */}
         {!widgetsCollapsed && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-start animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start animate-in fade-in slide-in-from-top-2 duration-300">
           {/* Habit Tracker Section */}
           <div className="bg-white/70 dark:bg-zinc-900/70 backdrop-blur-md rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-lg shadow-zinc-200/40 dark:shadow-black/30 flex flex-col justify-between gap-4 p-5 overflow-hidden relative">
             <div>
@@ -1634,6 +1729,76 @@ const HubHome: React.FC<HubHomeProps> = ({
                     style={{ width: `${(habits.filter(h => (habitHistory[todayStr] || []).includes(h.id)).length / habits.length) * 100}%` }}
                   />
                 </div>
+              </div>
+            )}
+          </div>
+
+          {/* Tomorrow's Tasks Widget */}
+          <div className="bg-white/70 dark:bg-zinc-900/70 backdrop-blur-md rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-lg shadow-zinc-200/40 dark:shadow-black/30 flex flex-col justify-between gap-4 p-5 overflow-hidden relative min-h-[280px]">
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-xs font-black text-zinc-800 dark:text-zinc-200 uppercase tracking-widest flex items-center gap-1.5">
+                    <CalendarDays size={13} className="text-zinc-950 dark:text-zinc-100" />
+                    Agenda de Amanhã
+                  </h3>
+                  <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5 font-medium">Tarefas planejadas para amanhã</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => window.location.hash = 'tarefas'}
+                  className="flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-zinc-800 hover:text-zinc-950 dark:text-zinc-200 dark:hover:text-white bg-zinc-250 dark:bg-zinc-800 px-2.5 py-1.5 rounded-lg border border-zinc-300 dark:border-zinc-700 transition-colors cursor-pointer"
+                >
+                  Ver Planner
+                </button>
+              </div>
+
+              {/* Tomorrow's tasks list */}
+              <div className="space-y-2 max-h-[200px] overflow-y-auto pr-1 custom-scrollbar">
+                {tomorrowTasks.length === 0 ? (
+                  <div className="py-10 text-center text-xs text-zinc-400 dark:text-zinc-500 font-medium flex flex-col items-center justify-center gap-2">
+                    <span className="text-2xl select-none">✨</span>
+                    <span>Nenhuma tarefa agendada para amanhã.</span>
+                    <span className="text-[10px] text-zinc-400 dark:text-zinc-600">Sua agenda está livre!</span>
+                  </div>
+                ) : (
+                  tomorrowTasks.map(t => {
+                    let catColor = 'text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-500/10 border-emerald-250/20';
+                    if (t.category === 'Urgente') {
+                      catColor = 'text-red-650 dark:text-red-400 bg-red-100 dark:bg-red-500/10 border-red-250/20';
+                    } else if (t.category === 'Importante') {
+                      catColor = 'text-amber-650 dark:text-amber-400 bg-amber-100 dark:bg-amber-500/10 border-amber-250/20';
+                    }
+                    return (
+                      <div
+                        key={t.id}
+                        onClick={() => window.location.hash = 'tarefas'}
+                        className="flex flex-col gap-1 p-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950/20 hover:border-zinc-400 dark:hover:border-zinc-650 transition-all cursor-pointer shadow-sm"
+                      >
+                        <span className="text-[11px] font-bold text-zinc-800 dark:text-zinc-200 truncate leading-tight">
+                          {t.text}
+                        </span>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          {t.category && (
+                            <span className={`text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border ${catColor}`}>
+                              {t.category}
+                            </span>
+                          )}
+                          {t.dueTime && (
+                            <span className="flex items-center gap-1 text-[8px] font-bold text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded">
+                              <Clock size={8} /> {t.dueTime}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+            {tomorrowTasks.length > 0 && (
+              <div className="text-[9px] text-zinc-400 dark:text-zinc-500 font-medium text-right shrink-0 mt-auto">
+                Total de {tomorrowTasks.length} {tomorrowTasks.length === 1 ? 'tarefa' : 'tarefas'}
               </div>
             )}
           </div>
@@ -1818,6 +1983,25 @@ const HubHome: React.FC<HubHomeProps> = ({
                </div>
 
                <div className="space-y-4 pt-6 border-t border-zinc-200 dark:border-zinc-800">
+                  <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Notificações Push</p>
+                  <div className="flex items-center justify-between bg-zinc-50 dark:bg-zinc-800/40 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
+                    <div>
+                      <p className="text-xs font-bold text-zinc-800 dark:text-white">Receber alertas de tarefas no limite</p>
+                      <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5">Notifica você no celular quando uma tarefa agendada chega ao horário limite.</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer select-none">
+                      <input 
+                        type="checkbox" 
+                        checked={pushEnabled} 
+                        onChange={handleTogglePushNotifications}
+                        className="sr-only peer" 
+                      />
+                      <div className="w-11 h-6 bg-zinc-200 dark:bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-zinc-600 peer-checked:bg-emerald-500"></div>
+                    </label>
+                  </div>
+                </div>
+
+                <div className="space-y-4 pt-6 border-t border-zinc-200 dark:border-zinc-800">
                  <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Personalização de Fundo</p>
                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                    <button onClick={() => setBgType('default')} className={`p-4 rounded-2xl border transition-all ${bgType === 'default' ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300' : 'border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/50 text-zinc-600 dark:text-zinc-400'}`}>

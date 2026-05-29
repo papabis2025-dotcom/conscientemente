@@ -5,7 +5,7 @@ interface LoginProps {
   onLogin: () => void;
 }
 
-const Login: React.FC<LoginProps> = () => {
+const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [isRegistering, setIsRegistering] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -28,6 +28,7 @@ const Login: React.FC<LoginProps> = () => {
         const { error: err } = await supabase.auth.signInWithPassword({ email, password });
         if (err) throw err;
         setSuccessMsg('Login bem-sucedido! Entrando...');
+        onLogin();
       }
     } catch (err: any) {
       const msg = err.message || 'Ocorreu um erro.';

@@ -263,7 +263,7 @@ export default function HabitosHub({ onBack, theme, toggleTheme, userName }: Hab
             </button>
             <div className="h-4 w-px bg-zinc-200 dark:bg-zinc-800" />
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-violet-500/10 dark:bg-violet-500/20 text-violet-600 dark:text-violet-400 flex items-center justify-center animate-pulse">
+              <div className="w-8 h-8 rounded-lg bg-slate-500/10 dark:bg-slate-500/20 text-slate-650 dark:text-slate-400 flex items-center justify-center animate-pulse">
                 <Flame size={20} strokeWidth={2.5} />
               </div>
               <div>
@@ -297,7 +297,7 @@ export default function HabitosHub({ onBack, theme, toggleTheme, userName }: Hab
         <section className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {/* Consistency card */}
           <div className="bg-white/70 dark:bg-zinc-900/70 backdrop-blur-md border border-zinc-200 dark:border-zinc-800/80 rounded-2xl p-4 shadow-sm flex items-center gap-4 hover:shadow-md transition-all">
-            <div className="p-3 rounded-xl bg-violet-500/10 dark:bg-violet-500/20 text-violet-600 dark:text-violet-400 shrink-0">
+            <div className="p-3 rounded-xl bg-slate-500/10 dark:bg-slate-500/20 text-slate-650 dark:text-slate-450 shrink-0">
               <TrendingUp size={20} />
             </div>
             <div>
@@ -350,8 +350,8 @@ export default function HabitosHub({ onBack, theme, toggleTheme, userName }: Hab
             onClick={() => setActiveTab('painel')}
             className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-200 ${
               activeTab === 'painel' 
-                ? 'bg-violet-600 text-white shadow-md shadow-violet-500/15' 
-                : 'text-zinc-400 dark:text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-900/50'
+                ? 'bg-slate-600 text-white shadow-md shadow-slate-500/15' 
+                : 'text-zinc-400 dark:text-zinc-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-zinc-100 dark:hover:bg-zinc-900/50'
             }`}
           >
             <Calendar size={14} />
@@ -361,8 +361,8 @@ export default function HabitosHub({ onBack, theme, toggleTheme, userName }: Hab
             onClick={() => setActiveTab('relatorio')}
             className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-200 ${
               activeTab === 'relatorio' 
-                ? 'bg-violet-600 text-white shadow-md shadow-violet-500/15' 
-                : 'text-zinc-400 dark:text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-900/50'
+                ? 'bg-slate-600 text-white shadow-md shadow-slate-500/15' 
+                : 'text-zinc-400 dark:text-zinc-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-zinc-100 dark:hover:bg-zinc-900/50'
             }`}
           >
             <BarChart3 size={14} />
@@ -380,7 +380,7 @@ export default function HabitosHub({ onBack, theme, toggleTheme, userName }: Hab
               <div className="lg:col-span-7 bg-white/70 dark:bg-zinc-900/70 backdrop-blur-md border border-zinc-200 dark:border-zinc-800/80 rounded-3xl p-6 shadow-sm flex flex-col gap-5">
                 <div>
                   <h3 className="text-xs font-black text-zinc-900 dark:text-white uppercase tracking-widest flex items-center gap-1.5">
-                    <ClipboardList size={14} className="text-violet-500" />
+                    <ClipboardList size={14} className="text-slate-500" />
                     Checklist de Hoje
                   </h3>
                   <p className="text-[10px] text-zinc-500 mt-1 font-semibold leading-none">
@@ -393,13 +393,13 @@ export default function HabitosHub({ onBack, theme, toggleTheme, userName }: Hab
                   <div className="bg-zinc-100 dark:bg-zinc-950/40 border border-zinc-150 dark:border-zinc-850 p-4 rounded-2xl flex flex-col gap-2 transition-all">
                     <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-wider text-zinc-400">
                       <span>Progresso do Dia</span>
-                      <span className="text-violet-600 dark:text-violet-400">
+                      <span className="text-slate-600 dark:text-slate-400">
                         {completedTodayCount} de {totalHabitsCount} ({progressPercent}%)
                       </span>
                     </div>
                     <div className="w-full h-2.5 bg-zinc-250 dark:bg-zinc-800 rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-gradient-to-r from-violet-600 to-fuchsia-500 rounded-full transition-all duration-500 ease-out"
+                        className="h-full bg-gradient-to-r from-slate-600 to-zinc-500 rounded-full transition-all duration-500 ease-out"
                         style={{ width: `${progressPercent}%` }}
                       />
                     </div>
@@ -422,21 +422,21 @@ export default function HabitosHub({ onBack, theme, toggleTheme, userName }: Hab
                           className={`flex items-center justify-between p-4 rounded-2xl border transition-all duration-300 cursor-pointer select-none group ${
                             isCompleted
                               ? 'bg-zinc-100/50 dark:bg-zinc-950/20 border-zinc-200 dark:border-zinc-900/50 opacity-60'
-                              : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800/80 shadow-sm hover:border-violet-300 dark:hover:border-violet-900 hover:shadow-md hover:-translate-y-0.5'
+                              : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800/80 shadow-sm hover:border-slate-350 dark:hover:border-slate-800 hover:shadow-md hover:-translate-y-0.5'
                           }`}
                         >
                           <div className="flex items-center gap-3.5 min-w-0">
                             <div className={`w-6 h-6 rounded-lg border flex items-center justify-center transition-all ${
                               isCompleted
-                                ? 'bg-violet-600 border-violet-600 text-white shadow-sm shadow-violet-500/25'
-                                : 'border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 group-hover:border-violet-400 dark:group-hover:border-violet-700'
+                                ? 'bg-slate-600 border-slate-600 text-white shadow-sm shadow-slate-500/25'
+                                : 'border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 group-hover:border-slate-400 dark:group-hover:border-slate-700'
                             }`}>
                               {isCompleted && <Check size={14} strokeWidth={3} />}
                             </div>
                             <span className={`text-xs font-bold truncate leading-none transition-all ${
                               isCompleted
                                 ? 'line-through text-zinc-500 dark:text-zinc-500 font-medium'
-                                : 'text-zinc-800 dark:text-zinc-100'
+                                : 'text-zinc-800 dark:text-zinc-105'
                             }`}>
                               {h.name}
                             </span>
@@ -444,7 +444,7 @@ export default function HabitosHub({ onBack, theme, toggleTheme, userName }: Hab
                           
                           <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${
                             isCompleted 
-                              ? 'bg-violet-500/10 text-violet-600 dark:text-violet-400' 
+                              ? 'bg-slate-500/10 text-slate-650 dark:text-slate-400' 
                               : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-400'
                           }`}>
                             {isCompleted ? 'Feito' : 'Pendente'}
@@ -460,7 +460,7 @@ export default function HabitosHub({ onBack, theme, toggleTheme, userName }: Hab
               <div className="lg:col-span-5 bg-white/70 dark:bg-zinc-900/70 backdrop-blur-md border border-zinc-200 dark:border-zinc-800/80 rounded-3xl p-6 shadow-sm flex flex-col gap-5">
                 <div>
                   <h3 className="text-xs font-black text-zinc-900 dark:text-white uppercase tracking-widest flex items-center gap-1.5">
-                    <Plus size={14} className="text-violet-500" />
+                    <Plus size={14} className="text-slate-500" />
                     Gerenciar Hábitos
                   </h3>
                   <p className="text-[10px] text-zinc-500 mt-1 font-semibold leading-none">Cadastre e exclua hábitos de sua rotina</p>
@@ -474,11 +474,11 @@ export default function HabitosHub({ onBack, theme, toggleTheme, userName }: Hab
                     onChange={(e) => setNewHabitName(e.target.value)}
                     placeholder="Novo hábito (ex: Dormir cedo)..."
                     maxLength={50}
-                    className="flex-1 bg-zinc-100 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 text-xs font-semibold placeholder-zinc-400 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500/50 transition-all"
+                    className="flex-1 bg-zinc-100 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 text-xs font-semibold placeholder-zinc-400 focus:outline-none focus:border-slate-500 focus:ring-1 focus:ring-slate-500/50 transition-all"
                   />
                   <button
                     type="submit"
-                    className="bg-violet-600 hover:bg-violet-700 text-white px-4 py-3 rounded-xl font-black uppercase tracking-wider text-xs transition-transform active:scale-95 shadow-md shadow-violet-500/15 flex items-center justify-center shrink-0"
+                    className="bg-slate-600 hover:bg-slate-700 text-white px-4 py-3 rounded-xl font-black uppercase tracking-wider text-xs transition-transform active:scale-95 shadow-md shadow-slate-500/15 flex items-center justify-center shrink-0"
                   >
                     Add
                   </button>
@@ -519,7 +519,7 @@ export default function HabitosHub({ onBack, theme, toggleTheme, userName }: Hab
               <div className="bg-white/70 dark:bg-zinc-900/70 backdrop-blur-md border border-zinc-200 dark:border-zinc-800/80 rounded-3xl p-6 shadow-sm flex flex-col gap-6">
                 <div>
                   <h3 className="text-xs font-black text-zinc-900 dark:text-white uppercase tracking-widest flex items-center gap-1.5">
-                    <BarChart3 size={14} className="text-violet-500" />
+                    <BarChart3 size={14} className="text-slate-500" />
                     Calendário de Consistência (Últimos 30 Dias)
                   </h3>
                   <p className="text-[10px] text-zinc-500 mt-1 font-semibold leading-none">Intensidade das conclusões de seus hábitos</p>
@@ -534,13 +534,13 @@ export default function HabitosHub({ onBack, theme, toggleTheme, userName }: Hab
                       
                       if (day.rate > 0) {
                         if (day.rate <= 0.33) {
-                          colorClass = 'bg-violet-300/70 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300';
+                          colorClass = 'bg-slate-200 dark:bg-slate-900/40 text-slate-700 dark:text-slate-350';
                         } else if (day.rate <= 0.66) {
-                          colorClass = 'bg-violet-400 dark:bg-violet-800/60 text-violet-850 dark:text-violet-200';
+                          colorClass = 'bg-slate-350 dark:bg-slate-800/60 text-slate-800 dark:text-slate-200';
                         } else if (day.rate < 1.0) {
-                          colorClass = 'bg-violet-500 dark:bg-violet-700/90 text-white';
+                          colorClass = 'bg-slate-500 dark:bg-slate-700/90 text-white';
                         } else { // 100%
-                          colorClass = 'bg-violet-650 dark:bg-violet-500 text-white shadow-sm shadow-violet-500/30';
+                          colorClass = 'bg-slate-650 dark:bg-slate-600 text-white shadow-sm shadow-slate-600/30';
                         }
                       }
 
@@ -558,7 +558,7 @@ export default function HabitosHub({ onBack, theme, toggleTheme, userName }: Hab
                           {/* Tooltip on Hover */}
                           <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block bg-zinc-900 dark:bg-zinc-50 text-zinc-50 dark:text-zinc-900 px-2 py-1.5 rounded-lg text-[9px] font-bold shadow-md z-40 whitespace-nowrap leading-tight pointer-events-none">
                             <p>{dateLabel}</p>
-                            <p className="mt-0.5 text-violet-400 dark:text-violet-600 font-extrabold">{day.completed} de {day.total} feitos ({Math.round(day.rate * 100)}%)</p>
+                            <p className="mt-0.5 text-slate-450 dark:text-slate-600 font-extrabold">{day.completed} de {day.total} feitos ({Math.round(day.rate * 100)}%)</p>
                           </div>
                         </div>
                       );
@@ -570,10 +570,10 @@ export default function HabitosHub({ onBack, theme, toggleTheme, userName }: Hab
                     <span>Menos ativo</span>
                     <div className="flex gap-1">
                       <div className="w-3.5 h-3.5 rounded bg-zinc-250 dark:bg-zinc-800 opacity-40 border border-zinc-200 dark:border-zinc-700" />
-                      <div className="w-3.5 h-3.5 rounded bg-violet-300/70 dark:bg-violet-900/40 border border-zinc-200 dark:border-zinc-800" />
-                      <div className="w-3.5 h-3.5 rounded bg-violet-400 dark:bg-violet-800/60 border border-zinc-200 dark:border-zinc-800" />
-                      <div className="w-3.5 h-3.5 rounded bg-violet-500 dark:bg-violet-700/90 border border-zinc-200 dark:border-zinc-800" />
-                      <div className="w-3.5 h-3.5 rounded bg-violet-650 dark:bg-violet-500 border border-zinc-200 dark:border-zinc-800 shadow-sm shadow-violet-500/20" />
+                      <div className="w-3.5 h-3.5 rounded bg-slate-200 dark:bg-slate-900/40 border border-zinc-250 dark:border-zinc-800" />
+                      <div className="w-3.5 h-3.5 rounded bg-slate-350 dark:bg-slate-800/60 border border-zinc-250 dark:border-zinc-800" />
+                      <div className="w-3.5 h-3.5 rounded bg-slate-500 dark:bg-slate-700/80 border border-zinc-250 dark:border-zinc-800" />
+                      <div className="w-3.5 h-3.5 rounded bg-slate-650 dark:bg-slate-600 border border-zinc-250 dark:border-zinc-800 shadow-sm shadow-slate-550/20" />
                     </div>
                     <span>Mais ativo</span>
                   </div>
@@ -582,13 +582,13 @@ export default function HabitosHub({ onBack, theme, toggleTheme, userName }: Hab
                 {/* Additional Consistency stats */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-zinc-200 dark:border-zinc-800/60 pt-6 mt-2">
                   <div className="bg-zinc-50 dark:bg-zinc-950/30 rounded-2xl p-4 border border-zinc-200 dark:border-zinc-850 flex flex-col gap-2">
-                    <h4 className="text-[10px] font-black uppercase tracking-wider text-violet-650 dark:text-violet-400">Análise de Progresso</h4>
+                    <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-600 dark:text-slate-400">Análise de Progresso</h4>
                     <p className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mt-1 leading-relaxed">
-                      Seu índice de consistência geral é calculado com base nas conclusões nos últimos 7 dias. Para maximizar sua consistência, tente concluir todos os hábitos diariamente e manter sua chama de sequência (streak) sempre acesa.
+                      Seu índice de consistência geral é calculated com base nas conclusões nos últimos 7 dias. Para maximizar sua consistência, tente concluir todos os hábitos diariamente e manter sua chama de sequência (streak) sempre acesa.
                     </p>
                   </div>
                   <div className="bg-zinc-50 dark:bg-zinc-950/30 rounded-2xl p-4 border border-zinc-200 dark:border-zinc-850 flex flex-col gap-2.5">
-                    <h4 className="text-[10px] font-black uppercase tracking-wider text-violet-650 dark:text-violet-400">Fatos da sua Rotina</h4>
+                    <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-600 dark:text-slate-400">Fatos da sua Rotina</h4>
                     <div className="grid grid-cols-2 gap-2 mt-1">
                       <div className="p-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800/80 rounded-xl">
                         <span className="text-[8px] font-black uppercase tracking-wider text-zinc-400 leading-none">Dias no histórico</span>

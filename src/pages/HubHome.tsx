@@ -94,6 +94,14 @@ const colorMap: Record<string, {
     border: 'hover:border-violet-400/50 dark:hover:border-violet-500/40',
     ring: 'group-hover:ring-violet-400/30 dark:group-hover:ring-violet-500/20',
   },
+  spacegray: {
+    gradient: 'from-slate-500 to-zinc-700',
+    glow: 'hover:shadow-slate-500/25 dark:hover:shadow-slate-500/20',
+    badge: 'bg-slate-100 text-slate-700 dark:bg-slate-500/15 dark:text-slate-300',
+    icon: 'bg-slate-100 dark:bg-slate-500/20 text-slate-650 dark:text-slate-400',
+    border: 'hover:border-slate-400/50 dark:hover:border-slate-500/40',
+    ring: 'group-hover:ring-slate-400/30 dark:group-hover:ring-slate-500/20',
+  },
 };
 
 
@@ -171,12 +179,14 @@ const ModuleCard: React.FC<{ module: Module; index: number }> = ({ module, index
             module.color === 'emerald' ? 'from-emerald-500/[0.03] via-teal-500/[0.01] to-transparent' :
             module.color === 'cyan' ? 'from-cyan-500/[0.03] via-sky-500/[0.01] to-transparent' :
             module.color === 'rose' ? 'from-rose-500/[0.03] via-pink-500/[0.01] to-transparent' :
+            module.color === 'spacegray' ? 'from-slate-500/[0.04] via-zinc-500/[0.02] to-transparent' :
             'from-amber-500/[0.03] via-orange-500/[0.01] to-transparent'
           } dark:${
             module.color === 'indigo' ? 'from-indigo-500/[0.06] via-violet-500/[0.02] to-transparent' :
             module.color === 'emerald' ? 'from-emerald-500/[0.06] via-teal-500/[0.02] to-transparent' :
             module.color === 'cyan' ? 'from-cyan-500/[0.06] via-sky-500/[0.02] to-transparent' :
             module.color === 'rose' ? 'from-rose-500/[0.06] via-pink-500/[0.02] to-transparent' :
+            module.color === 'spacegray' ? 'from-slate-500/[0.08] via-zinc-500/[0.04] to-transparent' :
             'from-amber-500/[0.06] via-orange-500/[0.02] to-transparent'
           }`} />
 
@@ -261,13 +271,13 @@ const ModuleCard: React.FC<{ module: Module; index: number }> = ({ module, index
                 <>
                   <button
                     onClick={(e) => handleShortcutClick(e, 'habitos-gerenciar')}
-                    className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded-lg bg-violet-50 dark:bg-violet-950/40 text-violet-650 dark:text-violet-400 border border-violet-100 dark:border-violet-900/50 hover:bg-violet-600 hover:text-white hover:border-violet-600 transition-all"
+                    className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded-lg bg-slate-50 dark:bg-slate-950/40 text-slate-650 dark:text-slate-400 border border-slate-200 dark:border-slate-800/50 hover:bg-slate-600 hover:text-white hover:border-slate-600 transition-all"
                   >
                     Gerenciar
                   </button>
                   <button
                     onClick={(e) => handleShortcutClick(e, 'habitos-relatorio')}
-                    className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded-lg bg-fuchsia-50 dark:bg-fuchsia-950/40 text-fuchsia-650 dark:text-fuchsia-400 border border-fuchsia-100 dark:border-fuchsia-900/50 hover:bg-fuchsia-600 hover:text-white hover:border-fuchsia-600 transition-all"
+                    className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded-lg bg-zinc-50 dark:bg-zinc-950/40 text-zinc-650 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-800/50 hover:bg-zinc-600 hover:text-white hover:border-zinc-600 transition-all"
                   >
                     Relatório
                   </button>

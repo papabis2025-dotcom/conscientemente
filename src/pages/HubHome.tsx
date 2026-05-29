@@ -1646,7 +1646,7 @@ const HubHome: React.FC<HubHomeProps> = ({
 
         {/* Module grid */}
         {!modulesCollapsed && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 w-full animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 w-full animate-in fade-in slide-in-from-top-2 duration-300">
             {MODULES.map((mod, i) => (
               <ModuleCard key={mod.id} module={mod} index={i} />
             ))}

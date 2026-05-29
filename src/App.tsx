@@ -30,7 +30,8 @@ const SYNC_KEYS = [
   'cn_anotacoes_folders',
   'cn_custom_bg_image',
   'cn_custom_bg_style',
-  'cn_push_notifications_enabled'
+  'cn_push_notifications_enabled',
+  'cn_deleted_habit_ids'
 ];
 
 function mergeLists<T extends { id: string }>(listA: T[], listB: T[]): T[] {
@@ -79,7 +80,6 @@ function mergeSettings(
     }
 
     if (
-      key === 'cn_habits' || 
       key === 'cp_study_tasks' || 
       key === 'cn_anotacoes' || 
       key === 'cn_anotacoes_folders' ||
@@ -100,7 +100,38 @@ function mergeSettings(
       } catch {
         merged[key] = preferRemote ? remoteVal : localVal;
       }
-    } else if (key === 'cn_cleared_notifications') {
+    } else if (key === 'cn_habits') {
+      try {
+        const localList = JSON.parse(localVal);
+        const remoteList = JSON.parse(remoteVal);
+        if (Array.isArray(localList) && Array.isArray(remoteList)) {
+          const mergedList = preferRemote
+            ? mergeLists(localList, remoteList)
+            : mergeLists(remoteList, localList);
+
+          // Get and parse deleted habit IDs
+          const localDeletedRaw = local['cn_deleted_habit_ids'] || '[]';
+          const remoteDeletedRaw = remote['cn_deleted_habit_ids'] || '[]';
+          const deletedIdsSet = new Set<string>();
+          try {
+            const localDeleted = JSON.parse(localDeletedRaw);
+            if (Array.isArray(localDeleted)) localDeleted.forEach(id => deletedIdsSet.add(id));
+          } catch {}
+          try {
+            const remoteDeleted = JSON.parse(remoteDeletedRaw);
+            if (Array.isArray(remoteDeleted)) remoteDeleted.forEach(id => deletedIdsSet.add(id));
+          } catch {}
+
+          // Filter out any deleted habits
+          const filteredList = mergedList.filter((h: any) => !deletedIdsSet.has(h.id));
+          merged[key] = JSON.stringify(filteredList);
+        } else {
+          merged[key] = preferRemote ? remoteVal : localVal;
+        }
+      } catch {
+        merged[key] = preferRemote ? remoteVal : localVal;
+      }
+    } else if (key === 'cn_cleared_notifications' || key === 'cn_deleted_habit_ids') {
       try {
         const localList = JSON.parse(localVal);
         const remoteList = JSON.parse(remoteVal);

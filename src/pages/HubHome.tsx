@@ -98,7 +98,7 @@ const colorMap: Record<string, {
     gradient: 'from-slate-500 to-zinc-700',
     glow: 'hover:shadow-slate-500/25 dark:hover:shadow-slate-500/20',
     badge: 'bg-slate-100 text-slate-700 dark:bg-slate-500/15 dark:text-slate-300',
-    icon: 'bg-slate-100 dark:bg-slate-500/20 text-slate-650 dark:text-slate-400',
+    icon: 'bg-slate-100 dark:bg-slate-500/20 text-slate-600 dark:text-slate-400',
     border: 'hover:border-slate-400/50 dark:hover:border-slate-500/40',
     ring: 'group-hover:ring-slate-400/30 dark:group-hover:ring-slate-500/20',
   },
@@ -223,13 +223,13 @@ const ModuleCard: React.FC<{ module: Module; index: number }> = ({ module, index
                 <>
                   <button
                     onClick={(e) => handleShortcutClick(e, 'adicionar-estudo')}
-                    className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-650 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/50 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all"
+                    className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/50 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all"
                   >
                     + Estudo
                   </button>
                   <button
                     onClick={(e) => handleShortcutClick(e, 'planner-estudos')}
-                    className="flex items-center gap-1 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded-lg bg-violet-50 dark:bg-violet-950/40 text-violet-650 dark:text-violet-400 border border-violet-100 dark:border-violet-900/50 hover:bg-violet-600 hover:text-white hover:border-violet-600 transition-all"
+                    className="flex items-center gap-1 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded-lg bg-violet-50 dark:bg-violet-950/40 text-violet-600 dark:text-violet-400 border border-violet-100 dark:border-violet-900/50 hover:bg-violet-600 hover:text-white hover:border-violet-600 transition-all"
                   >
                     <Calendar size={9} /> Planner
                   </button>
@@ -238,7 +238,7 @@ const ModuleCard: React.FC<{ module: Module; index: number }> = ({ module, index
               {module.id === 'saude' && (
                 <button
                   onClick={(e) => handleShortcutClick(e, 'novo-treino')}
-                  className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded-lg bg-cyan-50 dark:bg-cyan-950/40 text-cyan-650 dark:text-cyan-400 border border-cyan-100 dark:border-cyan-900/50 hover:bg-cyan-600 hover:text-white hover:border-cyan-600 transition-all"
+                  className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded-lg bg-cyan-50 dark:bg-cyan-950/40 text-cyan-600 dark:text-cyan-400 border border-cyan-100 dark:border-cyan-900/50 hover:bg-cyan-600 hover:text-white hover:border-cyan-600 transition-all"
                 >
                   + Treino
                 </button>
@@ -247,13 +247,13 @@ const ModuleCard: React.FC<{ module: Module; index: number }> = ({ module, index
                 <>
                   <button
                     onClick={(e) => handleShortcutClick(e, 'financas-entrada')}
-                    className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-650 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/50 hover:bg-emerald-600 hover:text-white hover:border-emerald-600 transition-all"
+                    className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/50 hover:bg-emerald-600 hover:text-white hover:border-emerald-600 transition-all"
                   >
                     + Receita
                   </button>
                   <button
                     onClick={(e) => handleShortcutClick(e, 'financas-saida')}
-                    className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded-lg bg-rose-50 dark:bg-rose-950/40 text-rose-650 dark:text-rose-400 border border-rose-100 dark:border-rose-900/50 hover:bg-rose-600 hover:text-white hover:border-rose-600 transition-all"
+                    className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded-lg bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-900/50 hover:bg-rose-600 hover:text-white hover:border-rose-600 transition-all"
                   >
                     - Despesa
                   </button>
@@ -262,7 +262,7 @@ const ModuleCard: React.FC<{ module: Module; index: number }> = ({ module, index
               {module.id === 'tarefas' && (
                 <button
                   onClick={(e) => handleShortcutClick(e, 'nova-tarefa')}
-                  className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded-lg bg-rose-50 dark:bg-rose-950/40 text-rose-655 dark:text-rose-400 border border-rose-100 dark:border-rose-900/50 hover:bg-rose-600 hover:text-white hover:border-rose-600 transition-all"
+                  className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded-lg bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-900/50 hover:bg-rose-600 hover:text-white hover:border-rose-600 transition-all"
                 >
                   + Tarefa
                 </button>
@@ -271,13 +271,13 @@ const ModuleCard: React.FC<{ module: Module; index: number }> = ({ module, index
                 <>
                   <button
                     onClick={(e) => handleShortcutClick(e, 'habitos-gerenciar')}
-                    className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded-lg bg-slate-50 dark:bg-slate-950/40 text-slate-650 dark:text-slate-400 border border-slate-200 dark:border-slate-800/50 hover:bg-slate-600 hover:text-white hover:border-slate-600 transition-all"
+                    className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded-lg bg-slate-50 dark:bg-slate-950/40 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800/50 hover:bg-slate-600 hover:text-white hover:border-slate-600 transition-all"
                   >
                     Gerenciar
                   </button>
                   <button
                     onClick={(e) => handleShortcutClick(e, 'habitos-relatorio')}
-                    className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded-lg bg-zinc-50 dark:bg-zinc-950/40 text-zinc-650 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-800/50 hover:bg-zinc-600 hover:text-white hover:border-zinc-600 transition-all"
+                    className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded-lg bg-zinc-50 dark:bg-zinc-950/40 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-800/50 hover:bg-zinc-600 hover:text-white hover:border-zinc-600 transition-all"
                   >
                     Relatório
                   </button>

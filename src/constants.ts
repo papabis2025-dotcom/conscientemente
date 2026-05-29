@@ -56,4 +56,15 @@ export const MODULES: Module[] = [
     route: 'anotacoes',
     available: true,
   },
+  {
+    id: 'habitos',
+    label: 'Hábitos',
+    description: 'Rotina, consistência, estatísticas e gerenciamento de hábitos.',
+    emoji: '',
+    color: 'violet',
+    bgDark: 'dark:bg-violet-950/30',
+    borderDark: 'dark:border-violet-800/50',
+    route: 'habitos',
+    available: true,
+  },
 ];

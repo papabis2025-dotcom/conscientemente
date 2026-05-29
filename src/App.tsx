@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from './services/supabase';
 import Login from './pages/Login';
 import HubHome from './pages/HubHome';
+import HabitosHub from './pages/HabitosHub';
 import EstudosApp from './modules/estudos/App';
 import FinancasApp from './modules/financas/App';
 import SaudeApp from './modules/saude/App';
@@ -578,6 +579,15 @@ const App: React.FC = () => {
     pageContent = <TarefasApp />;
   } else if (currentRoute === 'anotacoes') {
     pageContent = <AnotacoesApp />;
+  } else if (currentRoute === 'habitos') {
+    pageContent = (
+      <HabitosHub
+        onBack={() => { window.location.hash = 'hub'; }}
+        theme={theme}
+        toggleTheme={toggleTheme}
+        userName={userName}
+      />
+    );
   } else {
     pageContent = (
       <HubHome

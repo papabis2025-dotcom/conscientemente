@@ -86,6 +86,14 @@ const colorMap: Record<string, {
     border: 'hover:border-amber-400/50 dark:hover:border-amber-500/40',
     ring: 'group-hover:ring-amber-400/30 dark:group-hover:ring-amber-500/20',
   },
+  violet: {
+    gradient: 'from-violet-500 to-fuchsia-600',
+    glow: 'hover:shadow-violet-500/25 dark:hover:shadow-violet-500/20',
+    badge: 'bg-violet-100 text-violet-750 dark:bg-violet-500/15 dark:text-violet-300',
+    icon: 'bg-violet-100 dark:bg-violet-500/20 text-violet-650 dark:text-violet-400',
+    border: 'hover:border-violet-400/50 dark:hover:border-violet-500/40',
+    ring: 'group-hover:ring-violet-400/30 dark:group-hover:ring-violet-500/20',
+  },
 };
 
 
@@ -95,6 +103,7 @@ const iconMap: Record<string, React.ReactNode> = {
   saude: <Activity size={20} strokeWidth={2} />,
   tarefas: <ListTodo size={20} strokeWidth={2} />,
   anotacoes: <StickyNote size={20} strokeWidth={2} />,
+  habitos: <Flame size={20} strokeWidth={2} />,
 };
 
 const ModuleCard: React.FC<{ module: Module; index: number }> = ({ module, index }) => {
@@ -125,6 +134,12 @@ const ModuleCard: React.FC<{ module: Module; index: number }> = ({ module, index
     } else if (action === 'nova-tarefa') {
       sessionStorage.setItem('openAddTaskModal', 'true');
       window.location.hash = 'tarefas';
+    } else if (action === 'habitos-gerenciar') {
+      sessionStorage.setItem('habitosActiveTab', 'painel');
+      window.location.hash = 'habitos';
+    } else if (action === 'habitos-relatorio') {
+      sessionStorage.setItem('habitosActiveTab', 'relatorio');
+      window.location.hash = 'habitos';
     }
   };
 
@@ -241,6 +256,22 @@ const ModuleCard: React.FC<{ module: Module; index: number }> = ({ module, index
                 >
                   + Tarefa
                 </button>
+              )}
+              {module.id === 'habitos' && (
+                <>
+                  <button
+                    onClick={(e) => handleShortcutClick(e, 'habitos-gerenciar')}
+                    className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded-lg bg-violet-50 dark:bg-violet-950/40 text-violet-650 dark:text-violet-400 border border-violet-100 dark:border-violet-900/50 hover:bg-violet-600 hover:text-white hover:border-violet-600 transition-all"
+                  >
+                    Gerenciar
+                  </button>
+                  <button
+                    onClick={(e) => handleShortcutClick(e, 'habitos-relatorio')}
+                    className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded-lg bg-fuchsia-50 dark:bg-fuchsia-950/40 text-fuchsia-650 dark:text-fuchsia-400 border border-fuchsia-100 dark:border-fuchsia-900/50 hover:bg-fuchsia-600 hover:text-white hover:border-fuchsia-600 transition-all"
+                  >
+                    Relatório
+                  </button>
+                </>
               )}
             </div>
             <div className={`flex items-center gap-1 text-[9px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all duration-200 translate-y-1 group-hover:translate-y-0 ${colors.badge.split(' ').filter(c => c.startsWith('text-')).join(' ') ?? 'text-zinc-500'}`}>
@@ -1637,171 +1668,80 @@ const HubHome: React.FC<HubHomeProps> = ({
 
         {/* Habit Tracker & Quick Notes Container */}
         {!widgetsCollapsed && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-start animate-in fade-in slide-in-from-top-2 duration-300">
             {/* Habit Tracker Section */}
             <div className="bg-white/70 dark:bg-zinc-900/70 backdrop-blur-md rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-lg shadow-zinc-200/40 dark:shadow-black/30 flex flex-col justify-between gap-4 p-5 overflow-hidden relative">
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h3 className="text-xs font-black text-zinc-800 dark:text-zinc-200 uppercase tracking-widest flex items-center gap-1.5">
-                    <ClipboardList size={13} className="text-zinc-900 dark:text-zinc-100" />
-                    Hábitos de Hoje
-                  </h3>
-                  <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5 font-medium">Mantenha sua rotina consistente</p>
-                </div>
-              </div>
-
-              {/* List of habits checkboxes */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
-                {habits.length === 0 ? (
-                  <div className="col-span-2 py-4 text-center text-xs text-zinc-500 dark:text-zinc-400 font-medium">
-                    Você não possui hábitos definidos. Use o Hub de Hábitos ao lado para criar.
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="text-xs font-black text-zinc-800 dark:text-zinc-200 uppercase tracking-widest flex items-center gap-1.5">
+                      <ClipboardList size={13} className="text-zinc-900 dark:text-zinc-100" />
+                      Hábitos de Hoje
+                    </h3>
+                    <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5 font-medium">Mantenha sua rotina consistente</p>
                   </div>
-                ) : (
-                  habits.map(h => {
-                    const isCompleted = (habitHistory[todayStr] || []).includes(h.id);
-                    return (
-                      <div
-                        key={h.id}
-                        onClick={() => toggleHabit(h.id)}
-                        className={`flex items-center gap-3 p-3 rounded-2xl border transition-all duration-200 cursor-pointer ${
-                          isCompleted
-                            ? 'bg-zinc-200/50 dark:bg-zinc-950/20 border-zinc-300 dark:border-zinc-900/50 opacity-60'
-                            : 'bg-white dark:bg-zinc-900 border-zinc-300 dark:border-zinc-850 shadow-sm hover:border-zinc-400 dark:hover:border-zinc-650 hover:shadow-md'
-                        }`}
-                      >
-                        <div className="relative flex items-center justify-center shrink-0">
-                          <div className={`w-5 h-5 rounded-lg border flex items-center justify-center transition-all ${
-                            isCompleted
-                              ? 'bg-zinc-900 dark:bg-white border-zinc-900 dark:border-white text-white dark:text-zinc-950'
-                              : 'border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800'
-                          }`}>
-                            {isCompleted && <Check size={11} strokeWidth={3} />}
-                          </div>
-                        </div>
-                        <span className={`text-[11px] font-bold transition-all truncate leading-none ${
-                          isCompleted
-                            ? 'line-through text-zinc-500 dark:text-zinc-500 font-medium'
-                            : 'text-zinc-800 dark:text-zinc-200'
-                        }`}>
-                          {h.name}
-                        </span>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            </div>
+                </div>
 
-            {/* Progress Indicator */}
-            {habits.length > 0 && (
-              <div className="mt-2 pt-3 border-t border-zinc-300 dark:border-zinc-800/60 animate-in fade-in duration-300 shrink-0">
-                <div className="flex justify-between items-center text-[10px] font-bold text-zinc-500 dark:text-zinc-400 mb-1.5">
-                  <span>Progresso</span>
-                  <span>
-                    {habits.filter(h => (habitHistory[todayStr] || []).includes(h.id)).length} de {habits.length} ({Math.round((habits.filter(h => (habitHistory[todayStr] || []).includes(h.id)).length / habits.length) * 100)}%)
-                  </span>
-                </div>
-                <div className="w-full h-1.5 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-zinc-900 dark:bg-white transition-all duration-500"
-                    style={{ width: `${(habits.filter(h => (habitHistory[todayStr] || []).includes(h.id)).length / habits.length) * 100}%` }}
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Habits Hub Widget */}
-          <div className="bg-white/70 dark:bg-zinc-900/70 backdrop-blur-md rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-lg shadow-zinc-200/40 dark:shadow-black/30 flex flex-col justify-between gap-4 p-5 overflow-hidden relative min-h-[300px]">
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h3 className="text-xs font-black text-zinc-800 dark:text-zinc-200 uppercase tracking-widest flex items-center gap-1.5">
-                    <Activity size={13} className="text-zinc-950 dark:text-zinc-100" />
-                    Hub de Hábitos
-                  </h3>
-                  <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5 font-medium">Estatísticas e gerenciamento</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setShowHabitsReport(true)}
-                  className="flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-zinc-800 hover:text-zinc-950 dark:text-zinc-200 dark:hover:text-white bg-zinc-200 dark:bg-zinc-800 px-2.5 py-1.5 rounded-lg border border-zinc-300 dark:border-zinc-700 transition-colors cursor-pointer"
-                >
-                  <BarChart3 size={11} /> Relatório Completo
-                </button>
-              </div>
-
-              {/* Quick Stats Grid */}
-              <div className="grid grid-cols-3 gap-2 mb-4">
-                <div className="p-2.5 rounded-xl border border-zinc-200 dark:border-zinc-805 bg-zinc-100/50 dark:bg-zinc-950/20 text-center">
-                  <p className="text-[8px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Consistência</p>
-                  <p className="text-sm font-black text-zinc-900 dark:text-white mt-0.5">{last7DaysRate}%</p>
-                </div>
-                <div className="p-2.5 rounded-xl border border-zinc-200 dark:border-zinc-805 bg-zinc-100/50 dark:bg-zinc-950/20 text-center">
-                  <p className="text-[8px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Streak</p>
-                  <p className="text-sm font-black text-zinc-900 dark:text-white mt-0.5">{currentStreak}d</p>
-                </div>
-                <div className="p-2.5 rounded-xl border border-zinc-200 dark:border-zinc-805 bg-zinc-100/50 dark:bg-zinc-950/20 text-center">
-                  <p className="text-[8px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Conclusões</p>
-                  <p className="text-sm font-black text-zinc-900 dark:text-white mt-0.5">{totalCompletions}</p>
-                </div>
-              </div>
-
-              {/* Manage Habits Inline View */}
-              <div className="space-y-3">
-                <p className="text-[9px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest">Gerenciar Hábitos</p>
-                
-                {/* List of habits to manage */}
-                <div className="space-y-1.5 max-h-[110px] overflow-y-auto pr-1 custom-scrollbar">
+                {/* List of habits checkboxes */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
                   {habits.length === 0 ? (
-                    <p className="text-[10px] text-zinc-400 dark:text-zinc-500 text-center py-2 font-medium">Nenhum hábito cadastrado.</p>
+                    <div className="col-span-2 py-4 text-center text-xs text-zinc-500 dark:text-zinc-400 font-medium">
+                      Você não possui hábitos definidos. Acesse o card de Hábitos para criar.
+                    </div>
                   ) : (
-                    habits.map(h => (
-                      <div key={h.id} className="flex items-center justify-between bg-white dark:bg-zinc-950/20 px-3 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:border-zinc-350 dark:hover:border-zinc-700 transition-all shadow-sm">
-                        <span className="text-[11px] font-bold text-zinc-850 dark:text-zinc-200 truncate pr-2">{h.name}</span>
-                        <button
-                          type="button"
-                          onClick={() => deleteHabit(h.id)}
-                          className="text-zinc-400 hover:text-rose-500 transition-colors p-1 cursor-pointer shrink-0"
-                          title="Excluir hábito"
+                    habits.map(h => {
+                      const isCompleted = (habitHistory[todayStr] || []).includes(h.id);
+                      return (
+                        <div
+                          key={h.id}
+                          onClick={() => toggleHabit(h.id)}
+                          className={`flex items-center gap-3 p-3 rounded-2xl border transition-all duration-200 cursor-pointer ${
+                            isCompleted
+                              ? 'bg-zinc-200/50 dark:bg-zinc-950/20 border-zinc-300 dark:border-zinc-900/50 opacity-60'
+                              : 'bg-white dark:bg-zinc-900 border-zinc-300 dark:border-zinc-850 shadow-sm hover:border-zinc-400 dark:hover:border-zinc-650 hover:shadow-md'
+                          }`}
                         >
-                          <Trash2 size={12} />
-                        </button>
-                      </div>
-                    ))
+                          <div className="relative flex items-center justify-center shrink-0">
+                            <div className={`w-5 h-5 rounded-lg border flex items-center justify-center transition-all ${
+                              isCompleted
+                                ? 'bg-zinc-950 dark:bg-white border-zinc-900 dark:border-white text-white dark:text-zinc-950'
+                                : 'border-zinc-300 dark:border-zinc-700 bg-zinc-550 dark:bg-zinc-800'
+                            }`}>
+                              {isCompleted && <Check size={11} strokeWidth={3} />}
+                            </div>
+                          </div>
+                          <span className={`text-[11px] font-bold transition-all truncate leading-none ${
+                            isCompleted
+                              ? 'line-through text-zinc-500 dark:text-zinc-500 font-medium'
+                              : 'text-zinc-800 dark:text-zinc-200'
+                          }`}>
+                            {h.name}
+                          </span>
+                        </div>
+                      );
+                    })
                   )}
                 </div>
-
-                {/* Add new habit inline form */}
-                <div className="flex gap-1.5 pt-2 border-t border-zinc-200 dark:border-zinc-800">
-                  <input
-                    type="text"
-                    placeholder="Adicionar novo hábito..."
-                    value={newHabitName}
-                    onChange={e => setNewHabitName(e.target.value)}
-                    onKeyDown={e => {
-                      if (e.key === 'Enter') {
-                        addHabit(newHabitName);
-                        setNewHabitName('');
-                      }
-                    }}
-                    className="flex-1 px-3 py-1.5 text-xs bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-800 rounded-xl outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 text-zinc-800 dark:text-white font-medium"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      addHabit(newHabitName);
-                      setNewHabitName('');
-                    }}
-                    className="bg-zinc-900 hover:bg-zinc-800 dark:bg-white dark:hover:bg-zinc-100 text-white dark:text-zinc-900 px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1 transition-all cursor-pointer shrink-0"
-                  >
-                    <Plus size={12} /> Add
-                  </button>
-                </div>
               </div>
+
+              {/* Progress Indicator */}
+              {habits.length > 0 && (
+                <div className="mt-2 pt-3 border-t border-zinc-300 dark:border-zinc-800/60 animate-in fade-in duration-300 shrink-0">
+                  <div className="flex justify-between items-center text-[10px] font-bold text-zinc-500 dark:text-zinc-400 mb-1.5">
+                    <span>Progresso</span>
+                    <span>
+                      {habits.filter(h => (habitHistory[todayStr] || []).includes(h.id)).length} de {habits.length} ({Math.round((habits.filter(h => (habitHistory[todayStr] || []).includes(h.id)).length / habits.length) * 100)}%)
+                    </span>
+                  </div>
+                  <div className="w-full h-1.5 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-zinc-900 dark:bg-white transition-all duration-500"
+                      style={{ width: `${(habits.filter(h => (habitHistory[todayStr] || []).includes(h.id)).length / habits.length) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
 
           {/* Quick Notes Section */}
           <div className="bg-white/70 dark:bg-zinc-900/70 backdrop-blur-md rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-lg shadow-zinc-200/40 dark:shadow-black/30 flex flex-col justify-between gap-4 p-5 overflow-hidden relative">

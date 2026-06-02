@@ -270,19 +270,19 @@ const ModuleCard: React.FC<ModuleCardProps> = ({
         </div>
 
         {module.available && (
-          <div className="mt-2.5 pt-2 border-t border-zinc-150/70 dark:border-zinc-800/60 flex flex-wrap items-center justify-between gap-1.5 shrink-0">
-            <div className="flex flex-wrap gap-1.5">
+          <div className="mt-2.5 pt-2 border-t border-zinc-150/70 dark:border-zinc-800/60 w-full shrink-0">
+            <div className="flex items-center gap-1.5 w-full">
               {module.id === 'estudos' && (
                 <>
                   <button
                     onClick={(e) => handleShortcutClick(e, 'adicionar-estudo')}
-                    className="px-2.5 py-1 text-[10px] font-black uppercase tracking-wider rounded-xl bg-indigo-100/85 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800/40 hover:bg-indigo-600 hover:text-white dark:hover:bg-indigo-500 transition-all"
+                    className="flex-1 flex items-center justify-center text-center px-2 py-1.5 text-[9px] font-black uppercase tracking-wider rounded-xl bg-indigo-100/85 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800/40 hover:bg-indigo-600 hover:text-white dark:hover:bg-indigo-500 transition-all"
                   >
                     + Estudo
                   </button>
                   <button
                     onClick={(e) => handleShortcutClick(e, 'planner-estudos')}
-                    className="flex items-center gap-1 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider rounded-xl bg-violet-100/85 dark:bg-violet-950/50 text-violet-700 dark:text-violet-300 border border-violet-200/60 dark:border-violet-800/40 hover:bg-violet-600 hover:text-white dark:hover:bg-violet-500 transition-all"
+                    className="flex-1 flex items-center justify-center text-center gap-1 px-2 py-1.5 text-[9px] font-black uppercase tracking-wider rounded-xl bg-violet-100/85 dark:bg-violet-950/50 text-violet-700 dark:text-violet-300 border border-violet-200/60 dark:border-violet-800/40 hover:bg-violet-600 hover:text-white dark:hover:bg-violet-500 transition-all"
                   >
                     <Calendar size={9} /> Planner
                   </button>
@@ -291,7 +291,7 @@ const ModuleCard: React.FC<ModuleCardProps> = ({
               {module.id === 'saude' && (
                 <button
                   onClick={(e) => handleShortcutClick(e, 'novo-treino')}
-                  className="px-2.5 py-1 text-[10px] font-black uppercase tracking-wider rounded-xl bg-cyan-100/85 dark:bg-cyan-950/50 text-cyan-700 dark:text-cyan-300 border border-cyan-200/60 dark:border-cyan-800/40 hover:bg-cyan-600 hover:text-white dark:hover:bg-cyan-500 transition-all"
+                  className="flex-1 flex items-center justify-center text-center px-2 py-1.5 text-[9px] font-black uppercase tracking-wider rounded-xl bg-cyan-100/85 dark:bg-cyan-950/50 text-cyan-700 dark:text-cyan-300 border border-cyan-200/60 dark:border-cyan-800/40 hover:bg-cyan-600 hover:text-white dark:hover:bg-cyan-500 transition-all"
                 >
                   + Treino
                 </button>
@@ -300,13 +300,13 @@ const ModuleCard: React.FC<ModuleCardProps> = ({
                 <>
                   <button
                     onClick={(e) => handleShortcutClick(e, 'financas-entrada')}
-                    className="px-2.5 py-1 text-[10px] font-black uppercase tracking-wider rounded-xl bg-emerald-100/85 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/40 hover:bg-emerald-600 hover:text-white dark:hover:bg-emerald-500 transition-all"
+                    className="flex-1 flex items-center justify-center text-center px-2 py-1.5 text-[9px] font-black uppercase tracking-wider rounded-xl bg-emerald-100/85 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/40 hover:bg-emerald-600 hover:text-white dark:hover:bg-emerald-500 transition-all"
                   >
                     + Receita
                   </button>
                   <button
                     onClick={(e) => handleShortcutClick(e, 'financas-saida')}
-                    className="px-2.5 py-1 text-[10px] font-black uppercase tracking-wider rounded-xl bg-rose-100/85 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border border-rose-200/60 dark:border-rose-800/40 hover:bg-rose-600 hover:text-white dark:hover:bg-rose-500 transition-all"
+                    className="flex-1 flex items-center justify-center text-center px-2 py-1.5 text-[9px] font-black uppercase tracking-wider rounded-xl bg-rose-100/85 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border border-rose-200/60 dark:border-rose-800/40 hover:bg-rose-600 hover:text-white dark:hover:bg-rose-500 transition-all"
                   >
                     - Despesa
                   </button>
@@ -315,7 +315,7 @@ const ModuleCard: React.FC<ModuleCardProps> = ({
               {module.id === 'tarefas' && (
                 <button
                   onClick={(e) => handleShortcutClick(e, 'nova-tarefa')}
-                  className="px-2.5 py-1 text-[10px] font-black uppercase tracking-wider rounded-xl bg-rose-100/85 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border border-rose-200/60 dark:border-rose-800/40 hover:bg-rose-600 hover:text-white dark:hover:bg-rose-500 transition-all"
+                  className="flex-1 flex items-center justify-center text-center px-2 py-1.5 text-[9px] font-black uppercase tracking-wider rounded-xl bg-rose-100/85 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border border-rose-200/60 dark:border-rose-800/40 hover:bg-rose-600 hover:text-white dark:hover:bg-rose-500 transition-all"
                 >
                   + Tarefa
                 </button>
@@ -324,13 +324,13 @@ const ModuleCard: React.FC<ModuleCardProps> = ({
                 <>
                   <button
                     onClick={(e) => handleShortcutClick(e, 'habitos-gerenciar')}
-                    className="px-2.5 py-1 text-[10px] font-black uppercase tracking-wider rounded-xl bg-zinc-200/85 dark:bg-zinc-800/80 text-zinc-700 dark:text-zinc-300 border border-zinc-300/60 dark:border-zinc-700/60 hover:bg-zinc-900 hover:text-white dark:hover:bg-zinc-100 dark:hover:text-zinc-900 transition-all"
+                    className="flex-1 flex items-center justify-center text-center px-2 py-1.5 text-[9px] font-black uppercase tracking-wider rounded-xl bg-zinc-200/85 dark:bg-zinc-800/80 text-zinc-700 dark:text-zinc-300 border border-zinc-300/60 dark:border-zinc-700/60 hover:bg-zinc-900 hover:text-white dark:hover:bg-zinc-100 dark:hover:text-zinc-900 transition-all"
                   >
                     Gerenciar
                   </button>
                   <button
                     onClick={(e) => handleShortcutClick(e, 'habitos-relatorio')}
-                    className="px-2.5 py-1 text-[10px] font-black uppercase tracking-wider rounded-xl bg-zinc-200/85 dark:bg-zinc-800/80 text-zinc-700 dark:text-zinc-300 border border-zinc-300/60 dark:border-zinc-700/60 hover:bg-zinc-900 hover:text-white dark:hover:bg-zinc-100 dark:hover:text-zinc-900 transition-all"
+                    className="flex-1 flex items-center justify-center text-center px-2 py-1.5 text-[9px] font-black uppercase tracking-wider rounded-xl bg-zinc-200/85 dark:bg-zinc-800/80 text-zinc-700 dark:text-zinc-300 border border-zinc-300/60 dark:border-zinc-700/60 hover:bg-zinc-900 hover:text-white dark:hover:bg-zinc-100 dark:hover:text-zinc-900 transition-all"
                   >
                     Relatório
                   </button>
@@ -340,21 +340,18 @@ const ModuleCard: React.FC<ModuleCardProps> = ({
                 <>
                   <button
                     onClick={(e) => handleShortcutClick(e, 'anotacoes-rapida')}
-                    className="px-2.5 py-1 text-[10px] font-black uppercase tracking-wider rounded-xl bg-amber-100/85 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border border-amber-200/60 dark:border-amber-800/40 hover:bg-amber-600 hover:text-white dark:hover:bg-amber-500 transition-all"
+                    className="flex-1 flex items-center justify-center text-center px-2 py-1.5 text-[9px] font-black uppercase tracking-wider rounded-xl bg-amber-100/85 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border border-amber-200/60 dark:border-amber-800/40 hover:bg-amber-600 hover:text-white dark:hover:bg-amber-500 transition-all"
                   >
                     + Rápida
                   </button>
                   <button
                     onClick={(e) => handleShortcutClick(e, 'anotacoes-leitura')}
-                    className="px-2.5 py-1 text-[10px] font-black uppercase tracking-wider rounded-xl bg-yellow-100/85 dark:bg-yellow-950/50 text-yellow-700 dark:text-yellow-300 border border-yellow-200/60 dark:border-yellow-800/40 hover:bg-yellow-600 hover:text-white dark:hover:bg-yellow-500 transition-all"
+                    className="flex-1 flex items-center justify-center text-center px-2 py-1.5 text-[9px] font-black uppercase tracking-wider rounded-xl bg-yellow-100/85 dark:bg-yellow-950/50 text-yellow-700 dark:text-yellow-300 border border-yellow-200/60 dark:border-yellow-800/40 hover:bg-yellow-600 hover:text-white dark:hover:bg-yellow-500 transition-all"
                   >
                     + Leitura
                   </button>
                 </>
               )}
-            </div>
-            <div className={`flex items-center gap-1 text-[9px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all duration-200 translate-y-1 group-hover:translate-y-0 ${colors.badge.split(' ').filter(c => c.startsWith('text-')).join(' ') ?? 'text-zinc-500'}`}>
-              Abrir <ChevronRight size={8} />
             </div>
           </div>
         )}
@@ -1314,14 +1311,17 @@ const HubHome: React.FC<HubHomeProps> = ({
       >
         <div className="flex flex-col gap-6 w-full">
           {/* Logo & Branding */}
-          <div className={`flex items-center gap-3 w-full ${sidebarExpanded ? 'justify-start px-4' : 'justify-center'}`}>
-            <div className="w-10 h-10 rounded-xl bg-zinc-900 dark:bg-zinc-100 flex items-center justify-center shadow-md shrink-0">
-              <Brain size={20} className="text-white dark:text-zinc-900" />
-            </div>
+          <div 
+            className={`w-full h-11 rounded-xl flex items-center gap-3 border border-zinc-200/60 dark:border-zinc-800 bg-zinc-950/5 dark:bg-white/5 text-zinc-900 dark:text-white shrink-0 ${
+              sidebarExpanded ? 'px-4 justify-start' : 'justify-center'
+            }`}
+            title="Conscientemente"
+          >
+            <Brain size={16} className="text-zinc-900 dark:text-white shrink-0" />
             {sidebarExpanded && (
-              <h1 className="text-xs sm:text-sm font-black text-zinc-900 dark:text-white uppercase tracking-widest leading-none select-none animate-in fade-in duration-200">
+              <span className="text-[10px] font-black uppercase tracking-wider select-none animate-in fade-in duration-200">
                 Conscientemente
-              </h1>
+              </span>
             )}
           </div>
 

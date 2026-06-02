@@ -110,8 +110,8 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions }) =
     <div className="space-y-6 animate-in fade-in duration-500 pb-10">
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 px-1">
         <div>
-          <h2 className="text-2xl font-black text-zinc-800 dark:text-white tracking-tight uppercase flex items-center gap-2">
-            Análise Estatística <Trophy size={20} className="text-amber-500" />
+          <h2 className="text-2xl font-black text-zinc-800 dark:text-white tracking-tight uppercase">
+            Análise Estatística
           </h2>
           <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">Prioridade é um cálculo balanceado para focar no que mais precisa de atenção.</p>
         </div>

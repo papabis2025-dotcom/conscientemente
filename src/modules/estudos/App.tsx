@@ -86,8 +86,8 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
       topicId: activityFormData.topicId || undefined,
       durationInMinutes: parseInt(activityFormData.duration) || 0,
       date: new Date(`${activityFormData.date}T12:00:00`).toISOString(),
-      questionsDone: activityFormData.activityType === 'Questões' ? (parseInt(activityFormData.questionsDone) || undefined) : undefined,
-      questionsCorrect: activityFormData.activityType === 'Questões' ? (parseInt(activityFormData.questionsCorrect) || undefined) : undefined,
+      questionsDone: (activityFormData.activityType === 'Questões' || activityFormData.activityType === 'Flashcards') ? (parseInt(activityFormData.questionsDone) || undefined) : undefined,
+      questionsCorrect: (activityFormData.activityType === 'Questões' || activityFormData.activityType === 'Flashcards') ? (parseInt(activityFormData.questionsCorrect) || undefined) : undefined,
       activityType: activityFormData.activityType
     });
 
@@ -204,6 +204,7 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
                   <select value={activityFormData.activityType} onChange={(e) => setActivityFormData({ ...activityFormData, activityType: e.target.value as any })} className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 border-none rounded-2xl outline-none text-sm font-bold dark:text-white ring-1 ring-zinc-100 dark:ring-zinc-800 focus:ring-zinc-500">
                     <option value="Leitura">Leitura</option>
                     <option value="Questões">Questões</option>
+                    <option value="Flashcards">Flashcards</option>
                     <option value="Aula">Aula</option>
                     <option value="Simulado">Simulado</option>
                   </select>
@@ -239,7 +240,7 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
                 <input type="number" placeholder="Ex: 45" value={activityFormData.duration} onChange={(e) => setActivityFormData({ ...activityFormData, duration: e.target.value })} className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 border-none rounded-2xl outline-none text-sm font-bold dark:text-white ring-1 ring-zinc-100 dark:ring-zinc-800 focus:ring-zinc-500" />
               </div>
 
-              {activityFormData.activityType === 'Questões' && (
+              {(activityFormData.activityType === 'Questões' || activityFormData.activityType === 'Flashcards') && (
                 <div className="grid grid-cols-2 gap-4 p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl border border-dashed border-zinc-200 dark:border-zinc-800 animate-in fade-in slide-in-from-top-2">
                   <div>
                     <label className="text-[10px] font-bold text-zinc-400 uppercase mb-1.5 block">Resolvidas</label>

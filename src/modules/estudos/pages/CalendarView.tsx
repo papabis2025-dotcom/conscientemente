@@ -79,8 +79,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     if (!formData.subjectId || selectedDayKey === null) return;
 
     const durationVal = parseInt(formData.duration) || 0;
-    const questionsDoneVal = formData.activityType === 'Questões' ? (parseInt(formData.questionsDone) || undefined) : undefined;
-    const questionsCorrectVal = formData.activityType === 'Questões' ? (parseInt(formData.questionsCorrect) || undefined) : undefined;
+    const questionsDoneVal = (formData.activityType === 'Questões' || formData.activityType === 'Flashcards') ? (parseInt(formData.questionsDone) || undefined) : undefined;
+    const questionsCorrectVal = (formData.activityType === 'Questões' || formData.activityType === 'Flashcards') ? (parseInt(formData.questionsCorrect) || undefined) : undefined;
 
     if (editingTask) {
       const updates: Partial<ScheduledStudy> = {
@@ -169,6 +169,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   const getActivityIcon = (type?: ActivityType) => {
     switch (type) {
       case 'Questões': return '📝';
+      case 'Flashcards': return '🎴';
       case 'Aula': return '🎥';
       case 'Leitura': return '📖';
       case 'Simulado': return '📋';
@@ -428,6 +429,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                   <select value={formData.activityType} onChange={(e) => setFormData({ ...formData, activityType: e.target.value as any })} className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 border rounded-2xl outline-none text-sm dark:text-white">
                     <option value="Leitura">Leitura</option>
                     <option value="Questões">Questões</option>
+                    <option value="Flashcards">Flashcards</option>
                     <option value="Aula">Aula</option>
                     <option value="Simulado">Simulado</option>
                   </select>
@@ -465,7 +467,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                   </div>
                 </div>
 
-                {formData.activityType === 'Questões' && (
+                {(formData.activityType === 'Questões' || formData.activityType === 'Flashcards') && (
                   <div className="grid grid-cols-2 gap-3 animate-in fade-in slide-in-from-top-2">
                     <div>
                       <label className="text-[10px] font-black text-zinc-400 uppercase mb-1 block">Total Questões</label>

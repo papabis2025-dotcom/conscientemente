@@ -72,7 +72,7 @@ export interface Simulado {
   results: SimuladoSubjectResult[];
 }
 
-export type ActivityType = 'Questões' | 'Leitura' | 'Aula' | 'Simulado';
+export type ActivityType = 'Questões' | 'Leitura' | 'Aula' | 'Simulado' | 'Flashcards';
 
 export interface ScheduledStudy {
   id: string;

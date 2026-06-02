@@ -51,7 +51,7 @@ export default function HabitosHub({ onBack, theme, toggleTheme, userName }: Hab
   // Tab state: 'painel' (Painel Diário) | 'relatorio' (Análise de Consistência)
   const [activeTab, setActiveTab] = useState<'painel' | 'relatorio'>(() => {
     const savedTab = sessionStorage.getItem('habitosActiveTab');
-    return (savedTab === 'relatorio' || savedTab === 'painel') ? savedTab : 'painel';
+    return (savedTab === 'relatorio' || savedTab === 'painel') ? savedTab : 'relatorio';
   });
 
   // Keep sessionStorage in sync
@@ -98,23 +98,31 @@ export default function HabitosHub({ onBack, theme, toggleTheme, userName }: Hab
   };
 
   const todayStr = new Date(currentTime.getTime() - currentTime.getTimezoneOffset() * 60000).toISOString().split('T')[0];
+  const [selectedDate, setSelectedDate] = useState(() => {
+    const localToday = new Date(Date.now() - new Date().getTimezoneOffset() * 60000);
+    return localToday.toISOString().split('T')[0];
+  });
 
   // Mutators
-  const toggleHabit = (habitId: string) => {
+  const toggleHabit = (habitId: string, dateStr: string = selectedDate) => {
     setHabitHistory(prev => {
-      const todayLogs = prev[todayStr] || [];
-      let newTodayLogs: string[];
-      if (todayLogs.includes(habitId)) {
-        newTodayLogs = todayLogs.filter(id => id !== habitId);
+      const dayLogs = prev[dateStr] || [];
+      let newDayLogs: string[];
+      if (dayLogs.includes(habitId)) {
+        newDayLogs = dayLogs.filter(id => id !== habitId);
       } else {
-        newTodayLogs = [...todayLogs, habitId];
+        newDayLogs = [...dayLogs, habitId];
       }
-      const updated = { ...prev, [todayStr]: newTodayLogs };
+      const updated = { ...prev, [dateStr]: newDayLogs };
       localStorage.setItem('cn_habit_history', JSON.stringify(updated));
       return updated;
     });
     // Trigger sync
     setTimeout(triggerSyncEvent, 50);
+  };
+
+  const toggleHabitOnDate = (habitId: string, dateStr: string) => {
+    toggleHabit(habitId, dateStr);
   };
 
   const addHabit = (e: React.FormEvent) => {
@@ -173,7 +181,7 @@ export default function HabitosHub({ onBack, theme, toggleTheme, userName }: Hab
   };
 
   // Stats Calculations
-  const completedTodayCount = habits.filter(h => (habitHistory[todayStr] || []).includes(h.id)).length;
+  const completedTodayCount = habits.filter(h => (habitHistory[selectedDate] || []).includes(h.id)).length;
   const totalHabitsCount = habits.length;
   const progressPercent = totalHabitsCount > 0 ? Math.round((completedTodayCount / totalHabitsCount) * 100) : 0;
 
@@ -255,7 +263,7 @@ export default function HabitosHub({ onBack, theme, toggleTheme, userName }: Hab
           <div className="flex items-center gap-3">
             <button 
               onClick={onBack}
-              className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl border border-zinc-300 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-650 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white text-xs font-bold uppercase tracking-wider transition-all duration-200 active:scale-95 shadow-sm"
+              className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl border border-zinc-300 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white text-xs font-bold uppercase tracking-wider transition-all duration-200 active:scale-95 shadow-sm"
               title="Voltar ao Hub"
             >
               <ChevronLeft size={14} className="stroke-[3]" />
@@ -268,7 +276,7 @@ export default function HabitosHub({ onBack, theme, toggleTheme, userName }: Hab
               </div>
               <div>
                 <h1 className="text-sm font-black uppercase tracking-widest text-zinc-900 dark:text-white leading-none">Hub de Hábitos</h1>
-                <p className="text-xs font-semibold text-zinc-550 dark:text-zinc-400 mt-1 leading-none">Construa rotinas saudáveis e consistentes</p>
+                <p className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 mt-1 leading-none">Construa rotinas saudáveis e consistentes</p>
               </div>
             </div>
           </div>
@@ -283,7 +291,7 @@ export default function HabitosHub({ onBack, theme, toggleTheme, userName }: Hab
             {/* Theme switcher */}
             <button 
               onClick={toggleTheme}
-              className="p-2.5 rounded-xl border border-zinc-300 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-650 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white shadow-sm transition-all"
+              className="p-2.5 rounded-xl border border-zinc-300 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white shadow-sm transition-all"
             >
               {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
             </button>
@@ -296,50 +304,50 @@ export default function HabitosHub({ onBack, theme, toggleTheme, userName }: Hab
         {/* Top Stats Grid */}
         <section className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {/* Consistency card */}
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-850 rounded-2xl p-4 shadow-sm flex items-center gap-4 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-4 shadow-sm flex items-center gap-4 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
             <div className="p-3 rounded-xl bg-slate-100 dark:bg-slate-500/20 text-slate-700 dark:text-slate-350 shrink-0 border border-zinc-200 dark:border-zinc-800">
               <TrendingUp size={20} />
             </div>
             <div>
-              <p className="text-xs font-bold uppercase tracking-widest text-zinc-450 dark:text-zinc-400 leading-none">Consistência</p>
+              <p className="text-xs font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400 leading-none">Consistência</p>
               <p className="text-xl font-black text-zinc-900 dark:text-white mt-2.5 leading-none">{last7DaysRate}%</p>
-              <p className="text-[10px] font-bold text-zinc-550 dark:text-zinc-400 mt-1.5 leading-none">Últimos 7 dias</p>
+              <p className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 mt-1.5 leading-none">Últimos 7 dias</p>
             </div>
           </div>
 
           {/* Streak card */}
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-850 rounded-2xl p-4 shadow-sm flex items-center gap-4 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-4 shadow-sm flex items-center gap-4 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
             <div className="p-3 rounded-xl bg-orange-500/10 dark:bg-orange-500/20 text-orange-600 dark:text-orange-450 shrink-0 border border-orange-200/30 dark:border-orange-950/20">
               <Flame size={20} />
             </div>
             <div>
-              <p className="text-xs font-bold uppercase tracking-widest text-zinc-450 dark:text-zinc-400 leading-none">Sequência</p>
+              <p className="text-xs font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400 leading-none">Sequência</p>
               <p className="text-xl font-black text-zinc-900 dark:text-white mt-2.5 leading-none">{currentStreak} {currentStreak === 1 ? 'dia' : 'dias'}</p>
-              <p className="text-[10px] font-bold text-zinc-550 dark:text-zinc-400 mt-1.5 leading-none">Recorde ativo 🔥</p>
+              <p className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 mt-1.5 leading-none">Recorde ativo 🔥</p>
             </div>
           </div>
 
           {/* Active Habits card */}
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-850 rounded-2xl p-4 shadow-sm flex items-center gap-4 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-4 shadow-sm flex items-center gap-4 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
             <div className="p-3 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-450 shrink-0 border border-emerald-200/30 dark:border-emerald-950/20">
               <ClipboardList size={20} />
             </div>
             <div>
-              <p className="text-xs font-bold uppercase tracking-widest text-zinc-450 dark:text-zinc-400 leading-none">Hábitos</p>
+              <p className="text-xs font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400 leading-none">Hábitos</p>
               <p className="text-xl font-black text-zinc-900 dark:text-white mt-2.5 leading-none">{totalHabitsCount}</p>
-              <p className="text-[10px] font-bold text-zinc-550 dark:text-zinc-400 mt-1.5 leading-none">Cadastrados</p>
+              <p className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 mt-1.5 leading-none">Cadastrados</p>
             </div>
           </div>
 
           {/* Total Completions card */}
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-850 rounded-2xl p-4 shadow-sm flex items-center gap-4 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-805 rounded-2xl p-4 shadow-sm flex items-center gap-4 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
             <div className="p-3 rounded-xl bg-blue-500/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-450 shrink-0 border border-blue-200/30 dark:border-blue-950/20">
               <CheckCircle2 size={20} />
             </div>
             <div>
-              <p className="text-xs font-bold uppercase tracking-widest text-zinc-450 dark:text-zinc-400 leading-none">Conclusões</p>
+              <p className="text-xs font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400 leading-none">Conclusões</p>
               <p className="text-xl font-black text-zinc-900 dark:text-white mt-2.5 leading-none">{totalCompletions}</p>
-              <p className="text-[10px] font-bold text-zinc-550 dark:text-zinc-400 mt-1.5 leading-none">Total histórico</p>
+              <p className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 mt-1.5 leading-none">Total histórico</p>
             </div>
           </div>
         </section>
@@ -382,11 +390,24 @@ export default function HabitosHub({ onBack, theme, toggleTheme, userName }: Hab
                   <div>
                     <h3 className="text-sm font-black text-zinc-900 dark:text-white uppercase tracking-widest flex items-center gap-2">
                       <ClipboardList size={16} className="text-slate-650 dark:text-slate-400" />
-                      Checklist de Hoje
+                      Checklist de Hábitos
                     </h3>
                     <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 font-semibold">
-                      {new Date(currentTime.getTime() - currentTime.getTimezoneOffset() * 60000).toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
+                      {(() => {
+                        const parts = selectedDate.split('-');
+                        const dateObj = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]), 12, 0, 0);
+                        return dateObj.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
+                      })()}
                     </p>
+                  </div>
+                  <div>
+                    <input
+                      type="date"
+                      value={selectedDate}
+                      max={todayStr}
+                      onChange={(e) => setSelectedDate(e.target.value)}
+                      className="bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-1.5 text-xs font-black text-zinc-800 dark:text-white outline-none focus:ring-2 focus:ring-slate-500 cursor-pointer"
+                    />
                   </div>
                 </div>
 
@@ -416,7 +437,7 @@ export default function HabitosHub({ onBack, theme, toggleTheme, userName }: Hab
                     </div>
                   ) : (
                     habits.map(h => {
-                      const isCompleted = (habitHistory[todayStr] || []).includes(h.id);
+                      const isCompleted = (habitHistory[selectedDate] || []).includes(h.id);
                       return (
                         <div
                           key={h.id}
@@ -424,7 +445,7 @@ export default function HabitosHub({ onBack, theme, toggleTheme, userName }: Hab
                           className={`flex items-center justify-between p-4 rounded-2xl border transition-all duration-300 cursor-pointer select-none group ${
                             isCompleted
                               ? 'bg-zinc-100/50 dark:bg-zinc-950/15 border-zinc-200 dark:border-zinc-900/50 opacity-60'
-                              : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800/80 shadow-sm hover:border-slate-405 hover:shadow-md hover:-translate-y-0.5'
+                              : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800/80 shadow-sm hover:border-slate-400 hover:shadow-md hover:-translate-y-0.5'
                           }`}
                         >
                           <div className="flex items-center gap-3.5 min-w-0">
@@ -437,7 +458,7 @@ export default function HabitosHub({ onBack, theme, toggleTheme, userName }: Hab
                             </div>
                             <span className={`text-sm font-bold truncate leading-none transition-all ${
                               isCompleted
-                                ? 'line-through text-zinc-450 dark:text-zinc-500 font-medium'
+                                ? 'line-through text-zinc-400 dark:text-zinc-500 font-medium'
                                 : 'text-zinc-900 dark:text-zinc-100'
                             }`}>
                               {h.name}
@@ -447,7 +468,7 @@ export default function HabitosHub({ onBack, theme, toggleTheme, userName }: Hab
                           <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full leading-none transition-colors ${
                             isCompleted 
                               ? 'bg-slate-100 text-slate-700 dark:bg-slate-500/20 dark:text-slate-350' 
-                              : 'bg-zinc-150 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-450'
+                              : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400'
                           }`}>
                             {isCompleted ? 'Feito' : 'Pendente'}
                           </span>
@@ -462,7 +483,7 @@ export default function HabitosHub({ onBack, theme, toggleTheme, userName }: Hab
               <div className="lg:col-span-5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 shadow-sm flex flex-col gap-5">
                 <div className="border-b border-zinc-100 dark:border-zinc-800/80 pb-3">
                   <h3 className="text-sm font-black text-zinc-900 dark:text-white uppercase tracking-widest flex items-center gap-2">
-                    <Plus size={16} className="text-slate-650 dark:text-slate-400" />
+                    <Plus size={16} className="text-slate-600 dark:text-slate-400" />
                     Gerenciar Hábitos
                   </h3>
                   <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 font-semibold">Cadastre e exclua hábitos de sua rotina</p>
@@ -488,7 +509,7 @@ export default function HabitosHub({ onBack, theme, toggleTheme, userName }: Hab
 
                 {/* List of active habits for deletion */}
                 <div className="flex flex-col gap-2.5 border-t border-zinc-200 dark:border-zinc-800/60 pt-4">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-zinc-450 dark:text-zinc-500 mb-1 leading-none">Hábitos Cadastrados</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-500 mb-1 leading-none">Hábitos Cadastrados</p>
                   
                   {habits.length === 0 ? (
                     <p className="text-xs text-zinc-500 dark:text-zinc-400 font-bold py-3 text-center bg-zinc-50 dark:bg-zinc-950/10 border border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl">Nenhum hábito cadastrado.</p>
@@ -499,7 +520,7 @@ export default function HabitosHub({ onBack, theme, toggleTheme, userName }: Hab
                           key={h.id}
                           className="flex items-center justify-between py-3 px-4.5 bg-zinc-50 dark:bg-zinc-950/20 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors"
                         >
-                          <span className="text-sm font-bold text-zinc-900 dark:text-zinc-250 truncate max-w-[80%]">{h.name}</span>
+                          <span className="text-sm font-bold text-zinc-900 dark:text-zinc-300 truncate max-w-[80%]">{h.name}</span>
                           <button
                             onClick={() => deleteHabit(h.id)}
                             className="p-1.5 text-zinc-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg transition-colors border border-transparent hover:border-rose-100 dark:hover:border-rose-900/30"
@@ -521,10 +542,10 @@ export default function HabitosHub({ onBack, theme, toggleTheme, userName }: Hab
               <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 shadow-sm flex flex-col gap-6">
                 <div className="border-b border-zinc-150 dark:border-zinc-850 pb-3">
                   <h3 className="text-sm font-black text-zinc-900 dark:text-white uppercase tracking-widest flex items-center gap-2">
-                    <BarChart3 size={16} className="text-slate-650 dark:text-slate-400" />
+                    <BarChart3 size={16} className="text-slate-600 dark:text-slate-400" />
                     Calendário de Consistência (Últimos 30 Dias)
                   </h3>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 font-semibold">Intensidade das conclusões de seus hábitos</p>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 font-semibold">Intensidade das conclusões. Clique em qualquer dia para registrar retroativamente.</p>
                 </div>
 
                 {/* Heatmap Grid */}
@@ -552,7 +573,11 @@ export default function HabitosHub({ onBack, theme, toggleTheme, userName }: Hab
                       return (
                         <div 
                           key={day.dateStr}
-                          className={`flex flex-col items-center justify-between p-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800/50 hover:scale-105 hover:shadow-sm transition-all relative group ${colorClass}`}
+                          onClick={() => {
+                            setSelectedDate(day.dateStr);
+                            setActiveTab('painel');
+                          }}
+                          className={`flex flex-col items-center justify-between p-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800/50 hover:scale-105 hover:shadow-sm transition-all relative group cursor-pointer ${colorClass}`}
                         >
                           <span className="text-[9px] font-black uppercase tracking-wider opacity-70 leading-none">{weekday}</span>
                           <span className="text-xs font-black mt-1.5 leading-none">{day.dayNum}</span>
@@ -583,14 +608,14 @@ export default function HabitosHub({ onBack, theme, toggleTheme, userName }: Hab
 
                 {/* Additional Consistency stats */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-zinc-200 dark:border-zinc-800/60 pt-6 mt-2">
-                  <div className="bg-zinc-550 dark:bg-zinc-950/20 rounded-2xl p-4 border border-zinc-200 dark:border-zinc-800 flex flex-col gap-2">
-                    <h4 className="text-xs font-black uppercase tracking-wider text-slate-750 dark:text-slate-350">Análise de Progresso</h4>
+                  <div className="bg-zinc-50 dark:bg-zinc-900/30 rounded-2xl p-4 border border-zinc-200 dark:border-zinc-800 flex flex-col gap-2">
+                    <h4 className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-350">Análise de Progresso</h4>
                     <p className="text-xs font-bold text-zinc-600 dark:text-zinc-300 mt-1 leading-relaxed">
                       Seu índice de consistência geral é calculado com base nas conclusões nos últimos 7 dias. Para maximizar sua consistência, tente concluir todos os hábitos diariamente e manter sua chama de sequência (streak) sempre acesa.
                     </p>
                   </div>
-                  <div className="bg-zinc-550 dark:bg-zinc-950/20 rounded-2xl p-4 border border-zinc-200 dark:border-zinc-800 flex flex-col gap-2.5">
-                    <h4 className="text-xs font-black uppercase tracking-wider text-slate-750 dark:text-slate-350">Fatos da sua Rotina</h4>
+                  <div className="bg-zinc-50 dark:bg-zinc-900/30 rounded-2xl p-4 border border-zinc-200 dark:border-zinc-800 flex flex-col gap-2.5">
+                    <h4 className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-350">Fatos da sua Rotina</h4>
                     <div className="grid grid-cols-2 gap-2 mt-1">
                       <div className="p-3 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl">
                         <span className="text-[9px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500 leading-none">Dias no histórico</span>

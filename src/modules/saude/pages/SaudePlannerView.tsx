@@ -1,9 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, CheckCircle2, Clock, Trash2 } from 'lucide-react';
 import { HealthActivity, ActivityType, CardioLevel, MuscleGroup } from '../App';
 
+interface HealthActivityType {
+  name: string;
+  color: string;
+}
+
 interface SaudePlannerViewProps {
   activities: HealthActivity[];
+  activityTypes: HealthActivityType[];
   onAddActivity: (activity: HealthActivity) => void;
   onToggleStatus: (id: string) => void;
   onDelete: (id: string) => void;
@@ -13,8 +19,17 @@ interface SaudePlannerViewProps {
 const MUSCLE_GROUPS: MuscleGroup[] = ['Peito', 'Costa', 'Ombro', 'Bíceps', 'Tríceps', 'Perna/Anterior', 'Perna/Posterior'];
 const CARDIO_LEVELS: CardioLevel[] = ['Leve', 'Ritmado', 'Arrancada', 'Específico', 'Moderado', 'Longo'];
 
+const hexToRgba = (hex: string, alpha: number) => {
+  const cleanHex = hex.replace('#', '');
+  const r = parseInt(cleanHex.slice(0, 2), 16);
+  const g = parseInt(cleanHex.slice(2, 4), 16);
+  const b = parseInt(cleanHex.slice(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
+
 const SaudePlannerView: React.FC<SaudePlannerViewProps> = ({ 
   activities, 
+  activityTypes,
   onAddActivity, 
   onToggleStatus, 
   onDelete,
@@ -25,12 +40,18 @@ const SaudePlannerView: React.FC<SaudePlannerViewProps> = ({
   const [showModal, setShowModal] = useState(false);
   const [editingActivity, setEditingActivity] = useState<HealthActivity | null>(null);
 
-  const [formType, setFormType] = useState<ActivityType>('Corrida');
+  const [formType, setFormType] = useState<ActivityType>('');
   const [formTime, setFormTime] = useState('');
   const [formDistance, setFormDistance] = useState('');
   const [formLevel, setFormLevel] = useState<CardioLevel>('Leve');
   const [formMuscles, setFormMuscles] = useState<MuscleGroup[]>([]);
   const [formStatus, setFormStatus] = useState<'realizado' | 'planejado'>('realizado');
+
+  useEffect(() => {
+    if (activityTypes.length > 0 && !formType) {
+      setFormType(activityTypes[0].name);
+    }
+  }, [activityTypes, formType]);
   
   const monthNames = [
     "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -49,7 +70,7 @@ const SaudePlannerView: React.FC<SaudePlannerViewProps> = ({
   const handleDayClick = (dayKey: string) => {
     setSelectedDayKey(dayKey);
     setEditingActivity(null);
-    setFormType('Corrida');
+    setFormType(activityTypes[0]?.name || 'Corrida');
     setFormTime('');
     setFormDistance('');
     setFormLevel('Leve');
@@ -140,12 +161,14 @@ const SaudePlannerView: React.FC<SaudePlannerViewProps> = ({
     };
   });
 
-  const getBadgeColor = (type: string) => {
-    if (type === 'Corrida') return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300 border-emerald-200 dark:border-emerald-500/30';
-    if (type === 'Ciclismo') return 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300 border-amber-200 dark:border-amber-500/30';
-    if (type === 'Natação') return 'bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-300 border-sky-200 dark:border-sky-500/30';
-    if (type === 'Musculação') return 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300 border-indigo-200 dark:border-indigo-500/30';
-    return 'bg-zinc-100 text-zinc-700 dark:bg-zinc-500/20 dark:text-zinc-300 border-zinc-200 dark:border-zinc-500/30';
+  const getBadgeColorStyles = (type: string) => {
+    const actType = activityTypes.find(t => t.name === type);
+    const color = actType?.color || '#71717a';
+    return {
+      backgroundColor: hexToRgba(color, 0.15),
+      color: color,
+      borderColor: hexToRgba(color, 0.3)
+    };
   };
 
   return (
@@ -198,8 +221,9 @@ const SaudePlannerView: React.FC<SaudePlannerViewProps> = ({
                       key={act.id} 
                       onClick={(e) => handleActivityClick(e, act)}
                       className={`text-[9px] font-bold px-1.5 py-1 rounded-lg border flex flex-col gap-0.5 transition-all cursor-pointer hover:scale-[1.02] active:scale-95
-                        ${act.status === 'planejado' ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 border-dashed border-zinc-300 dark:border-zinc-700 opacity-65 hover:opacity-100' : getBadgeColor(act.type)}
+                        ${act.status === 'planejado' ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 border-dashed border-zinc-300 dark:border-zinc-700 opacity-65 hover:opacity-100' : ''}
                       `}
+                      style={act.status === 'planejado' ? {} : getBadgeColorStyles(act.type)}
                       title="Clique para editar o treino"
                     >
                       <div className="flex items-center justify-between">
@@ -264,10 +288,9 @@ const SaudePlannerView: React.FC<SaudePlannerViewProps> = ({
               <div>
                 <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 block mb-1.5">Atividade</label>
                 <select value={formType} onChange={e => setFormType(e.target.value as ActivityType)} className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 text-sm font-bold text-zinc-800 dark:text-zinc-100 outline-none focus:ring-2 focus:ring-cyan-500 transition-all">
-                  <option value="Corrida">Corrida</option>
-                  <option value="Ciclismo">Ciclismo</option>
-                  <option value="Natação">Natação</option>
-                  <option value="Musculação">Musculação</option>
+                  {activityTypes.map(t => (
+                    <option key={t.name} value={t.name}>{t.name}</option>
+                  ))}
                 </select>
               </div>
               

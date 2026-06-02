@@ -92,8 +92,8 @@ const QuestionsView: React.FC<QuestionsViewProps> = ({
       const subject = subjects.find(sub => sub.id === s.subjectId);
       if (!subject) return;
 
-      // Strict Filter: Only count 'Questões' or 'Simulado' type activities for performance stats
-      const validTypes = ['Questões', 'Simulado'];
+      // Strict Filter: Only count 'Questões', 'Simulado' or 'Flashcards' type activities for performance stats
+      const validTypes = ['Questões', 'Simulado', 'Flashcards'];
       if (s.activityType && !validTypes.includes(s.activityType)) return;
       // Also filter out any session without questionsDone
       if (s.questionsDone === undefined || s.questionsDone === null || s.questionsDone === 0) return;

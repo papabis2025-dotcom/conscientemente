@@ -176,8 +176,8 @@ const ModuleCard: React.FC<ModuleCardProps> = ({
   };
 
   const sizeClasses = {
-    normal: 'col-span-1 sm:col-span-2 lg:col-span-2 lg:aspect-square',
-    wide: 'col-span-1 sm:col-span-4 lg:col-span-4 lg:aspect-[2/1]',
+    normal: 'col-span-1 sm:col-span-2 lg:col-span-3 lg:aspect-square',
+    wide: 'col-span-1 sm:col-span-4 lg:col-span-6 lg:aspect-[2/1]',
     full: 'col-span-1 sm:col-span-6 lg:col-span-12 lg:min-h-[140px]',
   };
 
@@ -233,7 +233,7 @@ const ModuleCard: React.FC<ModuleCardProps> = ({
         </div>
       )}
 
-      <div className="p-5 lg:p-4 relative z-10 flex-1 flex flex-col justify-between h-full">
+      <div className="p-5 relative z-10 flex-1 flex flex-col justify-between h-full">
         <div className="flex-1 flex flex-col">
           <div className="flex items-start justify-between mb-3">
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-md group-hover:shadow-lg group-hover:scale-105 transition-all duration-300 ${colors.icon} ${module.available ? '' : 'opacity-50 grayscale'}`}>
@@ -1287,7 +1287,7 @@ const HubHome: React.FC<HubHomeProps> = ({
       >
         <div className="flex flex-col gap-6 w-full">
           {/* Logo & Branding */}
-          <div className={`flex items-center gap-3 w-full ${sidebarExpanded ? 'justify-start px-4' : 'justify-center'}`}>
+          <div className={`flex items-center gap-3 w-full ${sidebarExpanded ? 'justify-start px-3' : 'justify-center'}`}>
             <div className="w-10 h-10 rounded-xl bg-zinc-900 dark:bg-zinc-100 flex items-center justify-center shadow-md shrink-0">
               <Brain size={20} className="text-white dark:text-zinc-900" />
             </div>
@@ -1839,7 +1839,7 @@ const HubHome: React.FC<HubHomeProps> = ({
         {!widgetsCollapsed && (
           <div className="w-full animate-in fade-in slide-in-from-top-2 duration-300">
             {/* Habit Tracker Section */}
-            <div className="bg-white/40 dark:bg-zinc-900/40 backdrop-blur-md rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-lg shadow-zinc-200/40 dark:shadow-black/30 flex flex-col justify-between gap-4 p-5 overflow-hidden relative">
+            <div className="max-w-2xl mx-auto bg-white/40 dark:bg-zinc-900/40 backdrop-blur-md rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-lg shadow-zinc-200/40 dark:shadow-black/30 flex flex-col justify-between gap-4 p-5 overflow-hidden relative">
               <div>
                 <div className="flex items-center justify-between mb-4">
                   <div>
@@ -1852,9 +1852,9 @@ const HubHome: React.FC<HubHomeProps> = ({
                 </div>
 
                 {/* List of habits checkboxes */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 mt-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mt-2">
                   {habits.length === 0 ? (
-                    <div className="col-span-4 py-4 text-center text-xs text-zinc-500 dark:text-zinc-400 font-medium">
+                    <div className="col-span-2 py-4 text-center text-xs text-zinc-500 dark:text-zinc-400 font-medium">
                       Você não possui hábitos definidos. Acesse o card de Hábitos para criar.
                     </div>
                   ) : (

@@ -1849,9 +1849,9 @@ const HubHome: React.FC<HubHomeProps> = ({
 
         {/* Habit Tracker Container */}
         {!widgetsCollapsed && (
-          <div className="w-full flex justify-start animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="w-full animate-in fade-in slide-in-from-top-2 duration-300">
             {/* Habit Tracker Section */}
-            <div className="w-full max-w-xs bg-white/5 dark:bg-zinc-950/20 backdrop-blur-sm rounded-2xl border border-zinc-200/10 dark:border-zinc-800/10 flex flex-col justify-between gap-3 p-3.5 overflow-hidden relative opacity-70 hover:opacity-100 transition-all duration-300">
+            <div className="w-full bg-white/5 dark:bg-zinc-950/20 backdrop-blur-sm rounded-2xl border border-zinc-200/10 dark:border-zinc-800/10 flex flex-col justify-between gap-3.5 p-4 overflow-hidden relative opacity-75 hover:opacity-100 transition-all duration-300">
               <div>
                 <div className="flex items-center justify-between mb-3">
                   <div>
@@ -1863,9 +1863,9 @@ const HubHome: React.FC<HubHomeProps> = ({
                 </div>
 
                 {/* List of habits checkboxes */}
-                <div className="grid grid-cols-1 gap-2 mt-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2 mt-2">
                   {habits.length === 0 ? (
-                    <div className="py-4 text-center text-xs text-zinc-450 dark:text-zinc-500 font-medium">
+                    <div className="py-4 text-center text-xs text-zinc-450 dark:text-zinc-500 font-medium col-span-full">
                       Você não possui hábitos definidos. Acesse o card de Hábitos para criar.
                     </div>
                   ) : (

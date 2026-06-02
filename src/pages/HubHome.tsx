@@ -176,8 +176,8 @@ const ModuleCard: React.FC<ModuleCardProps> = ({
   };
 
   const sizeClasses = {
-    normal: 'col-span-1 sm:col-span-2 lg:col-span-2',
-    wide: 'col-span-1 sm:col-span-4 lg:col-span-4',
+    normal: 'col-span-1 sm:col-span-2 lg:col-span-2 lg:aspect-square',
+    wide: 'col-span-1 sm:col-span-4 lg:col-span-4 lg:aspect-[2/1]',
     full: 'col-span-1 sm:col-span-6 lg:col-span-12 lg:min-h-[140px]',
   };
 
@@ -233,11 +233,11 @@ const ModuleCard: React.FC<ModuleCardProps> = ({
         </div>
       )}
 
-      <div className="p-5 relative z-10 flex-1 flex flex-col justify-between h-full">
+      <div className="p-4 relative z-10 flex-1 flex flex-col justify-between h-full">
         <div className="flex-1 flex flex-col">
-          <div className="flex items-start justify-between mb-3">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-md group-hover:shadow-lg group-hover:scale-105 transition-all duration-300 ${colors.icon} ${module.available ? '' : 'opacity-50 grayscale'}`}>
-              {iconMap[module.id] || <TrendingUp size={20} />}
+          <div className="flex items-start justify-between mb-2">
+            <div className={`w-8 h-8 rounded-lg flex items-center justify-center shadow-sm group-hover:shadow-md group-hover:scale-105 transition-all duration-300 ${colors.icon} ${module.available ? '' : 'opacity-50 grayscale'}`}>
+              {iconMap[module.id] ? React.cloneElement(iconMap[module.id] as React.ReactElement, { size: 16, strokeWidth: 2.5 }) : <TrendingUp size={16} />}
             </div>
             {!module.available ? (
               <span className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-zinc-400 dark:text-zinc-500 bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded-full">
@@ -262,7 +262,7 @@ const ModuleCard: React.FC<ModuleCardProps> = ({
             )}
           </div>
 
-          <p className="text-sm font-black text-zinc-800 dark:text-white tracking-tight mb-1">
+          <p className="text-xs font-black text-zinc-800 dark:text-white uppercase tracking-wider mb-1">
             {module.label}
           </p>
 
@@ -270,7 +270,7 @@ const ModuleCard: React.FC<ModuleCardProps> = ({
         </div>
 
         {module.available && (
-          <div className="mt-4 pt-3 border-t border-zinc-100 dark:border-zinc-800/80 flex flex-wrap items-center justify-between gap-2 shrink-0">
+          <div className="mt-2.5 pt-2 border-t border-zinc-150/70 dark:border-zinc-800/60 flex flex-wrap items-center justify-between gap-1.5 shrink-0">
             <div className="flex flex-wrap gap-1.5">
               {module.id === 'estudos' && (
                 <>
@@ -1299,7 +1299,7 @@ const HubHome: React.FC<HubHomeProps> = ({
       >
         <div className="flex flex-col gap-6 w-full">
           {/* Logo & Branding */}
-          <div className={`flex items-center gap-3 w-full ${sidebarExpanded ? 'justify-start pl-1' : 'justify-center'}`}>
+          <div className={`flex items-center gap-3 w-full ${sidebarExpanded ? 'justify-start pl-3' : 'justify-center'}`}>
             <div className="w-10 h-10 rounded-xl bg-zinc-900 dark:bg-zinc-100 flex items-center justify-center shadow-md shrink-0">
               <Brain size={20} className="text-white dark:text-zinc-900" />
             </div>
@@ -1551,7 +1551,7 @@ const HubHome: React.FC<HubHomeProps> = ({
       {/* Wrapper do Conteúdo Principal com Centralização */}
       <div className="flex-1 h-screen overflow-y-auto flex flex-col items-center">
         {/* Main content */}
-        <main className={`relative z-10 w-full ${showHabitsReport ? 'max-w-4xl' : 'max-w-5xl'} px-6 py-10 flex flex-col transition-all duration-300`}>
+        <main className={`relative z-10 w-full ${showHabitsReport ? 'max-w-4xl' : 'max-w-7xl'} px-6 py-10 flex flex-col transition-all duration-300`}>
 
         {showHabitsReport ? (
           /* ── Habits Report ─────────────────────────────────────── */
@@ -1849,24 +1849,23 @@ const HubHome: React.FC<HubHomeProps> = ({
 
         {/* Habit Tracker Container */}
         {!widgetsCollapsed && (
-          <div className="w-full animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="w-full flex justify-start animate-in fade-in slide-in-from-top-2 duration-300">
             {/* Habit Tracker Section */}
-            <div className="max-w-2xl bg-white/40 dark:bg-zinc-900/40 backdrop-blur-md rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-lg shadow-zinc-200/40 dark:shadow-black/30 flex flex-col justify-between gap-4 p-5 overflow-hidden relative">
+            <div className="w-full max-w-xs bg-white/5 dark:bg-zinc-950/20 backdrop-blur-sm rounded-2xl border border-zinc-200/10 dark:border-zinc-800/10 flex flex-col justify-between gap-3 p-3.5 overflow-hidden relative opacity-70 hover:opacity-100 transition-all duration-300">
               <div>
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center justify-between mb-3">
                   <div>
-                    <h3 className="text-xs font-black text-zinc-800 dark:text-zinc-200 uppercase tracking-widest flex items-center gap-1.5">
-                      <ClipboardList size={13} className="text-zinc-900 dark:text-zinc-100" />
-                      Hábitos de Hoje
+                    <h3 className="text-[10px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest flex items-center gap-1.5">
+                      <ClipboardList size={12} className="text-zinc-450 dark:text-zinc-500" />
+                      Rastreador de Hábitos
                     </h3>
-                    <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5 font-medium">Mantenha sua rotina consistente</p>
                   </div>
                 </div>
 
                 {/* List of habits checkboxes */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mt-2">
+                <div className="grid grid-cols-1 gap-2 mt-2">
                   {habits.length === 0 ? (
-                    <div className="col-span-2 py-4 text-center text-xs text-zinc-500 dark:text-zinc-400 font-medium">
+                    <div className="py-4 text-center text-xs text-zinc-450 dark:text-zinc-500 font-medium">
                       Você não possui hábitos definidos. Acesse o card de Hábitos para criar.
                     </div>
                   ) : (
@@ -1876,25 +1875,25 @@ const HubHome: React.FC<HubHomeProps> = ({
                         <div
                           key={h.id}
                           onClick={() => toggleHabit(h.id)}
-                          className={`flex items-center gap-3 p-3 rounded-2xl border transition-all duration-200 cursor-pointer ${
+                          className={`flex items-center gap-3 p-2.5 rounded-xl border transition-all duration-200 cursor-pointer ${
                             isCompleted
-                              ? 'bg-zinc-200/50 dark:bg-zinc-950/20 border-zinc-300 dark:border-zinc-900/50 opacity-60'
-                              : 'bg-white dark:bg-zinc-900 border-zinc-300 dark:border-zinc-850 shadow-sm hover:border-zinc-400 dark:hover:border-zinc-650 hover:shadow-md'
+                              ? 'bg-zinc-200/20 dark:bg-zinc-950/10 border-zinc-200/10 dark:border-zinc-900/10 opacity-40'
+                              : 'bg-white/20 dark:bg-zinc-900/10 border-zinc-200/30 dark:border-zinc-850/40 hover:border-zinc-350 dark:hover:border-zinc-700 hover:shadow-sm'
                           }`}
                         >
                           <div className="relative flex items-center justify-center shrink-0">
-                            <div className={`w-5 h-5 rounded-lg border flex items-center justify-center transition-all ${
+                            <div className={`w-4 h-4 rounded-md border flex items-center justify-center transition-all ${
                               isCompleted
                                 ? 'bg-zinc-950 dark:bg-white border-zinc-900 dark:border-white text-white dark:text-zinc-950'
-                                : 'border-zinc-300 dark:border-zinc-700 bg-zinc-500 dark:bg-zinc-800'
+                                : 'border-zinc-350 dark:border-zinc-700 bg-transparent'
                             }`}>
-                              {isCompleted && <Check size={11} strokeWidth={3} />}
+                              {isCompleted && <Check size={9} strokeWidth={3} />}
                             </div>
                           </div>
-                          <span className={`text-[11px] font-bold transition-all truncate leading-none ${
+                          <span className={`text-[10px] font-bold transition-all truncate leading-none ${
                             isCompleted
-                              ? 'line-through text-zinc-500 dark:text-zinc-500 font-medium'
-                              : 'text-zinc-800 dark:text-zinc-200'
+                              ? 'line-through text-zinc-450 dark:text-zinc-500 font-medium'
+                              : 'text-zinc-650 dark:text-zinc-300'
                           }`}>
                             {h.name}
                           </span>
@@ -1907,16 +1906,10 @@ const HubHome: React.FC<HubHomeProps> = ({
 
               {/* Progress Indicator */}
               {habits.length > 0 && (
-                <div className="mt-2 pt-3 border-t border-zinc-300 dark:border-zinc-800/60 animate-in fade-in duration-300 shrink-0">
-                  <div className="flex justify-between items-center text-[10px] font-bold text-zinc-500 dark:text-zinc-400 mb-1.5">
-                    <span>Progresso</span>
-                    <span>
-                      {habits.filter(h => (habitHistory[todayStr] || []).includes(h.id)).length} de {habits.length} ({Math.round((habits.filter(h => (habitHistory[todayStr] || []).includes(h.id)).length / habits.length) * 100)}%)
-                    </span>
-                  </div>
-                  <div className="w-full h-1.5 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
+                <div className="mt-1 pt-2 border-t border-zinc-200/20 dark:border-zinc-800/20 animate-in fade-in duration-300 shrink-0">
+                  <div className="w-full h-1 bg-zinc-200/40 dark:bg-zinc-800/40 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-zinc-900 dark:bg-white transition-all duration-500"
+                      className="h-full bg-zinc-450 dark:bg-zinc-500 transition-all duration-500"
                       style={{ width: `${(habits.filter(h => (habitHistory[todayStr] || []).includes(h.id)).length / habits.length) * 100}%` }}
                     />
                   </div>

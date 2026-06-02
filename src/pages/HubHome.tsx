@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { MODULES } from '../constants';
 import { Module } from '../types';
 import { LogEntry } from '../modules/estudos/types';
-import { LogOut, Sun, Moon, ArrowUpRight, Lock, BookOpen, Wallet, ListTodo, Brain, ChevronRight, Activity, TrendingUp, Settings, User, X, HeartPulse, Bell, Plus, Trash2, Check, ClipboardList, BarChart3, ChevronLeft, Calendar, Award, CheckCircle2, StickyNote, Flame, Clock, DollarSign, Database, Cloud, AlertTriangle, FileText, CalendarDays } from 'lucide-react';
+import { LogOut, Sun, Moon, ArrowUpRight, Lock, BookOpen, Wallet, ListTodo, Brain, ChevronRight, ChevronLeft, ChevronDown, ChevronUp, Sliders, Activity, TrendingUp, Settings, User, X, HeartPulse, Bell, Plus, Trash2, Check, ClipboardList, BarChart3, Calendar, Award, CheckCircle2, StickyNote, Flame, Clock, DollarSign, Database, Cloud, AlertTriangle, FileText, CalendarDays } from 'lucide-react';
 import LogView from '../modules/estudos/pages/LogView';
 import { api } from '../modules/estudos/services/api';
 import { supabase } from '../modules/estudos/services/supabase';
@@ -176,8 +176,8 @@ const ModuleCard: React.FC<ModuleCardProps> = ({
   };
 
   const sizeClasses = {
-    normal: 'col-span-1 sm:col-span-2 lg:col-span-3 lg:aspect-square',
-    wide: 'col-span-1 sm:col-span-4 lg:col-span-6 lg:aspect-[2/1]',
+    normal: 'col-span-1 sm:col-span-2 lg:col-span-2 lg:aspect-square',
+    wide: 'col-span-1 sm:col-span-4 lg:col-span-4 lg:aspect-[2/1]',
     full: 'col-span-1 sm:col-span-6 lg:col-span-12 lg:min-h-[140px]',
   };
 
@@ -233,7 +233,7 @@ const ModuleCard: React.FC<ModuleCardProps> = ({
         </div>
       )}
 
-      <div className="p-5 relative z-10 flex-1 flex flex-col justify-between h-full">
+      <div className="p-5 lg:p-4 relative z-10 flex-1 flex flex-col justify-between h-full">
         <div className="flex-1 flex flex-col">
           <div className="flex items-start justify-between mb-3">
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-md group-hover:shadow-lg group-hover:scale-105 transition-all duration-300 ${colors.icon} ${module.available ? '' : 'opacity-50 grayscale'}`}>
@@ -1287,7 +1287,7 @@ const HubHome: React.FC<HubHomeProps> = ({
       >
         <div className="flex flex-col gap-6 w-full">
           {/* Logo & Branding */}
-          <div className={`flex items-center gap-3 w-full ${sidebarExpanded ? 'justify-start px-1' : 'justify-center'}`}>
+          <div className={`flex items-center gap-3 w-full ${sidebarExpanded ? 'justify-start px-4' : 'justify-center'}`}>
             <div className="w-10 h-10 rounded-xl bg-zinc-900 dark:bg-zinc-100 flex items-center justify-center shadow-md shrink-0">
               <Brain size={20} className="text-white dark:text-zinc-900" />
             </div>
@@ -1478,6 +1478,26 @@ const HubHome: React.FC<HubHomeProps> = ({
               {sidebarExpanded && (
                 <span className="text-[10px] font-black uppercase tracking-wider">
                   {theme === 'light' ? 'Modo Escuro' : 'Modo Claro'}
+                </span>
+              )}
+            </button>
+
+            {/* Ajustar Layout */}
+            <button
+              onClick={() => setIsHomeEditMode(!isHomeEditMode)}
+              className={`w-full h-11 rounded-xl flex items-center gap-3 border transition-all hover:scale-102 hover:shadow-sm ${
+                isHomeEditMode
+                  ? 'bg-emerald-500 text-white border-emerald-500 font-extrabold shadow-sm'
+                  : 'border-zinc-200/60 dark:border-zinc-800 bg-white/40 dark:bg-zinc-900/30 text-zinc-500 hover:text-zinc-800 dark:hover:text-white'
+              } ${
+                sidebarExpanded ? 'px-4 justify-start' : 'justify-center'
+              }`}
+              title={isHomeEditMode ? 'Salvar Layout' : 'Ajustar Layout'}
+            >
+              <Sliders size={16} />
+              {sidebarExpanded && (
+                <span className="text-[10px] font-black uppercase tracking-wider">
+                  {isHomeEditMode ? 'Salvar Layout' : 'Ajustar Layout'}
                 </span>
               )}
             </button>
@@ -1764,24 +1784,12 @@ const HubHome: React.FC<HubHomeProps> = ({
           <p className="text-[10px] font-black text-zinc-400 dark:text-zinc-600 uppercase tracking-[0.2em]">Módulos</p>
           <div className="flex-1 h-px bg-gradient-to-r from-zinc-200 to-transparent dark:from-zinc-800" />
           
-          {!modulesCollapsed && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsHomeEditMode(!isHomeEditMode);
-              }}
-              className={`text-[9px] font-black uppercase tracking-wider px-2.5 py-1 rounded-md transition-all mr-2 cursor-pointer ${
-                isHomeEditMode 
-                  ? 'bg-emerald-500 text-white font-extrabold shadow-sm' 
-                  : 'text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700'
-              }`}
-            >
-              {isHomeEditMode ? 'Salvar Layout' : 'Ajustar Layout'}
-            </button>
-          )}
-
-          <button className="text-[9px] font-black uppercase tracking-wider text-zinc-400 group-hover/section:text-zinc-700 dark:group-hover/section:text-zinc-300 transition-colors">
-            {modulesCollapsed ? 'Expandir' : 'Minimizar'}
+          <button 
+            type="button"
+            className="text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors p-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg cursor-pointer"
+            title={modulesCollapsed ? 'Expandir Módulos' : 'Minimizar Módulos'}
+          >
+            {modulesCollapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
           </button>
         </div>
 
@@ -1812,13 +1820,18 @@ const HubHome: React.FC<HubHomeProps> = ({
         {/* Widgets section label */}
         <div 
           onClick={toggleWidgets}
-                      className="flex items-center gap-3 mt-8 mb-4 cursor-pointer group/section select-none"
+          className="flex items-center gap-3 mt-8 mb-4 cursor-pointer group/section select-none"
         >
           <span className="w-1.5 h-1.5 rounded-full bg-zinc-400 dark:bg-zinc-600" />
           <p className="text-[10px] font-black text-zinc-400 dark:text-zinc-600 uppercase tracking-[0.2em]">Widgets</p>
           <div className="flex-1 h-px bg-gradient-to-r from-zinc-200 to-transparent dark:from-zinc-800" />
-          <button className="text-[9px] font-black uppercase tracking-wider text-zinc-400 group-hover/section:text-zinc-700 dark:group-hover/section:text-zinc-300 transition-colors">
-            {widgetsCollapsed ? 'Expandir' : 'Minimizar'}
+          
+          <button 
+            type="button"
+            className="text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors p-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg cursor-pointer"
+            title={widgetsCollapsed ? 'Expandir Widgets' : 'Minimizar Widgets'}
+          >
+            {widgetsCollapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
           </button>
         </div>
 

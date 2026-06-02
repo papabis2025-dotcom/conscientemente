@@ -53,6 +53,12 @@ export const tarefasApi = {
   update: async (id: string, updates: Partial<Task>) => {
     const payload: any = {};
     if (updates.completed !== undefined) payload.completed = updates.completed;
+    if (updates.text !== undefined) payload.text = updates.text;
+    if (updates.dueDate !== undefined) payload.due_date = updates.dueDate;
+    if (updates.dueTime !== undefined) payload.due_time = updates.dueTime;
+    if (updates.category !== undefined) payload.category = updates.category;
+    if (updates.recurrenceType !== undefined) payload.recurrence_type = updates.recurrenceType;
+    if (updates.recurrenceValue !== undefined) payload.recurrence_value = updates.recurrenceValue;
     
     const { error } = await supabase.from('tarefas').update(payload).eq('id', id);
     if (error) throw error;

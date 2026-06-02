@@ -114,16 +114,32 @@ const iconMap: Record<string, React.ReactNode> = {
   habitos: <Flame size={20} strokeWidth={2} />,
 };
 
-const ModuleCard: React.FC<{ module: Module; index: number }> = ({ module, index }) => {
+interface ModuleCardProps {
+  module: Module;
+  index: number;
+  size: 'normal' | 'wide' | 'full';
+  isEditMode: boolean;
+  onCycleSize: () => void;
+  onDragStart: (e: React.DragEvent) => void;
+  onDragOver: (e: React.DragEvent) => void;
+  onDragEnd: () => void;
+  isDragged: boolean;
+}
+
+const ModuleCard: React.FC<ModuleCardProps> = ({ 
+  module, index, size, isEditMode, onCycleSize, onDragStart, onDragOver, onDragEnd, isDragged 
+}) => {
   const colors = colorMap[module.color] ?? colorMap.indigo;
 
   const handleClick = () => {
+    if (isEditMode) return;
     if (!module.available) return;
     window.location.hash = module.route;
   };
 
   const handleShortcutClick = (e: React.MouseEvent, action: string) => {
     e.stopPropagation();
+    if (isEditMode) return;
     if (action === 'adicionar-estudo') {
       sessionStorage.setItem('openAddStudyModal', 'true');
       window.location.hash = 'estudos';
@@ -148,23 +164,45 @@ const ModuleCard: React.FC<{ module: Module; index: number }> = ({ module, index
     } else if (action === 'habitos-relatorio') {
       sessionStorage.setItem('habitosActiveTab', 'relatorio');
       window.location.hash = 'habitos';
+    } else if (action === 'anotacoes-rapida') {
+      sessionStorage.setItem('openAddNoteModal', 'true');
+      sessionStorage.setItem('anotacoesActiveTab', 'Anotações');
+      window.location.hash = 'anotacoes';
+    } else if (action === 'anotacoes-leitura') {
+      sessionStorage.setItem('openAddNoteModal', 'true');
+      sessionStorage.setItem('anotacoesActiveTab', 'Diário de Leitura');
+      window.location.hash = 'anotacoes';
     }
+  };
+
+  const sizeClasses = {
+    normal: 'col-span-1 sm:col-span-2 lg:col-span-3 lg:aspect-square',
+    wide: 'col-span-1 sm:col-span-4 lg:col-span-6 lg:aspect-[2/1]',
+    full: 'col-span-1 sm:col-span-6 lg:col-span-12 lg:min-h-[140px]',
   };
 
   return (
     <div
       onClick={handleClick}
+      draggable={isEditMode}
+      onDragStart={onDragStart}
+      onDragOver={onDragOver}
+      onDragEnd={onDragEnd}
       style={{ animationDelay: `${index * 80}ms` }}
       className={[
         'group relative w-full text-left rounded-2xl border-2 transition-all duration-300',
         'bg-white/90 dark:bg-zinc-900/90 backdrop-blur-sm',
         'border-zinc-200 dark:border-zinc-800',
         'shadow-sm',
-        module.available
+        sizeClasses[size] || sizeClasses.normal,
+        module.available && !isEditMode
           ? `cursor-pointer hover:shadow-2xl hover:-translate-y-1.5 ${colors.glow} ${colors.border} hover:border-opacity-80`
-          : 'opacity-45 cursor-not-allowed',
+          : '',
+        isEditMode ? 'cursor-move ring-2 ring-emerald-500/20' : '',
+        isDragged ? 'opacity-50 scale-95' : 'opacity-100',
+        !module.available ? 'opacity-45 cursor-not-allowed' : '',
         'animate-in fade-in slide-in-from-bottom-4 duration-500',
-        'overflow-hidden',
+        'overflow-hidden h-full flex flex-col justify-between',
       ].join(' ')}
     >
       {/* Gradient top strip — always visible subtly, bright on hover */}
@@ -195,29 +233,48 @@ const ModuleCard: React.FC<{ module: Module; index: number }> = ({ module, index
         </div>
       )}
 
-      <div className="p-5 relative z-10">
-        <div className="flex items-start justify-between mb-3">
-          <div className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-md group-hover:shadow-lg group-hover:scale-105 transition-all duration-300 ${colors.icon} ${module.available ? '' : 'opacity-50 grayscale'}`}>
-            {iconMap[module.id] || <TrendingUp size={20} />}
+      <div className="p-5 relative z-10 flex-1 flex flex-col justify-between h-full">
+        <div className="flex-1 flex flex-col">
+          <div className="flex items-start justify-between mb-3">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-md group-hover:shadow-lg group-hover:scale-105 transition-all duration-300 ${colors.icon} ${module.available ? '' : 'opacity-50 grayscale'}`}>
+              {iconMap[module.id] || <TrendingUp size={20} />}
+            </div>
+            {!module.available ? (
+              <span className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-zinc-400 dark:text-zinc-500 bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded-full">
+                <Lock size={9} />
+                Em breve
+              </span>
+            ) : isEditMode ? (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onCycleSize();
+                }}
+                className="text-[9px] font-black uppercase tracking-wider px-2 py-1 bg-zinc-100 dark:bg-zinc-850 hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded-md text-zinc-700 dark:text-zinc-200 shadow-sm border border-zinc-300 dark:border-zinc-700 cursor-pointer"
+              >
+                Tam: {size === 'normal' ? 'P' : size === 'wide' ? 'M' : 'G'}
+              </button>
+            ) : (
+              <span className={`flex items-center justify-center w-7 h-7 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-400 opacity-0 group-hover:opacity-100 transition-all duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5`}>
+                <ArrowUpRight size={14} />
+              </span>
+            )}
           </div>
-          {!module.available ? (
-            <span className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-zinc-400 dark:text-zinc-500 bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded-full">
-              <Lock size={9} />
-              Em breve
-            </span>
-          ) : (
-            <span className={`flex items-center justify-center w-7 h-7 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-400 opacity-0 group-hover:opacity-100 transition-all duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5`}>
-              <ArrowUpRight size={14} />
-            </span>
+
+          <p className="text-sm font-black text-zinc-800 dark:text-white tracking-tight mb-1">
+            {module.label}
+          </p>
+
+          {size !== 'normal' && (
+            <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-1 line-clamp-2 leading-relaxed">
+              {module.description}
+            </p>
           )}
         </div>
 
-        <p className="text-sm font-black text-zinc-800 dark:text-white tracking-tight mb-1">
-          {module.label}
-        </p>
-
         {module.available && (
-          <div className="mt-4 pt-3 border-t border-zinc-100 dark:border-zinc-800/80 flex flex-wrap items-center justify-between gap-2">
+          <div className="mt-4 pt-3 border-t border-zinc-100 dark:border-zinc-800/80 flex flex-wrap items-center justify-between gap-2 shrink-0">
             <div className="flex flex-wrap gap-1.5">
               {module.id === 'estudos' && (
                 <>
@@ -331,6 +388,63 @@ const HubHome: React.FC<HubHomeProps> = ({
   const [widgetsCollapsed, setWidgetsCollapsed] = useState(() => {
     return localStorage.getItem('cn_widgets_collapsed') === 'true';
   });
+
+  const [isHomeEditMode, setIsHomeEditMode] = useState(false);
+  const [homeCards, setHomeCards] = useState<{ id: string; size: 'normal' | 'wide' | 'full' }[]>(() => {
+    const saved = localStorage.getItem('cn_home_cards_layout');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const ids = parsed.map(c => c.id);
+          const missing = MODULES.filter(m => !ids.includes(m.id)).map(m => ({ id: m.id, size: 'normal' as const }));
+          const filtered = parsed.filter(c => MODULES.some(m => m.id === c.id));
+          return [...filtered, ...missing];
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    return MODULES.map(m => ({ id: m.id, size: 'normal' as const }));
+  });
+
+  useEffect(() => {
+    localStorage.setItem('cn_home_cards_layout', JSON.stringify(homeCards));
+  }, [homeCards]);
+
+  const [draggedCardIndex, setDraggedCardIndex] = useState<number | null>(null);
+
+  const handleCardDragStart = (index: number) => {
+    setDraggedCardIndex(index);
+  };
+
+  const handleCardDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    if (draggedCardIndex === null || draggedCardIndex === index) return;
+
+    const newCards = [...homeCards];
+    const draggedItem = newCards[draggedCardIndex];
+    newCards.splice(draggedCardIndex, 1);
+    newCards.splice(index, 0, draggedItem);
+
+    setHomeCards(newCards);
+    setDraggedCardIndex(index);
+  };
+
+  const handleCardDragEnd = () => {
+    setDraggedCardIndex(null);
+  };
+
+  const cycleCardSize = (id: string) => {
+    setHomeCards(prev => prev.map(c => {
+      if (c.id === id) {
+        const sizes: ('normal' | 'wide' | 'full')[] = ['normal', 'wide', 'full'];
+        const nextIdx = (sizes.indexOf(c.size) + 1) % sizes.length;
+        return { ...c, size: sizes[nextIdx] };
+      }
+      return c;
+    }));
+  };
 
   const toggleSidebar = () => {
     setSidebarExpanded(prev => {
@@ -1649,6 +1763,23 @@ const HubHome: React.FC<HubHomeProps> = ({
           <span className="w-1.5 h-1.5 rounded-full bg-zinc-400 dark:bg-zinc-600" />
           <p className="text-[10px] font-black text-zinc-400 dark:text-zinc-600 uppercase tracking-[0.2em]">Módulos</p>
           <div className="flex-1 h-px bg-gradient-to-r from-zinc-200 to-transparent dark:from-zinc-800" />
+          
+          {!modulesCollapsed && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsHomeEditMode(!isHomeEditMode);
+              }}
+              className={`text-[9px] font-black uppercase tracking-wider px-2.5 py-1 rounded-md transition-all mr-2 cursor-pointer ${
+                isHomeEditMode 
+                  ? 'bg-emerald-500 text-white font-extrabold shadow-sm' 
+                  : 'text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700'
+              }`}
+            >
+              {isHomeEditMode ? 'Salvar Layout' : 'Ajustar Layout'}
+            </button>
+          )}
+
           <button className="text-[9px] font-black uppercase tracking-wider text-zinc-400 group-hover/section:text-zinc-700 dark:group-hover/section:text-zinc-300 transition-colors">
             {modulesCollapsed ? 'Expandir' : 'Minimizar'}
           </button>
@@ -1656,10 +1787,25 @@ const HubHome: React.FC<HubHomeProps> = ({
 
         {/* Module grid */}
         {!modulesCollapsed && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 w-full animate-in fade-in slide-in-from-top-2 duration-300">
-            {MODULES.map((mod, i) => (
-              <ModuleCard key={mod.id} module={mod} index={i} />
-            ))}
+          <div className="grid grid-cols-1 sm:grid-cols-6 lg:grid-cols-12 gap-3 w-full animate-in fade-in slide-in-from-top-2 duration-300">
+            {homeCards.map((card, i) => {
+              const mod = MODULES.find(m => m.id === card.id);
+              if (!mod) return null;
+              return (
+                <ModuleCard 
+                  key={mod.id} 
+                  module={mod} 
+                  index={i} 
+                  size={card.size}
+                  isEditMode={isHomeEditMode}
+                  onCycleSize={() => cycleCardSize(mod.id)}
+                  onDragStart={() => handleCardDragStart(i)}
+                  onDragOver={(e) => handleCardDragOver(e, i)}
+                  onDragEnd={handleCardDragEnd}
+                  isDragged={draggedCardIndex === i}
+                />
+              );
+            })}
           </div>
         )}
 
@@ -1676,11 +1822,11 @@ const HubHome: React.FC<HubHomeProps> = ({
           </button>
         </div>
 
-        {/* Habit Tracker & Quick Notes Container */}
+        {/* Habit Tracker Container */}
         {!widgetsCollapsed && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-start animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="w-full animate-in fade-in slide-in-from-top-2 duration-300">
             {/* Habit Tracker Section */}
-            <div className="bg-white/70 dark:bg-zinc-900/70 backdrop-blur-md rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-lg shadow-zinc-200/40 dark:shadow-black/30 flex flex-col justify-between gap-4 p-5 overflow-hidden relative">
+            <div className="bg-white/40 dark:bg-zinc-900/40 backdrop-blur-md rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-lg shadow-zinc-200/40 dark:shadow-black/30 flex flex-col justify-between gap-4 p-5 overflow-hidden relative">
               <div>
                 <div className="flex items-center justify-between mb-4">
                   <div>
@@ -1693,9 +1839,9 @@ const HubHome: React.FC<HubHomeProps> = ({
                 </div>
 
                 {/* List of habits checkboxes */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 mt-2">
                   {habits.length === 0 ? (
-                    <div className="col-span-2 py-4 text-center text-xs text-zinc-500 dark:text-zinc-400 font-medium">
+                    <div className="col-span-4 py-4 text-center text-xs text-zinc-500 dark:text-zinc-400 font-medium">
                       Você não possui hábitos definidos. Acesse o card de Hábitos para criar.
                     </div>
                   ) : (
@@ -1715,7 +1861,7 @@ const HubHome: React.FC<HubHomeProps> = ({
                             <div className={`w-5 h-5 rounded-lg border flex items-center justify-center transition-all ${
                               isCompleted
                                 ? 'bg-zinc-950 dark:bg-white border-zinc-900 dark:border-white text-white dark:text-zinc-950'
-                                : 'border-zinc-300 dark:border-zinc-700 bg-zinc-550 dark:bg-zinc-800'
+                                : 'border-zinc-300 dark:border-zinc-700 bg-zinc-500 dark:bg-zinc-800'
                             }`}>
                               {isCompleted && <Check size={11} strokeWidth={3} />}
                             </div>
@@ -1752,90 +1898,8 @@ const HubHome: React.FC<HubHomeProps> = ({
                 </div>
               )}
             </div>
-
-          {/* Quick Notes Section */}
-          <div className="bg-white/70 dark:bg-zinc-900/70 backdrop-blur-md rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-lg shadow-zinc-200/40 dark:shadow-black/30 flex flex-col justify-between gap-4 p-5 overflow-hidden relative">
-            <div>
-              <div className="flex items-center justify-between mb-3 shrink-0">
-                <div>
-                  <h3 className="text-xs font-black text-zinc-800 dark:text-zinc-200 uppercase tracking-widest flex items-center gap-1.5">
-                    <StickyNote size={13} className="text-zinc-900 dark:text-zinc-100" />
-                    Nota Rápida
-                  </h3>
-                  <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5 font-medium">Salve anotações direto no Hub</p>
-                </div>
-                
-                {/* Category tabs */}
-                <div className="flex bg-zinc-200 dark:bg-zinc-800 rounded-lg p-0.5 border border-zinc-300 dark:border-zinc-700">
-                  <button
-                    type="button"
-                    onClick={() => setQuickNoteTab('Anotações')}
-                    className={`px-2 py-1 text-[9px] uppercase tracking-wider font-bold rounded-md transition-all cursor-pointer ${quickNoteTab === 'Anotações' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}
-                  >
-                    Notas
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setQuickNoteTab('Diário de Leitura')}
-                    className={`px-2 py-1 text-[9px] uppercase tracking-wider font-bold rounded-md transition-all cursor-pointer ${quickNoteTab === 'Diário de Leitura' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}
-                  >
-                    Leitura
-                  </button>
-                </div>
-              </div>
-
-              {/* Inputs */}
-              <div className="space-y-2">
-                <input
-                  type="text"
-                  placeholder="Título (opcional)..."
-                  value={quickNoteTitle}
-                  onChange={e => setQuickNoteTitle(e.target.value)}
-                  className="w-full px-3 py-1.5 text-xs bg-white dark:bg-zinc-950/30 border border-zinc-300 dark:border-zinc-800 rounded-xl outline-none focus:ring-1 focus:ring-zinc-400 text-zinc-900 dark:text-white uppercase tracking-wider font-semibold"
-                />
-                <textarea
-                  placeholder="Escreva algo rápido..."
-                  value={quickNoteContent}
-                  onChange={e => setQuickNoteContent(e.target.value)}
-                  className="w-full h-[140px] px-3 py-2 text-xs bg-amber-50/20 dark:bg-zinc-950/40 border border-zinc-300 dark:border-zinc-800 rounded-xl outline-none resize-none font-mono text-zinc-900 dark:text-zinc-100 focus:ring-1 focus:ring-zinc-400"
-                  style={{ fontFamily: 'Consolas, Monaco, "Courier New", Courier, monospace' }}
-                />
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between mt-1 pt-2 border-t border-zinc-300 dark:border-zinc-800/60 shrink-0">
-              <div>
-                {noteSavedFeedback ? (
-                  <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 animate-pulse">
-                    ✓ Nota salva!
-                  </span>
-                ) : (
-                  <span className="text-[9px] text-zinc-500 font-mono">
-                    {quickNoteContent.length} caracteres
-                  </span>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={handleGoToAnotacoes}
-                  className="text-[9px] font-black uppercase tracking-wider text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white transition-colors bg-zinc-200 dark:bg-zinc-800 px-3 py-1.5 rounded-xl border border-zinc-300 dark:border-zinc-700 cursor-pointer"
-                >
-                  Ver tudo
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSaveQuickNote}
-                  disabled={!quickNoteContent.trim()}
-                  className="bg-zinc-900 hover:bg-zinc-800 dark:bg-white dark:hover:bg-zinc-100 disabled:opacity-40 text-white dark:text-zinc-900 px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer"
-                >
-                  Salvar
-                </button>
-            </div>
           </div>
-        </div>
-      </div>
-    )}
+        )}
 
           </>
         )}

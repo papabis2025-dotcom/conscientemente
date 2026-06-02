@@ -6,7 +6,7 @@ import { saudeApi } from './api';
 
 export type ActivityType = string;
 export type CardioLevel = 'Leve' | 'Ritmado' | 'Arrancada' | 'Específico' | 'Moderado' | 'Longo';
-export type MuscleGroup = 'Peito' | 'Costa' | 'Ombro' | 'Bíceps' | 'Tríceps' | 'Perna/Anterior' | 'Perna/Posterior';
+export type MuscleGroup = string;
 
 export interface HealthActivity {
   id: string;
@@ -24,7 +24,6 @@ export interface HealthActivity {
   muscles?: MuscleGroup[];
 }
 
-const MUSCLE_GROUPS: MuscleGroup[] = ['Peito', 'Costa', 'Ombro', 'Bíceps', 'Tríceps', 'Perna/Anterior', 'Perna/Posterior'];
 const CARDIO_LEVELS: CardioLevel[] = ['Leve', 'Ritmado', 'Arrancada', 'Específico', 'Moderado', 'Longo'];
 
 interface HealthActivityType {
@@ -72,6 +71,16 @@ const SaudeApp: React.FC = () => {
     localStorage.setItem('cn_saude_activity_types', JSON.stringify(activityTypes));
   }, [activityTypes]);
 
+  const [muscleGroups, setMuscleGroups] = useState<string[]>(() => {
+    const saved = localStorage.getItem('cn_saude_muscle_groups');
+    if (saved) return JSON.parse(saved);
+    return ['Peito', 'Costa', 'Ombro', 'Bíceps', 'Tríceps', 'Perna/Anterior', 'Perna/Posterior'];
+  });
+
+  useEffect(() => {
+    localStorage.setItem('cn_saude_muscle_groups', JSON.stringify(muscleGroups));
+  }, [muscleGroups]);
+
   const [widgets, setWidgets] = useState<SaudeWidgetState[]>(() => {
     const saved = localStorage.getItem('cn_saude_dashboard_layout');
     return saved ? JSON.parse(saved) : [
@@ -89,8 +98,10 @@ const SaudeApp: React.FC = () => {
   const [draggedWidgetIndex, setDraggedWidgetIndex] = useState<number | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [volumeChartPeriod, setVolumeChartPeriod] = useState<'semanal' | 'mensal'>('mensal');
+  
   const [newActivityTypeName, setNewActivityTypeName] = useState('');
   const [newActivityTypeColor, setNewActivityTypeColor] = useState('#06b6d4');
+  const [newMuscleName, setNewMuscleName] = useState('');
 
   const handleDragStart = (index: number) => {
     setDraggedWidgetIndex(index);
@@ -392,6 +403,36 @@ const SaudeApp: React.FC = () => {
     setActivityTypes(prev => prev.map(t => t.name === name ? { ...t, color } : t));
   };
 
+  const handleAddMuscle = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newMuscleName.trim()) return;
+
+    const nameLower = newMuscleName.trim().toLowerCase();
+    if (muscleGroups.some(m => m.toLowerCase() === nameLower)) {
+      alert('Este grupo muscular já existe.');
+      return;
+    }
+
+    setMuscleGroups(prev => [...prev, newMuscleName.trim()]);
+    setNewMuscleName('');
+  };
+
+  const handleDeleteMuscle = (name: string) => {
+    if (confirm(`Tem certeza que deseja excluir o grupo muscular "${name}"?`)) {
+      setMuscleGroups(prev => prev.filter(m => m !== name));
+    }
+  };
+
+  const handleUpdateMuscle = (oldName: string, newName: string) => {
+    if (!newName.trim() || oldName === newName) return;
+    const nameLower = newName.trim().toLowerCase();
+    if (muscleGroups.some(m => m.toLowerCase() === nameLower && m !== oldName)) {
+      alert('Este grupo muscular já existe.');
+      return;
+    }
+    setMuscleGroups(prev => prev.map(m => m === oldName ? newName.trim() : m));
+  };
+
   const renderWidgetContent = (id: string) => {
     switch (id) {
       case 'activities_distribution':
@@ -626,7 +667,7 @@ const SaudeApp: React.FC = () => {
                 {activeTab === 'dashboard' ? 'Estatísticas de Saúde' : activeTab === 'planner' ? 'Planner de Treinos' : activeTab === 'gerenciador' ? 'Gerenciador de Atividades' : 'Histórico de Atividades'}
               </h1>
               <p className="text-zinc-500 font-medium mt-1 text-sm">
-                {activeTab === 'gerenciador' ? 'Configure e gerencie suas atividades físicas customizadas.' : 'Monitore seu progresso físico e bem-estar geral.'}
+                {activeTab === 'gerenciador' ? 'Configure e gerencie suas atividades físicas e grupos musculares.' : 'Monitore seu progresso físico e bem-estar geral.'}
               </p>
             </div>
             <div className="flex items-center gap-3">
@@ -696,7 +737,7 @@ const SaudeApp: React.FC = () => {
                   <div className="animate-in fade-in">
                     <label className="text-[10px] font-bold uppercase text-zinc-400 block mb-2">Grupos Musculares Trabalhados</label>
                     <div className="flex flex-wrap gap-2">
-                      {MUSCLE_GROUPS.map(m => (
+                      {muscleGroups.map(m => (
                         <button
                           key={m}
                           type="button"
@@ -719,23 +760,23 @@ const SaudeApp: React.FC = () => {
 
           {/* DASHBOARD TAB */}
           {activeTab === 'dashboard' && (
-            <div className="flex-1 flex flex-col gap-6">
-              <div className="grid grid-cols-3 gap-6 shrink-0">
-                <div className="bg-cyan-500 text-white p-6 rounded-2xl shadow-lg shadow-cyan-500/20">
-                  <div className="flex items-center gap-3 mb-2 opacity-80"><Activity size={20} /><span className="text-xs font-black uppercase tracking-widest">Treinos Totais</span></div>
-                  <h2 className="text-4xl font-black">{totalTreinos}</h2>
+            <div className="flex-1 flex flex-col gap-4 lg:h-[calc(100vh-170px)] lg:overflow-hidden">
+              <div className="grid grid-cols-3 gap-4 shrink-0">
+                <div className="bg-cyan-500 text-white p-5 rounded-2xl shadow-lg shadow-cyan-500/20">
+                  <div className="flex items-center gap-3 mb-1.5 opacity-80"><Activity size={18} /><span className="text-[10px] font-black uppercase tracking-widest">Treinos Totais</span></div>
+                  <h2 className="text-3xl font-black">{totalTreinos}</h2>
                 </div>
-                <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6 rounded-2xl shadow-sm">
-                  <div className="flex items-center gap-3 mb-2 text-zinc-500"><Dumbbell size={20} /><span className="text-xs font-black uppercase tracking-widest">Horas Dedicadas</span></div>
-                  <h2 className="text-4xl font-black text-zinc-900 dark:text-white">{horasTotais.toFixed(1)} <span className="text-lg">h</span></h2>
+                <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-5 rounded-2xl shadow-sm">
+                  <div className="flex items-center gap-3 mb-1.5 text-zinc-500"><Dumbbell size={18} /><span className="text-[10px] font-black uppercase tracking-widest">Horas Dedicadas</span></div>
+                  <h2 className="text-3xl font-black text-zinc-900 dark:text-white">{horasTotais.toFixed(1)} <span className="text-sm">h</span></h2>
                 </div>
-                <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6 rounded-2xl shadow-sm">
-                  <div className="flex items-center gap-3 mb-2 text-zinc-500"><Footprints size={20} /><span className="text-xs font-black uppercase tracking-widest">Distância Cardio</span></div>
-                  <h2 className="text-4xl font-black text-zinc-900 dark:text-white">{kmTotais.toFixed(1)} <span className="text-lg">km</span></h2>
+                <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-5 rounded-2xl shadow-sm">
+                  <div className="flex items-center gap-3 mb-1.5 text-zinc-500"><Footprints size={18} /><span className="text-[10px] font-black uppercase tracking-widest">Distância Cardio</span></div>
+                  <h2 className="text-3xl font-black text-zinc-900 dark:text-white">{kmTotais.toFixed(1)} <span className="text-sm">km</span></h2>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 flex-1 overflow-y-auto custom-scrollbar pb-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 flex-1 lg:grid-rows-2 lg:overflow-hidden pb-4">
                 {widgets.map((widget, index) => {
                   if (!widget.isVisible && !isEditMode) return null;
                   const sizeClass = widget.size === 'full' ? 'md:col-span-3' : widget.size === 'wide' ? 'md:col-span-2' : 'md:col-span-1';
@@ -747,9 +788,9 @@ const SaudeApp: React.FC = () => {
                       onDragStart={() => handleDragStart(index)}
                       onDragOver={(e) => handleDragOver(e, index)}
                       onDragEnd={handleDragEnd}
-                      className={`${sizeClass} h-[360px] ${widget.isVisible ? 'opacity-100' : 'opacity-40'} bg-white dark:bg-zinc-900 p-5 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm relative group hover:shadow-md transition-all duration-300 flex flex-col ${isEditMode ? 'cursor-move ring-2 ring-emerald-500/20' : ''} ${draggedWidgetIndex === index ? 'opacity-50 scale-95' : ''}`}
+                      className={`${sizeClass} lg:h-full h-[280px] ${widget.isVisible ? 'opacity-100' : 'opacity-40'} bg-white dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm relative group hover:shadow-md transition-all duration-300 flex flex-col ${isEditMode ? 'cursor-move ring-2 ring-emerald-500/20' : ''} ${draggedWidgetIndex === index ? 'opacity-50 scale-95' : ''}`}
                     >
-                      <div className="flex justify-between items-center mb-4 shrink-0">
+                      <div className="flex justify-between items-center mb-3 shrink-0">
                         <h4 className="text-[10px] font-black text-zinc-800 dark:text-zinc-200 uppercase tracking-widest bg-zinc-50 dark:bg-zinc-800/50 px-2.5 py-1 rounded-full">
                           {widget.title}
                         </h4>
@@ -862,6 +903,7 @@ const SaudeApp: React.FC = () => {
               <SaudePlannerView 
                 activities={activities} 
                 activityTypes={activityTypes}
+                muscleGroups={muscleGroups}
                 onAddActivity={handleAddPlannerActivity} 
                 onToggleStatus={toggleStatus} 
                 onDelete={deleteActivity} 
@@ -873,79 +915,136 @@ const SaudeApp: React.FC = () => {
           {/* GERENCIADOR TAB */}
           {activeTab === 'gerenciador' && (
             <div className="flex-1 flex flex-col lg:flex-row gap-6 overflow-y-auto pb-6">
-              {/* Add Activity Type Form */}
-              <div className="lg:w-1/3 bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 flex flex-col h-fit">
-                <h2 className="text-sm font-black uppercase tracking-widest text-zinc-800 dark:text-zinc-200 mb-4">Adicionar Atividade</h2>
-                <form onSubmit={handleAddActivityType} className="space-y-4">
-                  <div>
-                    <label className="text-[10px] font-bold uppercase text-zinc-400 block mb-1.5">Nome da Atividade</label>
-                    <input
-                      type="text"
-                      placeholder="Ex: Pilates, Crossfit"
-                      value={newActivityTypeName}
-                      onChange={(e) => setNewActivityTypeName(e.target.value)}
-                      required
-                      className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-sm font-bold text-zinc-800 dark:text-zinc-100 outline-none focus:ring-2 focus:ring-cyan-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-bold uppercase text-zinc-400 block mb-1.5">Cor de Referência</label>
-                    <div className="flex items-center gap-3">
+              {/* Coluna 1: Gerenciar Atividades */}
+              <div className="flex-1 flex flex-col gap-6">
+                <div className="bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800">
+                  <h2 className="text-sm font-black uppercase tracking-widest text-zinc-800 dark:text-zinc-200 mb-4">Adicionar Atividade</h2>
+                  <form onSubmit={handleAddActivityType} className="space-y-4">
+                    <div>
+                      <label className="text-[10px] font-bold uppercase text-zinc-400 block mb-1.5">Nome da Atividade</label>
                       <input
-                        type="color"
-                        value={newActivityTypeColor}
-                        onChange={(e) => setNewActivityTypeColor(e.target.value)}
-                        className="w-10 h-10 border-0 rounded-lg cursor-pointer bg-transparent"
+                        type="text"
+                        placeholder="Ex: Pilates, Crossfit"
+                        value={newActivityTypeName}
+                        onChange={(e) => setNewActivityTypeName(e.target.value)}
+                        required
+                        className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-sm font-bold text-zinc-800 dark:text-zinc-100 outline-none focus:ring-2 focus:ring-cyan-500"
                       />
-                      <span className="text-xs font-bold text-zinc-500 uppercase tracking-wider">{newActivityTypeColor}</span>
                     </div>
+                    <div>
+                      <label className="text-[10px] font-bold uppercase text-zinc-400 block mb-1.5">Cor de Referência</label>
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="color"
+                          value={newActivityTypeColor}
+                          onChange={(e) => setNewActivityTypeColor(e.target.value)}
+                          className="w-10 h-10 border-0 rounded-lg cursor-pointer bg-transparent"
+                        />
+                        <span className="text-xs font-bold text-zinc-500 uppercase tracking-wider">{newActivityTypeColor}</span>
+                      </div>
+                    </div>
+                    <button 
+                      type="submit" 
+                      className="w-full bg-cyan-500 hover:bg-cyan-600 text-white rounded-xl py-2.5 font-bold uppercase tracking-widest text-xs transition-colors shadow-lg shadow-cyan-500/20"
+                    >
+                      Adicionar Atividade
+                    </button>
+                  </form>
+                </div>
+
+                <div className="bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 flex-1">
+                  <h2 className="text-sm font-black uppercase tracking-widest text-zinc-800 dark:text-zinc-200 mb-4">Atividades Cadastradas</h2>
+                  <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
+                    {activityTypes.map(type => (
+                      <div key={type.name} className="py-4 flex items-center justify-between group">
+                        <div className="flex items-center gap-3">
+                          <span 
+                            className="w-4 h-4 rounded-full border border-zinc-200 dark:border-zinc-700" 
+                            style={{ backgroundColor: type.color }}
+                          />
+                          <span className="text-sm font-bold text-zinc-800 dark:text-zinc-200">{type.name}</span>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <div className="flex items-center gap-2">
+                            <label className="text-[9px] font-bold uppercase text-zinc-400">Alterar Cor:</label>
+                            <input
+                              type="color"
+                              value={type.color}
+                              onChange={(e) => handleUpdateActivityTypeColor(type.name, e.target.value)}
+                              className="w-6 h-6 border-0 rounded cursor-pointer bg-transparent"
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteActivityType(type.name)}
+                            className="p-1.5 rounded-lg text-zinc-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-all"
+                            title="Excluir Atividade"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                    {activityTypes.length === 0 && (
+                      <p className="text-zinc-400 text-xs font-semibold py-4 text-center">Nenhuma atividade cadastrada.</p>
+                    )}
                   </div>
-                  <button 
-                    type="submit" 
-                    className="w-full bg-cyan-500 hover:bg-cyan-600 text-white rounded-xl py-2.5 font-bold uppercase tracking-widest text-xs transition-colors shadow-lg shadow-cyan-500/20"
-                  >
-                    Adicionar
-                  </button>
-                </form>
+                </div>
               </div>
 
-              {/* List of Custom Activity Types */}
-              <div className="flex-1 bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800">
-                <h2 className="text-sm font-black uppercase tracking-widest text-zinc-800 dark:text-zinc-200 mb-4">Atividades Cadastradas</h2>
-                <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
-                  {activityTypes.map(type => (
-                    <div key={type.name} className="py-4 flex items-center justify-between group">
-                      <div className="flex items-center gap-3">
-                        <span 
-                          className="w-4 h-4 rounded-full border border-zinc-200 dark:border-zinc-700" 
-                          style={{ backgroundColor: type.color }}
-                        />
-                        <span className="text-sm font-bold text-zinc-800 dark:text-zinc-200">{type.name}</span>
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-2">
-                          <label className="text-[9px] font-bold uppercase text-zinc-400">Alterar Cor:</label>
+              {/* Coluna 2: Gerenciar Músculos */}
+              <div className="flex-1 flex flex-col gap-6">
+                <div className="bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800">
+                  <h2 className="text-sm font-black uppercase tracking-widest text-zinc-800 dark:text-zinc-200 mb-4">Adicionar Grupo Muscular</h2>
+                  <form onSubmit={handleAddMuscle} className="space-y-4">
+                    <div>
+                      <label className="text-[10px] font-bold uppercase text-zinc-400 block mb-1.5">Nome do Grupo Muscular</label>
+                      <input
+                        type="text"
+                        placeholder="Ex: Panturrilha, Antebraço"
+                        value={newMuscleName}
+                        onChange={(e) => setNewMuscleName(e.target.value)}
+                        required
+                        className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-sm font-bold text-zinc-800 dark:text-zinc-100 outline-none focus:ring-2 focus:ring-cyan-500"
+                      />
+                    </div>
+                    <button 
+                      type="submit" 
+                      className="w-full bg-cyan-500 hover:bg-cyan-600 text-white rounded-xl py-2.5 font-bold uppercase tracking-widest text-xs transition-colors shadow-lg shadow-cyan-500/20"
+                    >
+                      Adicionar Músculo
+                    </button>
+                  </form>
+                </div>
+
+                <div className="bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 flex-1">
+                  <h2 className="text-sm font-black uppercase tracking-widest text-zinc-800 dark:text-zinc-200 mb-4">Músculos Cadastrados</h2>
+                  <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
+                    {muscleGroups.map(muscle => (
+                      <div key={muscle} className="py-4 flex items-center justify-between group">
+                        <div className="flex items-center gap-3">
+                          <span className="w-4 h-4 rounded-full border border-zinc-200 dark:border-zinc-700 bg-cyan-500/10 flex items-center justify-center text-[10px] text-cyan-600 font-bold shrink-0">M</span>
                           <input
-                            type="color"
-                            value={type.color}
-                            onChange={(e) => handleUpdateActivityTypeColor(type.name, e.target.value)}
-                            className="w-6 h-6 border-0 rounded cursor-pointer bg-transparent"
+                            type="text"
+                            defaultValue={muscle}
+                            onBlur={(e) => handleUpdateMuscle(muscle, e.target.value)}
+                            className="bg-transparent border-b border-transparent hover:border-zinc-300 dark:hover:border-zinc-700 focus:border-cyan-500 outline-none text-sm font-bold text-zinc-800 dark:text-zinc-200 transition-colors"
                           />
                         </div>
                         <button
                           type="button"
-                          onClick={() => handleDeleteActivityType(type.name)}
+                          onClick={() => handleDeleteMuscle(muscle)}
                           className="p-1.5 rounded-lg text-zinc-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-all"
-                          title="Excluir Atividade"
+                          title="Excluir Músculo"
                         >
                           <Trash2 size={16} />
                         </button>
                       </div>
-                    </div>
-                  ))}
-                  {activityTypes.length === 0 && (
-                    <p className="text-zinc-400 text-xs font-semibold py-4 text-center">Nenhuma atividade cadastrada.</p>
-                  )}
+                    ))}
+                    {muscleGroups.length === 0 && (
+                      <p className="text-zinc-400 text-xs font-semibold py-4 text-center">Nenhum músculo cadastrado.</p>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

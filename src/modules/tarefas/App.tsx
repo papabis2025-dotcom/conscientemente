@@ -4,7 +4,7 @@ import { CheckSquare, ListTodo, Archive, LayoutTemplate, Plus, Calendar as Calen
 import { tarefasApi, Task } from './api';
 
 const TarefasApp: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'ativas' | 'arquivo'>('ativas');
+  const [activeTab, setActiveTab] = useState<'ativas' | 'arquivo' | 'calendario'>('ativas');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
     return localStorage.getItem('isSidebarCollapsed_tarefas') !== 'false';
   });
@@ -25,6 +25,25 @@ const TarefasApp: React.FC = () => {
   const [newTaskRecurrenceValue, setNewTaskRecurrenceValue] = useState<number>(1);
 
   const [sortBy, setSortBy] = useState<'data' | 'alfabetica' | 'prioridade'>('prioridade');
+
+  // Calendar view states
+  const [calendarDate, setCalendarDate] = useState(new Date());
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [editingTaskText, setEditingTaskText] = useState('');
+  const [editingTaskDate, setEditingTaskDate] = useState('');
+  const [editingTaskTime, setEditingTaskTime] = useState('');
+  const [editingTaskCategory, setEditingTaskCategory] = useState('Tarefa');
+  const [editingTaskRecurrence, setEditingTaskRecurrence] = useState<'none' | 'days' | 'monthly'>('none');
+  const [editingTaskRecurrenceValue, setEditingTaskRecurrenceValue] = useState<number>(1);
+
+  const handlePrevMonth = () => {
+    setCalendarDate(new Date(calendarDate.getFullYear(), calendarDate.getMonth() - 1, 1));
+  };
+
+  const handleNextMonth = () => {
+    setCalendarDate(new Date(calendarDate.getFullYear(), calendarDate.getMonth() + 1, 1));
+  };
 
   useEffect(() => {
     if (sessionStorage.getItem('openAddTaskModal') === 'true') {
@@ -53,8 +72,8 @@ const TarefasApp: React.FC = () => {
     loadTasks();
   }, []);
 
-  const handleAddTask = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleAddTask = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!newTaskText.trim()) return;
 
     const newTask: Task = {
@@ -78,6 +97,7 @@ const TarefasApp: React.FC = () => {
     setNewTaskRecurrence('none');
     setNewTaskRecurrenceValue(1);
     setMobileView('list');
+    setShowAddModal(false);
   };
 
   const toggleTask = (id: string) => {
@@ -123,6 +143,33 @@ const TarefasApp: React.FC = () => {
     }
   };
 
+  const handleSaveEditTask = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingTask || !editingTaskText.trim()) return;
+
+    const updatedFields: Partial<Task> = {
+      text: editingTaskText.trim(),
+      dueDate: editingTaskDate,
+      dueTime: editingTaskTime,
+      category: editingTaskCategory,
+      recurrenceType: editingTaskRecurrence,
+      recurrenceValue: editingTaskRecurrenceValue
+    };
+
+    tarefasApi.update(editingTask.id, updatedFields).catch(err => console.error('Error updating task:', err));
+    
+    setTasks(prev => prev.map(t => t.id === editingTask.id ? { ...t, ...updatedFields } : t));
+    setEditingTask(null);
+  };
+
+  const handleDeleteEditingTask = () => {
+    if (editingTask && confirm('Tem certeza que deseja excluir esta tarefa?')) {
+      setTasks(prev => prev.filter(t => t.id !== editingTask.id));
+      tarefasApi.delete(editingTask.id).catch(err => console.error('Error deleting task:', err));
+      setEditingTask(null);
+    }
+  };
+
   const filteredTasks = tasks.filter(t => activeTab === 'ativas' ? !t.completed : t.completed);
 
   const sortedTasks = [...filteredTasks].sort((a, b) => {
@@ -133,11 +180,10 @@ const TarefasApp: React.FC = () => {
       const pA = priorityMap[a.category] || 4;
       const pB = priorityMap[b.category] || 4;
       if (pA !== pB) return pA - pB;
-      // se mesma prioridade, desempata pela data
       return b.createdAt - a.createdAt;
     } else {
-      if (!a.dueDate && !b.dueDate) return b.createdAt - a.createdAt; // Newer first if no date
-      if (!a.dueDate) return 1; // Tasks with no date go to the bottom
+      if (!a.dueDate && !b.dueDate) return b.createdAt - a.createdAt;
+      if (!a.dueDate) return 1;
       if (!b.dueDate) return -1;
       
       const dateA = new Date(`${a.dueDate}T${a.dueTime || '23:59'}`).getTime();
@@ -208,12 +254,20 @@ const TarefasApp: React.FC = () => {
     }
   };
 
+  const getCategoryBadgeColor = (category: string) => {
+    switch(category) {
+      case 'Urgente': return 'bg-red-50 text-red-650 dark:bg-red-950/20 dark:text-red-400 border-red-100 dark:border-red-900/30';
+      case 'Importante': return 'bg-amber-50 text-amber-650 dark:bg-amber-955/20 dark:text-amber-400 border-amber-100 dark:border-amber-900/30';
+      case 'Tarefa': return 'bg-emerald-50 text-emerald-650 dark:bg-emerald-950/20 dark:text-emerald-400 border-emerald-100 dark:border-emerald-900/30';
+      default: return 'bg-zinc-100 text-zinc-650 dark:bg-zinc-800 dark:text-zinc-400 border-zinc-200 dark:border-zinc-850';
+    }
+  };
+
   const renderTaskItem = (task: Task) => (
     <li 
       key={task.id} 
       className={`group flex items-start gap-3 p-3.5 rounded-xl border transition-all hover:shadow-sm ${task.completed ? 'bg-zinc-50 dark:bg-zinc-900/30 border-zinc-200 dark:border-zinc-800/50 opacity-70' : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800'}`}
     >
-      {/* Checkbox customizado */}
       <button 
         onClick={() => toggleTask(task.id)}
         className={`mt-0.5 flex-shrink-0 w-5 h-5 rounded border flex items-center justify-center transition-colors ${task.completed ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-zinc-300 dark:border-zinc-600 text-transparent hover:border-rose-400'}`}
@@ -265,6 +319,126 @@ const TarefasApp: React.FC = () => {
       </button>
     </li>
   );
+
+  const year = calendarDate.getFullYear();
+  const month = calendarDate.getMonth();
+  const daysInCalendarMonth = new Date(year, month + 1, 0).getDate();
+  const startDayOfWeek = new Date(year, month, 1).getDay();
+
+  const calendarDaysList = useMemo(() => {
+    return Array.from({ length: daysInCalendarMonth }, (_, i) => {
+      const day = i + 1;
+      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      const dayTasks = tasks.filter(t => t.dueDate === dateStr);
+      return { day, dateStr, dayTasks };
+    });
+  }, [tasks, year, month, daysInCalendarMonth]);
+
+  const renderCalendarTab = () => {
+    const daysOfWeek = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+    return (
+      <div className="flex-1 flex flex-col h-full overflow-hidden">
+        {/* Calendar Header */}
+        <div className="flex items-center justify-between p-5 border-b border-zinc-100 dark:border-zinc-850 shrink-0">
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={handlePrevMonth} 
+              className="p-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl transition-colors text-zinc-500 hover:text-zinc-800 dark:hover:text-white"
+            >
+              <ChevronLeft size={18} />
+            </button>
+            <h2 className="text-sm font-black uppercase tracking-widest min-w-[140px] text-center">
+              {MONTH_NAMES[month]} {year}
+            </h2>
+            <button 
+              onClick={handleNextMonth} 
+              className="p-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl transition-colors text-zinc-500 hover:text-zinc-800 dark:hover:text-white"
+            >
+              <ChevronRight size={18} />
+            </button>
+          </div>
+          
+          <button
+            onClick={() => {
+              setNewTaskDate(new Date().toISOString().split('T')[0]);
+              setShowAddModal(true);
+            }}
+            className="bg-rose-500 hover:bg-rose-600 text-white px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-md shadow-rose-500/10 flex items-center gap-2"
+          >
+            <Plus size={14} strokeWidth={2.5} /> Nova Tarefa
+          </button>
+        </div>
+
+        {/* Days grid container */}
+        <div className="flex-1 overflow-y-auto p-5 custom-scrollbar flex flex-col">
+          {/* Days of week */}
+          <div className="grid grid-cols-7 gap-2 mb-2 shrink-0">
+            {daysOfWeek.map(d => (
+              <div key={d} className="text-center text-[10px] font-black text-zinc-400 uppercase tracking-widest">{d}</div>
+            ))}
+          </div>
+
+          {/* Grid of days */}
+          <div className="grid grid-cols-7 gap-2 flex-1 min-h-[400px]" style={{ gridAutoRows: '1fr' }}>
+            {Array.from({ length: startDayOfWeek }).map((_, i) => (
+              <div key={`empty-${i}`} className="bg-transparent" />
+            ))}
+
+            {calendarDaysList.map(({ day, dateStr, dayTasks }) => {
+              const isToday = todayStr === dateStr;
+              return (
+                <div 
+                  key={dateStr}
+                  onClick={() => {
+                    setNewTaskDate(dateStr);
+                    setShowAddModal(true);
+                  }}
+                  className={`border rounded-xl p-2 transition-all cursor-pointer flex flex-col gap-1.5 min-h-[70px] overflow-hidden group/cell
+                    ${isToday 
+                      ? 'bg-rose-50/30 dark:bg-rose-950/10 border-rose-350 dark:border-rose-900/60 ring-1 ring-rose-400/30' 
+                      : 'bg-zinc-50/50 dark:bg-zinc-900/30 border-zinc-150 dark:border-zinc-800/80 hover:border-rose-300 dark:hover:border-rose-900/50 hover:shadow-sm'
+                    }
+                  `}
+                >
+                  <span className={`text-[10px] font-black shrink-0 ${isToday ? 'text-rose-500' : 'text-zinc-400 dark:text-zinc-500'}`}>
+                    {day}
+                  </span>
+
+                  <div className="flex-1 overflow-y-auto custom-scrollbar space-y-1 pr-0.5">
+                    {dayTasks.map(t => (
+                      <div
+                        key={t.id}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingTask(t);
+                          setEditingTaskText(t.text);
+                          setEditingTaskDate(t.dueDate);
+                          setEditingTaskTime(t.dueTime || '');
+                          setEditingTaskCategory(t.category);
+                          setEditingTaskRecurrence(t.recurrenceType || 'none');
+                          setEditingTaskRecurrenceValue(t.recurrenceValue || 1);
+                        }}
+                        className={`text-[9px] font-bold px-1.5 py-1 rounded-lg border text-left truncate flex items-center justify-between gap-1 transition-all hover:scale-[1.02] active:scale-95
+                          ${t.completed 
+                            ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-650 border-zinc-250 dark:border-zinc-800 line-through' 
+                            : getCategoryBadgeColor(t.category)
+                          }
+                        `}
+                        title={t.text}
+                      >
+                        <span className="truncate flex-1">{t.text}</span>
+                        {t.dueTime && <span className="text-[8px] opacity-75 shrink-0">{t.dueTime}</span>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="flex h-screen bg-transparent text-zinc-900 dark:text-zinc-100 font-sans overflow-hidden selection:bg-rose-200 dark:selection:bg-rose-900/50">
@@ -319,6 +493,16 @@ const TarefasApp: React.FC = () => {
                 </span>
               )}
             </button>
+            <button 
+              onClick={() => setActiveTab('calendario')} 
+              className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center p-3' : 'justify-between px-4 py-3'} rounded-xl transition-all font-semibold ${activeTab === 'calendario' ? 'bg-rose-500 text-white shadow-md shadow-rose-500/20' : 'text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800/50'}`}
+              title={isSidebarCollapsed ? 'Calendário' : ''}
+            >
+              <div className="flex items-center gap-3">
+                <CalendarDays size={20} className="shrink-0" />
+                {!isSidebarCollapsed && <span>Calendário</span>}
+              </div>
+            </button>
           </nav>
         </div>
 
@@ -337,234 +521,434 @@ const TarefasApp: React.FC = () => {
       {/* Área Principal (Sem rolagem global de tela) */}
       <main className="flex-1 p-4 md:p-6 overflow-hidden flex flex-col bg-transparent">
         {/* Selector de visualização no celular */}
-        <div className="lg:hidden flex bg-zinc-100/80 dark:bg-zinc-900/80 p-1 rounded-xl shrink-0 mb-3 border border-zinc-200/50 dark:border-zinc-800/50 backdrop-blur-md">
-          <button 
-            type="button"
-            onClick={() => setMobileView('form')}
-            className={`flex-1 py-2 text-xs font-black uppercase tracking-wider rounded-lg transition-all ${mobileView === 'form' ? 'bg-rose-500 text-white shadow-sm font-black' : 'text-zinc-500 hover:text-zinc-700 dark:text-zinc-400'}`}
-          >
-            {activeTab === 'ativas' ? 'Nova Tarefa' : 'Arquivo'}
-          </button>
-          <button 
-            type="button"
-            onClick={() => setMobileView('list')}
-            className={`flex-1 py-2 text-xs font-black uppercase tracking-wider rounded-lg transition-all ${mobileView === 'list' ? 'bg-rose-500 text-white shadow-sm font-black' : 'text-zinc-500 hover:text-zinc-700 dark:text-zinc-400'}`}
-          >
-            Ver Lista
-          </button>
-        </div>
+        {activeTab !== 'calendario' && (
+          <div className="lg:hidden flex bg-zinc-100/80 dark:bg-zinc-900/80 p-1 rounded-xl shrink-0 mb-3 border border-zinc-200/50 dark:border-zinc-800/50 backdrop-blur-md">
+            <button 
+              type="button"
+              onClick={() => setMobileView('form')}
+              className={`flex-1 py-2 text-xs font-black uppercase tracking-wider rounded-lg transition-all ${mobileView === 'form' ? 'bg-rose-500 text-white shadow-sm font-black' : 'text-zinc-500 hover:text-zinc-700 dark:text-zinc-400'}`}
+            >
+              {activeTab === 'ativas' ? 'Nova Tarefa' : 'Arquivo'}
+            </button>
+            <button 
+              type="button"
+              onClick={() => setMobileView('list')}
+              className={`flex-1 py-2 text-xs font-black uppercase tracking-wider rounded-lg transition-all ${mobileView === 'list' ? 'bg-rose-500 text-white shadow-sm font-black' : 'text-zinc-500 hover:text-zinc-700 dark:text-zinc-400'}`}
+            >
+              Ver Lista
+            </button>
+          </div>
+        )}
 
         <div className="flex-1 flex flex-col lg:flex-row gap-4 md:gap-6 h-full overflow-hidden max-w-[1440px] mx-auto w-full">
           
-          {/* Caixa de Criação de Tarefas (Só ativa se ativo tab de 'ativas') */}
-          {activeTab === 'ativas' ? (
-            <div className={`w-full lg:w-[360px] flex-shrink-0 flex flex-col bg-white dark:bg-[#121214] border border-zinc-200 dark:border-zinc-800/50 rounded-2xl p-5 shadow-xl shadow-zinc-200/5 dark:shadow-black/20 justify-between ${mobileView === 'form' ? 'flex' : 'hidden lg:flex'} h-full lg:h-[480px]`}>
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 mb-1">
-                  <div className="p-2 rounded-lg bg-rose-50 dark:bg-rose-500/10 text-rose-500">
-                    <CheckSquare size={18} />
-                  </div>
-                  <h3 className="text-xs font-black uppercase tracking-wider text-zinc-700 dark:text-zinc-300">Nova Tarefa</h3>
-                </div>
-
-                <form onSubmit={handleAddTask} className="space-y-3.5">
-                  <div className="space-y-1">
-                    <label className="text-[9px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500">O que precisa ser feito?</label>
-                    <textarea 
-                      placeholder="Ex: Ler livro, Comprar leite..." 
-                      value={newTaskText}
-                      onChange={(e) => setNewTaskText(e.target.value)}
-                      className="w-full text-sm font-semibold bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl p-3 outline-none focus:ring-2 focus:ring-rose-500 text-zinc-800 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-600 resize-none h-20"
-                      autoFocus
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <label className="text-[9px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Data Limite</label>
-                      <div className="flex items-center bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-rose-500">
-                        <div className="pl-2.5 text-zinc-400"><CalendarIcon size={13} /></div>
-                        <input 
-                          type="date" 
-                          value={newTaskDate}
-                          onChange={(e) => setNewTaskDate(e.target.value)}
-                          className="bg-transparent border-none outline-none text-xs p-2 text-zinc-700 dark:text-zinc-300 cursor-pointer w-full"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="text-[9px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Hora</label>
-                      <div className="flex items-center bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-rose-500">
-                        <div className="pl-2.5 text-zinc-400"><Clock size={13} /></div>
-                        <input 
-                          type="time" 
-                          value={newTaskTime}
-                          onChange={(e) => setNewTaskTime(e.target.value)}
-                          className="bg-transparent border-none outline-none text-xs p-2 text-zinc-700 dark:text-zinc-300 cursor-pointer w-full"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-[9px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Prioridade</label>
-                    <div className="flex items-center bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-rose-500">
-                      <div className="pl-2.5 text-zinc-400"><Tag size={13} /></div>
-                      <select 
-                        value={newTaskCategory}
-                        onChange={(e) => setNewTaskCategory(e.target.value)}
-                        className="bg-transparent border-none outline-none text-xs p-2 transition-all text-zinc-700 dark:text-zinc-300 font-semibold cursor-pointer w-full"
-                      >
-                        <option value="Tarefa">Tarefa (Normal)</option>
-                        <option value="Importante">Importante</option>
-                        <option value="Urgente">Urgente</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-[9px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Repetição</label>
-                    <div className="flex gap-2">
-                      <div className="flex-1 flex items-center bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-rose-500">
-                        <div className="pl-2.5 text-zinc-400"><Repeat size={13} /></div>
-                        <select 
-                          value={newTaskRecurrence}
-                          onChange={(e) => setNewTaskRecurrence(e.target.value as any)}
-                          className="bg-transparent border-none outline-none text-xs p-2 transition-all text-zinc-700 dark:text-zinc-300 font-semibold cursor-pointer w-full"
-                        >
-                          <option value="none">S/ Repetição</option>
-                          <option value="days">A cada dias</option>
-                          <option value="monthly">Mensalmente</option>
-                        </select>
-                      </div>
-                      {newTaskRecurrence === 'days' && (
-                        <input 
-                          type="number" 
-                          min="1"
-                          value={newTaskRecurrenceValue}
-                          onChange={(e) => setNewTaskRecurrenceValue(parseInt(e.target.value) || 1)}
-                          className="w-16 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl p-2 text-xs text-center text-zinc-700 dark:text-zinc-300 focus:ring-2 focus:ring-rose-500 outline-none font-bold"
-                          title="Dias"
-                        />
-                      )}
-                    </div>
-                  </div>
-
-                  <button 
-                    type="submit" 
-                    disabled={!newTaskText.trim()}
-                    className="w-full bg-rose-500 hover:bg-rose-600 text-white py-3 rounded-xl transition-all font-bold text-xs uppercase tracking-wider active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100 flex items-center justify-center gap-2 mt-3 shadow-md shadow-rose-500/10"
-                  >
-                    <Plus size={16} strokeWidth={3} /> Criar Tarefa
-                  </button>
-                </form>
-              </div>
+          {activeTab === 'calendario' ? (
+            <div className="flex-1 flex flex-col bg-white dark:bg-[#121214] border border-zinc-200 dark:border-zinc-800/50 rounded-2xl shadow-xl shadow-zinc-200/5 dark:shadow-black/20 overflow-hidden h-full">
+              {renderCalendarTab()}
             </div>
           ) : (
-            <div className={`w-full lg:w-[360px] flex-shrink-0 flex flex-col bg-white dark:bg-[#121214] border border-zinc-200 dark:border-zinc-800/50 rounded-2xl p-5 shadow-xl shadow-zinc-200/5 dark:shadow-black/20 justify-between ${mobileView === 'form' ? 'flex' : 'hidden lg:flex'} h-full lg:h-[260px]`}>
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 mb-1">
-                  <div className="p-2 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">
-                    <Archive size={18} />
+            <>
+              {/* Caixa de Criação de Tarefas (Só ativa se ativo tab de 'ativas') */}
+              {activeTab === 'ativas' ? (
+                <div className={`w-full lg:w-[360px] flex-shrink-0 flex flex-col bg-white dark:bg-[#121214] border border-zinc-200 dark:border-zinc-800/50 rounded-2xl p-5 shadow-xl shadow-zinc-200/5 dark:shadow-black/20 justify-between ${mobileView === 'form' ? 'flex' : 'hidden lg:flex'} h-full lg:h-[480px]`}>
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className="p-2 rounded-lg bg-rose-50 dark:bg-rose-500/10 text-rose-500">
+                        <CheckSquare size={18} />
+                      </div>
+                      <h3 className="text-xs font-black uppercase tracking-wider text-zinc-700 dark:text-zinc-300">Nova Tarefa</h3>
+                    </div>
+
+                    <form onSubmit={handleAddTask} className="space-y-3.5">
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500">O que precisa ser feito?</label>
+                        <textarea 
+                          placeholder="Ex: Ler livro, Comprar leite..." 
+                          value={newTaskText}
+                          onChange={(e) => setNewTaskText(e.target.value)}
+                          className="w-full text-sm font-semibold bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl p-3 outline-none focus:ring-2 focus:ring-rose-500 text-zinc-800 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-600 resize-none h-20"
+                          autoFocus
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Data Limite</label>
+                          <div className="flex items-center bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-rose-500">
+                            <div className="pl-2.5 text-zinc-400"><CalendarIcon size={13} /></div>
+                            <input 
+                              type="date" 
+                              value={newTaskDate}
+                              onChange={(e) => setNewTaskDate(e.target.value)}
+                              className="bg-transparent border-none outline-none text-xs p-2 text-zinc-700 dark:text-zinc-300 cursor-pointer w-full"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Hora</label>
+                          <div className="flex items-center bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-rose-500">
+                            <div className="pl-2.5 text-zinc-400"><Clock size={13} /></div>
+                            <input 
+                              type="time" 
+                              value={newTaskTime}
+                              onChange={(e) => setNewTaskTime(e.target.value)}
+                              className="bg-transparent border-none outline-none text-xs p-2 text-zinc-700 dark:text-zinc-300 cursor-pointer w-full"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Prioridade</label>
+                        <div className="flex items-center bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-rose-500">
+                          <div className="pl-2.5 text-zinc-400"><Tag size={13} /></div>
+                          <select 
+                            value={newTaskCategory}
+                            onChange={(e) => setNewTaskCategory(e.target.value)}
+                            className="bg-transparent border-none outline-none text-xs p-2 transition-all text-zinc-700 dark:text-zinc-300 font-semibold cursor-pointer w-full"
+                          >
+                            <option value="Tarefa">Tarefa (Normal)</option>
+                            <option value="Importante">Importante</option>
+                            <option value="Urgente">Urgente</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Repetição</label>
+                        <div className="flex gap-2">
+                          <div className="flex-1 flex items-center bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-rose-500">
+                            <div className="pl-2.5 text-zinc-400"><Repeat size={13} /></div>
+                            <select 
+                              value={newTaskRecurrence}
+                              onChange={(e) => setNewTaskRecurrence(e.target.value as any)}
+                              className="bg-transparent border-none outline-none text-xs p-2 transition-all text-zinc-700 dark:text-zinc-300 font-semibold cursor-pointer w-full"
+                            >
+                              <option value="none">S/ Repetição</option>
+                              <option value="days">A cada dias</option>
+                              <option value="monthly">Mensalmente</option>
+                            </select>
+                          </div>
+                          {newTaskRecurrence === 'days' && (
+                            <input 
+                              type="number" 
+                              min="1"
+                              value={newTaskRecurrenceValue}
+                              onChange={(e) => setNewTaskRecurrenceValue(parseInt(e.target.value) || 1)}
+                              className="w-16 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl p-2 text-xs text-center text-zinc-700 dark:text-zinc-300 focus:ring-2 focus:ring-rose-500 outline-none font-bold"
+                              title="Dias"
+                            />
+                          )}
+                        </div>
+                      </div>
+
+                      <button 
+                        type="submit" 
+                        disabled={!newTaskText.trim()}
+                        className="w-full bg-rose-500 hover:bg-rose-600 text-white py-3 rounded-xl transition-all font-bold text-xs uppercase tracking-wider active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100 flex items-center justify-center gap-2 mt-3 shadow-md shadow-rose-500/10"
+                      >
+                        <Plus size={16} strokeWidth={3} /> Criar Tarefa
+                      </button>
+                    </form>
                   </div>
-                  <h3 className="text-xs font-black uppercase tracking-wider text-zinc-700 dark:text-zinc-300">Arquivo</h3>
-                </div>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed font-medium">
-                  Aqui ficam guardadas as tarefas concluídas. Se quiser liberar espaço permanentemente, você pode limpar o arquivo abaixo.
-                </p>
-              </div>
-              
-              {tasks.some(t => t.completed) && (
-                <button 
-                  onClick={() => {
-                    if (confirm('Tem certeza que deseja limpar todo o arquivo?')) {
-                      setTasks(prev => prev.filter(t => !t.completed));
-                      tarefasApi.clearCompleted().catch(err => console.error('Error clearing tasks:', err));
-                    }
-                  }}
-                  className="w-full flex items-center justify-center gap-2 py-3 px-4 text-xs uppercase tracking-wider font-bold text-rose-500 hover:text-white hover:bg-rose-500 rounded-xl transition-colors border border-rose-500"
-                >
-                  <Trash2 size={16} /> Limpar Arquivo
-                </button>
-              )}
-            </div>
-          )}
-
-          {/* Coluna Direita: Lista Inteligente */}
-          <div className={`flex-1 flex flex-col bg-white dark:bg-[#121214] border border-zinc-200 dark:border-zinc-800/50 rounded-2xl shadow-xl shadow-zinc-200/5 dark:shadow-black/20 overflow-hidden ${mobileView === 'list' ? 'flex' : 'hidden lg:flex'} h-full`}>
-            
-            {/* Header da Lista */}
-            <div className="flex items-center justify-between p-5 border-b border-zinc-100 dark:border-zinc-800/50 shrink-0">
-              <h2 className="font-black uppercase tracking-widest text-zinc-400 text-xs">
-                {activeTab === 'ativas' ? 'Lista Inteligente' : 'Tarefas Concluídas'}
-              </h2>
-              
-              <div className="flex bg-zinc-100 dark:bg-zinc-900 rounded-lg p-1">
-                <button 
-                  onClick={() => setSortBy('prioridade')}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 text-[10px] uppercase tracking-wider font-bold rounded-md transition-colors ${sortBy === 'prioridade' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'}`}
-                >
-                  <Tag size={12} /> Prioridade
-                </button>
-                <button 
-                  onClick={() => setSortBy('data')}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 text-[10px] uppercase tracking-wider font-bold rounded-md transition-colors ${sortBy === 'data' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'}`}
-                >
-                  <CalendarDays size={12} /> Data
-                </button>
-                <button 
-                  onClick={() => setSortBy('alfabetica')}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 text-[10px] uppercase tracking-wider font-bold rounded-md transition-colors ${sortBy === 'alfabetica' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'}`}
-                >
-                  <ArrowDownAZ size={12} /> A-Z
-                </button>
-              </div>
-            </div>
-
-            {/* Lista com Scroll Interno para evitar rolagem da página */}
-            <div className="flex-1 overflow-y-auto p-5 custom-scrollbar">
-              {sortedTasks.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-20 text-center opacity-55">
-                  <CheckSquare size={44} className="mb-4 text-zinc-300 dark:text-zinc-700" strokeWidth={1.5} />
-                  <p className="text-sm font-semibold">{activeTab === 'ativas' ? 'Nenhuma tarefa pendente.' : 'O arquivo está vazio.'}</p>
-                  {activeTab === 'ativas' && <p className="text-xs text-zinc-400 mt-1">Sua mente está livre!</p>}
                 </div>
               ) : (
-                <div className="space-y-5">
-                  {/* Grupos de Meses */}
-                  {groupedTasks.months.map(group => (
-                    <div key={group.key} className="space-y-2">
-                      <div className="flex items-center gap-2 text-rose-500 dark:text-rose-450">
-                        <CalendarIcon size={13} />
-                        <h4 className="text-[10px] font-black uppercase tracking-wider">{group.title} ({group.tasks.length})</h4>
+                <div className={`w-full lg:w-[360px] flex-shrink-0 flex flex-col bg-white dark:bg-[#121214] border border-zinc-200 dark:border-zinc-800/50 rounded-2xl p-5 shadow-xl shadow-zinc-200/5 dark:shadow-black/20 justify-between ${mobileView === 'form' ? 'flex' : 'hidden lg:flex'} h-full lg:h-[260px]`}>
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className="p-2 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">
+                        <Archive size={18} />
                       </div>
-                      <ul className="space-y-2">
-                        {group.tasks.map(renderTaskItem)}
-                      </ul>
+                      <h3 className="text-xs font-black uppercase tracking-wider text-zinc-700 dark:text-zinc-300">Arquivo</h3>
                     </div>
-                  ))}
-
-                  {/* Grupo: Sem Data */}
-                  {groupedTasks.noDate.length > 0 && (
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-zinc-400 dark:text-zinc-500">
-                        <ListTodo size={13} />
-                        <h4 className="text-[10px] font-black uppercase tracking-wider">Sem Data Limite ({groupedTasks.noDate.length})</h4>
-                      </div>
-                      <ul className="space-y-2">
-                        {groupedTasks.noDate.map(renderTaskItem)}
-                      </ul>
-                    </div>
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed font-medium">
+                      Aqui ficam guardadas as tarefas concluídas. Se quiser liberar espaço permanentemente, você pode limpar o arquivo abaixo.
+                    </p>
+                  </div>
+                  
+                  {tasks.some(t => t.completed) && (
+                    <button 
+                      onClick={() => {
+                        if (confirm('Tem certeza que deseja limpar todo o arquivo?')) {
+                          setTasks(prev => prev.filter(t => !t.completed));
+                          tarefasApi.clearCompleted().catch(err => console.error('Error clearing tasks:', err));
+                        }
+                      }}
+                      className="w-full flex items-center justify-center gap-2 py-3 px-4 text-xs uppercase tracking-wider font-bold text-rose-500 hover:text-white hover:bg-rose-500 rounded-xl transition-colors border border-rose-500"
+                    >
+                      <Trash2 size={16} /> Limpar Arquivo
+                    </button>
                   )}
                 </div>
               )}
-            </div>
 
-          </div>
+              {/* Coluna Direita: Lista Inteligente */}
+              <div className={`flex-1 flex flex-col bg-white dark:bg-[#121214] border border-zinc-200 dark:border-zinc-800/50 rounded-2xl shadow-xl shadow-zinc-200/5 dark:shadow-black/20 overflow-hidden ${mobileView === 'list' ? 'flex' : 'hidden lg:flex'} h-full`}>
+                
+                {/* Header da Lista */}
+                <div className="flex items-center justify-between p-5 border-b border-zinc-100 dark:border-zinc-800/50 shrink-0">
+                  <h2 className="font-black uppercase tracking-widest text-zinc-400 text-xs">
+                    {activeTab === 'ativas' ? 'Lista Inteligente' : 'Tarefas Concluídas'}
+                  </h2>
+                  
+                  <div className="flex bg-zinc-100 dark:bg-zinc-900 rounded-lg p-1">
+                    <button 
+                      onClick={() => setSortBy('prioridade')}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 text-[10px] uppercase tracking-wider font-bold rounded-md transition-colors ${sortBy === 'prioridade' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'}`}
+                    >
+                      <Tag size={12} /> Prioridade
+                    </button>
+                    <button 
+                      onClick={() => setSortBy('data')}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 text-[10px] uppercase tracking-wider font-bold rounded-md transition-colors ${sortBy === 'data' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'}`}
+                    >
+                      <CalendarDays size={12} /> Data
+                    </button>
+                    <button 
+                      onClick={() => setSortBy('alfabetica')}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 text-[10px] uppercase tracking-wider font-bold rounded-md transition-colors ${sortBy === 'alfabetica' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'}`}
+                    >
+                      <ArrowDownAZ size={12} /> A-Z
+                    </button>
+                  </div>
+                </div>
+
+                {/* Lista com Scroll Interno */}
+                <div className="flex-1 overflow-y-auto p-5 custom-scrollbar">
+                  {sortedTasks.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-20 text-center opacity-55">
+                      <CheckSquare size={44} className="mb-4 text-zinc-300 dark:text-zinc-700" strokeWidth={1.5} />
+                      <p className="text-sm font-semibold">{activeTab === 'ativas' ? 'Nenhuma tarefa pendente.' : 'O arquivo está vazio.'}</p>
+                      {activeTab === 'ativas' && <p className="text-xs text-zinc-400 mt-1">Sua mente está livre!</p>}
+                    </div>
+                  ) : (
+                    <div className="space-y-5">
+                      {/* Grupos de Meses */}
+                      {groupedTasks.months.map(group => (
+                        <div key={group.key} className="space-y-2">
+                          <div className="flex items-center gap-2 text-rose-500 dark:text-rose-450">
+                            <CalendarIcon size={13} />
+                            <h4 className="text-[10px] font-black uppercase tracking-wider">{group.title} ({group.tasks.length})</h4>
+                          </div>
+                          <ul className="space-y-2">
+                            {group.tasks.map(renderTaskItem)}
+                          </ul>
+                        </div>
+                      ))}
+
+                      {/* Grupo: Sem Data */}
+                      {groupedTasks.noDate.length > 0 && (
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2 text-zinc-400 dark:text-zinc-500">
+                            <ListTodo size={13} />
+                            <h4 className="text-[10px] font-black uppercase tracking-wider">Sem Data Limite ({groupedTasks.noDate.length})</h4>
+                          </div>
+                          <ul className="space-y-2">
+                            {groupedTasks.noDate.map(renderTaskItem)}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+              </div>
+            </>
+          )}
 
         </div>
       </main>
+
+      {/* Modal de Criação (Calendário) */}
+      {showAddModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-zinc-900 w-full max-w-md rounded-[2.5rem] p-8 shadow-2xl relative animate-in zoom-in-95 duration-200">
+            <button 
+              type="button" 
+              onClick={() => setShowAddModal(false)} 
+              className="absolute top-6 right-6 p-2 text-zinc-400 hover:text-zinc-650 dark:hover:text-zinc-200 rounded-xl transition-all font-bold text-sm"
+            >
+              ✕
+            </button>
+            <h3 className="text-xl font-black text-zinc-900 dark:text-white mb-6 uppercase tracking-widest flex items-center gap-2">
+              <span className="w-8 h-8 rounded-xl bg-rose-100 dark:bg-rose-500/20 text-rose-600 flex items-center justify-center">
+                <CheckSquare size={16} />
+              </span>
+              Nova Tarefa
+            </h3>
+            <form onSubmit={(e) => { e.preventDefault(); handleAddTask(); }} className="space-y-4">
+              <div className="space-y-1">
+                <label className="text-[9px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500">O que precisa ser feito?</label>
+                <textarea 
+                  placeholder="Ex: Ler livro, Comprar leite..." 
+                  value={newTaskText}
+                  onChange={(e) => setNewTaskText(e.target.value)}
+                  className="w-full text-sm font-semibold bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl p-3 outline-none focus:ring-2 focus:ring-rose-500 text-zinc-800 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-600 resize-none h-20"
+                  autoFocus
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Data Limite</label>
+                  <input 
+                    type="date" 
+                    value={newTaskDate}
+                    onChange={(e) => setNewTaskDate(e.target.value)}
+                    className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl p-2.5 text-xs text-zinc-700 dark:text-zinc-300 focus:ring-2 focus:ring-rose-500 outline-none"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Hora</label>
+                  <input 
+                    type="time" 
+                    value={newTaskTime}
+                    onChange={(e) => setNewTaskTime(e.target.value)}
+                    className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl p-2.5 text-xs text-zinc-700 dark:text-zinc-300 focus:ring-2 focus:ring-rose-500 outline-none"
+                  />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <label className="text-[9px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Prioridade</label>
+                <select 
+                  value={newTaskCategory}
+                  onChange={(e) => setNewTaskCategory(e.target.value)}
+                  className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl p-2.5 text-xs text-zinc-700 dark:text-zinc-300 focus:ring-2 focus:ring-rose-500 outline-none"
+                >
+                  <option value="Tarefa">Tarefa (Normal)</option>
+                  <option value="Importante">Importante</option>
+                  <option value="Urgente">Urgente</option>
+                </select>
+              </div>
+              <div className="flex gap-3 pt-4">
+                <button 
+                  type="button" 
+                  onClick={() => setShowAddModal(false)}
+                  className="flex-1 py-3 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-650 dark:text-zinc-300 rounded-xl font-black uppercase tracking-widest text-[10px] transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={!newTaskText.trim()}
+                  className="flex-1 py-3 bg-rose-500 hover:bg-rose-600 text-white rounded-xl font-black uppercase tracking-widest text-[10px] transition-all shadow-lg shadow-rose-500/20"
+                >
+                  Criar
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Edição (Calendário) */}
+      {editingTask && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-zinc-900 w-full max-w-md rounded-[2.5rem] p-8 shadow-2xl relative animate-in zoom-in-95 duration-200">
+            <div className="absolute top-6 right-6 flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleDeleteEditingTask}
+                className="p-2 text-zinc-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-xl transition-all"
+                title="Excluir"
+              >
+                <Trash2 size={16} />
+              </button>
+              <button 
+                type="button" 
+                onClick={() => setEditingTask(null)} 
+                className="p-2 text-zinc-400 hover:text-zinc-650 dark:hover:text-zinc-200 rounded-xl transition-all font-bold text-sm"
+              >
+                ✕
+              </button>
+            </div>
+            <h3 className="text-xl font-black text-zinc-900 dark:text-white mb-6 uppercase tracking-widest flex items-center gap-2">
+              <span className="w-8 h-8 rounded-xl bg-rose-100 dark:bg-rose-500/20 text-rose-600 flex items-center justify-center">
+                <CheckSquare size={16} />
+              </span>
+              Editar Tarefa
+            </h3>
+            <form onSubmit={handleSaveEditTask} className="space-y-4">
+              <div className="space-y-1">
+                <label className="text-[9px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500">O que precisa ser feito?</label>
+                <textarea 
+                  value={editingTaskText}
+                  onChange={(e) => setEditingTaskText(e.target.value)}
+                  className="w-full text-sm font-semibold bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl p-3 outline-none focus:ring-2 focus:ring-rose-500 text-zinc-800 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-600 resize-none h-20"
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Data Limite</label>
+                  <input 
+                    type="date" 
+                    value={editingTaskDate}
+                    onChange={(e) => setEditingTaskDate(e.target.value)}
+                    className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl p-2.5 text-xs text-zinc-700 dark:text-zinc-300 focus:ring-2 focus:ring-rose-500 outline-none"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Hora</label>
+                  <input 
+                    type="time" 
+                    value={editingTaskTime}
+                    onChange={(e) => setEditingTaskTime(e.target.value)}
+                    className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl p-2.5 text-xs text-zinc-700 dark:text-zinc-300 focus:ring-2 focus:ring-rose-500 outline-none"
+                  />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <label className="text-[9px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Prioridade</label>
+                <select 
+                  value={editingTaskCategory}
+                  onChange={(e) => setEditingTaskCategory(e.target.value)}
+                  className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl p-2.5 text-xs text-zinc-700 dark:text-zinc-300 focus:ring-2 focus:ring-rose-500 outline-none"
+                >
+                  <option value="Tarefa">Tarefa (Normal)</option>
+                  <option value="Importante">Importante</option>
+                  <option value="Urgente">Urgente</option>
+                </select>
+              </div>
+              <div className="space-y-1">
+                <label className="text-[9px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Conclusão</label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    toggleTask(editingTask.id);
+                    setEditingTask(prev => prev ? { ...prev, completed: !prev.completed } : null);
+                  }}
+                  className={`w-full py-2.5 rounded-xl border text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all
+                    ${editingTask.completed 
+                      ? 'bg-emerald-500 border-emerald-500 text-white' 
+                      : 'bg-zinc-50 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:border-rose-400'
+                    }
+                  `}
+                >
+                  <Check size={14} strokeWidth={2.5} />
+                  {editingTask.completed ? 'Concluída' : 'Marcar como Concluída'}
+                </button>
+              </div>
+              <div className="flex gap-3 pt-4">
+                <button 
+                  type="button" 
+                  onClick={() => setEditingTask(null)}
+                  className="flex-1 py-3 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-650 dark:text-zinc-300 rounded-xl font-black uppercase tracking-widest text-[10px] transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={!editingTaskText.trim()}
+                  className="flex-1 py-3 bg-rose-500 hover:bg-rose-600 text-white rounded-xl font-black uppercase tracking-widest text-[10px] transition-all shadow-lg shadow-rose-500/20"
+                >
+                  Salvar
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

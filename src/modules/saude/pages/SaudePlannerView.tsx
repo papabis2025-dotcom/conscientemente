@@ -10,13 +10,13 @@ interface HealthActivityType {
 interface SaudePlannerViewProps {
   activities: HealthActivity[];
   activityTypes: HealthActivityType[];
+  muscleGroups: MuscleGroup[];
   onAddActivity: (activity: HealthActivity) => void;
   onToggleStatus: (id: string) => void;
   onDelete: (id: string) => void;
   onUpdateActivity?: (id: string, updates: Partial<HealthActivity>) => void;
 }
 
-const MUSCLE_GROUPS: MuscleGroup[] = ['Peito', 'Costa', 'Ombro', 'Bíceps', 'Tríceps', 'Perna/Anterior', 'Perna/Posterior'];
 const CARDIO_LEVELS: CardioLevel[] = ['Leve', 'Ritmado', 'Arrancada', 'Específico', 'Moderado', 'Longo'];
 
 const hexToRgba = (hex: string, alpha: number) => {
@@ -30,6 +30,7 @@ const hexToRgba = (hex: string, alpha: number) => {
 const SaudePlannerView: React.FC<SaudePlannerViewProps> = ({ 
   activities, 
   activityTypes,
+  muscleGroups,
   onAddActivity, 
   onToggleStatus, 
   onDelete,
@@ -325,7 +326,7 @@ const SaudePlannerView: React.FC<SaudePlannerViewProps> = ({
                 <div className="animate-in fade-in duration-200">
                   <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 block mb-2">Grupos Musculares Trabalhados</label>
                   <div className="flex flex-wrap gap-2">
-                    {MUSCLE_GROUPS.map(m => (
+                    {muscleGroups.map(m => (
                       <button
                         key={m}
                         type="button"

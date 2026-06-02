@@ -100,6 +100,11 @@ const AnotacoesApp: React.FC = () => {
       setActiveTab(requestedTab);
       sessionStorage.removeItem('anotacoesActiveTab');
     }
+    const openAdd = sessionStorage.getItem('openAddNoteModal');
+    if (openAdd === 'true') {
+      handleNewNote();
+      sessionStorage.removeItem('openAddNoteModal');
+    }
   }, []);
 
   // Reset selected folder when active tab changes

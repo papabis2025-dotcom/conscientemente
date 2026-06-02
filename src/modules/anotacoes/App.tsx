@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { StickyNote, BookOpen, Trash2, Plus, Save, LayoutTemplate, ArrowUpDown, ChevronLeft, ChevronRight, FileText, Folder, FolderPlus, Calendar } from 'lucide-react';
+import { StickyNote, BookOpen, Trash2, Plus, Save, LayoutTemplate, ArrowUpDown, ChevronLeft, ChevronRight, FileText, Folder, FolderPlus, Calendar, Menu } from 'lucide-react';
 
 export interface Note {
   id: string;
@@ -289,10 +289,28 @@ const AnotacoesApp: React.FC = () => {
   };
 
   return (
-    <div className="flex h-screen bg-transparent text-zinc-900 dark:text-zinc-100 font-sans overflow-hidden selection:bg-amber-200 dark:selection:bg-amber-900/50">
+    <div className="flex h-screen bg-transparent text-zinc-900 dark:text-zinc-100 font-sans overflow-hidden selection:bg-amber-200 dark:selection:bg-amber-900/50 relative">
       
+      {/* Backdrop for mobile when sidebar is open */}
+      {!isSidebarCollapsed && (
+        <div 
+          onClick={() => setIsSidebarCollapsed(true)}
+          className="fixed inset-0 z-40 bg-zinc-950/60 backdrop-blur-xs md:hidden animate-in fade-in duration-200" 
+        />
+      )}
+
+      {/* Floating Menu Button on Mobile */}
+      {isSidebarCollapsed && (
+        <button
+          onClick={() => setIsSidebarCollapsed(false)}
+          className="md:hidden fixed bottom-6 left-6 z-40 w-10 h-10 bg-white/85 dark:bg-zinc-900/85 backdrop-blur-md border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-300 rounded-full flex items-center justify-center shadow-md active:scale-90 transition-all cursor-pointer animate-in zoom-in duration-200"
+        >
+          <Menu size={18} />
+        </button>
+      )}
+
       {/* Sidebar Lateral */}
-      <aside className={`relative ${isSidebarCollapsed ? 'w-20' : 'w-64'} bg-white/50 dark:bg-zinc-900/50 border-r border-zinc-200 dark:border-zinc-800 flex flex-col transition-all duration-300 backdrop-blur-xl shrink-0`}>
+      <aside className={`fixed md:relative z-50 md:z-20 h-screen bg-white/95 dark:bg-zinc-900/95 md:bg-white/50 md:dark:bg-zinc-900/50 border-r border-zinc-200 dark:border-zinc-800 flex flex-col transition-all duration-300 backdrop-blur-xl shrink-0 ${isSidebarCollapsed ? 'w-64 md:w-20 -translate-x-full md:translate-x-0' : 'w-64 translate-x-0'}`}>
         <button
           onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
           className="absolute -right-3 top-9 w-6 h-6 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-full flex items-center justify-center text-zinc-500 hover:text-zinc-900 dark:text-zinc-100 shadow-sm z-50 hover:scale-110 transition-transform"

@@ -32,7 +32,12 @@ const SYNC_KEYS = [
   'cn_custom_bg_image',
   'cn_custom_bg_style',
   'cn_push_notifications_enabled',
-  'cn_deleted_habit_ids'
+  'cn_deleted_habit_ids',
+  'cp_scheduled_studies',
+  'cn_saude_activity_types',
+  'cn_saude_muscle_groups',
+  'cn_saude_dashboard_layout',
+  'cn_home_cards_layout'
 ];
 
 function mergeLists<T extends { id: string }>(listA: T[], listB: T[]): T[] {
@@ -85,7 +90,10 @@ function mergeSettings(
       key === 'cn_anotacoes' || 
       key === 'cn_anotacoes_folders' ||
       key === 'cp_dashboard_layout_v19' ||
-      key === 'cp_dashboard_layout_v20'
+      key === 'cp_dashboard_layout_v20' ||
+      key === 'cp_scheduled_studies' ||
+      key === 'cn_saude_dashboard_layout' ||
+      key === 'cn_home_cards_layout'
     ) {
       try {
         const localList = JSON.parse(localVal);
@@ -150,6 +158,18 @@ function mergeSettings(
         const remoteHistory = JSON.parse(remoteVal);
         if (typeof localHistory === 'object' && typeof remoteHistory === 'object') {
           merged[key] = JSON.stringify(mergeHabitHistory(localHistory, remoteHistory));
+        } else {
+          merged[key] = preferRemote ? remoteVal : localVal;
+        }
+      } catch {
+        merged[key] = preferRemote ? remoteVal : localVal;
+      }
+    } else if (key === 'cn_saude_activity_types' || key === 'cn_saude_muscle_groups') {
+      try {
+        const localList = JSON.parse(localVal);
+        const remoteList = JSON.parse(remoteVal);
+        if (Array.isArray(localList) && Array.isArray(remoteList)) {
+          merged[key] = JSON.stringify(Array.from(new Set([...localList, ...remoteList])));
         } else {
           merged[key] = preferRemote ? remoteVal : localVal;
         }

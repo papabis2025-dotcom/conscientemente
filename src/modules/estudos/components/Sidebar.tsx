@@ -23,7 +23,8 @@ import {
   Clock,
   BookOpen,
   Check,
-  LayoutTemplate
+  LayoutTemplate,
+  Menu
 } from 'lucide-react';
 import logoImg from '../assets/logo.png';
 
@@ -166,14 +167,32 @@ const Sidebar: React.FC<SidebarProps> = ({
   };
 
   return (
-    <div className={`${isCollapsed ? 'w-20' : 'w-64'} h-full bg-white/50 dark:bg-zinc-900/50 border-r border-zinc-200 dark:border-zinc-800 flex flex-col p-5 transition-all duration-300 z-50 shadow-sm text-sm relative backdrop-blur-xl`}>
+    <>
+      {/* Backdrop for mobile when sidebar is open */}
+      {!isCollapsed && (
+        <div 
+          onClick={onToggleCollapse}
+          className="fixed inset-0 z-40 bg-zinc-950/60 backdrop-blur-xs md:hidden animate-in fade-in duration-200" 
+        />
+      )}
 
-      <button
-        onClick={onToggleCollapse}
-        className="absolute -right-3 top-9 w-6 h-6 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-full flex items-center justify-center text-zinc-500 hover:text-zinc-900 dark:text-zinc-100 shadow-sm z-50 hover:scale-110 transition-transform"
-      >
-        {isCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
-      </button>
+      {/* Floating Menu Button on Mobile */}
+      {isCollapsed && (
+        <button
+          onClick={onToggleCollapse}
+          className="md:hidden fixed bottom-6 left-6 z-40 w-10 h-10 bg-white/85 dark:bg-zinc-900/85 backdrop-blur-md border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-300 rounded-full flex items-center justify-center shadow-md active:scale-90 transition-all cursor-pointer animate-in zoom-in duration-200"
+        >
+          <Menu size={18} />
+        </button>
+      )}
+
+      <div className={`fixed md:relative ${isCollapsed ? 'w-64 md:w-20 -translate-x-full md:translate-x-0' : 'w-64 translate-x-0'} h-screen md:h-full bg-white/95 dark:bg-zinc-900/95 md:bg-white/50 md:dark:bg-zinc-900/50 border-r border-zinc-200 dark:border-zinc-800 flex flex-col p-5 transition-all duration-300 z-50 shadow-sm text-sm backdrop-blur-xl`}>
+        <button
+          onClick={onToggleCollapse}
+          className="absolute -right-3 top-9 w-6 h-6 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-full flex items-center justify-center text-zinc-500 hover:text-zinc-900 dark:text-zinc-100 shadow-sm z-50 hover:scale-110 transition-transform cursor-pointer"
+        >
+          {isCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+        </button>
 
       <div className={`mb-8 px-1 flex items-center ${isCollapsed ? 'justify-center' : ''}`}>
         <div className="flex items-center gap-3 text-indigo-500">
@@ -289,7 +308,8 @@ const Sidebar: React.FC<SidebarProps> = ({
           {!isCollapsed && <span>Voltar ao Hub</span>}
         </button>
       </div>
-    </div >
+    </div>
+    </>
   );
 };
 

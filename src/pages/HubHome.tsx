@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { MODULES } from '../constants';
 import { Module } from '../types';
 import { LogEntry } from '../modules/estudos/types';
-import { LogOut, Sun, Moon, ArrowUpRight, Lock, BookOpen, Wallet, ListTodo, Brain, ChevronRight, ChevronLeft, ChevronDown, ChevronUp, Sliders, Activity, TrendingUp, Settings, User, X, HeartPulse, Bell, Plus, Trash2, Check, ClipboardList, BarChart3, Calendar, Award, CheckCircle2, StickyNote, Flame, Clock, DollarSign, Database, Cloud, AlertTriangle, FileText, CalendarDays } from 'lucide-react';
+import { LogOut, Sun, Moon, ArrowUpRight, Lock, BookOpen, Wallet, ListTodo, Brain, ChevronRight, ChevronLeft, ChevronDown, ChevronUp, Sliders, Activity, TrendingUp, Settings, User, X, HeartPulse, Bell, Plus, Trash2, Check, ClipboardList, BarChart3, Calendar, Award, CheckCircle2, StickyNote, Flame, Clock, DollarSign, Database, Cloud, AlertTriangle, FileText, CalendarDays, Menu } from 'lucide-react';
 import LogView from '../modules/estudos/pages/LogView';
 import { api } from '../modules/estudos/services/api';
 import { supabase } from '../modules/estudos/services/supabase';
@@ -368,6 +368,7 @@ const HubHome: React.FC<HubHomeProps> = ({
   bgType, setBgType, bgColor, setBgColor, 
   bgImage, setBgImage, bgImageStyle, setBgImageStyle 
 }) => {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [pendingTarefas, setPendingTarefas] = useState(0);
   const [pendingEstudos, setPendingEstudos] = useState(0);
@@ -1052,6 +1053,10 @@ const HubHome: React.FC<HubHomeProps> = ({
         if (savedHistory) {
           setHabitHistory(JSON.parse(savedHistory));
         }
+        const savedCards = localStorage.getItem('cn_home_cards_layout');
+        if (savedCards) {
+          setHomeCards(JSON.parse(savedCards));
+        }
         const savedPush = localStorage.getItem('cn_push_notifications_enabled') === 'true';
         setPushEnabled(savedPush);
       } catch (e) {
@@ -1291,10 +1296,20 @@ const HubHome: React.FC<HubHomeProps> = ({
       className={`min-h-screen ${bgType === 'default' ? 'bg-zinc-50 dark:bg-zinc-950' : 'bg-transparent'} flex relative overflow-hidden transition-colors duration-300`}
     >
 
+      {/* Backdrop para menu mobile */}
+      {mobileMenuOpen && (
+        <div 
+          onClick={() => setMobileMenuOpen(false)}
+          className="fixed inset-0 z-40 bg-zinc-950/60 backdrop-blur-xs md:hidden animate-in fade-in duration-200" 
+        />
+      )}
+
       {/* Sidebar Esquerda */}
       <aside 
-        className={`relative z-20 h-screen flex flex-col justify-between py-6 border-r border-zinc-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-900/50 backdrop-blur-xl transition-all duration-300 ease-in-out shrink-0 ${
+        className={`fixed md:relative z-50 md:z-20 h-screen flex flex-col justify-between py-6 border-r border-zinc-200 dark:border-zinc-800 bg-white/95 dark:bg-zinc-900/95 md:bg-white/50 md:dark:bg-zinc-900/50 backdrop-blur-xl transition-all duration-300 ease-in-out shrink-0 ${
           sidebarExpanded ? 'w-64 px-5' : 'w-20 px-3'
+        } ${
+          mobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
         }`}
       >
         <div className="flex flex-col gap-6 w-full">
@@ -1448,7 +1463,7 @@ const HubHome: React.FC<HubHomeProps> = ({
 
             {/* Configurações */}
             <button
-              onClick={() => { setShowSettingsModal(true); fetchLogs(); }}
+              onClick={() => { setShowSettingsModal(true); fetchLogs(); setMobileMenuOpen(false); }}
               className={`w-full h-11 rounded-xl flex items-center gap-3 border border-zinc-200/60 dark:border-zinc-800 bg-white/40 dark:bg-zinc-900/30 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white transition-all hover:scale-102 hover:shadow-sm ${
                 sidebarExpanded ? 'px-4 justify-start' : 'justify-center'
               }`}
@@ -1464,7 +1479,7 @@ const HubHome: React.FC<HubHomeProps> = ({
 
             {/* Preferências de Usuário */}
             <button
-              onClick={() => setShowProfileModal(true)}
+              onClick={() => { setShowProfileModal(true); setMobileMenuOpen(false); }}
               className={`w-full h-11 rounded-xl flex items-center gap-3 border border-zinc-200/60 dark:border-zinc-800 bg-white/40 dark:bg-zinc-900/30 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white transition-all hover:scale-102 hover:shadow-sm ${
                 sidebarExpanded ? 'px-4 justify-start' : 'justify-center'
               }`}
@@ -1550,6 +1565,23 @@ const HubHome: React.FC<HubHomeProps> = ({
 
       {/* Wrapper do Conteúdo Principal com Centralização */}
       <div className="flex-1 h-screen overflow-y-auto flex flex-col items-center">
+        {/* Mobile Header */}
+        <div className="w-full md:hidden flex items-center justify-between px-4 py-3 border-b border-zinc-200/50 dark:border-zinc-800/50 bg-white/50 dark:bg-zinc-900/50 backdrop-blur-xl sticky top-0 z-30 select-none">
+          <button
+            onClick={() => setMobileMenuOpen(true)}
+            className="text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 p-2 hover:bg-zinc-100/50 dark:hover:bg-zinc-800/50 rounded-xl transition-all cursor-pointer"
+          >
+            <Menu size={20} />
+          </button>
+          
+          <div className="flex items-center gap-2">
+            <Brain size={18} className="text-zinc-800 dark:text-white" />
+            <span className="text-xs font-black uppercase tracking-widest text-zinc-800 dark:text-white leading-none">Conscientemente</span>
+          </div>
+
+          <div className="w-9" /> {/* Spacer */}
+        </div>
+
         {/* Main content */}
         <main className={`relative z-10 w-full ${showHabitsReport ? 'max-w-4xl' : 'max-w-7xl'} px-6 py-10 flex flex-col transition-all duration-300`}>
 

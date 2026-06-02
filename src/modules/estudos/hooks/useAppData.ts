@@ -59,6 +59,32 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         });
     };
 
+    useEffect(() => {
+        const handleSync = () => {
+            try {
+                const savedConcurso = localStorage.getItem('cp_selected_concurso_id');
+                if (savedConcurso) setSelectedConcursoIdState(savedConcurso);
+                
+                const savedScheduled = localStorage.getItem('cp_scheduled_studies');
+                if (savedScheduled) setScheduledStudies(JSON.parse(savedScheduled));
+                
+                const savedGoal = localStorage.getItem('cp_global_daily_goal');
+                if (savedGoal) setGlobalDailyGoalState(parseInt(savedGoal));
+                
+                const savedTasks = localStorage.getItem('cp_study_tasks');
+                if (savedTasks) setStudyTasks(JSON.parse(savedTasks));
+            } catch (e) {
+                console.error('Error syncing estudos app data:', e);
+            }
+        };
+        window.addEventListener('local-storage-sync', handleSync);
+        window.addEventListener('storage', handleSync);
+        return () => {
+            window.removeEventListener('local-storage-sync', handleSync);
+            window.removeEventListener('storage', handleSync);
+        };
+    }, []);
+
     // Theme logic remains local for now to avoid flickering before auth loads
     const [localTheme, setLocalTheme] = useState<'light' | 'dark'>(() => {
         const saved = localStorage.getItem('cn_theme');

@@ -1314,7 +1314,7 @@ const HubHome: React.FC<HubHomeProps> = ({
       >
         <div className="flex flex-col gap-6 w-full">
           {/* Logo & Branding */}
-          <div className={`flex items-center gap-3 w-full ${sidebarExpanded ? 'justify-start pl-3' : 'justify-center'}`}>
+          <div className={`flex items-center gap-3 w-full ${sidebarExpanded ? 'justify-start px-4' : 'justify-center'}`}>
             <div className="w-10 h-10 rounded-xl bg-zinc-900 dark:bg-zinc-100 flex items-center justify-center shadow-md shrink-0">
               <Brain size={20} className="text-white dark:text-zinc-900" />
             </div>

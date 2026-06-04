@@ -12,16 +12,16 @@ export interface HealthActivity {
   id: string;
   type: ActivityType;
   date: string;
-  timeInMinutes?: number;
+  timeInMinutes?: number | null;
   status?: 'realizado' | 'planejado';
   
   // Cardio
-  distanceKm?: number;
-  pace?: string;
-  level?: CardioLevel;
+  distanceKm?: number | null;
+  pace?: string | null;
+  level?: CardioLevel | null;
   
   // Musculação
-  muscles?: MuscleGroup[];
+  muscles?: MuscleGroup[] | null;
 }
 
 const CARDIO_LEVELS: CardioLevel[] = ['Leve', 'Ritmado', 'Arrancada', 'Específico', 'Moderado', 'Longo'];
@@ -220,7 +220,7 @@ const SaudeApp: React.FC = () => {
 
   const handleAddActivity = (e: React.FormEvent) => {
     e.preventDefault();
-    const time = formTime ? (parseInt(formTime) || 0) : undefined;
+    const time = formTime ? (parseInt(formTime) || 0) : null;
     if (formStatus === 'realizado' && (!time || time <= 0)) {
       alert('Por favor, insira uma duração válida.');
       return;
@@ -231,7 +231,11 @@ const SaudeApp: React.FC = () => {
       type: formType,
       date: formDate,
       timeInMinutes: time,
-      status: formStatus
+      status: formStatus,
+      distanceKm: null,
+      level: null,
+      muscles: null,
+      pace: null
     };
 
     if (formType === 'Musculação') {
@@ -239,14 +243,14 @@ const SaudeApp: React.FC = () => {
         alert('Por favor, selecione ao menos um grupo muscular.');
         return;
       }
-      if (formMuscles.length > 0) newActivity.muscles = formMuscles;
+      newActivity.muscles = formMuscles.length > 0 ? formMuscles : null;
     } else {
-      const dist = formDistance ? (parseFloat(formDistance.replace(',', '.')) || 0) : undefined;
+      const dist = formDistance ? (parseFloat(formDistance.replace(',', '.')) || 0) : null;
       if (formStatus === 'realizado' && (!dist || dist <= 0)) {
         alert('Por favor, insira uma distância válida.');
         return;
       }
-      if (dist !== undefined && dist > 0) {
+      if (dist !== null && dist > 0) {
         newActivity.distanceKm = dist;
         newActivity.level = formLevel;
         if (time && time > 0) {
@@ -294,11 +298,18 @@ const SaudeApp: React.FC = () => {
 
     const merged = { ...existing, ...updates };
 
-    if (merged.type !== 'Musculação') {
+    if (merged.type === 'Musculação') {
+      merged.distanceKm = null;
+      merged.level = null;
+      merged.pace = null;
+    } else {
+      merged.muscles = null;
       const dist = merged.distanceKm || 0;
       const time = merged.timeInMinutes || 0;
       if (dist > 0 && time > 0) {
         merged.pace = calculatePace(dist, time, merged.type);
+      } else {
+        merged.pace = null;
       }
     }
 
@@ -659,7 +670,7 @@ const SaudeApp: React.FC = () => {
               </div>
               {!isSidebarCollapsed && (
                 <span className={`text-xs px-2 py-0.5 rounded-full ${activeTab === 'atividades' ? 'bg-white/20' : 'bg-zinc-200 dark:bg-zinc-800'}`}>
-                  {activities.length}
+                  {realizedActivities.length}
                 </span>
               )}
             </button>
@@ -867,10 +878,10 @@ const SaudeApp: React.FC = () => {
           {/* ATIVIDADES TAB */}
           {activeTab === 'atividades' && (
             <div className="flex-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-sm overflow-hidden flex flex-col">
-              {activities.length === 0 ? (
+              {realizedActivities.length === 0 ? (
                 <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
                   <Activity size={48} className="text-zinc-300 dark:text-zinc-700 mb-4" strokeWidth={1} />
-                  <p className="text-zinc-500 font-medium">Nenhuma atividade registrada.</p>
+                  <p className="text-zinc-500 font-medium">Nenhuma atividade realizada registrada.</p>
                 </div>
               ) : (
                 <div className="overflow-x-auto flex-1 custom-scrollbar">
@@ -885,7 +896,7 @@ const SaudeApp: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
-                      {activities.map(a => (
+                      {realizedActivities.map(a => (
                         <tr key={a.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors group">
                           <td className="px-6 py-4 text-xs font-bold text-zinc-600 dark:text-zinc-300">
                             {new Date(`${a.date}T12:00:00`).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })}

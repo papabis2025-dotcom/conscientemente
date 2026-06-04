@@ -27,13 +27,14 @@ function getAccuracyText(accuracy: number, hasData: boolean): string {
 
 const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions }) => {
   const [expandedSubjects, setExpandedSubjects] = useState<Set<string>>(new Set());
-  const [sortBy, setSortBy] = useState<'name' | 'questions' | 'accuracy' | 'weight' | 'priority'>('priority');
+  const [sortBy, setSortBy] = useState<'name' | 'questions' | 'time' | 'accuracy' | 'weight' | 'priority'>('priority');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
   // Dynamic weights (sum up to roughly 100)
   const [weightAcc, setWeightAcc] = useState(60);
   const [weightSubj, setWeightSubj] = useState(30);
   const [weightQtd, setWeightQtd] = useState(10);
+  const [weightTime, setWeightTime] = useState(15);
 
   const toggleExpand = (id: string) => {
     const s = new Set(expandedSubjects);
@@ -49,35 +50,40 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions }) =
       const accuracy = questions > 0 ? Math.round((correct / questions) * 100) : 0;
       const weight = sub.weight || 1;
       const questionsGoal = sub.questionsGoal || 0;
+      const minutes = subSessions.reduce((acc, s) => acc + (s.durationInMinutes || 0), 0);
 
       const topics = (sub.topics || []).map(topic => {
         const tSessions = sessions.filter(s => s.subjectId === sub.id && s.topicId === topic.id);
         const tQ = tSessions.reduce((acc, s) => acc + (s.questionsDone || 0), 0);
         const tC = tSessions.reduce((acc, s) => acc + (s.questionsCorrect || 0), 0);
         const tAcc = tQ > 0 ? Math.round((tC / tQ) * 100) : 0;
-        return { id: topic.id, title: topic.title, priority: topic.priority, questions: tQ, accuracy: tAcc };
+        const tMin = tSessions.reduce((acc, s) => acc + (s.durationInMinutes || 0), 0);
+        return { id: topic.id, title: topic.title, priority: topic.priority, questions: tQ, accuracy: tAcc, minutes: tMin };
       });
 
-      return { sub, questions, correct, accuracy, weight, questionsGoal, topics };
+      return { sub, questions, correct, accuracy, weight, questionsGoal, topics, minutes };
     });
   }, [subjects, sessions]);
 
   const maxWeight = useMemo(() => Math.max(1, ...subjectData.map(d => d.weight)), [subjectData]);
   const maxQuestions = useMemo(() => Math.max(1, ...subjectData.map(d => d.questions)), [subjectData]);
+  const maxMinutes = useMemo(() => Math.max(1, ...subjectData.map(d => d.minutes)), [subjectData]);
 
-  // Priority uses dynamic weights
-  const getPriority = (weight: number, accuracy: number, questions: number): number => {
+  // Priority uses dynamic weights, where less minutes studies gives higher priority
+  const getPriority = (weight: number, accuracy: number, questions: number, minutes: number): number => {
     const wNorm = weight / maxWeight;
     const accPenalty = questions > 0 ? (100 - accuracy) / 100 : 0.5;
     const qPenalty = Math.max(0, 1 - questions / Math.max(1, maxQuestions));
+    const tPenalty = Math.max(0, 1 - minutes / Math.max(1, maxMinutes));
     
-    const totalW = weightAcc + weightSubj + weightQtd;
+    const totalW = weightAcc + weightSubj + weightQtd + weightTime;
     if (totalW === 0) return 0;
 
     return (
       accPenalty * (weightAcc / totalW) + 
       wNorm * (weightSubj / totalW) + 
-      qPenalty * (weightQtd / totalW)
+      qPenalty * (weightQtd / totalW) +
+      tPenalty * (weightTime / totalW)
     );
   };
 
@@ -86,12 +92,13 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions }) =
       let diff = 0;
       if (sortBy === 'name') diff = a.sub.name.localeCompare(b.sub.name);
       else if (sortBy === 'questions') diff = a.questions - b.questions;
+      else if (sortBy === 'time') diff = a.minutes - b.minutes;
       else if (sortBy === 'accuracy') diff = a.accuracy - b.accuracy;
       else if (sortBy === 'weight') diff = a.weight - b.weight;
-      else diff = getPriority(a.weight, a.accuracy, a.questions) - getPriority(b.weight, b.accuracy, b.questions);
+      else diff = getPriority(a.weight, a.accuracy, a.questions, a.minutes) - getPriority(b.weight, b.accuracy, b.questions, b.minutes);
       return sortOrder === 'desc' ? -diff : diff;
     });
-  }, [subjectData, sortBy, sortOrder]);
+  }, [subjectData, sortBy, sortOrder, weightAcc, weightSubj, weightQtd, weightTime, maxWeight, maxQuestions, maxMinutes]);
 
   const handleSort = (col: typeof sortBy) => {
     if (sortBy === col) setSortOrder(o => o === 'asc' ? 'desc' : 'asc');
@@ -133,6 +140,11 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions }) =
             Volume Qs
             <input type="number" min="0" max="100" value={weightQtd} onChange={e => setWeightQtd(Number(e.target.value))} className="w-14 bg-zinc-100 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded p-1 text-center font-mono dark:text-white" />
           </label>
+
+          <label className="flex items-center gap-1 text-xs font-bold text-zinc-600 dark:text-zinc-300">
+            Tempo Dedicado
+            <input type="number" min="0" max="100" value={weightTime} onChange={e => setWeightTime(Number(e.target.value))} className="w-14 bg-zinc-100 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded p-1 text-center font-mono dark:text-white" />
+          </label>
         </div>
       </header>
 
@@ -143,14 +155,15 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions }) =
               <th className="px-4 py-2.5 w-8 border-b-2 border-zinc-200 dark:border-zinc-700" />
               {th('name', 'Disciplina / Assunto')}
               {th('questions', 'Questões', 'text-right')}
+              {th('time', 'Tempo', 'text-right')}
               {th('accuracy', 'Aproveitamento', 'text-right')}
               {th('weight', 'Peso', 'text-right')}
               {th('priority', 'Prioridade', 'text-right')}
             </tr>
           </thead>
           <tbody>
-            {sortedData.map(({ sub, questions, accuracy, weight, questionsGoal, topics }) => {
-              const priority = getPriority(weight, accuracy, questions);
+            {sortedData.map(({ sub, questions, accuracy, weight, questionsGoal, topics, minutes }) => {
+              const priority = getPriority(weight, accuracy, questions, minutes);
               const priorityPct = Math.round(priority * 100);
               const isExpanded = expandedSubjects.has(sub.id);
 
@@ -173,26 +186,47 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions }) =
                     <td className={`px-4 py-3 text-right font-mono tabular-nums font-bold ${questions > 0 ? 'text-zinc-700 dark:text-zinc-200' : 'text-zinc-300 dark:text-zinc-600'}`}>
                       {questions > 0 ? questions : '—'}
                     </td>
-                    <td className={`px-4 py-3 text-right font-mono tabular-nums ${getAccuracyText(accuracy, questions > 0)}`}>
-                      {questions > 0 ? `${accuracy}%` : '—'}
+                    <td className={`px-4 py-3 text-right font-mono tabular-nums ${minutes > 0 ? 'text-zinc-700 dark:text-zinc-200' : 'text-zinc-300 dark:text-zinc-600'}`}>
+                      {minutes > 0 ? `${parseFloat((minutes / 60).toFixed(1))}h` : '—'}
+                    </td>
+                    <td className="px-4 py-3">
+                      {questions > 0 ? (
+                        <div className="flex items-center justify-end gap-2">
+                          <div className="w-14 h-1.5 bg-zinc-100 dark:bg-zinc-855 rounded-full overflow-hidden shrink-0">
+                            <div className={`h-full ${accuracy >= 80 ? 'bg-emerald-500' : accuracy < 50 ? 'bg-rose-500' : 'bg-blue-500'}`} style={{ width: `${accuracy}%` }} />
+                          </div>
+                          <span className={`text-xs font-bold font-mono shrink-0 ${getAccuracyText(accuracy, true)}`}>{accuracy}%</span>
+                        </div>
+                      ) : (
+                        <div className="text-right text-zinc-300 dark:text-zinc-600 font-mono">—</div>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-right text-zinc-500 dark:text-zinc-400 font-bold">
                       {weight}x
                     </td>
-                    <td className="px-4 py-3 text-right">
-                      <span className={`inline-block px-2 py-0.5 rounded text-[11px] font-black tabular-nums ${
-                        priorityPct >= 65 ? 'bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300'
-                        : priorityPct >= 40 ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
-                        : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400'
-                      }`}>
-                        {priorityPct}%
-                      </span>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-end gap-2">
+                        <div className="w-14 h-1.5 bg-zinc-100 dark:bg-zinc-855 rounded-full overflow-hidden shrink-0">
+                          <div className={`h-full ${
+                            priorityPct >= 65 ? 'bg-rose-500'
+                            : priorityPct >= 40 ? 'bg-amber-500'
+                            : 'bg-zinc-400'
+                          }`} style={{ width: `${priorityPct}%` }} />
+                        </div>
+                        <span className={`inline-block px-2 py-0.5 rounded text-[11px] font-black tabular-nums shrink-0 ${
+                          priorityPct >= 65 ? 'bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300'
+                          : priorityPct >= 40 ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
+                          : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400'
+                        }`}>
+                          {priorityPct}%
+                        </span>
+                      </div>
                     </td>
                   </tr>
 
                   {/* Topic rows */}
                   {isExpanded && topics.map(topic => {
-                    const tPriority = getPriority(weight, topic.accuracy, topic.questions);
+                    const tPriority = getPriority(weight, topic.accuracy, topic.questions, topic.minutes);
                     const tPriorityPct = Math.round(tPriority * 100);
                     return (
                       <tr key={topic.id} className={`border-b border-zinc-100 dark:border-zinc-800/50 ${getAccuracyBg(topic.accuracy, topic.questions > 0)}`}>
@@ -210,18 +244,43 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions }) =
                         <td className={`px-4 py-2 text-right font-mono text-xs tabular-nums ${topic.questions > 0 ? 'text-zinc-600 dark:text-zinc-300' : 'text-zinc-300 dark:text-zinc-600'}`}>
                           {topic.questions > 0 ? topic.questions : '—'}
                         </td>
-                        <td className={`px-4 py-2 text-right font-mono text-xs tabular-nums ${getAccuracyText(topic.accuracy, topic.questions > 0)}`}>
-                          {topic.questions > 0 ? `${topic.accuracy}%` : '—'}
+                        <td className={`px-4 py-2 text-right font-mono text-xs tabular-nums ${topic.minutes > 0 ? 'text-zinc-600 dark:text-zinc-300' : 'text-zinc-300 dark:text-zinc-600'}`}>
+                          {topic.minutes > 0 ? `${parseFloat((topic.minutes / 60).toFixed(1))}h` : '—'}
+                        </td>
+                        <td className="px-4 py-2">
+                          {topic.questions > 0 ? (
+                            <div className="flex items-center justify-end gap-2">
+                              <div className="w-10 h-1 bg-zinc-200 dark:bg-zinc-750 rounded-full overflow-hidden shrink-0">
+                                <div className={`h-full ${topic.accuracy >= 80 ? 'bg-emerald-500' : topic.accuracy < 50 ? 'bg-rose-500' : 'bg-blue-500'}`} style={{ width: `${topic.accuracy}%` }} />
+                              </div>
+                              <span className={`text-xs font-semibold font-mono shrink-0 ${getAccuracyText(topic.accuracy, true)}`}>{topic.accuracy}%</span>
+                            </div>
+                          ) : (
+                            <div className="text-right text-zinc-300 dark:text-zinc-600 font-mono text-xs">—</div>
+                          )}
                         </td>
                         <td className="px-4 py-2 text-right text-[10px] text-zinc-300 dark:text-zinc-600">—</td>
-                        <td className="px-4 py-2 text-right">
-                          <span className={`text-[10px] font-black tabular-nums ${
-                            tPriorityPct >= 65 ? 'text-rose-600 dark:text-rose-400'
-                            : tPriorityPct >= 40 ? 'text-amber-600 dark:text-amber-400'
-                            : 'text-zinc-400'
-                          }`}>
-                            {topic.questions > 0 ? `${tPriorityPct}%` : '—'}
-                          </span>
+                        <td className="px-4 py-2">
+                          {topic.questions > 0 ? (
+                            <div className="flex items-center justify-end gap-2">
+                              <div className="w-10 h-1 bg-zinc-200 dark:bg-zinc-750 rounded-full overflow-hidden shrink-0">
+                                <div className={`h-full ${
+                                  tPriorityPct >= 65 ? 'bg-rose-500'
+                                  : tPriorityPct >= 40 ? 'bg-amber-500'
+                                  : 'bg-zinc-400'
+                                }`} style={{ width: `${tPriorityPct}%` }} />
+                              </div>
+                              <span className={`text-[10px] font-black tabular-nums shrink-0 ${
+                                tPriorityPct >= 65 ? 'text-rose-600 dark:text-rose-400'
+                                : tPriorityPct >= 40 ? 'text-amber-600 dark:text-amber-400'
+                                : 'text-zinc-400'
+                              }`}>
+                                {tPriorityPct}%
+                              </span>
+                            </div>
+                          ) : (
+                            <div className="text-right text-zinc-300 dark:text-zinc-600 font-mono text-xs">—</div>
+                          )}
                         </td>
                       </tr>
                     );
@@ -232,7 +291,7 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions }) =
 
             {subjects.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-5 py-16 text-center text-zinc-400 text-sm">
+                <td colSpan={7} className="px-5 py-16 text-center text-zinc-400 text-sm">
                   Nenhuma disciplina encontrada. Adicione disciplinas e registre sessões de estudo para ver a análise.
                 </td>
               </tr>

@@ -96,20 +96,20 @@ const SaudePlannerView: React.FC<SaudePlannerViewProps> = ({
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     if (selectedDayKey === null) return;
-    const time = formTime ? (parseInt(formTime) || 0) : undefined;
+    const time = formTime ? (parseInt(formTime) || 0) : null;
     if (formStatus === 'realizado' && (!time || time <= 0)) {
       alert('Por favor, insira uma duração válida.');
       return;
     }
 
-    const dist = formType !== 'Musculação' && formDistance ? (parseFloat(formDistance.replace(',', '.')) || 0) : undefined;
+    const dist = formType !== 'Musculação' && formDistance ? (parseFloat(formDistance.replace(',', '.')) || 0) : null;
     if (formStatus === 'realizado' && formType !== 'Musculação' && (!dist || dist <= 0)) {
       alert('Por favor, insira uma distância válida.');
       return;
     }
 
-    const level = formType !== 'Musculação' ? formLevel : undefined;
-    const muscles = formType === 'Musculação' ? formMuscles : undefined;
+    const level = formType !== 'Musculação' ? formLevel : null;
+    const muscles = formType === 'Musculação' ? formMuscles : null;
 
     if (editingActivity) {
       if (onUpdateActivity) {
@@ -229,7 +229,17 @@ const SaudePlannerView: React.FC<SaudePlannerViewProps> = ({
                     >
                       <div className="flex items-center justify-between">
                         <span className="uppercase tracking-wider truncate">{act.type}</span>
-                        {act.status === 'planejado' ? <Clock size={10} className="shrink-0" /> : <CheckCircle2 size={10} className="shrink-0" />}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onToggleStatus(act.id);
+                          }}
+                          className="p-0.5 hover:bg-black/10 dark:hover:bg-white/10 rounded transition-colors"
+                          title={act.status === 'planejado' ? "Marcar como realizado" : "Marcar como planejado"}
+                        >
+                          {act.status === 'planejado' ? <Clock size={10} className="shrink-0" /> : <CheckCircle2 size={10} className="shrink-0" />}
+                        </button>
                       </div>
                       {act.timeInMinutes !== undefined && act.timeInMinutes > 0 && <span className="opacity-80 font-medium text-[9px]">{act.timeInMinutes} min</span>}
                       {act.distanceKm !== undefined && act.distanceKm > 0 && <span className="opacity-75 text-[8px]">{act.distanceKm} km</span>}

@@ -369,12 +369,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                 <th className="px-4 py-4 text-[10px] font-bold uppercase text-zinc-400 tracking-wider cursor-pointer hover:text-zinc-900 dark:text-zinc-300" onClick={() => { setSortBy('name'); setSortOrder(o => o === 'asc' ? 'desc' : 'asc'); }}>
                   Disciplina {sortBy === 'name' && (sortOrder === 'asc' ? '↓' : '↑')}
                 </th>
-                <th className="w-32 px-4 py-4 text-[10px] font-bold uppercase text-zinc-400 tracking-wider cursor-pointer hover:text-zinc-900 dark:text-zinc-300" onClick={() => { setSortBy('time'); setSortOrder(o => o === 'desc' ? 'asc' : 'desc'); }}>
-                  Tempo {sortBy === 'time' && (sortOrder === 'desc' ? '↓' : '↑')}
-                </th>
-                <th className="w-32 px-4 py-4 text-[10px] font-bold uppercase text-zinc-400 tracking-wider cursor-pointer hover:text-zinc-900 dark:text-zinc-300" onClick={() => { setSortBy('questions'); setSortOrder(o => o === 'desc' ? 'asc' : 'desc'); }}>
-                  Questões {sortBy === 'questions' && (sortOrder === 'desc' ? '↓' : '↑')}
-                </th>
+
                 <th className="w-40 px-4 py-4 text-[10px] font-bold uppercase text-zinc-400 tracking-wider cursor-pointer hover:text-zinc-900 dark:text-zinc-300" onClick={() => { setSortBy('accuracy'); setSortOrder(o => o === 'desc' ? 'asc' : 'desc'); }}>
                   Aproveitamento {sortBy === 'accuracy' && (sortOrder === 'desc' ? '↓' : '↑')}
                 </th>
@@ -440,16 +435,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                           )}
                         </div>
                       </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-1.5 text-sm font-medium text-zinc-600 dark:text-zinc-300">
-                          <Clock size={13} className="text-zinc-400" /> {stats.hours}h
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-1.5 text-sm font-medium text-zinc-600 dark:text-zinc-300">
-                          <Target size={13} className="text-zinc-400" /> {stats.questions}
-                        </div>
-                      </td>
+
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
                           <div className="w-14 h-1.5 bg-zinc-100 dark:bg-zinc-700 rounded-full overflow-hidden">
@@ -505,7 +491,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
 
                     {isExpanded && (
                       <tr>
-                        <td colSpan={8} className="px-0 py-0 bg-zinc-50/30 dark:bg-zinc-800/10 border-b border-zinc-100 dark:border-zinc-800">
+                        <td colSpan={6} className="px-0 py-0 bg-zinc-50/30 dark:bg-zinc-800/10 border-b border-zinc-100 dark:border-zinc-800">
                           <div className="pl-10 pr-4 py-2">
 
                             <table className="w-full text-left text-sm">
@@ -548,12 +534,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                                   <th className="py-1.5 text-[10px] uppercase font-bold cursor-pointer hover:text-zinc-900 dark:text-zinc-300" onClick={() => { setTopicSortBy('review90d'); setTopicSortOrder(o => o === 'desc' ? 'asc' : 'desc'); }}>
                                     Rev.90d {topicSortBy === 'review90d' && (topicSortOrder === 'desc' ? '↓' : '↑')}
                                   </th>
-                                  <th className="py-1.5 text-[10px] uppercase font-bold cursor-pointer hover:text-zinc-900 dark:text-zinc-300" onClick={() => { setTopicSortBy('time'); setTopicSortOrder(o => o === 'desc' ? 'asc' : 'desc'); }}>
-                                    Tempo {topicSortBy === 'time' && (topicSortOrder === 'desc' ? '↓' : '↑')}
-                                  </th>
-                                  <th className="py-1.5 text-[10px] uppercase font-bold cursor-pointer hover:text-zinc-900 dark:text-zinc-300" onClick={() => { setTopicSortBy('questions'); setTopicSortOrder(o => o === 'desc' ? 'asc' : 'desc'); }}>
-                                    Questões {topicSortBy === 'questions' && (topicSortOrder === 'desc' ? '↓' : '↑')}
-                                  </th>
+
                                   <th className="py-1.5 text-[10px] uppercase font-bold text-right w-16"></th>
                                 </tr>
                               </thead>
@@ -570,8 +551,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                                       <td className="py-1.5 text-xs text-zinc-400">{stats.review7dDate || '—'}</td>
                                       <td className="py-1.5 text-xs text-zinc-400">{stats.review30dDate || '—'}</td>
                                       <td className="py-1.5 text-xs text-zinc-400">{stats.review90dDate || '—'}</td>
-                                      <td className="py-1.5 text-zinc-400 text-xs">{stats.minutes > 0 ? `${stats.hours}h` : '—'}</td>
-                                      <td className="py-1.5 text-zinc-400 text-xs">{stats.done > 0 ? `${stats.correct}/${stats.done} (${stats.acc}%)` : '—'}</td>
+
                                       <td className="py-1.5" />
                                     </tr>
                                   );
@@ -656,12 +636,6 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                                         <td className="py-1.5 text-xs font-medium text-zinc-400">
                                           {tStats.review90dDate || '-'}
                                         </td>
-                                        <td className="py-1.5 text-zinc-400 text-xs">
-                                          {tStats.minutes > 0 ? `${tStats.hours}h` : '-'}
-                                        </td>
-                                        <td className="py-1.5 text-zinc-400 text-xs">
-                                          {tStats.done > 0 ? `${tStats.correct}/${tStats.done} (${tStats.acc}%)` : '-'}
-                                        </td>
                                         <td className="py-1.5 text-right">
                                           <div className="flex items-center justify-end gap-2 opacity-0 group-hover/row:opacity-100 transition-opacity">
                                             <button onClick={() => startEditingTopic(topic)} className="text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors">
@@ -677,7 +651,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                                   })}
                                 {(subject.topics || []).length === 0 && (
                                   <tr>
-                                    <td colSpan={7} className="py-4 text-center text-xs text-zinc-400 italic">
+                                    <td colSpan={6} className="py-4 text-center text-xs text-zinc-400 italic">
                                       Nenhum tópico cadastrado para esta disciplina.
                                     </td>
                                   </tr>
@@ -694,7 +668,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
 
               {subjects.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center">
+                  <td colSpan={6} className="py-12 text-center">
                     <div className="flex flex-col items-center justify-center opacity-50">
                       <Bot size={40} className="mb-2 text-zinc-400" />
                       <p className="font-bold text-zinc-500">{selectedConcursoId === 'all' ? 'Selecione um edital acima para ver e adicionar disciplinas.' : 'Nenhuma disciplina encontrada neste edital.'}</p>

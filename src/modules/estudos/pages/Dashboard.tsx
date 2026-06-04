@@ -46,7 +46,7 @@ interface WidgetState {
 
 const DEFAULT_WIDGETS: WidgetState[] = [
   { id: 'general_stats', title: 'Desempenho Geral', isVisible: true, size: 'wide' },
-  { id: 'study_frequency', title: 'Informações e Metas', isVisible: true, size: 'normal' },
+  { id: 'study_frequency', title: 'Melhor/Pior Disciplina e Assunto', isVisible: true, size: 'normal' },
   { id: 'study_tasks', title: 'Tarefas Pendentes', isVisible: true, size: 'normal' },
   { id: 'weekly_chart', title: 'Volume de Estudo', isVisible: true, size: 'wide' },
   { id: 'activity_calendar', title: 'Calendário de Atividades', isVisible: true, size: 'wide' },
@@ -194,6 +194,46 @@ const Dashboard: React.FC<DashboardProps> = ({
       best: [...list].filter(s => s.done > 0).sort((a, b) => b.accuracy - a.accuracy)[0] || null,
       worst: list.filter(s => s.done > 0).length > 0 ? [...list].filter(s => s.done > 0).sort((a, b) => a.accuracy - b.accuracy)[0] : null
     };
+  }, [sessions, subjects]);
+
+  const topicStats = useMemo(() => {
+    const stats: Record<string, { done: number, correct: number, title: string, subjectName: string }> = {};
+
+    sessions.forEach(session => {
+      if (isSimuladoSession(session)) return;
+      if (!session.topicId) return;
+
+      const sub = subjects.find(s => s.id === session.subjectId);
+      if (!sub) return;
+
+      const topic = sub.topics?.find(t => t.id === session.topicId);
+      if (!topic) return;
+
+      const key = `${session.subjectId}_${session.topicId}`;
+      if (!stats[key]) {
+        stats[key] = {
+          done: 0,
+          correct: 0,
+          title: topic.title,
+          subjectName: sub.name
+        };
+      }
+      stats[key].done += (session.questionsDone || 0);
+      stats[key].correct += (session.questionsCorrect || 0);
+    });
+
+    const list = Object.values(stats)
+      .filter(t => t.done > 0)
+      .map(t => ({
+        ...t,
+        accuracy: Math.round((t.correct / t.done) * 100)
+      }));
+
+    const sorted = [...list].sort((a, b) => b.accuracy - a.accuracy);
+    const best = sorted[0] || null;
+    const worst = sorted.length > 0 ? sorted[sorted.length - 1] : null;
+
+    return { best, worst };
   }, [sessions, subjects]);
 
   // Build a set of subject IDs for the selected concurso/edital.
@@ -458,90 +498,93 @@ const Dashboard: React.FC<DashboardProps> = ({
               </div>
               <p className="text-[9px] font-black text-zinc-500 uppercase tracking-widest shrink-0">Simulados</p>
             </div>
-
-            {/* Divider - only on wide viewports */}
-            <div className="hidden sm:block w-px bg-zinc-100 dark:bg-zinc-800 self-stretch my-2 shrink-0" />
-
-            {/* Quick Stats Panel - only on wide viewports */}
-            <div className="hidden sm:flex flex-col justify-center flex-1 gap-2 pl-2">
-              <div className="flex justify-between items-center">
-                <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider">Tempo Total</span>
-                <span className="text-xs font-black text-zinc-700 dark:text-zinc-200">{totalHours}h</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider">Resoluções</span>
-                <span className="text-xs font-black text-zinc-700 dark:text-zinc-200">{totalDone} q</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider">Acertos</span>
-                <span className="text-xs font-black text-zinc-700 dark:text-zinc-200">{totalCorrect} q</span>
-              </div>
-              {subjectStats.best && (
-                <div className="flex justify-between items-center">
-                  <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider" title={subjectStats.best.name}>Melhor Matéria</span>
-                  <span className="text-xs font-black text-emerald-500 uppercase">{subjectStats.best.acronym}</span>
-                </div>
-              )}
-            </div>
           </div>
         );
       case 'study_frequency':
-        return (
-          <div className="flex flex-col h-full justify-between py-2 px-2">
-            {/* Frequency Section - Compacted */}
-            <div className="flex-1 flex flex-col justify-center min-h-0">
-              <div className="flex items-end gap-2 mb-1">
-                <span className="text-2xl font-bold text-amber-500 leading-none">{frequencyData.streak}</span>
-                <span className="text-[9px] font-semibold uppercase text-zinc-400 mb-0.5">Dias Seguidos</span>
-              </div>
-              <p className="text-[10px] text-zinc-500 dark:text-zinc-400 font-medium">
-                Você estudou em <strong className="text-zinc-900 dark:text-zinc-100">{frequencyData.last7DaysCount}</strong> dos últimos 7 dias.
+        const bestSub = subjectStats.best;
+        const worstSub = subjectStats.worst;
+        const bestTop = topicStats.best;
+        const worstTop = topicStats.worst;
+
+        if (!bestSub && !bestTop) {
+          return (
+            <div className="flex flex-col items-center justify-center h-full opacity-60 space-y-2 py-4">
+              <div className="text-2xl animate-pulse">📚</div>
+              <p className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 text-center uppercase tracking-wide">
+                Nenhuma disciplina ou assunto estudado ainda.
               </p>
-              <div className="w-full h-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-full mt-2 overflow-hidden">
-                <div className="h-full bg-amber-500" style={{ width: `${(frequencyData.last7DaysCount / 7) * 100}%` }} />
+            </div>
+          );
+        }
+
+        return (
+          <div className="flex flex-col h-full justify-between gap-3 py-2 px-1">
+            {/* Melhor Desempenho */}
+            <div className="flex-1 flex flex-col gap-2 min-h-0">
+              <div className="flex items-center gap-1.5 mb-1 shrink-0">
+                <span className="w-1.5 h-3 bg-emerald-500 rounded-full" />
+                <span className="text-[9px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">Destaques (Melhor)</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 flex-1 min-h-0">
+                {bestSub ? (
+                  <div className="bg-emerald-50/40 dark:bg-emerald-950/10 border border-emerald-100 dark:border-emerald-900/30 rounded-xl p-2.5 flex flex-col justify-between">
+                    <div>
+                      <p className="text-[8px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">Disciplina</p>
+                      <h5 className="text-[11px] font-black text-zinc-700 dark:text-zinc-200 truncate mt-0.5" title={bestSub.name}>{bestSub.name}</h5>
+                    </div>
+                    <span className="text-lg font-black text-emerald-500 mt-2">{bestSub.accuracy}%</span>
+                  </div>
+                ) : (
+                  <div className="border border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl p-2 flex items-center justify-center text-[9px] text-zinc-400 font-bold">Sem dados</div>
+                )}
+                
+                {bestTop ? (
+                  <div className="bg-emerald-50/40 dark:bg-emerald-950/10 border border-emerald-100 dark:border-emerald-900/30 rounded-xl p-2.5 flex flex-col justify-between">
+                    <div>
+                      <p className="text-[8px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">Assunto</p>
+                      <h5 className="text-[10px] font-black text-zinc-700 dark:text-zinc-200 line-clamp-2 mt-0.5" title={bestTop.title}>{bestTop.title}</h5>
+                      <p className="text-[8px] text-zinc-400 truncate mt-0.5">{bestTop.subjectName}</p>
+                    </div>
+                    <span className="text-lg font-black text-emerald-500 mt-1">{bestTop.accuracy}%</span>
+                  </div>
+                ) : (
+                  <div className="border border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl p-2 flex items-center justify-center text-[9px] text-zinc-400 font-bold">Sem dados</div>
+                )}
               </div>
             </div>
 
-            {/* Daily Goal Section - With more space */}
-            <div className="border-t border-zinc-100 dark:border-zinc-800 pt-2 mt-1">
-              {(() => {
-                const today = new Date();
-                const year = today.getFullYear();
-                const month = String(today.getMonth() + 1).padStart(2, '0');
-                const day = String(today.getDate()).padStart(2, '0');
-                const todayStr = `${year}-${month}-${day}`;
-
-                const doneToday = sessions
-                  .filter(s => getLocalSessionDate(s.date) === todayStr && s.questionsDone !== undefined && !isSimuladoSession(s))
-                  .reduce((acc, s) => acc + (Number(s.questionsDone) || 0), 0);
-                const goal = globalDailyGoal || 20;
-                const remaining = Math.max(0, goal - doneToday);
-                const pct = Math.min(100, Math.round((doneToday / goal) * 100));
-
-                const getProgressColor = (p: number) => {
-                  if (p >= 100) return 'from-emerald-500 to-emerald-600';
-                  if (p >= 50) return 'from-amber-500 to-amber-600';
-                  return 'from-red-500 to-red-600';
-                };
-
-                return (
-                  <>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wide">Meta Diária</span>
-                      <span className="text-[10px] font-bold text-zinc-600 dark:text-zinc-300">{doneToday} / {goal}</span>
+            {/* Pior Desempenho */}
+            <div className="flex-1 flex flex-col gap-2 min-h-0">
+              <div className="flex items-center gap-1.5 mb-1 shrink-0">
+                <span className="w-1.5 h-3 bg-rose-500 rounded-full" />
+                <span className="text-[9px] font-black text-rose-650 dark:text-rose-450 uppercase tracking-widest">Pontos de Atenção (Pior)</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 flex-1 min-h-0">
+                {worstSub ? (
+                  <div className="bg-rose-50/40 dark:bg-rose-950/10 border border-rose-100 dark:border-rose-900/30 rounded-xl p-2.5 flex flex-col justify-between">
+                    <div>
+                      <p className="text-[8px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">Disciplina</p>
+                      <h5 className="text-[11px] font-black text-zinc-700 dark:text-zinc-200 truncate mt-0.5" title={worstSub.name}>{worstSub.name}</h5>
                     </div>
-                    <div className="w-full h-3 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden mb-1">
-                      <div
-                        className={`h-full bg-gradient-to-r ${getProgressColor(pct)} transition-all duration-500`}
-                        style={{ width: `${pct}%` }}
-                      />
+                    <span className="text-lg font-black text-rose-500 mt-2">{worstSub.accuracy}%</span>
+                  </div>
+                ) : (
+                  <div className="border border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl p-2 flex items-center justify-center text-[9px] text-zinc-400 font-bold">Sem dados</div>
+                )}
+
+                {worstTop ? (
+                  <div className="bg-rose-50/40 dark:bg-rose-950/10 border border-rose-100 dark:border-rose-900/30 rounded-xl p-2.5 flex flex-col justify-between">
+                    <div>
+                      <p className="text-[8px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">Assunto</p>
+                      <h5 className="text-[10px] font-black text-zinc-700 dark:text-zinc-200 line-clamp-2 mt-0.5" title={worstTop.title}>{worstTop.title}</h5>
+                      <p className="text-[8px] text-zinc-400 truncate mt-0.5">{worstTop.subjectName}</p>
                     </div>
-                    {remaining > 0 && (
-                      <p className="text-[9px] text-right text-zinc-400 font-medium">Faltam {remaining} questões</p>
-                    )}
-                  </>
-                );
-              })()}
+                    <span className="text-lg font-black text-rose-500 mt-1">{worstTop.accuracy}%</span>
+                  </div>
+                ) : (
+                  <div className="border border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl p-2 flex items-center justify-center text-[9px] text-zinc-400 font-bold">Sem dados</div>
+                )}
+              </div>
             </div>
           </div>
         );
@@ -947,7 +990,7 @@ const Dashboard: React.FC<DashboardProps> = ({
               className={`${sizeClass} ${heightClass} ${widget.isVisible ? 'opacity-100' : 'opacity-40'} bg-white dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm relative group hover:shadow-md transition-all duration-300 flex flex-col ${isEditMode ? 'cursor-move ring-2 ring-emerald-500/20' : ''} ${draggedWidgetIndex === index ? 'opacity-50 scale-95' : ''}`}
             >
               <div className="flex justify-between items-center mb-3 shrink-0">
-                <h4 className="text-[10px] font-black text-zinc-800 dark:text-zinc-200 uppercase tracking-widest bg-zinc-50 dark:bg-zinc-800/50 px-2.5 py-1 rounded-full">{widget.id === 'study_tasks' ? 'Tarefas Pendentes' : widget.title}</h4>
+                <h4 className="text-[10px] font-black text-zinc-800 dark:text-zinc-200 uppercase tracking-widest bg-zinc-50 dark:bg-zinc-800/50 px-2.5 py-1 rounded-full">{widget.id === 'study_tasks' ? 'Tarefas Pendentes' : widget.id === 'study_frequency' ? 'Melhor/Pior Disciplina e Assunto' : widget.title}</h4>
                 <div className="flex gap-2 items-center">
                   {!isEditMode && ['weekly_chart', 'activity_calendar', 'unified_subject_analysis'].includes(widget.id) && (
                     <button

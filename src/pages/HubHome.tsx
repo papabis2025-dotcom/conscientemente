@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { MODULES } from '../constants';
 import { Module } from '../types';
 import { LogEntry } from '../modules/estudos/types';
@@ -1068,96 +1068,108 @@ const HubHome: React.FC<HubHomeProps> = ({
     };
   }, []);
 
+  const fetchCloudData = useCallback(async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const now = new Date();
+    const localTodayStr = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().split('T')[0];
+
+    // 1. Pending Tarefas
+    const { data: tarefas } = await supabase
+      .from('tarefas')
+      .select('id, text')
+      .eq('user_id', user.id)
+      .eq('completed', false)
+      .lte('due_date', localTodayStr);
+    setPendingTarefas(tarefas?.length || 0);
+
+    // Fetch tomorrow's tasks
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = tomorrow.toISOString().split('T')[0];
+    const { data: tTasks } = await supabase
+      .from('tarefas')
+      .select('id, text, due_time, category')
+      .eq('user_id', user.id)
+      .eq('completed', false)
+      .eq('due_date', tomorrowStr);
+    setTomorrowTasks((tTasks || []).map(t => ({ id: t.id, text: t.text, dueTime: t.due_time, category: t.category })));
+
+    // 2. Pending Estudos
+    const estudosRaw = JSON.parse(localStorage.getItem('cp_study_tasks') || '[]');
+    const estudos = Array.isArray(estudosRaw) ? estudosRaw : [];
+    const pendingStudyTasks = estudos.filter((t: any) => t.date <= localTodayStr && !t.done).length;
+
+    const scheduledRaw = JSON.parse(localStorage.getItem('cp_scheduled_studies') || '[]');
+    const scheduled = Array.isArray(scheduledRaw) ? scheduledRaw : [];
+    const pendingScheduled = scheduled.filter((s: any) => {
+      const sDate = s.date?.split('T')[0];
+      return sDate <= localTodayStr && s.status !== 'realizado';
+    }).length;
+    setPendingEstudos(pendingStudyTasks + pendingScheduled);
+
+    // 3. Pending Saude
+    const { data: saude } = await supabase
+      .from('saude_treinos')
+      .select('id, type')
+      .eq('user_id', user.id)
+      .lte('date', localTodayStr)
+      .eq('status', 'planejado');
+    setPendingSaude(saude?.length || 0);
+
+    // 4. Finance Balance
+    const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const { data: financas } = await supabase
+      .from('financas_transacoes')
+      .select('type, amount')
+      .eq('user_id', user.id)
+      .like('date', `${currentMonthStr}%`);
+
+    let calculatedBalance = 0;
+    if (financas) {
+      const entradas = financas.filter(t => t.type === 'entrada').reduce((acc, t) => acc + Number(t.amount), 0);
+      const saidas = financas.filter(t => t.type === 'saida').reduce((acc, t) => acc + Number(t.amount), 0);
+      calculatedBalance = entradas - saidas;
+      setFinanceBalance(calculatedBalance);
+    } else {
+      setFinanceBalance(0);
+    }
+
+    // 5. Finance Pending SAÍDAS for today or earlier (overdue)
+    const { data: pendingFinanceTx } = await supabase
+      .from('financas_transacoes')
+      .select('id, name, amount, type')
+      .eq('user_id', user.id)
+      .eq('pending', true)
+      .eq('type', 'saida')
+      .lte('date', localTodayStr);
+    
+    const countPending = pendingFinanceTx?.length || 0;
+    setPendingFinanceCount(countPending);
+
+    generateNotifications({
+      todayStr: localTodayStr,
+      tarefas: (tarefas || []) as { id: string; text: string }[],
+      pendingEstudos: pendingStudyTasks + pendingScheduled,
+      saude: (saude || []) as { id: string; type: string }[],
+      balance: calculatedBalance,
+      pendingFinance: (pendingFinanceTx || []) as { id: string; name: string; amount: number; type: string }[]
+    });
+  }, []);
+
+  // Fetch initial data and sync when day changes
   useEffect(() => {
-    const fetchCloudData = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      // 1. Pending Tarefas
-      const { data: tarefas } = await supabase
-        .from('tarefas')
-        .select('id, text')
-        .eq('user_id', user.id)
-        .eq('completed', false)
-        .lte('due_date', todayStr);
-      setPendingTarefas(tarefas?.length || 0);
-
-      // Fetch tomorrow's tasks
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      const tomorrowStr = tomorrow.toISOString().split('T')[0];
-      const { data: tTasks } = await supabase
-        .from('tarefas')
-        .select('id, text, due_time, category')
-        .eq('user_id', user.id)
-        .eq('completed', false)
-        .eq('due_date', tomorrowStr);
-      setTomorrowTasks((tTasks || []).map(t => ({ id: t.id, text: t.text, dueTime: t.due_time, category: t.category })));
-
-      // 2. Pending Estudos
-      const estudosRaw = JSON.parse(localStorage.getItem('cp_study_tasks') || '[]');
-      const estudos = Array.isArray(estudosRaw) ? estudosRaw : [];
-      const pendingStudyTasks = estudos.filter((t: any) => t.date <= todayStr && !t.done).length;
-
-      const scheduledRaw = JSON.parse(localStorage.getItem('cp_scheduled_studies') || '[]');
-      const scheduled = Array.isArray(scheduledRaw) ? scheduledRaw : [];
-      const pendingScheduled = scheduled.filter((s: any) => {
-        const sDate = s.date?.split('T')[0];
-        return sDate <= todayStr && s.status !== 'realizado';
-      }).length;
-      setPendingEstudos(pendingStudyTasks + pendingScheduled);
-
-      // 3. Pending Saude
-      const { data: saude } = await supabase
-        .from('saude_treinos')
-        .select('id, type')
-        .eq('user_id', user.id)
-        .lte('date', todayStr)
-        .eq('status', 'planejado');
-      setPendingSaude(saude?.length || 0);
-
-      // 4. Finance Balance
-      const currentMonthStr = `${currentTime.getFullYear()}-${String(currentTime.getMonth() + 1).padStart(2, '0')}`;
-      const { data: financas } = await supabase
-        .from('financas_transacoes')
-        .select('type, amount')
-        .eq('user_id', user.id)
-        .like('date', `${currentMonthStr}%`);
-
-      let calculatedBalance = 0;
-      if (financas) {
-        const entradas = financas.filter(t => t.type === 'entrada').reduce((acc, t) => acc + Number(t.amount), 0);
-        const saidas = financas.filter(t => t.type === 'saida').reduce((acc, t) => acc + Number(t.amount), 0);
-        calculatedBalance = entradas - saidas;
-        setFinanceBalance(calculatedBalance);
-      } else {
-        setFinanceBalance(0);
-      }
-
-      // 5. Finance Pending SAÍDAS for today or earlier (overdue)
-      const { data: pendingFinanceTx } = await supabase
-        .from('financas_transacoes')
-        .select('id, name, amount, type')
-        .eq('user_id', user.id)
-        .eq('pending', true)
-        .eq('type', 'saida')
-        .lte('date', todayStr);
-      
-      const countPending = pendingFinanceTx?.length || 0;
-      setPendingFinanceCount(countPending);
-
-      generateNotifications({
-        todayStr,
-        tarefas: (tarefas || []) as { id: string; text: string }[],
-        pendingEstudos: pendingStudyTasks + pendingScheduled,
-        saude: (saude || []) as { id: string; type: string }[],
-        balance: calculatedBalance,
-        pendingFinance: (pendingFinanceTx || []) as { id: string; name: string; amount: number; type: string }[]
-      });
-    };
-
     fetchCloudData().catch(err => console.error('Error fetching hub data:', err));
-  }, [todayStr, currentTime]);
+  }, [todayStr, fetchCloudData]);
+
+  // Periodic poll of cloud data (every 30 seconds)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchCloudData().catch(err => console.error('Error polling hub data:', err));
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [fetchCloudData]);
 
   // Task limit checker running periodically
   useEffect(() => {
@@ -1180,24 +1192,31 @@ const HubHome: React.FC<HubHomeProps> = ({
         .eq('due_date', localTodayStr);
 
       if (todayTasks && todayTasks.length > 0) {
+        let notifiedIdsList: string[] = [];
+        try {
+          const saved = localStorage.getItem('cn_notified_task_ids');
+          notifiedIdsList = saved ? JSON.parse(saved) : [];
+        } catch {}
+
+        let updated = false;
         todayTasks.forEach(task => {
           if (!task.due_time) return;
           
           // Check if the current time has reached/passed the due_time, and we haven't notified yet
-          if (task.due_time <= currentHourMin && !notifiedTaskIds.includes(task.id)) {
+          if (task.due_time <= currentHourMin && !notifiedIdsList.includes(task.id)) {
             triggerLocalNotification(
               'Tarefa no Limite! ⏰',
               `A tarefa "${task.text}" chegou ao horário limite (${task.due_time}).`
             );
-            
-            // Track notified task IDs
-            setNotifiedTaskIds(prev => {
-              const next = [...prev, task.id];
-              localStorage.setItem('cn_notified_task_ids', JSON.stringify(next));
-              return next;
-            });
+            notifiedIdsList.push(task.id);
+            updated = true;
           }
         });
+
+        if (updated) {
+          localStorage.setItem('cn_notified_task_ids', JSON.stringify(notifiedIdsList));
+          setNotifiedTaskIds(notifiedIdsList);
+        }
       }
     };
 
@@ -1209,7 +1228,7 @@ const HubHome: React.FC<HubHomeProps> = ({
       clearTimeout(initialTimeout);
       clearInterval(interval);
     };
-  }, [pushEnabled, notifiedTaskIds]);
+  }, [pushEnabled]);
 
   const timeStr = currentTime.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
   const dateStr = currentTime.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });

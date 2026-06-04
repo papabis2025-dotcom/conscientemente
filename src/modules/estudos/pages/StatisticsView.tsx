@@ -86,6 +86,15 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions }) =
     setExpandedSubjects(s);
   };
 
+  const isAllExpanded = subjects.length > 0 && expandedSubjects.size === subjects.length;
+  const toggleExpandAll = () => {
+    if (isAllExpanded) {
+      setExpandedSubjects(new Set());
+    } else {
+      setExpandedSubjects(new Set(subjects.map(s => s.id)));
+    }
+  };
+
   const subjectData = useMemo(() => {
     return subjects.map(sub => {
       const subSessions = sessions.filter(s => s.subjectId === sub.id);
@@ -191,6 +200,17 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions }) =
           </label>
         </div>
       </header>
+
+      {subjects.length > 0 && (
+        <div className="flex justify-end px-1">
+          <button
+            onClick={toggleExpandAll}
+            className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 px-4 py-2 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800 flex items-center justify-center gap-1.5 text-xs font-bold shadow-sm transition-all"
+          >
+            {isAllExpanded ? 'Recolher Todos' : 'Expandir Todos'}
+          </button>
+        </div>
+      )}
 
       <div className="overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-700">
         <table className="w-full text-sm border-collapse bg-white dark:bg-zinc-900">

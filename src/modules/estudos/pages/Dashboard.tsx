@@ -5,7 +5,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
   LabelList
 } from 'recharts';
-import { Eye, EyeOff, X, Trophy, Maximize2 } from 'lucide-react';
+import { Eye, EyeOff, X, Trophy, Maximize2, Clock, Target } from 'lucide-react';
 
 import { Subject, StudySession, Concurso, Simulado, ScheduledStudy } from '../types';
 import { getColorHex } from '../utils/colors';
@@ -445,58 +445,97 @@ const Dashboard: React.FC<DashboardProps> = ({
         const totalHours = (totalMinutes / 60).toFixed(1);
 
         return (
-          <div className="flex flex-row items-stretch justify-around h-full gap-4 px-4 py-2">
-            {/* General Stats */}
-            <div className="flex flex-col items-center justify-center flex-1 gap-1">
-              <div className="relative w-full flex-1 min-h-0 flex items-center justify-center">
-                <div className="relative w-full h-full max-w-[105px] max-h-[105px]">
-                  <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                    <circle cx="50" cy="50" r="40" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-zinc-100 dark:text-zinc-800" />
-                    <circle
-                      cx="50" cy="50" r="40"
-                      stroke="currentColor" strokeWidth="8" fill="transparent"
-                      strokeDasharray={251.2}
-                      strokeDashoffset={251.2 - (251.2 * globalAccuracy) / 100}
-                      className={`${globalColor} transition-all duration-1000 ease-out`}
-                      strokeLinecap="round"
-                      style={{ color: globalColorHex }}
-                    />
-                  </svg>
-                  <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className={`text-xl font-black leading-none ${globalColor}`} style={{ color: globalColorHex }}>{globalAccuracy}%</span>
-                    <span className="text-[8px] text-zinc-400 font-semibold mt-0.5">{totalDone} q</span>
+          <div className="flex flex-col md:flex-row h-full gap-4 py-1">
+            {/* Circular Charts Section (40% width on desktop) */}
+            <div className="w-full md:w-[40%] flex flex-row items-stretch justify-around gap-4 px-2 shrink-0">
+              {/* General Stats */}
+              <div className="flex flex-col items-center justify-center flex-1 gap-1">
+                <div className="relative w-full flex-1 min-h-0 flex items-center justify-center">
+                  <div className="relative w-full h-full max-w-[90px] max-h-[90px]">
+                    <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                      <circle cx="50" cy="50" r="40" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-zinc-100 dark:text-zinc-800" />
+                      <circle
+                        cx="50" cy="50" r="40"
+                        stroke="currentColor" strokeWidth="8" fill="transparent"
+                        strokeDasharray={251.2}
+                        strokeDashoffset={251.2 - (251.2 * globalAccuracy) / 100}
+                        className={`${globalColor} transition-all duration-1000 ease-out`}
+                        strokeLinecap="round"
+                        style={{ color: globalColorHex }}
+                      />
+                    </svg>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                      <span className={`text-lg font-black leading-none ${globalColor}`} style={{ color: globalColorHex }}>{globalAccuracy}%</span>
+                      <span className="text-[8px] text-zinc-400 font-semibold mt-0.5">{totalDone} q</span>
+                    </div>
                   </div>
                 </div>
+                <p className="text-[9px] font-black text-zinc-500 uppercase tracking-widest shrink-0">Questões</p>
               </div>
-              <p className="text-[9px] font-black text-zinc-500 uppercase tracking-widest shrink-0">Questões</p>
+
+              {/* Divider */}
+              <div className="w-px bg-zinc-100 dark:bg-zinc-800 self-stretch my-2 shrink-0" />
+
+              {/* Simulado Stats */}
+              <div className="flex flex-col items-center justify-center flex-1 gap-1">
+                <div className="relative w-full flex-1 min-h-0 flex items-center justify-center">
+                  <div className="relative w-full h-full max-w-[90px] max-h-[90px]">
+                    <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                      <circle cx="50" cy="50" r="40" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-zinc-100 dark:text-zinc-800" />
+                      <circle
+                        cx="50" cy="50" r="40"
+                        stroke="currentColor" strokeWidth="8" fill="transparent"
+                        strokeDasharray={251.2}
+                        strokeDashoffset={251.2 - (251.2 * simAccuracy) / 100}
+                        className={`${simColor} transition-all duration-1000 ease-out`}
+                        strokeLinecap="round"
+                        style={{ color: simColorHex }}
+                      />
+                    </svg>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                      <span className={`text-lg font-black leading-none ${simColor}`} style={{ color: simColorHex }}>{simAccuracy}%</span>
+                      <span className="text-[8px] text-zinc-400 font-semibold mt-0.5">{simDone} q</span>
+                    </div>
+                  </div>
+                </div>
+                <p className="text-[9px] font-black text-zinc-500 uppercase tracking-widest shrink-0">Simulados</p>
+              </div>
             </div>
 
-            {/* Divider */}
-            <div className="w-px bg-zinc-100 dark:bg-zinc-800 self-stretch my-2 shrink-0" />
+            {/* Divider between charts and cards */}
+            <div className="hidden md:block w-px bg-zinc-150 dark:bg-zinc-800 self-stretch my-2 shrink-0" />
 
-            {/* Simulado Stats */}
-            <div className="flex flex-col items-center justify-center flex-1 gap-1">
-              <div className="relative w-full flex-1 min-h-0 flex items-center justify-center">
-                <div className="relative w-full h-full max-w-[105px] max-h-[105px]">
-                  <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                    <circle cx="50" cy="50" r="40" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-zinc-100 dark:text-zinc-800" />
-                    <circle
-                      cx="50" cy="50" r="40"
-                      stroke="currentColor" strokeWidth="8" fill="transparent"
-                      strokeDasharray={251.2}
-                      strokeDashoffset={251.2 - (251.2 * simAccuracy) / 100}
-                      className={`${simColor} transition-all duration-1000 ease-out`}
-                      strokeLinecap="round"
-                      style={{ color: simColorHex }}
-                    />
-                  </svg>
-                  <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className={`text-xl font-black leading-none ${simColor}`} style={{ color: simColorHex }}>{simAccuracy}%</span>
-                    <span className="text-[8px] text-zinc-400 font-semibold mt-0.5">{simDone} q</span>
-                  </div>
+            {/* Info Cards Row (col-span-3, arranged horizontally side-by-side) */}
+            <div className="flex-1 grid grid-cols-3 gap-2 py-1 items-stretch">
+              <div className="bg-zinc-50/50 dark:bg-zinc-800/20 border border-zinc-150 dark:border-zinc-800/40 rounded-xl p-2.5 flex flex-col items-center text-center justify-center gap-1.5 hover:bg-zinc-50 dark:hover:bg-zinc-800/35 transition-all">
+                <div className="w-8 h-8 rounded-lg bg-indigo-500/10 dark:bg-indigo-500/20 flex items-center justify-center text-indigo-500 shrink-0">
+                  <Clock size={16} />
+                </div>
+                <div className="min-w-0 flex flex-col items-center">
+                  <p className="text-[8px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider leading-none text-center">Tempo Total</p>
+                  <h4 className="text-xs md:text-sm font-black text-zinc-800 dark:text-zinc-200 mt-1">{totalHours}h</h4>
                 </div>
               </div>
-              <p className="text-[9px] font-black text-zinc-500 uppercase tracking-widest shrink-0">Simulados</p>
+
+              <div className="bg-zinc-50/50 dark:bg-zinc-800/20 border border-zinc-150 dark:border-zinc-800/40 rounded-xl p-2.5 flex flex-col items-center text-center justify-center gap-1.5 hover:bg-zinc-50 dark:hover:bg-zinc-800/35 transition-all">
+                <div className="w-8 h-8 rounded-lg bg-emerald-500/10 dark:bg-emerald-500/20 flex items-center justify-center text-emerald-500 shrink-0">
+                  <Target size={16} />
+                </div>
+                <div className="min-w-0 flex flex-col items-center">
+                  <p className="text-[8px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider leading-none text-center">Resoluções</p>
+                  <h4 className="text-xs md:text-sm font-black text-zinc-800 dark:text-zinc-200 mt-1">{totalDone + simDone} <span className="text-[8px] text-zinc-400 dark:text-zinc-500 font-bold block mt-0.5">questões</span></h4>
+                </div>
+              </div>
+
+              <div className="bg-zinc-50/50 dark:bg-zinc-800/20 border border-zinc-150 dark:border-zinc-800/40 rounded-xl p-2.5 flex flex-col items-center text-center justify-center gap-1.5 hover:bg-zinc-50 dark:hover:bg-zinc-800/35 transition-all">
+                <div className="w-8 h-8 rounded-lg bg-amber-500/10 dark:bg-amber-500/20 flex items-center justify-center text-amber-500 shrink-0">
+                  <Trophy size={16} />
+                </div>
+                <div className="min-w-0 flex flex-col items-center">
+                  <p className="text-[8px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider leading-none text-center">Acertos</p>
+                  <h4 className="text-xs md:text-sm font-black text-zinc-800 dark:text-zinc-200 mt-1">{totalCorrect + simCorrect} <span className="text-[8px] text-zinc-400 dark:text-zinc-500 font-bold block mt-0.5">({totalDone + simDone > 0 ? Math.round(((totalCorrect + simCorrect) / (totalDone + simDone)) * 100) : 0}%)</span></h4>
+                </div>
+              </div>
             </div>
           </div>
         );

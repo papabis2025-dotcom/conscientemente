@@ -57,13 +57,13 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
 
 
 
-  const [topicSortBy, setTopicSortBy] = useState<'default' | 'priority' | 'time' | 'questions' | 'name' | 'lastStudy' | 'review7d' | 'review30d' | 'review90d'>('default');
+  const [topicSortBy, setTopicSortBy] = useState<'default' | 'priority' | 'time' | 'questions' | 'name' | 'lastStudy' | 'review1' | 'review2' | 'review3' | 'review4' | 'review5'>('default');
   const [topicSortOrder, setTopicSortOrder] = useState<'asc' | 'desc'>('desc');
   const [showColorPicker, setShowColorPicker] = useState(false);
 
   const [customReviewDays, setCustomReviewDays] = useState<number[]>(() => {
     const saved = localStorage.getItem('estudos_custom_review_days');
-    return saved ? JSON.parse(saved) : [1, 3, 15, 45, 60];
+    return saved ? JSON.parse(saved) : [7, 30, 90, 15, 45];
   });
 
   // Topic editing state
@@ -88,6 +88,15 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
     if (newSet.has(id)) newSet.delete(id);
     else newSet.add(id);
     setExpandedSubjects(newSet);
+  };
+
+  const isAllExpanded = subjects.length > 0 && expandedSubjects.size === subjects.length;
+  const toggleExpandAll = () => {
+    if (isAllExpanded) {
+      setExpandedSubjects(new Set());
+    } else {
+      setExpandedSubjects(new Set(subjects.map(s => s.id)));
+    }
   };
 
   const getSubjectStats = (subjectId: string) => {
@@ -336,14 +345,13 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-3 w-full md:w-auto items-center">
-
-        {selectedConcursoId === 'all' ? (
-           <div className="bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800 px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2">
-              <AlertTriangle size={16} /> Selecione um edital para adicionar disciplinas
-           </div>
-        ) : (
-          <>
+      <div className="flex flex-wrap justify-between items-center gap-3 w-full">
+        <div className="flex flex-wrap gap-3 items-center">
+          {selectedConcursoId === 'all' ? (
+             <div className="bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800 px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2">
+                <AlertTriangle size={16} /> Selecione um edital para adicionar disciplinas
+             </div>
+          ) : (
             <div className="flex gap-2 items-center">
                 <input
                   type="text"
@@ -400,7 +408,16 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                   <Plus size={16} /> Adicionar
                 </button>
               </div>
-          </>
+          )}
+        </div>
+
+        {subjects.length > 0 && (
+          <button
+            onClick={toggleExpandAll}
+            className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 px-4 py-2 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800 flex items-center justify-center gap-1.5 text-xs font-bold shadow-sm transition-all"
+          >
+            {isAllExpanded ? 'Recolher Todos' : 'Expandir Todos'}
+          </button>
         )}
       </div>
 
@@ -569,18 +586,16 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                                   <th className="py-1.5 text-[10px] uppercase font-bold cursor-pointer hover:text-zinc-900 dark:text-zinc-300" onClick={() => { setTopicSortBy('lastStudy'); setTopicSortOrder(o => o === 'desc' ? 'asc' : 'desc'); }}>
                                     Último {topicSortBy === 'lastStudy' && (topicSortOrder === 'desc' ? '↓' : '↑')}
                                   </th>
-                                  <th className="py-1.5 text-[10px] uppercase font-bold cursor-pointer hover:text-zinc-900 dark:text-zinc-300" onClick={() => { setTopicSortBy('review7d'); setTopicSortOrder(o => o === 'desc' ? 'asc' : 'desc'); }}>
-                                    Rev.7d {topicSortBy === 'review7d' && (topicSortOrder === 'desc' ? '↓' : '↑')}
-                                  </th>
-                                  <th className="py-1.5 text-[10px] uppercase font-bold cursor-pointer hover:text-zinc-900 dark:text-zinc-300" onClick={() => { setTopicSortBy('review30d'); setTopicSortOrder(o => o === 'desc' ? 'asc' : 'desc'); }}>
-                                    Rev.30d {topicSortBy === 'review30d' && (topicSortOrder === 'desc' ? '↓' : '↑')}
-                                  </th>
-                                  <th className="py-1.5 text-[10px] uppercase font-bold cursor-pointer hover:text-zinc-900 dark:text-zinc-300" onClick={() => { setTopicSortBy('review90d'); setTopicSortOrder(o => o === 'desc' ? 'asc' : 'desc'); }}>
-                                    Rev.90d {topicSortBy === 'review90d' && (topicSortOrder === 'desc' ? '↓' : '↑')}
-                                  </th>
                                   {customReviewDays.map((days, idx) => (
-                                    <th key={idx} className="py-1.5 text-[10px] uppercase font-bold text-zinc-400">
-                                      Rev.{idx + 1} ({days}d)
+                                    <th
+                                      key={idx}
+                                      className={`py-1.5 text-[10px] uppercase font-bold cursor-pointer hover:text-zinc-900 dark:text-zinc-300 whitespace-nowrap ${topicSortBy === `review${idx + 1}` ? 'text-zinc-900 dark:text-zinc-100 font-black' : 'text-zinc-400'}`}
+                                      onClick={() => {
+                                        setTopicSortBy(`review${idx + 1}` as any);
+                                        setTopicSortOrder(o => o === 'desc' ? 'asc' : 'desc');
+                                      }}
+                                    >
+                                      Rev.{idx + 1} ({days}d) {topicSortBy === `review${idx + 1}` && (topicSortOrder === 'desc' ? '↓' : '↑')}
                                     </th>
                                   ))}
 
@@ -597,9 +612,6 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                                         Geral / Outros <span className="text-[10px] font-normal opacity-60 ml-1 text-zinc-500">revisão geral</span>
                                       </td>
                                       <td className="py-1.5 text-zinc-400 text-xs">{stats.lastStudyDate || '—'}</td>
-                                      <td className="py-1.5 text-xs text-zinc-400">{stats.review7dDate || '—'}</td>
-                                      <td className="py-1.5 text-xs text-zinc-400">{stats.review30dDate || '—'}</td>
-                                      <td className="py-1.5 text-xs text-zinc-400">{stats.review90dDate || '—'}</td>
                                       {stats.customReviewDates.map((date, idx) => (
                                         <td key={idx} className="py-1.5 text-xs text-zinc-400">{date || '—'}</td>
                                       ))}
@@ -621,23 +633,24 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
 
                                     if (topicSortBy === 'name') return a.topic.title.localeCompare(b.topic.title, undefined, { numeric: true }) * multiplier;
                                     if (topicSortBy === 'lastStudy') {
-                                      const aDate = a.stats.lastStudyDate ? new Date(a.stats.lastStudyDate).getTime() : 0;
-                                      const bDate = b.stats.lastStudyDate ? new Date(b.stats.lastStudyDate).getTime() : 0;
+                                      const parseDate = (dStr: string) => {
+                                        if (!dStr) return 0;
+                                        const [d, m, y] = dStr.split('/').map(Number);
+                                        return new Date(2000 + y, m - 1, d).getTime();
+                                      };
+                                      const aDate = parseDate(a.stats.lastStudyDate);
+                                      const bDate = parseDate(b.stats.lastStudyDate);
                                       return (aDate - bDate) * multiplier;
                                     }
-                                    if (topicSortBy === 'review7d') {
-                                      const aDate = a.stats.review7dDate ? new Date(a.stats.review7dDate).getTime() : 0;
-                                      const bDate = b.stats.review7dDate ? new Date(b.stats.review7dDate).getTime() : 0;
-                                      return (aDate - bDate) * multiplier;
-                                    }
-                                    if (topicSortBy === 'review30d') {
-                                      const aDate = a.stats.review30dDate ? new Date(a.stats.review30dDate).getTime() : 0;
-                                      const bDate = b.stats.review30dDate ? new Date(b.stats.review30dDate).getTime() : 0;
-                                      return (aDate - bDate) * multiplier;
-                                    }
-                                    if (topicSortBy === 'review90d') {
-                                      const aDate = a.stats.review90dDate ? new Date(a.stats.review90dDate).getTime() : 0;
-                                      const bDate = b.stats.review90dDate ? new Date(b.stats.review90dDate).getTime() : 0;
+                                    if (topicSortBy.startsWith('review')) {
+                                      const idx = parseInt(topicSortBy.replace('review', '')) - 1;
+                                      const parseDate = (dStr: string) => {
+                                        if (!dStr) return 0;
+                                        const [d, m, y] = dStr.split('/').map(Number);
+                                        return new Date(2000 + y, m - 1, d).getTime();
+                                      };
+                                      const aDate = parseDate(a.stats.customReviewDates[idx]);
+                                      const bDate = parseDate(b.stats.customReviewDates[idx]);
                                       return (aDate - bDate) * multiplier;
                                     }
                                     if (topicSortBy === 'time') return (a.stats.minutes - b.stats.minutes) * multiplier;
@@ -679,15 +692,6 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                                         <td className="py-1.5 text-zinc-400 text-xs">
                                           {tStats.lastStudyDate || '-'}
                                         </td>
-                                        <td className="py-1.5 text-xs font-medium text-zinc-400">
-                                          {tStats.review7dDate || '-'}
-                                        </td>
-                                        <td className="py-1.5 text-xs font-medium text-zinc-400">
-                                          {tStats.review30dDate || '-'}
-                                        </td>
-                                        <td className="py-1.5 text-xs font-medium text-zinc-400">
-                                          {tStats.review90dDate || '-'}
-                                        </td>
                                         {tStats.customReviewDates.map((date, idx) => (
                                           <td key={idx} className="py-1.5 text-xs font-medium text-zinc-400">
                                             {date || '-'}
@@ -708,7 +712,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                                   })}
                                 {(subject.topics || []).length === 0 && (
                                   <tr>
-                                    <td colSpan={11} className="py-4 text-center text-xs text-zinc-400 italic">
+                                    <td colSpan={8} className="py-4 text-center text-xs text-zinc-400 italic">
                                       Nenhum tópico cadastrado para esta disciplina.
                                     </td>
                                   </tr>

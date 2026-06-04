@@ -30,11 +30,55 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions }) =
   const [sortBy, setSortBy] = useState<'name' | 'questions' | 'time' | 'accuracy' | 'weight' | 'priority'>('priority');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
-  // Dynamic weights (sum up to roughly 100)
-  const [weightAcc, setWeightAcc] = useState(60);
-  const [weightSubj, setWeightSubj] = useState(30);
-  const [weightQtd, setWeightQtd] = useState(10);
-  const [weightTime, setWeightTime] = useState(15);
+  // Dynamic weights loaded from localStorage with default sum of 100
+  const [weightAcc, setWeightAcc] = useState(() => {
+    const saved = localStorage.getItem('estudos_weight_acc');
+    return saved !== null ? parseInt(saved) : 50;
+  });
+  const [weightSubj, setWeightSubj] = useState(() => {
+    const saved = localStorage.getItem('estudos_weight_subj');
+    return saved !== null ? parseInt(saved) : 25;
+  });
+  const [weightQtd, setWeightQtd] = useState(() => {
+    const saved = localStorage.getItem('estudos_weight_qtd');
+    return saved !== null ? parseInt(saved) : 15;
+  });
+  const [weightTime, setWeightTime] = useState(() => {
+    const saved = localStorage.getItem('estudos_weight_time');
+    return saved !== null ? parseInt(saved) : 10;
+  });
+
+  const handleWeightAccChange = (val: number) => {
+    const safeVal = Math.max(0, Math.min(100, val));
+    const sumOthers = weightSubj + weightQtd + weightTime;
+    const finalVal = safeVal + sumOthers > 100 ? 100 - sumOthers : safeVal;
+    setWeightAcc(finalVal);
+    localStorage.setItem('estudos_weight_acc', String(finalVal));
+  };
+
+  const handleWeightSubjChange = (val: number) => {
+    const safeVal = Math.max(0, Math.min(100, val));
+    const sumOthers = weightAcc + weightQtd + weightTime;
+    const finalVal = safeVal + sumOthers > 100 ? 100 - sumOthers : safeVal;
+    setWeightSubj(finalVal);
+    localStorage.setItem('estudos_weight_subj', String(finalVal));
+  };
+
+  const handleWeightQtdChange = (val: number) => {
+    const safeVal = Math.max(0, Math.min(100, val));
+    const sumOthers = weightAcc + weightSubj + weightTime;
+    const finalVal = safeVal + sumOthers > 100 ? 100 - sumOthers : safeVal;
+    setWeightQtd(finalVal);
+    localStorage.setItem('estudos_weight_qtd', String(finalVal));
+  };
+
+  const handleWeightTimeChange = (val: number) => {
+    const safeVal = Math.max(0, Math.min(100, val));
+    const sumOthers = weightAcc + weightSubj + weightQtd;
+    const finalVal = safeVal + sumOthers > 100 ? 100 - sumOthers : safeVal;
+    setWeightTime(finalVal);
+    localStorage.setItem('estudos_weight_time', String(finalVal));
+  };
 
   const toggleExpand = (id: string) => {
     const s = new Set(expandedSubjects);
@@ -128,22 +172,22 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions }) =
           
           <label className="flex items-center gap-1 text-xs font-bold text-zinc-600 dark:text-zinc-300">
             Aproveitamento
-            <input type="number" min="0" max="100" value={weightAcc} onChange={e => setWeightAcc(Number(e.target.value))} className="w-14 bg-zinc-100 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded p-1 text-center font-mono dark:text-white" />
+            <input type="number" min="0" max="100" value={weightAcc} onChange={e => handleWeightAccChange(Number(e.target.value))} className="w-14 bg-zinc-100 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded p-1 text-center font-mono dark:text-white" />
           </label>
           
           <label className="flex items-center gap-1 text-xs font-bold text-zinc-600 dark:text-zinc-300">
             Peso Discip.
-            <input type="number" min="0" max="100" value={weightSubj} onChange={e => setWeightSubj(Number(e.target.value))} className="w-14 bg-zinc-100 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded p-1 text-center font-mono dark:text-white" />
+            <input type="number" min="0" max="100" value={weightSubj} onChange={e => handleWeightSubjChange(Number(e.target.value))} className="w-14 bg-zinc-100 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded p-1 text-center font-mono dark:text-white" />
           </label>
 
           <label className="flex items-center gap-1 text-xs font-bold text-zinc-600 dark:text-zinc-300">
             Volume Qs
-            <input type="number" min="0" max="100" value={weightQtd} onChange={e => setWeightQtd(Number(e.target.value))} className="w-14 bg-zinc-100 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded p-1 text-center font-mono dark:text-white" />
+            <input type="number" min="0" max="100" value={weightQtd} onChange={e => handleWeightQtdChange(Number(e.target.value))} className="w-14 bg-zinc-100 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded p-1 text-center font-mono dark:text-white" />
           </label>
 
           <label className="flex items-center gap-1 text-xs font-bold text-zinc-600 dark:text-zinc-300">
             Tempo Dedicado
-            <input type="number" min="0" max="100" value={weightTime} onChange={e => setWeightTime(Number(e.target.value))} className="w-14 bg-zinc-100 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded p-1 text-center font-mono dark:text-white" />
+            <input type="number" min="0" max="100" value={weightTime} onChange={e => handleWeightTimeChange(Number(e.target.value))} className="w-14 bg-zinc-100 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded p-1 text-center font-mono dark:text-white" />
           </label>
         </div>
       </header>

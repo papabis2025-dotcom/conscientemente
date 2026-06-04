@@ -61,6 +61,11 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
   const [topicSortOrder, setTopicSortOrder] = useState<'asc' | 'desc'>('desc');
   const [showColorPicker, setShowColorPicker] = useState(false);
 
+  const [customReviewDays, setCustomReviewDays] = useState<number[]>(() => {
+    const saved = localStorage.getItem('estudos_custom_review_days');
+    return saved ? JSON.parse(saved) : [1, 3, 15, 45, 60];
+  });
+
   // Topic editing state
   const [editingTopicId, setEditingTopicId] = useState<string | null>(null);
   const [editTopicTitle, setEditTopicTitle] = useState('');
@@ -121,6 +126,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
     let review7dDate = '';
     let review30dDate = '';
     let review90dDate = '';
+    const customReviewDates: string[] = ['', '', '', '', ''];
 
     if (topicSessions.length > 0) {
       const sortedSessions = [...topicSessions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -141,9 +147,15 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
       const d90 = new Date(lastDate);
       d90.setDate(d90.getDate() + 90);
       review90dDate = formatDate(d90);
+
+      for (let i = 0; i < 5; i++) {
+        const dCustom = new Date(lastDate);
+        dCustom.setDate(dCustom.getDate() + customReviewDays[i]);
+        customReviewDates[i] = formatDate(dCustom);
+      }
     }
 
-    return { minutes: tMinutes, done: tDone, correct: tCorrect, acc: tAcc, hours: tHours, lastStudyDate, review7dDate, review30dDate, review90dDate };
+    return { minutes: tMinutes, done: tDone, correct: tCorrect, acc: tAcc, hours: tHours, lastStudyDate, review7dDate, review30dDate, review90dDate, customReviewDates };
   };
 
   const sortedSubjects = [...subjects].sort((a, b) => {
@@ -291,6 +303,38 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
           )}
         </div>
       </header>
+
+      {/* Menu Superior de Revisões Personalizadas */}
+      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-3 rounded-2xl flex flex-wrap items-center justify-between gap-4 shadow-sm">
+        <div className="flex items-center gap-2">
+          <Clock size={16} className="text-zinc-500 dark:text-zinc-400" />
+          <div>
+            <h3 className="text-xs font-bold text-zinc-700 dark:text-zinc-300">Revisões Personalizadas (Dias)</h3>
+            <p className="text-[10px] text-zinc-400">Defina o intervalo de dias para as revisões de todos os assuntos.</p>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2 items-center">
+          {customReviewDays.map((days, idx) => (
+            <label key={idx} className="flex items-center gap-1.5 text-xs font-bold text-zinc-500">
+              Rev. {idx + 1}
+              <input
+                type="number"
+                min="1"
+                max="365"
+                value={days}
+                onChange={(e) => {
+                  const newVal = Math.max(1, parseInt(e.target.value) || 1);
+                  const updated = [...customReviewDays];
+                  updated[idx] = newVal;
+                  setCustomReviewDays(updated);
+                  localStorage.setItem('estudos_custom_review_days', JSON.stringify(updated));
+                }}
+                className="w-14 px-1.5 py-1 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg text-center text-xs font-mono font-bold text-zinc-800 dark:text-white outline-none focus:ring-1 focus:ring-zinc-400"
+              />
+            </label>
+          ))}
+        </div>
+      </div>
 
       <div className="flex flex-wrap gap-3 w-full md:w-auto items-center">
 
@@ -534,6 +578,11 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                                   <th className="py-1.5 text-[10px] uppercase font-bold cursor-pointer hover:text-zinc-900 dark:text-zinc-300" onClick={() => { setTopicSortBy('review90d'); setTopicSortOrder(o => o === 'desc' ? 'asc' : 'desc'); }}>
                                     Rev.90d {topicSortBy === 'review90d' && (topicSortOrder === 'desc' ? '↓' : '↑')}
                                   </th>
+                                  {customReviewDays.map((days, idx) => (
+                                    <th key={idx} className="py-1.5 text-[10px] uppercase font-bold text-zinc-400">
+                                      Rev.{idx + 1} ({days}d)
+                                    </th>
+                                  ))}
 
                                   <th className="py-1.5 text-[10px] uppercase font-bold text-right w-16"></th>
                                 </tr>
@@ -551,6 +600,9 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                                       <td className="py-1.5 text-xs text-zinc-400">{stats.review7dDate || '—'}</td>
                                       <td className="py-1.5 text-xs text-zinc-400">{stats.review30dDate || '—'}</td>
                                       <td className="py-1.5 text-xs text-zinc-400">{stats.review90dDate || '—'}</td>
+                                      {stats.customReviewDates.map((date, idx) => (
+                                        <td key={idx} className="py-1.5 text-xs text-zinc-400">{date || '—'}</td>
+                                      ))}
 
                                       <td className="py-1.5" />
                                     </tr>
@@ -636,6 +688,11 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                                         <td className="py-1.5 text-xs font-medium text-zinc-400">
                                           {tStats.review90dDate || '-'}
                                         </td>
+                                        {tStats.customReviewDates.map((date, idx) => (
+                                          <td key={idx} className="py-1.5 text-xs font-medium text-zinc-400">
+                                            {date || '-'}
+                                          </td>
+                                        ))}
                                         <td className="py-1.5 text-right">
                                           <div className="flex items-center justify-end gap-2 opacity-0 group-hover/row:opacity-100 transition-opacity">
                                             <button onClick={() => startEditingTopic(topic)} className="text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors">
@@ -651,7 +708,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                                   })}
                                 {(subject.topics || []).length === 0 && (
                                   <tr>
-                                    <td colSpan={6} className="py-4 text-center text-xs text-zinc-400 italic">
+                                    <td colSpan={11} className="py-4 text-center text-xs text-zinc-400 italic">
                                       Nenhum tópico cadastrado para esta disciplina.
                                     </td>
                                   </tr>

@@ -99,13 +99,22 @@ const SaudeApp: React.FC = () => {
     const handleSync = () => {
       try {
         const savedTypes = localStorage.getItem('cn_saude_activity_types');
-        if (savedTypes) setActivityTypes(JSON.parse(savedTypes));
+        if (savedTypes) {
+          const parsed = JSON.parse(savedTypes);
+          setActivityTypes(prev => JSON.stringify(prev) === savedTypes ? prev : parsed);
+        }
         
         const savedMuscles = localStorage.getItem('cn_saude_muscle_groups');
-        if (savedMuscles) setMuscleGroups(JSON.parse(savedMuscles));
+        if (savedMuscles) {
+          const parsed = JSON.parse(savedMuscles);
+          setMuscleGroups(prev => JSON.stringify(prev) === savedMuscles ? prev : parsed);
+        }
         
         const savedLayout = localStorage.getItem('cn_saude_dashboard_layout');
-        if (savedLayout) setWidgets(JSON.parse(savedLayout));
+        if (savedLayout) {
+          const parsed = JSON.parse(savedLayout);
+          setWidgets(prev => JSON.stringify(prev) === savedLayout ? prev : parsed);
+        }
       } catch (e) {
         console.error('Error syncing saude storage:', e);
       }

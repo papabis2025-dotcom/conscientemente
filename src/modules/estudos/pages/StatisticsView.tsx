@@ -189,38 +189,20 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions }) =
                     <td className={`px-4 py-3 text-right font-mono tabular-nums ${minutes > 0 ? 'text-zinc-700 dark:text-zinc-200' : 'text-zinc-300 dark:text-zinc-600'}`}>
                       {minutes > 0 ? `${parseFloat((minutes / 60).toFixed(1))}h` : '—'}
                     </td>
-                    <td className="px-4 py-3">
-                      {questions > 0 ? (
-                        <div className="flex items-center justify-end gap-2">
-                          <div className="w-14 h-1.5 bg-zinc-100 dark:bg-zinc-855 rounded-full overflow-hidden shrink-0">
-                            <div className={`h-full ${accuracy >= 80 ? 'bg-emerald-500' : accuracy < 50 ? 'bg-rose-500' : 'bg-blue-500'}`} style={{ width: `${accuracy}%` }} />
-                          </div>
-                          <span className={`text-xs font-bold font-mono shrink-0 ${getAccuracyText(accuracy, true)}`}>{accuracy}%</span>
-                        </div>
-                      ) : (
-                        <div className="text-right text-zinc-300 dark:text-zinc-600 font-mono">—</div>
-                      )}
+                    <td className={`px-4 py-3 text-right font-mono tabular-nums ${getAccuracyText(accuracy, questions > 0)}`}>
+                      {questions > 0 ? `${accuracy}%` : '—'}
                     </td>
                     <td className="px-4 py-3 text-right text-zinc-500 dark:text-zinc-400 font-bold">
                       {weight}x
                     </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center justify-end gap-2">
-                        <div className="w-14 h-1.5 bg-zinc-100 dark:bg-zinc-855 rounded-full overflow-hidden shrink-0">
-                          <div className={`h-full ${
-                            priorityPct >= 65 ? 'bg-rose-500'
-                            : priorityPct >= 40 ? 'bg-amber-500'
-                            : 'bg-zinc-400'
-                          }`} style={{ width: `${priorityPct}%` }} />
-                        </div>
-                        <span className={`inline-block px-2 py-0.5 rounded text-[11px] font-black tabular-nums shrink-0 ${
-                          priorityPct >= 65 ? 'bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300'
-                          : priorityPct >= 40 ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
-                          : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400'
-                        }`}>
-                          {priorityPct}%
-                        </span>
-                      </div>
+                    <td className="px-4 py-3 text-right">
+                      <span className={`inline-block px-2 py-0.5 rounded text-[11px] font-black tabular-nums ${
+                        priorityPct >= 65 ? 'bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300'
+                        : priorityPct >= 40 ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
+                        : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400'
+                      }`}>
+                        {priorityPct}%
+                      </span>
                     </td>
                   </tr>
 
@@ -247,40 +229,18 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions }) =
                         <td className={`px-4 py-2 text-right font-mono text-xs tabular-nums ${topic.minutes > 0 ? 'text-zinc-600 dark:text-zinc-300' : 'text-zinc-300 dark:text-zinc-600'}`}>
                           {topic.minutes > 0 ? `${parseFloat((topic.minutes / 60).toFixed(1))}h` : '—'}
                         </td>
-                        <td className="px-4 py-2">
-                          {topic.questions > 0 ? (
-                            <div className="flex items-center justify-end gap-2">
-                              <div className="w-10 h-1 bg-zinc-200 dark:bg-zinc-750 rounded-full overflow-hidden shrink-0">
-                                <div className={`h-full ${topic.accuracy >= 80 ? 'bg-emerald-500' : topic.accuracy < 50 ? 'bg-rose-500' : 'bg-blue-500'}`} style={{ width: `${topic.accuracy}%` }} />
-                              </div>
-                              <span className={`text-xs font-semibold font-mono shrink-0 ${getAccuracyText(topic.accuracy, true)}`}>{topic.accuracy}%</span>
-                            </div>
-                          ) : (
-                            <div className="text-right text-zinc-300 dark:text-zinc-600 font-mono text-xs">—</div>
-                          )}
+                        <td className={`px-4 py-2 text-right font-mono text-xs tabular-nums ${getAccuracyText(topic.accuracy, topic.questions > 0)}`}>
+                          {topic.questions > 0 ? `${topic.accuracy}%` : '—'}
                         </td>
                         <td className="px-4 py-2 text-right text-[10px] text-zinc-300 dark:text-zinc-600">—</td>
-                        <td className="px-4 py-2">
-                          {topic.questions > 0 ? (
-                            <div className="flex items-center justify-end gap-2">
-                              <div className="w-10 h-1 bg-zinc-200 dark:bg-zinc-750 rounded-full overflow-hidden shrink-0">
-                                <div className={`h-full ${
-                                  tPriorityPct >= 65 ? 'bg-rose-500'
-                                  : tPriorityPct >= 40 ? 'bg-amber-500'
-                                  : 'bg-zinc-400'
-                                }`} style={{ width: `${tPriorityPct}%` }} />
-                              </div>
-                              <span className={`text-[10px] font-black tabular-nums shrink-0 ${
-                                tPriorityPct >= 65 ? 'text-rose-600 dark:text-rose-400'
-                                : tPriorityPct >= 40 ? 'text-amber-600 dark:text-amber-400'
-                                : 'text-zinc-400'
-                              }`}>
-                                {tPriorityPct}%
-                              </span>
-                            </div>
-                          ) : (
-                            <div className="text-right text-zinc-300 dark:text-zinc-600 font-mono text-xs">—</div>
-                          )}
+                        <td className="px-4 py-2 text-right">
+                          <span className={`text-[10px] font-black tabular-nums ${
+                            tPriorityPct >= 65 ? 'text-rose-600 dark:text-rose-400'
+                            : tPriorityPct >= 40 ? 'text-amber-600 dark:text-amber-400'
+                            : 'text-zinc-400'
+                          }`}>
+                            {topic.questions > 0 ? `${tPriorityPct}%` : '—'}
+                          </span>
                         </td>
                       </tr>
                     );

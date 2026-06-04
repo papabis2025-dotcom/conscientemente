@@ -46,7 +46,7 @@ interface WidgetState {
 
 const DEFAULT_WIDGETS: WidgetState[] = [
   { id: 'general_stats', title: 'Desempenho Geral', isVisible: true, size: 'wide' },
-  { id: 'study_frequency', title: 'Melhor/Pior Disciplina e Assunto', isVisible: true, size: 'normal' },
+  { id: 'study_frequency', title: 'Disciplina e Assunto', isVisible: true, size: 'normal' },
   { id: 'study_tasks', title: 'Tarefas Pendentes', isVisible: true, size: 'normal' },
   { id: 'weekly_chart', title: 'Volume de Estudo', isVisible: true, size: 'wide' },
   { id: 'activity_calendar', title: 'Calendário de Atividades', isVisible: true, size: 'wide' },
@@ -518,71 +518,73 @@ const Dashboard: React.FC<DashboardProps> = ({
         }
 
         return (
-          <div className="flex flex-col h-full justify-between gap-3 py-2 px-1">
+          <div className="grid grid-cols-2 gap-3 h-full py-0.5 px-0.5 min-h-0">
             {/* Melhor Desempenho */}
-            <div className="flex-1 flex flex-col gap-2 min-h-0">
-              <div className="flex items-center gap-1.5 mb-1 shrink-0">
-                <span className="w-1.5 h-3 bg-emerald-500 rounded-full" />
-                <span className="text-[9px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">Destaques (Melhor)</span>
+            <div className="flex flex-col gap-1.5 min-h-0">
+              <div className="flex items-center gap-1 mb-0.5 shrink-0">
+                <span className="w-1.5 h-2.5 bg-emerald-500 rounded-full" />
+                <span className="text-[8px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Melhor</span>
               </div>
-              <div className="grid grid-cols-2 gap-2 flex-1 min-h-0">
+              
+              <div className="flex flex-col gap-1.5 flex-1 min-h-0 justify-between">
                 {bestSub ? (
-                  <div className="bg-emerald-50/40 dark:bg-emerald-950/10 border border-emerald-100 dark:border-emerald-900/30 rounded-xl p-2.5 flex flex-col justify-between">
-                    <div>
-                      <p className="text-[8px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">Disciplina</p>
-                      <h5 className="text-[11px] font-black text-zinc-700 dark:text-zinc-200 truncate mt-0.5" title={bestSub.name}>{bestSub.name}</h5>
+                  <div className="bg-emerald-50/40 dark:bg-emerald-950/10 border border-emerald-100 dark:border-emerald-900/30 rounded-xl p-2 flex items-center justify-between gap-1.5 flex-1 min-h-[42px]">
+                    <div className="min-w-0">
+                      <p className="text-[7px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider leading-none">Disciplina</p>
+                      <h5 className="text-[10px] font-black text-zinc-700 dark:text-zinc-200 truncate mt-0.5 leading-tight" title={bestSub.name}>{bestSub.name}</h5>
                     </div>
-                    <span className="text-lg font-black text-emerald-500 mt-2">{bestSub.accuracy}%</span>
+                    <span className="text-xs font-black text-emerald-500 shrink-0 ml-auto">{bestSub.accuracy}%</span>
                   </div>
                 ) : (
-                  <div className="border border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl p-2 flex items-center justify-center text-[9px] text-zinc-400 font-bold">Sem dados</div>
+                  <div className="border border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl p-2 flex items-center justify-center text-[8px] text-zinc-400 font-bold flex-1 min-h-[42px]">Sem dados</div>
                 )}
                 
                 {bestTop ? (
-                  <div className="bg-emerald-50/40 dark:bg-emerald-950/10 border border-emerald-100 dark:border-emerald-900/30 rounded-xl p-2.5 flex flex-col justify-between">
-                    <div>
-                      <p className="text-[8px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">Assunto</p>
-                      <h5 className="text-[10px] font-black text-zinc-700 dark:text-zinc-200 line-clamp-2 mt-0.5" title={bestTop.title}>{bestTop.title}</h5>
-                      <p className="text-[8px] text-zinc-400 truncate mt-0.5">{bestTop.subjectName}</p>
+                  <div className="bg-emerald-50/40 dark:bg-emerald-950/10 border border-emerald-100 dark:border-emerald-900/30 rounded-xl p-2 flex items-center justify-between gap-1.5 flex-1 min-h-[42px]">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[7px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider leading-none">Assunto</p>
+                      <h5 className="text-[9px] font-black text-zinc-700 dark:text-zinc-200 truncate mt-0.5 leading-tight" title={bestTop.title}>{bestTop.title}</h5>
+                      <p className="text-[7px] text-zinc-400 truncate leading-none mt-0.5">{bestTop.subjectName}</p>
                     </div>
-                    <span className="text-lg font-black text-emerald-500 mt-1">{bestTop.accuracy}%</span>
+                    <span className="text-xs font-black text-emerald-500 shrink-0 ml-1.5">{bestTop.accuracy}%</span>
                   </div>
                 ) : (
-                  <div className="border border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl p-2 flex items-center justify-center text-[9px] text-zinc-400 font-bold">Sem dados</div>
+                  <div className="border border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl p-2 flex items-center justify-center text-[8px] text-zinc-400 font-bold flex-1 min-h-[42px]">Sem dados</div>
                 )}
               </div>
             </div>
 
             {/* Pior Desempenho */}
-            <div className="flex-1 flex flex-col gap-2 min-h-0">
-              <div className="flex items-center gap-1.5 mb-1 shrink-0">
-                <span className="w-1.5 h-3 bg-rose-500 rounded-full" />
-                <span className="text-[9px] font-black text-rose-650 dark:text-rose-450 uppercase tracking-widest">Pontos de Atenção (Pior)</span>
+            <div className="flex flex-col gap-1.5 min-h-0">
+              <div className="flex items-center gap-1 mb-0.5 shrink-0">
+                <span className="w-1.5 h-2.5 bg-rose-500 rounded-full" />
+                <span className="text-[8px] font-black text-rose-655 dark:text-rose-450 uppercase tracking-wider">Atenção (Pior)</span>
               </div>
-              <div className="grid grid-cols-2 gap-2 flex-1 min-h-0">
+              
+              <div className="flex flex-col gap-1.5 flex-1 min-h-0 justify-between">
                 {worstSub ? (
-                  <div className="bg-rose-50/40 dark:bg-rose-950/10 border border-rose-100 dark:border-rose-900/30 rounded-xl p-2.5 flex flex-col justify-between">
-                    <div>
-                      <p className="text-[8px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">Disciplina</p>
-                      <h5 className="text-[11px] font-black text-zinc-700 dark:text-zinc-200 truncate mt-0.5" title={worstSub.name}>{worstSub.name}</h5>
+                  <div className="bg-rose-50/40 dark:bg-rose-950/10 border border-rose-100 dark:border-rose-900/30 rounded-xl p-2 flex items-center justify-between gap-1.5 flex-1 min-h-[42px]">
+                    <div className="min-w-0">
+                      <p className="text-[7px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider leading-none">Disciplina</p>
+                      <h5 className="text-[10px] font-black text-zinc-700 dark:text-zinc-200 truncate mt-0.5 leading-tight" title={worstSub.name}>{worstSub.name}</h5>
                     </div>
-                    <span className="text-lg font-black text-rose-500 mt-2">{worstSub.accuracy}%</span>
+                    <span className="text-xs font-black text-rose-500 shrink-0 ml-auto">{worstSub.accuracy}%</span>
                   </div>
                 ) : (
-                  <div className="border border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl p-2 flex items-center justify-center text-[9px] text-zinc-400 font-bold">Sem dados</div>
+                  <div className="border border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl p-2 flex items-center justify-center text-[8px] text-zinc-400 font-bold flex-1 min-h-[42px]">Sem dados</div>
                 )}
 
                 {worstTop ? (
-                  <div className="bg-rose-50/40 dark:bg-rose-950/10 border border-rose-100 dark:border-rose-900/30 rounded-xl p-2.5 flex flex-col justify-between">
-                    <div>
-                      <p className="text-[8px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">Assunto</p>
-                      <h5 className="text-[10px] font-black text-zinc-700 dark:text-zinc-200 line-clamp-2 mt-0.5" title={worstTop.title}>{worstTop.title}</h5>
-                      <p className="text-[8px] text-zinc-400 truncate mt-0.5">{worstTop.subjectName}</p>
+                  <div className="bg-rose-50/40 dark:bg-rose-950/10 border border-rose-100 dark:border-rose-900/30 rounded-xl p-2 flex items-center justify-between gap-1.5 flex-1 min-h-[42px]">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[7px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider leading-none">Assunto</p>
+                      <h5 className="text-[9px] font-black text-zinc-700 dark:text-zinc-200 truncate mt-0.5 leading-tight" title={worstTop.title}>{worstTop.title}</h5>
+                      <p className="text-[7px] text-zinc-400 truncate leading-none mt-0.5">{worstTop.subjectName}</p>
                     </div>
-                    <span className="text-lg font-black text-rose-500 mt-1">{worstTop.accuracy}%</span>
+                    <span className="text-xs font-black text-rose-500 shrink-0 ml-1.5">{worstTop.accuracy}%</span>
                   </div>
                 ) : (
-                  <div className="border border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl p-2 flex items-center justify-center text-[9px] text-zinc-400 font-bold">Sem dados</div>
+                  <div className="border border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl p-2 flex items-center justify-center text-[8px] text-zinc-400 font-bold flex-1 min-h-[42px]">Sem dados</div>
                 )}
               </div>
             </div>
@@ -972,7 +974,7 @@ const Dashboard: React.FC<DashboardProps> = ({
           // Define heights for different widgets
           const heightClass = (() => {
             if (widget.id === 'general_stats') return 'lg:h-full md:h-[180px] h-[180px] min-h-[170px]';
-            if (widget.id === 'study_frequency') return 'lg:h-full md:h-[180px] h-[180px] min-h-[170px]';
+            if (widget.id === 'study_frequency') return 'lg:h-full md:h-[200px] h-[200px] min-h-[180px]';
             if (widget.id === 'study_tasks') return 'lg:h-full md:h-[250px] h-[250px] min-h-[230px]';
             if (widget.id === 'weekly_chart') return 'lg:h-full md:h-[250px] h-[250px] min-h-[230px]';
             if (widget.id === 'activity_calendar') return 'lg:h-full md:h-[250px] h-[250px] min-h-[230px]';
@@ -990,7 +992,7 @@ const Dashboard: React.FC<DashboardProps> = ({
               className={`${sizeClass} ${heightClass} ${widget.isVisible ? 'opacity-100' : 'opacity-40'} bg-white dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm relative group hover:shadow-md transition-all duration-300 flex flex-col ${isEditMode ? 'cursor-move ring-2 ring-emerald-500/20' : ''} ${draggedWidgetIndex === index ? 'opacity-50 scale-95' : ''}`}
             >
               <div className="flex justify-between items-center mb-3 shrink-0">
-                <h4 className="text-[10px] font-black text-zinc-800 dark:text-zinc-200 uppercase tracking-widest bg-zinc-50 dark:bg-zinc-800/50 px-2.5 py-1 rounded-full">{widget.id === 'study_tasks' ? 'Tarefas Pendentes' : widget.id === 'study_frequency' ? 'Melhor/Pior Disciplina e Assunto' : widget.title}</h4>
+                <h4 className="text-[10px] font-black text-zinc-800 dark:text-zinc-200 uppercase tracking-widest bg-zinc-50 dark:bg-zinc-800/50 px-2.5 py-1 rounded-full">{widget.id === 'study_tasks' ? 'Tarefas Pendentes' : widget.id === 'study_frequency' ? 'Disciplina e Assunto' : widget.title}</h4>
                 <div className="flex gap-2 items-center">
                   {!isEditMode && ['weekly_chart', 'activity_calendar', 'unified_subject_analysis'].includes(widget.id) && (
                     <button

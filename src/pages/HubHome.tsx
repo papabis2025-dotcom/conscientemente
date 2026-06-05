@@ -444,6 +444,7 @@ const HubHome: React.FC<HubHomeProps> = ({
         .select('id, name, amount, type, date, pending')
         .eq('user_id', user.id)
         .eq('type', 'saida')
+        .eq('pending', true)
         .gte('date', startOfMonth)
         .lte('date', endOfMonth);
 
@@ -1842,97 +1843,9 @@ const HubHome: React.FC<HubHomeProps> = ({
           </div>
         ) : (
           <>
-            {/* Status pills */}
-          <div className={`mb-6 transition-all duration-700 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
-          <div className="flex items-center gap-2 flex-wrap">
-            {/* Estudos */}
-            <span className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider border whitespace-nowrap shrink-0 ${
-              pendingEstudos > 0
-                ? 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-500/20'
-                : 'bg-white/40 dark:bg-zinc-900/40 backdrop-blur-sm text-zinc-500 dark:text-zinc-400 border-zinc-200/50 dark:border-zinc-800/50'
-            }`}>
-              {pendingEstudos > 0 ? (
-                <Clock size={9} className="shrink-0 opacity-80" />
-              ) : (
-                <Check size={9} className="shrink-0 opacity-85 text-emerald-550 dark:text-emerald-400" />
-              )}
-              {pendingEstudos > 0 ? `${pendingEstudos} ${pendingEstudos === 1 ? 'Estudo' : 'Estudos'}` : 'Estudos'}
-            </span>
-
-            {/* Tarefas */}
-            <span className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider border whitespace-nowrap shrink-0 ${
-              pendingTarefas > 0
-                ? 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-500/20'
-                : 'bg-white/40 dark:bg-zinc-900/40 backdrop-blur-sm text-zinc-500 dark:text-zinc-400 border-zinc-200/50 dark:border-zinc-800/50'
-            }`}>
-              {pendingTarefas > 0 ? (
-                <Clock size={9} className="shrink-0 opacity-80" />
-              ) : (
-                <Check size={9} className="shrink-0 opacity-85 text-emerald-550 dark:text-emerald-400" />
-              )}
-              {pendingTarefas > 0 ? `${pendingTarefas} ${pendingTarefas === 1 ? 'Tarefa' : 'Tarefas'}` : 'Tarefas'}
-            </span>
-
-            {/* Treinos */}
-            <span className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider border whitespace-nowrap shrink-0 ${
-              pendingSaude > 0
-                ? 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-500/20'
-                : 'bg-white/40 dark:bg-zinc-900/40 backdrop-blur-sm text-zinc-500 dark:text-zinc-400 border-zinc-200/50 dark:border-zinc-800/50'
-            }`}>
-              {pendingSaude > 0 ? (
-                <Clock size={9} className="shrink-0 opacity-80" />
-              ) : (
-                <Check size={9} className="shrink-0 opacity-85 text-emerald-550 dark:text-emerald-400" />
-              )}
-              {pendingSaude > 0 ? `${pendingSaude} ${pendingSaude === 1 ? 'Treino' : 'Treinos'}` : 'Treinos'}
-            </span>
-
-            {/* Hábitos */}
-            <span className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider border whitespace-nowrap shrink-0 ${
-              pendingHabits > 0
-                ? 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-500/20'
-                : 'bg-white/40 dark:bg-zinc-900/40 backdrop-blur-sm text-zinc-500 dark:text-zinc-400 border-zinc-200/50 dark:border-zinc-800/50'
-            }`}>
-              {pendingHabits > 0 ? (
-                <Clock size={9} className="shrink-0 opacity-80" />
-              ) : (
-                <Check size={9} className="shrink-0 opacity-85 text-emerald-550 dark:text-emerald-400" />
-              )}
-              {pendingHabits > 0 ? `${pendingHabits} ${pendingHabits === 1 ? 'Hábito' : 'Hábitos'}` : 'Hábitos'}
-            </span>
-
-            {/* Saldo */}
-            {financeBalance !== null && (
-              <span className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider border whitespace-nowrap shrink-0 ${
-                financeBalance >= 0
-                  ? 'bg-white/40 dark:bg-zinc-900/40 backdrop-blur-sm text-zinc-500 dark:text-zinc-400 border-zinc-200/50 dark:border-zinc-800/50'
-                  : 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-500/20'
-              }`}>
-                {financeBalance < 0 && <Clock size={9} className="shrink-0 opacity-80" />}
-                <Wallet size={9} className={financeBalance >= 0 ? 'text-zinc-400 dark:text-zinc-500 shrink-0' : 'shrink-0'} />
-                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(financeBalance)}
-              </span>
-            )}
-
-            {/* Pendências financeiras */}
-            {pendingFinanceCount > 0 && (
-              <button
-                onClick={() => window.location.hash = 'financas'}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider border whitespace-nowrap shrink-0 transition-all hover:scale-105 active:scale-95 cursor-pointer bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-500/20"
-                title={`${pendingFinanceCount} ${pendingFinanceCount === 1 ? 'despesa pendente' : 'despesas pendentes'} (Clique para ver)`}
-              >
-                <Clock size={9} className="shrink-0 opacity-80" />
-                <span>
-                  {pendingFinanceCount} Despesa{pendingFinanceCount > 1 ? 's' : ''} Pendente{pendingFinanceCount > 1 ? 's' : ''}
-                </span>
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Section label — Módulos */}
-        <div 
-          onClick={toggleModules}
+            {/* Section label — Módulos */}
+            <div 
+              onClick={toggleModules}
           className="flex items-center gap-3 mb-4 cursor-pointer group/section select-none"
         >
           <span className="w-1.5 h-1.5 rounded-full bg-zinc-400 dark:bg-zinc-600" />
@@ -1995,7 +1908,7 @@ const HubHome: React.FC<HubHomeProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-12 gap-6">
               
               {/* Calendário Mensal (Grade) */}
-              <div className="sm:col-span-5 max-w-md flex flex-col gap-3">
+              <div className="sm:col-span-7 flex flex-col gap-3">
                 {/* Header do calendário com botões de navegação */}
                 <div className="flex justify-between items-center px-1">
                   <h3 className="text-xs font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest flex items-center gap-2">
@@ -2101,7 +2014,7 @@ const HubHome: React.FC<HubHomeProps> = ({
               </div>
 
               {/* Lista de Compromissos do Dia (Direita) */}
-              <div className="sm:col-span-7 flex flex-col gap-3 min-w-0 sm:border-l sm:border-zinc-200/20 dark:sm:border-zinc-800/20 sm:pl-6">
+              <div className="sm:col-span-5 flex flex-col gap-3 min-w-0 sm:border-l sm:border-zinc-200/20 dark:sm:border-zinc-800/20 sm:pl-6">
                 <div className="flex justify-between items-center px-1">
                   <h4 className="text-[9px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest">
                     Compromissos do Dia
@@ -2143,9 +2056,8 @@ const HubHome: React.FC<HubHomeProps> = ({
                             <Brain size={12} className="text-purple-500 shrink-0" />
                             <div className="min-w-0 flex-1">
                               <p className="text-[9px] font-black text-purple-600 dark:text-purple-400 uppercase tracking-wider leading-none">Estudo</p>
-                              <p className="text-[10px] font-bold text-zinc-750 dark:text-zinc-200 truncate mt-0.5 leading-none">{s.text}</p>
+                              <p className={`text-[10px] font-bold text-zinc-750 dark:text-zinc-200 truncate mt-0.5 leading-none ${s.completed ? 'line-through opacity-50' : ''}`}>{s.text}</p>
                             </div>
-                            {s.completed && <Check size={10} className="text-purple-500 font-bold shrink-0" />}
                           </div>
                         ))}
 
@@ -2155,9 +2067,8 @@ const HubHome: React.FC<HubHomeProps> = ({
                             <ListTodo size={12} className="text-red-500 shrink-0" />
                             <div className="min-w-0 flex-1">
                               <p className="text-[9px] font-black text-red-600 dark:text-red-400 uppercase tracking-wider leading-none">Tarefa</p>
-                              <p className="text-[10px] font-bold text-zinc-750 dark:text-zinc-200 truncate mt-0.5 leading-none">{t.text}</p>
+                              <p className={`text-[10px] font-bold text-zinc-750 dark:text-zinc-200 truncate mt-0.5 leading-none ${t.completed ? 'line-through opacity-50' : ''}`}>{t.text}</p>
                             </div>
-                            {t.completed && <Check size={10} className="text-red-500 font-bold shrink-0" />}
                           </div>
                         ))}
 
@@ -2167,9 +2078,8 @@ const HubHome: React.FC<HubHomeProps> = ({
                             <Activity size={12} className="text-blue-500 shrink-0" />
                             <div className="min-w-0 flex-1">
                               <p className="text-[9px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-wider leading-none">Treino</p>
-                              <p className="text-[10px] font-bold text-zinc-750 dark:text-zinc-200 truncate mt-0.5 leading-none">{w.type}</p>
+                              <p className={`text-[10px] font-bold text-zinc-750 dark:text-zinc-200 truncate mt-0.5 leading-none ${w.status === 'realizado' ? 'line-through opacity-50' : ''}`}>{w.type}</p>
                             </div>
-                            {w.status === 'realizado' && <Check size={10} className="text-blue-500 font-bold shrink-0" />}
                           </div>
                         ))}
 

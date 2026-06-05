@@ -1992,10 +1992,10 @@ const HubHome: React.FC<HubHomeProps> = ({
 
         {!calendarCollapsed && (
           <div className="w-full bg-white/5 dark:bg-zinc-950/20 backdrop-blur-sm rounded-2xl border border-zinc-200/10 dark:border-zinc-800/10 p-4 opacity-75 hover:opacity-100 transition-all duration-300 animate-in fade-in slide-in-from-top-2">
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-12 gap-6">
               
               {/* Calendário Mensal (Grade) */}
-              <div className="md:col-span-5 max-w-md flex flex-col gap-3">
+              <div className="sm:col-span-5 max-w-md flex flex-col gap-3">
                 {/* Header do calendário com botões de navegação */}
                 <div className="flex justify-between items-center px-1">
                   <h3 className="text-xs font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest flex items-center gap-2">
@@ -2101,10 +2101,10 @@ const HubHome: React.FC<HubHomeProps> = ({
               </div>
 
               {/* Divisor Vertical */}
-              <div className="hidden md:block w-px bg-zinc-200/20 dark:bg-zinc-800/20 self-stretch shrink-0 animate-in fade-in" />
+              <div className="hidden sm:block w-px bg-zinc-200/20 dark:bg-zinc-800/20 self-stretch shrink-0 animate-in fade-in" />
 
               {/* Lista de Compromissos do Dia (Direita) */}
-              <div className="md:col-span-7 flex flex-col gap-3 min-w-0">
+              <div className="sm:col-span-7 flex flex-col gap-3 min-w-0">
                 <div className="flex justify-between items-center px-1">
                   <h4 className="text-[9px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest">
                     Compromissos do Dia

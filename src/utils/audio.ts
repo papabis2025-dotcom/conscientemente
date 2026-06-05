@@ -12,9 +12,18 @@ function getAudioContext() {
   return audioCtx;
 }
 
+function isSoundEnabled() {
+  try {
+    return localStorage.getItem('cn_sound_enabled') !== 'false';
+  } catch {
+    return true;
+  }
+}
+
 // Sophisticated sfx player
 export const playSound = {
   click: () => {
+    if (!isSoundEnabled()) return;
     try {
       const ctx = getAudioContext();
       const osc = ctx.createOscillator();
@@ -39,6 +48,7 @@ export const playSound = {
   },
   
   success: () => {
+    if (!isSoundEnabled()) return;
     try {
       const ctx = getAudioContext();
       const now = ctx.currentTime;

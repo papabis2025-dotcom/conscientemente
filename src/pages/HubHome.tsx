@@ -377,6 +377,9 @@ const HubHome: React.FC<HubHomeProps> = ({
   const [pushEnabled, setPushEnabled] = useState(() => {
     return localStorage.getItem('cn_push_notifications_enabled') === 'true';
   });
+  const [soundEnabled, setSoundEnabled] = useState(() => {
+    return localStorage.getItem('cn_sound_enabled') !== 'false';
+  });
   const [notifiedTaskIds, setNotifiedTaskIds] = useState<string[]>(() => {
     try {
       const saved = localStorage.getItem('cn_notified_task_ids');
@@ -1117,6 +1120,12 @@ const HubHome: React.FC<HubHomeProps> = ({
       setPushEnabled(false);
       localStorage.setItem('cn_push_notifications_enabled', 'false');
     }
+  };
+
+  const handleToggleSound = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const checked = e.target.checked;
+    setSoundEnabled(checked);
+    localStorage.setItem('cn_sound_enabled', String(checked));
   };
 
   useEffect(() => { setMounted(true); }, []);
@@ -1908,7 +1917,7 @@ const HubHome: React.FC<HubHomeProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-12 gap-6">
               
               {/* Calendário Mensal (Grade) */}
-              <div className="sm:col-span-7 flex flex-col gap-3">
+              <div className="sm:col-span-5 max-w-[310px] mx-auto sm:mx-0 flex flex-col gap-2">
                 {/* Header do calendário com botões de navegação */}
                 <div className="flex justify-between items-center px-1">
                   <h3 className="text-xs font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest flex items-center gap-2">
@@ -2014,7 +2023,7 @@ const HubHome: React.FC<HubHomeProps> = ({
               </div>
 
               {/* Lista de Compromissos do Dia (Direita) */}
-              <div className="sm:col-span-5 flex flex-col gap-3 min-w-0 sm:border-l sm:border-zinc-200/20 dark:sm:border-zinc-800/20 sm:pl-6">
+              <div className="sm:col-span-7 flex flex-col gap-3 min-w-0 sm:border-l sm:border-zinc-200/20 dark:sm:border-zinc-800/20 sm:pl-6">
                 <div className="flex justify-between items-center px-1">
                   <h4 className="text-[9px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest">
                     Compromissos do Dia
@@ -2303,6 +2312,25 @@ const HubHome: React.FC<HubHomeProps> = ({
                         type="checkbox" 
                         checked={pushEnabled} 
                         onChange={handleTogglePushNotifications}
+                        className="sr-only peer" 
+                      />
+                      <div className="w-11 h-6 bg-zinc-200 dark:bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-zinc-600 peer-checked:bg-emerald-500"></div>
+                    </label>
+                  </div>
+                </div>
+
+                <div className="space-y-4 pt-6 border-t border-zinc-200 dark:border-zinc-800">
+                  <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Efeitos Sonoros</p>
+                  <div className="flex items-center justify-between bg-zinc-50 dark:bg-zinc-800/40 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
+                    <div>
+                      <p className="text-xs font-bold text-zinc-800 dark:text-white">Habilitar efeitos sonoros</p>
+                      <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5">Ativa ou desativa sons sofisticados em cliques e conclusões de tarefas.</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer select-none">
+                      <input 
+                        type="checkbox" 
+                        checked={soundEnabled} 
+                        onChange={handleToggleSound}
                         className="sr-only peer" 
                       />
                       <div className="w-11 h-6 bg-zinc-200 dark:bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-zinc-600 peer-checked:bg-emerald-500"></div>

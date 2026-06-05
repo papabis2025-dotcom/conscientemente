@@ -2100,11 +2100,8 @@ const HubHome: React.FC<HubHomeProps> = ({
                 </div>
               </div>
 
-              {/* Divisor Vertical */}
-              <div className="hidden sm:block w-px bg-zinc-200/20 dark:bg-zinc-800/20 self-stretch shrink-0 animate-in fade-in" />
-
               {/* Lista de Compromissos do Dia (Direita) */}
-              <div className="sm:col-span-7 flex flex-col gap-3 min-w-0">
+              <div className="sm:col-span-7 flex flex-col gap-3 min-w-0 sm:border-l sm:border-zinc-200/20 dark:sm:border-zinc-800/20 sm:pl-6">
                 <div className="flex justify-between items-center px-1">
                   <h4 className="text-[9px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest">
                     Compromissos do Dia

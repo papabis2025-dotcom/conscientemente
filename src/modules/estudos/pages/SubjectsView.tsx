@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Subject, Topic, StudySession, Concurso } from '../types';
+import { playSound } from '../../../utils/audio';
 
 import { COLORS } from '../constants';
 import { getColorHex, getBadgeStyle } from '../utils/colors';
@@ -255,7 +256,16 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
   const toggleTopic = (subjectId: string, topicId: string) => {
     onUpdateSubjects(subjects.map(s => s.id === subjectId ? {
       ...s,
-      topics: s.topics.map(t => t.id === topicId ? { ...t, isCompleted: !t.isCompleted } : t)
+      topics: s.topics.map(t => {
+        if (t.id === topicId) {
+          const nextVal = !t.isCompleted;
+          if (nextVal) {
+            playSound.success();
+          }
+          return { ...t, isCompleted: nextVal };
+        }
+        return t;
+      })
     } : s));
   };
 

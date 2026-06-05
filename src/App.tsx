@@ -9,6 +9,7 @@ import SaudeApp from './modules/saude/App';
 import TarefasApp from './modules/tarefas/App';
 import AnotacoesApp from './modules/anotacoes/App';
 import type { Session } from '@supabase/supabase-js';
+import { playSound } from './utils/audio';
 
 interface SyncedPayload {
   updatedAt: number;
@@ -188,6 +189,24 @@ const App: React.FC = () => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [currentRoute, setCurrentRoute] = useState(() => window.location.hash.replace('#', '') || 'hub');
+
+  // Global click event listener for premium click sound feedback
+  useEffect(() => {
+    const handleGlobalClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (!target) return;
+      
+      const interactiveEl = target.closest('button, a, [role="button"], .cursor-pointer');
+      if (interactiveEl) {
+        playSound.click();
+      }
+    };
+    
+    document.addEventListener('click', handleGlobalClick, { capture: true });
+    return () => {
+      document.removeEventListener('click', handleGlobalClick, { capture: true });
+    };
+  }, []);
 
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     const saved = localStorage.getItem('cn_theme');

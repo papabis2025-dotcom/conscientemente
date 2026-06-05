@@ -3,6 +3,7 @@ import { Activity, Dumbbell, Footprints, HeartPulse, LayoutTemplate, Plus, Trash
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, AreaChart, Area } from 'recharts';
 import SaudePlannerView from './pages/SaudePlannerView';
 import { saudeApi } from './api';
+import { playSound } from '../../utils/audio';
 
 export type ActivityType = string;
 export type CardioLevel = 'Leve' | 'Ritmado' | 'Arrancada' | 'Específico' | 'Moderado' | 'Longo';
@@ -269,6 +270,9 @@ const SaudeApp: React.FC = () => {
     }
 
     saudeApi.create(newActivity).catch(err => console.error('Error creating saude activity:', err));
+    if (newActivity.status === 'realizado') {
+      playSound.success();
+    }
     setActivities(prev => [newActivity, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
     setShowAddForm(false);
     
@@ -294,6 +298,9 @@ const SaudeApp: React.FC = () => {
     setActivities(prev => prev.map(a => {
       if (a.id === id) {
         const newStatus = a.status === 'planejado' ? 'realizado' : 'planejado';
+        if (newStatus === 'realizado') {
+          playSound.success();
+        }
         saudeApi.update(id, { status: newStatus }).catch(err => console.error('Error updating status:', err));
         return { ...a, status: newStatus };
       }
@@ -322,11 +329,17 @@ const SaudeApp: React.FC = () => {
       }
     }
 
+    if (merged.status === 'realizado' && existing.status !== 'realizado') {
+      playSound.success();
+    }
     saudeApi.update(id, merged).catch(err => console.error('Error updating saude activity:', err));
     setActivities(prev => prev.map(a => a.id === id ? merged : a).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
   };
 
   const handleAddPlannerActivity = (activity: HealthActivity) => {
+    if (activity.status === 'realizado') {
+      playSound.success();
+    }
     saudeApi.create(activity).catch(err => console.error('Error creating planner activity:', err));
     setActivities(prev => [activity, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
   };

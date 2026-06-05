@@ -6,6 +6,7 @@ import { LogOut, Sun, Moon, ArrowUpRight, Lock, BookOpen, Wallet, ListTodo, Brai
 import LogView from '../modules/estudos/pages/LogView';
 import { api } from '../modules/estudos/services/api';
 import { supabase } from '../modules/estudos/services/supabase';
+import { playSound } from '../utils/audio';
 
 interface AppNotification {
   id: string;
@@ -860,6 +861,7 @@ const HubHome: React.FC<HubHomeProps> = ({
         newTodayLogs = todayLogs.filter(id => id !== habitId);
       } else {
         newTodayLogs = [...todayLogs, habitId];
+        playSound.success();
       }
       const updated = { ...prev, [todayStr]: newTodayLogs };
       localStorage.setItem('cn_habit_history', JSON.stringify(updated));
@@ -870,9 +872,13 @@ const HubHome: React.FC<HubHomeProps> = ({
   const toggleHabitOnDate = (habitId: string, dateStr: string) => {
     setHabitHistory(prev => {
       const logs = prev[dateStr] || [];
+      const isCompleted = logs.includes(habitId);
+      if (!isCompleted) {
+        playSound.success();
+      }
       const updated = {
         ...prev,
-        [dateStr]: logs.includes(habitId)
+        [dateStr]: isCompleted
           ? logs.filter(id => id !== habitId)
           : [...logs, habitId]
       };
@@ -1989,7 +1995,7 @@ const HubHome: React.FC<HubHomeProps> = ({
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
               
               {/* Calendário Mensal (Grade) */}
-              <div className="lg:col-span-8 flex flex-col gap-3">
+              <div className="lg:col-span-5 max-w-md flex flex-col gap-3">
                 {/* Header do calendário com botões de navegação */}
                 <div className="flex justify-between items-center px-1">
                   <h3 className="text-xs font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest flex items-center gap-2">
@@ -2079,11 +2085,11 @@ const HubHome: React.FC<HubHomeProps> = ({
                           <span className="text-[10px] font-black leading-none">{day}</span>
                           
                           {/* Bolinhas indicadoras sob o dia */}
-                          <div className="flex gap-[2px] mt-1 shrink-0">
-                            {hasTasks && <div className="w-[3px] h-[3px] rounded-full bg-purple-500" />}
-                            {hasStudies && <div className="w-[3px] h-[3px] rounded-full bg-blue-500" />}
-                            {hasWorkouts && <div className="w-[3px] h-[3px] rounded-full bg-emerald-500" />}
-                            {hasFinances && <div className="w-[3px] h-[3px] rounded-full bg-orange-500" />}
+                          <div className="flex gap-1 mt-1 shrink-0">
+                            {hasTasks && <div className="w-1.5 h-1.5 rounded-full bg-purple-500 shadow-sm" />}
+                            {hasStudies && <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-sm" />}
+                            {hasWorkouts && <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-sm" />}
+                            {hasFinances && <div className="w-1.5 h-1.5 rounded-full bg-orange-500 shadow-sm" />}
                           </div>
                         </div>
                       );
@@ -2098,7 +2104,7 @@ const HubHome: React.FC<HubHomeProps> = ({
               <div className="hidden lg:block w-px bg-zinc-200/20 dark:bg-zinc-800/20 self-stretch shrink-0 animate-in fade-in" />
 
               {/* Lista de Compromissos do Dia (Direita) */}
-              <div className="lg:col-span-4 flex flex-col gap-3 min-w-0">
+              <div className="lg:col-span-7 flex flex-col gap-3 min-w-0">
                 <div className="flex justify-between items-center px-1">
                   <h4 className="text-[9px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest">
                     Compromissos do Dia

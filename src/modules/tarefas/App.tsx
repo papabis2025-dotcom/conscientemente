@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { CheckSquare, ListTodo, Archive, LayoutTemplate, Plus, Calendar as CalendarIcon, Clock, Tag, ArrowDownAZ, CalendarDays, Trash2, Check, Repeat, ChevronLeft, ChevronRight, Menu } from 'lucide-react';
 
 import { tarefasApi, Task } from './api';
+import { playSound } from '../../utils/audio';
 
 const TarefasApp: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'ativas' | 'arquivo' | 'calendario'>('ativas');
@@ -105,6 +106,9 @@ const TarefasApp: React.FC = () => {
       const task = prev.find(t => t.id === id);
       if (!task) return prev;
       
+      if (!task.completed) {
+        playSound.success();
+      }
       const updatedTasks = prev.map(t => t.id === id ? { ...t, completed: !t.completed } : t);
       
       if (!task.completed && task.recurrenceType && task.recurrenceType !== 'none' && task.dueDate) {

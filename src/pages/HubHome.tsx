@@ -389,6 +389,86 @@ const HubHome: React.FC<HubHomeProps> = ({
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [logs, setLogs] = useState<LogEntry[]>([]);
 
+  // Estados do Calendário Unificado
+  const [calendarCollapsed, setCalendarCollapsed] = useState(() => {
+    return localStorage.getItem('cn_calendar_collapsed') === 'true';
+  });
+  const [calendarMonth, setCalendarMonth] = useState(new Date());
+  const [calendarEvents, setCalendarEvents] = useState<{
+    tasks: any[];
+    studies: any[];
+    workouts: any[];
+    finances: any[];
+  }>({ tasks: [], studies: [], workouts: [], finances: [] });
+  const [selectedCalendarDate, setSelectedCalendarDate] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  });
+
+  const toggleCalendar = () => {
+    setCalendarCollapsed(prev => {
+      const next = !prev;
+      localStorage.setItem('cn_calendar_collapsed', String(next));
+      return next;
+    });
+  };
+
+  const fetchCalendarData = useCallback(async (date: Date) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const startOfMonth = `${year}-${String(month + 1).padStart(2, '0')}-01`;
+    const lastDay = new Date(year, month + 1, 0).getDate();
+    const endOfMonth = `${year}-${String(month + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+
+    try {
+      const { data: dbTasks } = await supabase
+        .from('tarefas')
+        .select('id, text, due_date, completed, due_time, category')
+        .eq('user_id', user.id)
+        .gte('due_date', startOfMonth)
+        .lte('due_date', endOfMonth);
+
+      const { data: dbWorkouts } = await supabase
+        .from('saude_treinos')
+        .select('id, type, date, status')
+        .eq('user_id', user.id)
+        .gte('date', startOfMonth)
+        .lte('date', endOfMonth);
+
+      const { data: dbFinances } = await supabase
+        .from('financas_transacoes')
+        .select('id, name, amount, type, date, pending')
+        .eq('user_id', user.id)
+        .eq('type', 'saida')
+        .gte('date', startOfMonth)
+        .lte('date', endOfMonth);
+
+      const studyTasksRaw = JSON.parse(localStorage.getItem('cp_study_tasks') || '[]');
+      const scheduledStudiesRaw = JSON.parse(localStorage.getItem('cp_scheduled_studies') || '[]');
+      
+      const studiesList = [
+        ...studyTasksRaw.map((t: any) => ({ id: t.id, text: t.subjectName + ' - ' + (t.topicName || 'Geral'), date: t.date, completed: t.done })),
+        ...scheduledStudiesRaw.map((s: any) => ({ id: s.id, text: s.activityType + ' (' + (s.durationInMinutes || 0) + ' min)', date: s.date?.split('T')[0], completed: s.status === 'realizado' }))
+      ].filter(s => s.date >= startOfMonth && s.date <= endOfMonth);
+
+      setCalendarEvents({
+        tasks: dbTasks || [],
+        studies: studiesList,
+        workouts: dbWorkouts || [],
+        finances: dbFinances || []
+      });
+    } catch (e) {
+      console.error('Error fetching calendar data:', e);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchCalendarData(calendarMonth).catch(console.error);
+  }, [calendarMonth, fetchCalendarData]);
+
   const [sidebarExpanded, setSidebarExpanded] = useState(() => {
     return localStorage.getItem('cn_sidebar_expanded') !== 'false';
   });
@@ -1056,6 +1136,9 @@ const HubHome: React.FC<HubHomeProps> = ({
         }
         const savedPush = localStorage.getItem('cn_push_notifications_enabled') === 'true';
         setPushEnabled(savedPush);
+
+        // Sync calendar events from local changes
+        fetchCalendarData(calendarMonth).catch(console.error);
       } catch (e) {
         console.error('Error reloading local storage states on sync event:', e);
       }
@@ -1066,7 +1149,7 @@ const HubHome: React.FC<HubHomeProps> = ({
       window.removeEventListener('local-storage-sync', handleSync);
       window.removeEventListener('storage', handleSync);
     };
-  }, []);
+  }, [calendarMonth, fetchCalendarData]);
 
   const fetchCloudData = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -1156,7 +1239,10 @@ const HubHome: React.FC<HubHomeProps> = ({
       balance: calculatedBalance,
       pendingFinance: (pendingFinanceTx || []) as { id: string; name: string; amount: number; type: string }[]
     });
-  }, []);
+
+    // Sync calendar events from database fetch
+    fetchCalendarData(calendarMonth).catch(console.error);
+  }, [calendarMonth, fetchCalendarData]);
 
   // Fetch initial data and sync when day changes
   useEffect(() => {
@@ -1877,6 +1963,233 @@ const HubHome: React.FC<HubHomeProps> = ({
                 />
               );
             })}
+          </div>
+        )}
+
+        {/* Section label — Calendário Unificado */}
+        <div 
+          onClick={toggleCalendar}
+          className="flex items-center gap-3 mt-8 mb-4 cursor-pointer group/section select-none"
+        >
+          <span className="w-1.5 h-1.5 rounded-full bg-zinc-400 dark:bg-zinc-600" />
+          <p className="text-[10px] font-black text-zinc-400 dark:text-zinc-600 uppercase tracking-[0.2em]">Calendário Unificado</p>
+          <div className="flex-1 h-px bg-gradient-to-r from-zinc-200 to-transparent dark:from-zinc-800" />
+          
+          <button 
+            type="button"
+            className="text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors p-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg cursor-pointer"
+            title={calendarCollapsed ? 'Expandir Calendário' : 'Minimizar Calendário'}
+          >
+            {calendarCollapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+          </button>
+        </div>
+
+        {!calendarCollapsed && (
+          <div className="w-full bg-white/5 dark:bg-zinc-950/20 backdrop-blur-sm rounded-2xl border border-zinc-200/10 dark:border-zinc-800/10 p-4 opacity-75 hover:opacity-100 transition-all duration-300 animate-in fade-in slide-in-from-top-2">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              
+              {/* Calendário Mensal (Grade) */}
+              <div className="lg:col-span-8 flex flex-col gap-3">
+                {/* Header do calendário com botões de navegação */}
+                <div className="flex justify-between items-center px-1">
+                  <h3 className="text-xs font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest flex items-center gap-2">
+                    <CalendarDays size={12} />
+                    {calendarMonth.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }).toUpperCase()}
+                  </h3>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const newDate = new Date(calendarMonth);
+                        newDate.setMonth(newDate.getMonth() - 1);
+                        setCalendarMonth(newDate);
+                      }}
+                      type="button"
+                      className="p-1 hover:bg-zinc-200/30 dark:hover:bg-zinc-800 rounded-lg text-zinc-500 transition-colors cursor-pointer"
+                    >
+                      <ChevronLeft size={14} />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const newDate = new Date(calendarMonth);
+                        newDate.setMonth(newDate.getMonth() + 1);
+                        setCalendarMonth(newDate);
+                      }}
+                      type="button"
+                      className="p-1 hover:bg-zinc-200/30 dark:hover:bg-zinc-800 rounded-lg text-zinc-500 transition-colors cursor-pointer"
+                    >
+                      <ChevronRight size={14} />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Grade do Calendário */}
+                <div className="grid grid-cols-7 gap-1">
+                  {/* Dias da semana */}
+                  {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((day, idx) => (
+                    <div key={idx} className="text-center text-[9px] font-black text-zinc-400 dark:text-zinc-650 uppercase py-1">{day}</div>
+                  ))}
+
+                  {/* Células dos dias do mês */}
+                  {(() => {
+                    const year = calendarMonth.getFullYear();
+                    const month = calendarMonth.getMonth();
+                    const firstDayIndex = new Date(year, month, 1).getDay();
+                    const totalDays = new Date(year, month + 1, 0).getDate();
+
+                    const cells = [];
+                    // Células vazias do mês anterior
+                    for (let i = 0; i < firstDayIndex; i++) {
+                      cells.push(<div key={`empty-${i}`} className="aspect-square" />);
+                    }
+
+                    // Dias do mês atual
+                    for (let day = 1; day <= totalDays; day++) {
+                      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                      const isToday = dateStr === todayStr;
+                      const isSelected = dateStr === selectedCalendarDate;
+
+                      // Filtrar eventos do dia
+                      const dayTasks = calendarEvents.tasks.filter(t => t.due_date === dateStr);
+                      const dayStudies = calendarEvents.studies.filter(s => s.date === dateStr);
+                      const dayWorkouts = calendarEvents.workouts.filter(w => w.date === dateStr);
+                      const dayFinances = calendarEvents.finances.filter(f => f.date === dateStr);
+
+                      const hasTasks = dayTasks.length > 0;
+                      const hasStudies = dayStudies.length > 0;
+                      const hasWorkouts = dayWorkouts.length > 0;
+                      const hasFinances = dayFinances.length > 0;
+
+                      cells.push(
+                        <div
+                          key={`day-${day}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedCalendarDate(dateStr);
+                          }}
+                          className={`aspect-square rounded-xl border flex flex-col items-center justify-center relative cursor-pointer transition-all hover:scale-105 active:scale-95 ${
+                            isSelected
+                              ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-950 border-zinc-900 dark:border-white shadow-sm'
+                              : isToday
+                                ? 'bg-zinc-200/50 dark:bg-zinc-800/60 border-zinc-300 dark:border-zinc-700 text-zinc-800 dark:text-white font-bold'
+                                : 'bg-white/10 dark:bg-zinc-900/10 border-zinc-200/10 dark:border-zinc-800/10 text-zinc-750 dark:text-zinc-350 hover:border-zinc-300 dark:hover:border-zinc-700'
+                          }`}
+                        >
+                          <span className="text-[10px] font-black leading-none">{day}</span>
+                          
+                          {/* Bolinhas indicadoras sob o dia */}
+                          <div className="flex gap-[2px] mt-1 shrink-0">
+                            {hasTasks && <div className="w-[3px] h-[3px] rounded-full bg-purple-500" />}
+                            {hasStudies && <div className="w-[3px] h-[3px] rounded-full bg-blue-500" />}
+                            {hasWorkouts && <div className="w-[3px] h-[3px] rounded-full bg-emerald-500" />}
+                            {hasFinances && <div className="w-[3px] h-[3px] rounded-full bg-orange-500" />}
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    return cells;
+                  })()}
+                </div>
+              </div>
+
+              {/* Divisor Vertical */}
+              <div className="hidden lg:block w-px bg-zinc-200/20 dark:bg-zinc-800/20 self-stretch shrink-0 animate-in fade-in" />
+
+              {/* Lista de Compromissos do Dia (Direita) */}
+              <div className="lg:col-span-4 flex flex-col gap-3 min-w-0">
+                <div className="flex justify-between items-center px-1">
+                  <h4 className="text-[9px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest">
+                    Compromissos do Dia
+                  </h4>
+                  <span className="text-[8px] font-bold text-zinc-400">
+                    {(() => {
+                      const parts = selectedCalendarDate.split('-');
+                      if (parts.length === 3) {
+                        return `${parts[2]}/${parts[1]}`;
+                      }
+                      return '';
+                    })()}
+                  </span>
+                </div>
+
+                <div className="flex-1 overflow-y-auto max-h-[190px] pr-1 space-y-1.5 flex flex-col">
+                  {(() => {
+                    const dayTasks = calendarEvents.tasks.filter(t => t.due_date === selectedCalendarDate);
+                    const dayStudies = calendarEvents.studies.filter(s => s.date === selectedCalendarDate);
+                    const dayWorkouts = calendarEvents.workouts.filter(w => w.date === selectedCalendarDate);
+                    const dayFinances = calendarEvents.finances.filter(f => f.date === selectedCalendarDate);
+
+                    const totalCount = dayTasks.length + dayStudies.length + dayWorkouts.length + dayFinances.length;
+
+                    if (totalCount === 0) {
+                      return (
+                        <div className="flex-1 flex flex-col items-center justify-center text-center py-8 opacity-50">
+                          <CheckCircle2 size={20} className="text-zinc-400 mb-1" />
+                          <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">Dia Livre</p>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <>
+                        {/* Estudos */}
+                        {dayStudies.map(s => (
+                          <div key={s.id} className="flex items-center gap-2 p-2 rounded-xl bg-blue-550/5 dark:bg-blue-500/5 border border-blue-500/10 dark:border-blue-500/15 hover:bg-blue-500/10 transition-colors">
+                            <Brain size={12} className="text-blue-500 shrink-0" />
+                            <div className="min-w-0 flex-1">
+                              <p className="text-[9px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-wider leading-none">Estudo</p>
+                              <p className="text-[10px] font-bold text-zinc-750 dark:text-zinc-200 truncate mt-0.5 leading-none">{s.text}</p>
+                            </div>
+                            {s.completed && <Check size={10} className="text-blue-500 font-bold shrink-0" />}
+                          </div>
+                        ))}
+
+                        {/* Tarefas */}
+                        {dayTasks.map(t => (
+                          <div key={t.id} className="flex items-center gap-2 p-2 rounded-xl bg-purple-550/5 dark:bg-purple-500/5 border border-purple-500/10 dark:border-purple-500/15 hover:bg-purple-550/10 transition-colors">
+                            <ListTodo size={12} className="text-purple-500 shrink-0" />
+                            <div className="min-w-0 flex-1">
+                              <p className="text-[9px] font-black text-purple-600 dark:text-purple-400 uppercase tracking-wider leading-none">Tarefa</p>
+                              <p className="text-[10px] font-bold text-zinc-750 dark:text-zinc-200 truncate mt-0.5 leading-none">{t.text}</p>
+                            </div>
+                            {t.completed && <Check size={10} className="text-purple-500 font-bold shrink-0" />}
+                          </div>
+                        ))}
+
+                        {/* Treinos */}
+                        {dayWorkouts.map(w => (
+                          <div key={w.id} className="flex items-center gap-2 p-2 rounded-xl bg-emerald-550/5 dark:bg-emerald-500/5 border border-emerald-500/10 dark:border-emerald-500/15 hover:bg-emerald-550/10 transition-colors">
+                            <Activity size={12} className="text-emerald-500 shrink-0" />
+                            <div className="min-w-0 flex-1">
+                              <p className="text-[9px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider leading-none">Treino</p>
+                              <p className="text-[10px] font-bold text-zinc-750 dark:text-zinc-200 truncate mt-0.5 leading-none">{w.type}</p>
+                            </div>
+                            {w.status === 'realizado' && <Check size={10} className="text-emerald-500 font-bold shrink-0" />}
+                          </div>
+                        ))}
+
+                        {/* Finanças */}
+                        {dayFinances.map(f => (
+                          <div key={f.id} className="flex items-center gap-2 p-2 rounded-xl bg-orange-550/5 dark:bg-orange-500/5 border border-orange-500/10 dark:border-orange-500/15 hover:bg-orange-550/10 transition-colors">
+                            <DollarSign size={12} className="text-orange-500 shrink-0" />
+                            <div className="min-w-0 flex-1">
+                              <p className="text-[9px] font-black text-orange-600 dark:text-orange-400 uppercase tracking-wider leading-none">Despesa</p>
+                              <p className="text-[10px] font-bold text-zinc-750 dark:text-zinc-200 truncate mt-0.5 leading-none">{f.name}</p>
+                            </div>
+                            <span className="text-[9px] font-bold text-orange-500 shrink-0">
+                              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(f.amount)}
+                            </span>
+                          </div>
+                        ))}
+                      </>
+                    );
+                  })()}
+                </div>
+              </div>
+
+            </div>
           </div>
         )}
 

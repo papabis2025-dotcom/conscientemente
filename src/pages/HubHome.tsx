@@ -1992,10 +1992,10 @@ const HubHome: React.FC<HubHomeProps> = ({
 
         {!calendarCollapsed && (
           <div className="w-full bg-white/5 dark:bg-zinc-950/20 backdrop-blur-sm rounded-2xl border border-zinc-200/10 dark:border-zinc-800/10 p-4 opacity-75 hover:opacity-100 transition-all duration-300 animate-in fade-in slide-in-from-top-2">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
               
               {/* Calendário Mensal (Grade) */}
-              <div className="lg:col-span-5 max-w-md flex flex-col gap-3">
+              <div className="md:col-span-5 max-w-md flex flex-col gap-3">
                 {/* Header do calendário com botões de navegação */}
                 <div className="flex justify-between items-center px-1">
                   <h3 className="text-xs font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest flex items-center gap-2">
@@ -2086,10 +2086,10 @@ const HubHome: React.FC<HubHomeProps> = ({
                           
                           {/* Bolinhas indicadoras sob o dia */}
                           <div className="flex gap-1 mt-1 shrink-0">
-                            {hasTasks && <div className="w-1.5 h-1.5 rounded-full bg-purple-500 shadow-sm" />}
-                            {hasStudies && <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-sm" />}
-                            {hasWorkouts && <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-sm" />}
-                            {hasFinances && <div className="w-1.5 h-1.5 rounded-full bg-orange-500 shadow-sm" />}
+                            {hasStudies && <div className="w-1.5 h-1.5 rounded-full bg-purple-500 shadow-sm" />}
+                            {hasTasks && <div className="w-1.5 h-1.5 rounded-full bg-red-500 shadow-sm" />}
+                            {hasFinances && <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-sm" />}
+                            {hasWorkouts && <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-sm" />}
                           </div>
                         </div>
                       );
@@ -2101,10 +2101,10 @@ const HubHome: React.FC<HubHomeProps> = ({
               </div>
 
               {/* Divisor Vertical */}
-              <div className="hidden lg:block w-px bg-zinc-200/20 dark:bg-zinc-800/20 self-stretch shrink-0 animate-in fade-in" />
+              <div className="hidden md:block w-px bg-zinc-200/20 dark:bg-zinc-800/20 self-stretch shrink-0 animate-in fade-in" />
 
               {/* Lista de Compromissos do Dia (Direita) */}
-              <div className="lg:col-span-7 flex flex-col gap-3 min-w-0">
+              <div className="md:col-span-7 flex flex-col gap-3 min-w-0">
                 <div className="flex justify-between items-center px-1">
                   <h4 className="text-[9px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest">
                     Compromissos do Dia
@@ -2142,49 +2142,49 @@ const HubHome: React.FC<HubHomeProps> = ({
                       <>
                         {/* Estudos */}
                         {dayStudies.map(s => (
-                          <div key={s.id} className="flex items-center gap-2 p-2 rounded-xl bg-blue-550/5 dark:bg-blue-500/5 border border-blue-500/10 dark:border-blue-500/15 hover:bg-blue-500/10 transition-colors">
-                            <Brain size={12} className="text-blue-500 shrink-0" />
+                          <div key={s.id} className="flex items-center gap-2 p-2 rounded-xl bg-purple-550/5 dark:bg-purple-500/5 border border-purple-500/10 dark:border-purple-500/15 hover:bg-purple-500/10 transition-colors">
+                            <Brain size={12} className="text-purple-500 shrink-0" />
                             <div className="min-w-0 flex-1">
-                              <p className="text-[9px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-wider leading-none">Estudo</p>
+                              <p className="text-[9px] font-black text-purple-600 dark:text-purple-400 uppercase tracking-wider leading-none">Estudo</p>
                               <p className="text-[10px] font-bold text-zinc-750 dark:text-zinc-200 truncate mt-0.5 leading-none">{s.text}</p>
                             </div>
-                            {s.completed && <Check size={10} className="text-blue-500 font-bold shrink-0" />}
+                            {s.completed && <Check size={10} className="text-purple-500 font-bold shrink-0" />}
                           </div>
                         ))}
 
                         {/* Tarefas */}
                         {dayTasks.map(t => (
-                          <div key={t.id} className="flex items-center gap-2 p-2 rounded-xl bg-purple-550/5 dark:bg-purple-500/5 border border-purple-500/10 dark:border-purple-500/15 hover:bg-purple-550/10 transition-colors">
-                            <ListTodo size={12} className="text-purple-500 shrink-0" />
+                          <div key={t.id} className="flex items-center gap-2 p-2 rounded-xl bg-red-550/5 dark:bg-red-500/5 border border-red-500/10 dark:border-red-500/15 hover:bg-red-550/10 transition-colors">
+                            <ListTodo size={12} className="text-red-500 shrink-0" />
                             <div className="min-w-0 flex-1">
-                              <p className="text-[9px] font-black text-purple-600 dark:text-purple-400 uppercase tracking-wider leading-none">Tarefa</p>
+                              <p className="text-[9px] font-black text-red-600 dark:text-red-400 uppercase tracking-wider leading-none">Tarefa</p>
                               <p className="text-[10px] font-bold text-zinc-750 dark:text-zinc-200 truncate mt-0.5 leading-none">{t.text}</p>
                             </div>
-                            {t.completed && <Check size={10} className="text-purple-500 font-bold shrink-0" />}
+                            {t.completed && <Check size={10} className="text-red-500 font-bold shrink-0" />}
                           </div>
                         ))}
 
                         {/* Treinos */}
                         {dayWorkouts.map(w => (
-                          <div key={w.id} className="flex items-center gap-2 p-2 rounded-xl bg-emerald-550/5 dark:bg-emerald-500/5 border border-emerald-500/10 dark:border-emerald-500/15 hover:bg-emerald-550/10 transition-colors">
-                            <Activity size={12} className="text-emerald-500 shrink-0" />
+                          <div key={w.id} className="flex items-center gap-2 p-2 rounded-xl bg-blue-550/5 dark:bg-blue-500/5 border border-blue-500/10 dark:border-blue-500/15 hover:bg-blue-550/10 transition-colors">
+                            <Activity size={12} className="text-blue-500 shrink-0" />
                             <div className="min-w-0 flex-1">
-                              <p className="text-[9px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider leading-none">Treino</p>
+                              <p className="text-[9px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-wider leading-none">Treino</p>
                               <p className="text-[10px] font-bold text-zinc-750 dark:text-zinc-200 truncate mt-0.5 leading-none">{w.type}</p>
                             </div>
-                            {w.status === 'realizado' && <Check size={10} className="text-emerald-500 font-bold shrink-0" />}
+                            {w.status === 'realizado' && <Check size={10} className="text-blue-500 font-bold shrink-0" />}
                           </div>
                         ))}
 
                         {/* Finanças */}
                         {dayFinances.map(f => (
-                          <div key={f.id} className="flex items-center gap-2 p-2 rounded-xl bg-orange-550/5 dark:bg-orange-500/5 border border-orange-500/10 dark:border-orange-500/15 hover:bg-orange-550/10 transition-colors">
-                            <DollarSign size={12} className="text-orange-500 shrink-0" />
+                          <div key={f.id} className="flex items-center gap-2 p-2 rounded-xl bg-emerald-550/5 dark:bg-emerald-500/5 border border-emerald-500/10 dark:border-emerald-500/15 hover:bg-emerald-550/10 transition-colors">
+                            <DollarSign size={12} className="text-emerald-500 shrink-0" />
                             <div className="min-w-0 flex-1">
-                              <p className="text-[9px] font-black text-orange-600 dark:text-orange-400 uppercase tracking-wider leading-none">Despesa</p>
+                              <p className="text-[9px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider leading-none">Despesa</p>
                               <p className="text-[10px] font-bold text-zinc-750 dark:text-zinc-200 truncate mt-0.5 leading-none">{f.name}</p>
                             </div>
-                            <span className="text-[9px] font-bold text-orange-500 shrink-0">
+                            <span className="text-[9px] font-bold text-emerald-500 shrink-0">
                               {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(f.amount)}
                             </span>
                           </div>

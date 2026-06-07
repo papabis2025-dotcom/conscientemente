@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { 
   Flame, Plus, Trash2, Check, ClipboardList, 
   BarChart3, Calendar, Award, TrendingUp, 
-  ChevronLeft, Moon, Sun, LayoutGrid, CheckCircle2 
+  ChevronLeft, ChevronRight, Moon, Sun, LayoutGrid, CheckCircle2,
+  LayoutTemplate, Menu
 } from 'lucide-react';
 
 interface Habit {
@@ -20,6 +21,15 @@ interface HabitosHubProps {
 
 export default function HabitosHub({ onBack, theme, toggleTheme, userName }: HabitosHubProps) {
   const [currentTime, setCurrentTime] = useState(new Date());
+  
+  // Estado para recolhimento da barra lateral
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    return localStorage.getItem('isSidebarCollapsed_habitos') === 'true';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('isSidebarCollapsed_habitos', String(isSidebarCollapsed));
+  }, [isSidebarCollapsed]);
   
   // State from localStorage
   const [habits, setHabits] = useState<Habit[]>(() => {
@@ -255,131 +265,202 @@ export default function HabitosHub({ onBack, theme, toggleTheme, userName }: Hab
   const daysInMonthList = getDaysInMonthList();
 
   return (
-    <div className="min-h-screen bg-zinc-100 dark:bg-zinc-950 text-zinc-800 dark:text-zinc-100 transition-colors duration-300 pb-12">
+    <div className="flex h-screen w-screen overflow-hidden bg-zinc-100 dark:bg-zinc-950 text-zinc-800 dark:text-zinc-100 transition-colors duration-300">
       
-      {/* Header Container */}
-      <header className="sticky top-0 z-30 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md border-b border-zinc-200 dark:border-zinc-800/80 transition-all shadow-sm">
-        <div className="max-w-6xl mx-auto px-4 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <button 
-              onClick={onBack}
-              className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl border border-zinc-300 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white text-xs font-bold uppercase tracking-wider transition-all duration-200 active:scale-95 shadow-sm"
-              title="Voltar ao Hub"
-            >
-              <ChevronLeft size={14} className="stroke-[3]" />
-              <span>Voltar</span>
-            </button>
-            <div className="h-4 w-px bg-zinc-300 dark:bg-zinc-800" />
-            <div className="flex items-center gap-2">
-              <div className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-500/20 text-slate-700 dark:text-slate-350 flex items-center justify-center animate-pulse shadow-inner border border-zinc-200 dark:border-zinc-800">
-                <Flame size={20} strokeWidth={2.5} />
-              </div>
-              <div>
-                <h1 className="text-sm font-black uppercase tracking-widest text-zinc-900 dark:text-white leading-none">Hub de Hábitos</h1>
-                <p className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 mt-1 leading-none">Construa rotinas saudáveis e consistentes</p>
-              </div>
-            </div>
-          </div>
+      {/* Backdrop para mobile quando a sidebar estiver aberta */}
+      {!isSidebarCollapsed && (
+        <div 
+          onClick={() => setIsSidebarCollapsed(true)}
+          className="fixed inset-0 z-40 bg-zinc-950/60 backdrop-blur-xs md:hidden animate-in fade-in duration-200" 
+        />
+      )}
 
-          <div className="flex items-center gap-4">
-            {/* User welcome */}
-            <div className="hidden md:block text-right">
-              <p className="text-xs font-bold uppercase tracking-wider text-zinc-400 leading-none">Olá,</p>
-              <p className="text-sm font-extrabold text-zinc-900 dark:text-white leading-none mt-1">{userName}</p>
-            </div>
-            
-            {/* Theme switcher */}
-            <button 
-              onClick={toggleTheme}
-              className="p-2.5 rounded-xl border border-zinc-300 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white shadow-sm transition-all"
-            >
-              {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
-            </button>
+      {/* Botão flutuante para mobile */}
+      {isSidebarCollapsed && (
+        <button
+          onClick={() => setIsSidebarCollapsed(false)}
+          className="md:hidden fixed bottom-6 left-6 z-40 w-10 h-10 bg-white/85 dark:bg-zinc-900/85 backdrop-blur-md border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-300 rounded-full flex items-center justify-center shadow-md active:scale-90 transition-all cursor-pointer animate-in zoom-in duration-200"
+        >
+          <Menu size={18} />
+        </button>
+      )}
+
+      {/* Sidebar Lateral Esquerda */}
+      <aside className={`fixed md:relative z-50 md:z-20 h-screen bg-white/95 dark:bg-zinc-900/95 md:bg-white/50 md:dark:bg-zinc-900/50 border-r border-zinc-200 dark:border-zinc-800 flex flex-col p-5 transition-all duration-300 backdrop-blur-xl shrink-0 ${isSidebarCollapsed ? 'w-64 md:w-20 -translate-x-full md:translate-x-0' : 'w-64 translate-x-0'}`}>
+        <button
+          onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+          className="absolute -right-3 top-9 w-6 h-6 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-full flex items-center justify-center text-zinc-500 hover:text-zinc-900 dark:text-zinc-100 shadow-sm z-50 hover:scale-110 transition-transform cursor-pointer"
+        >
+          {isSidebarCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+        </button>
+
+        {/* Logo e Nome do Módulo */}
+        <div className={`mb-8 px-1 flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'}`}>
+          <div className="flex items-center gap-3 text-orange-500">
+            <Flame size={28} className="drop-shadow-sm shrink-0" />
+            {!isSidebarCollapsed && (
+              <span className="text-xl font-black uppercase tracking-widest text-zinc-900 dark:text-white animate-in fade-in slide-in-from-left-4 duration-300">
+                Hábitos
+              </span>
+            )}
           </div>
         </div>
-      </header>
 
-      <main className="max-w-6xl mx-auto px-4 mt-6 flex flex-col gap-6">
-        
-        {/* Top Stats Grid */}
-        <section className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {/* Consistency card */}
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-4 shadow-sm flex items-center gap-4 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
-            <div className="p-3 rounded-xl bg-slate-100 dark:bg-slate-500/20 text-slate-700 dark:text-slate-350 shrink-0 border border-zinc-200 dark:border-zinc-800">
-              <TrendingUp size={20} />
+        {/* Progresso de Hoje na Sidebar */}
+        <div className="mb-5 bg-zinc-50 dark:bg-zinc-800/50 p-3 rounded-2xl border border-zinc-100 dark:border-zinc-700">
+          {!isSidebarCollapsed ? (
+            <div className="space-y-2">
+              <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Hoje</span>
+              <div className="flex justify-between items-center text-[10px] font-black text-zinc-500">
+                <span>Concluídos</span>
+                <span className="text-zinc-700 dark:text-zinc-350 font-extrabold">{completedTodayCount}/{totalHabitsCount}</span>
+              </div>
+              <div className="w-full h-1.5 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-orange-500 rounded-full transition-all duration-300"
+                  style={{ width: `${progressPercent}%` }}
+                />
+              </div>
             </div>
-            <div>
-              <p className="text-xs font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400 leading-none">Consistência</p>
-              <p className="text-xl font-black text-zinc-900 dark:text-white mt-2.5 leading-none">{last7DaysRate}%</p>
-              <p className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 mt-1.5 leading-none">Últimos 7 dias</p>
+          ) : (
+            <div className="flex flex-col items-center gap-1">
+              <Flame size={16} className="text-orange-500" />
+              <span className="text-[9px] font-black text-zinc-500">{progressPercent}%</span>
             </div>
-          </div>
+          )}
+        </div>
 
-          {/* Streak card */}
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-4 shadow-sm flex items-center gap-4 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
-            <div className="p-3 rounded-xl bg-orange-500/10 dark:bg-orange-500/20 text-orange-600 dark:text-orange-450 shrink-0 border border-orange-200/30 dark:border-orange-950/20">
-              <Flame size={20} />
-            </div>
-            <div>
-              <p className="text-xs font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400 leading-none">Sequência</p>
-              <p className="text-xl font-black text-zinc-900 dark:text-white mt-2.5 leading-none">{currentStreak} {currentStreak === 1 ? 'dia' : 'dias'}</p>
-              <p className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 mt-1.5 leading-none">Recorde ativo</p>
-            </div>
-          </div>
-
-          {/* Active Habits card */}
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-4 shadow-sm flex items-center gap-4 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
-            <div className="p-3 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-450 shrink-0 border border-emerald-200/30 dark:border-emerald-950/20">
-              <ClipboardList size={20} />
-            </div>
-            <div>
-              <p className="text-xs font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400 leading-none">Hábitos</p>
-              <p className="text-xl font-black text-zinc-900 dark:text-white mt-2.5 leading-none">{totalHabitsCount}</p>
-              <p className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 mt-1.5 leading-none">Cadastrados</p>
-            </div>
-          </div>
-
-          {/* Total Completions card */}
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-805 rounded-2xl p-4 shadow-sm flex items-center gap-4 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
-            <div className="p-3 rounded-xl bg-blue-500/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-450 shrink-0 border border-blue-200/30 dark:border-blue-950/20">
-              <CheckCircle2 size={20} />
-            </div>
-            <div>
-              <p className="text-xs font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400 leading-none">Conclusões</p>
-              <p className="text-xl font-black text-zinc-900 dark:text-white mt-2.5 leading-none">{totalCompletions}</p>
-              <p className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 mt-1.5 leading-none">Total histórico</p>
-            </div>
-          </div>
-        </section>
-
-        {/* Navigation Tabs */}
-        <section className="flex border-b border-zinc-200 dark:border-zinc-800/60 p-0.5 max-w-md gap-1">
+        {/* Navegação por Abas na Sidebar */}
+        <nav className="flex-1 space-y-1 overflow-y-auto pr-1">
           <button 
             onClick={() => setActiveTab('painel')}
-            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-200 border border-transparent ${
+            className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center px-1' : 'gap-3 px-3'} py-2.5 rounded-xl transition-all font-semibold ${
               activeTab === 'painel' 
-                ? 'bg-slate-700 text-white shadow-md shadow-slate-500/20 border-slate-700' 
-                : 'text-zinc-400 dark:text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-zinc-200 dark:hover:bg-zinc-900/50'
+                ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20' 
+                : 'text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 font-medium'
             }`}
+            title={isSidebarCollapsed ? 'Painel Diário' : ''}
           >
-            <Calendar size={14} />
-            Painel Diário
+            <Calendar size={20} />
+            {!isSidebarCollapsed && <span className="text-sm">Painel Diário</span>}
           </button>
           <button 
             onClick={() => setActiveTab('relatorio')}
-            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-200 border border-transparent ${
+            className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center px-1' : 'gap-3 px-3'} py-2.5 rounded-xl transition-all font-semibold ${
               activeTab === 'relatorio' 
-                ? 'bg-slate-700 text-white shadow-md shadow-slate-500/20 border-slate-700' 
-                : 'text-zinc-400 dark:text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-zinc-200 dark:hover:bg-zinc-900/50'
+                ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20' 
+                : 'text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 font-medium'
             }`}
+            title={isSidebarCollapsed ? 'Consistência' : ''}
           >
-            <BarChart3 size={14} />
-            Consistência
+            <BarChart3 size={20} />
+            {!isSidebarCollapsed && <span className="text-sm">Consistência</span>}
           </button>
-        </section>
+        </nav>
 
-        {/* Tab contents */}
-        <section className="animate-in fade-in duration-300">
+        {/* Rodapé da Sidebar */}
+        <div className="mt-auto pt-4 border-t border-zinc-100 dark:border-zinc-800 space-y-2">
+          {/* Alternador de Tema */}
+          <button 
+            onClick={toggleTheme}
+            className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center px-1' : 'gap-3 px-3'} py-2.5 rounded-xl transition-all text-zinc-550 dark:text-zinc-400 hover:text-zinc-850 dark:hover:text-white font-medium hover:bg-zinc-50 dark:hover:bg-zinc-800/50`}
+            title={theme === 'dark' ? 'Modo Claro' : 'Modo Escuro'}
+          >
+            {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+            {!isSidebarCollapsed && <span className="text-sm">{theme === 'dark' ? 'Modo Claro' : 'Modo Escuro'}</span>}
+          </button>
+          
+          {/* Voltar ao Hub */}
+          <button 
+            onClick={onBack}
+            className="w-full flex items-center justify-center gap-2 py-3 px-2 bg-zinc-105 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 rounded-xl transition-colors font-bold text-[11px] uppercase tracking-wider"
+            title="Voltar ao Hub"
+          >
+            <LayoutTemplate size={18} className={isSidebarCollapsed ? '' : 'shrink-0'} />
+            {!isSidebarCollapsed && <span>Voltar ao Hub</span>}
+          </button>
+        </div>
+      </aside>
+
+      {/* Conteúdo Principal à Direita */}
+      <div className="flex-1 flex flex-col h-screen overflow-hidden">
+        
+        {/* Top Header Simplificado */}
+        <header className="bg-white/50 dark:bg-zinc-900/50 backdrop-blur-md border-b border-zinc-250/20 dark:border-zinc-800/20 px-6 py-4 flex items-center justify-between shrink-0">
+          <div>
+            <h2 className="text-xl font-black text-zinc-800 dark:text-white tracking-tight uppercase">
+              {activeTab === 'painel' ? 'Painel Diário' : 'Consistência'}
+            </h2>
+            <p className="text-xs font-semibold text-zinc-550 dark:text-zinc-400 mt-0.5">
+              {activeTab === 'painel' ? 'Acompanhamento de hábitos diários' : 'Relatório de consistência e heatmap'}
+            </p>
+          </div>
+          
+          <div className="flex items-center gap-4">
+            <div className="text-right">
+              <p className="text-[9px] font-black uppercase tracking-wider text-zinc-400 leading-none">Usuário</p>
+              <p className="text-xs font-extrabold text-zinc-900 dark:text-white leading-none mt-1">{userName}</p>
+            </div>
+          </div>
+        </header>
+
+        {/* Scrollable Main Area */}
+        <div className="flex-1 overflow-y-auto px-6 py-6 custom-scrollbar">
+          <div className="max-w-6xl mx-auto flex flex-col gap-6">
+            
+            {/* Top Stats Grid */}
+            <section className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {/* Consistency card */}
+              <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-4 shadow-sm flex items-center gap-4 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
+                <div className="p-3 rounded-xl bg-slate-100 dark:bg-slate-500/20 text-slate-700 dark:text-slate-350 shrink-0 border border-zinc-200 dark:border-zinc-800">
+                  <TrendingUp size={20} />
+                </div>
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400 leading-none">Consistência</p>
+                  <p className="text-xl font-black text-zinc-900 dark:text-white mt-2.5 leading-none">{last7DaysRate}%</p>
+                  <p className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 mt-1.5 leading-none">Últimos 7 dias</p>
+                </div>
+              </div>
+
+              {/* Streak card */}
+              <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-4 shadow-sm flex items-center gap-4 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
+                <div className="p-3 rounded-xl bg-orange-500/10 dark:bg-orange-500/20 text-orange-600 dark:text-orange-450 shrink-0 border border-orange-200/30 dark:border-orange-950/20">
+                  <Flame size={20} />
+                </div>
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400 leading-none">Sequência</p>
+                  <p className="text-xl font-black text-zinc-900 dark:text-white mt-2.5 leading-none">{currentStreak} {currentStreak === 1 ? 'dia' : 'dias'}</p>
+                  <p className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 mt-1.5 leading-none">Recorde ativo</p>
+                </div>
+              </div>
+
+              {/* Active Habits card */}
+              <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-4 shadow-sm flex items-center gap-4 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
+                <div className="p-3 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-450 shrink-0 border border-emerald-200/30 dark:border-emerald-950/20">
+                  <ClipboardList size={20} />
+                </div>
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400 leading-none">Hábitos</p>
+                  <p className="text-xl font-black text-zinc-900 dark:text-white mt-2.5 leading-none">{totalHabitsCount}</p>
+                  <p className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 mt-1.5 leading-none">Cadastrados</p>
+                </div>
+              </div>
+
+              {/* Total Completions card */}
+              <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-805 rounded-2xl p-4 shadow-sm flex items-center gap-4 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
+                <div className="p-3 rounded-xl bg-blue-500/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-450 shrink-0 border border-blue-200/30 dark:border-blue-950/20">
+                  <CheckCircle2 size={20} />
+                </div>
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-widest text-zinc-550 dark:text-zinc-450 leading-none">Conclusões</p>
+                  <p className="text-xl font-black text-zinc-900 dark:text-white mt-2.5 leading-none">{totalCompletions}</p>
+                  <p className="text-[10px] font-bold text-zinc-550 dark:text-zinc-450 mt-1.5 leading-none">Total histórico</p>
+                </div>
+              </div>
+            </section>
+
+            {/* Tab contents */}
+            <section className="animate-in fade-in duration-300">
           
           {activeTab === 'painel' ? (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -635,7 +716,9 @@ export default function HabitosHub({ onBack, theme, toggleTheme, userName }: Hab
 
         </section>
 
-      </main>
+          </div>
+        </div>
+      </div>
 
     </div>
   );

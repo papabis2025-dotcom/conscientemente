@@ -127,39 +127,69 @@ export const api = {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return [];
             const data = await handleRequest<any[]>(supabase.from('simulados').select('*').eq('user_id', user.id).order('date', { ascending: false }));
-            return (data || []).map((s: any) => ({
-                id: s.id,
-                name: s.name,
-                date: s.date,
-                totalQuestions: s.total_questions,
-                results: s.results,
-                durationInMinutes: s.duration_minutes || 0
-            }));
+            return (data || []).map((s: any) => {
+                let durationInMinutes = 0;
+                let results = s.results;
+                
+                // Se results for um objeto com a estrutura nova
+                if (s.results && !Array.isArray(s.results) && typeof s.results === 'object') {
+                    durationInMinutes = s.results.durationInMinutes || 0;
+                    results = s.results.subjectResults || [];
+                }
+                
+                return {
+                    id: s.id,
+                    name: s.name,
+                    date: s.date,
+                    totalQuestions: s.total_questions,
+                    results: results,
+                    durationInMinutes: durationInMinutes
+                };
+            });
         },
         create: async (simulado: Omit<Simulado, 'user_id' | 'created_at'> & { id?: string }) => {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) throw new Error('Not authenticated');
 
-            return handleRequest<Simulado>(supabase.from('simulados').insert({
+            const payloadResults = {
+                durationInMinutes: simulado.durationInMinutes || 0,
+                subjectResults: simulado.results || []
+            };
+
+            const data = await handleRequest<any>(supabase.from('simulados').insert({
                 id: simulado.id || crypto.randomUUID(),
                 user_id: user.id,
                 name: simulado.name,
                 date: simulado.date,
                 total_questions: simulado.totalQuestions,
-                results: simulado.results,
-                duration_minutes: simulado.durationInMinutes || 0
+                results: payloadResults
             }).select().single());
+
+            if (!data) return null;
+
+            return {
+                id: data.id,
+                name: data.name,
+                date: data.date,
+                totalQuestions: data.total_questions,
+                results: simulado.results,
+                durationInMinutes: simulado.durationInMinutes || 0
+            } as any;
         },
         update: async (id: string, simulado: Simulado) => {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) throw new Error('Not authenticated');
 
+            const payloadResults = {
+                durationInMinutes: simulado.durationInMinutes || 0,
+                subjectResults: simulado.results || []
+            };
+
             return handleRequest(supabase.from('simulados').update({
                 name: simulado.name,
                 date: simulado.date,
                 total_questions: simulado.totalQuestions,
-                results: simulado.results,
-                duration_minutes: simulado.durationInMinutes || 0
+                results: payloadResults
             }).eq('id', id));
         },
         delete: async (id: string) => handleRequest(supabase.from('simulados').delete().eq('id', id)),

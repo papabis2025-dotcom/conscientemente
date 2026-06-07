@@ -1971,7 +1971,7 @@ const HubHome: React.FC<HubHomeProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-12 gap-6">
               
               {/* Calendário Mensal (Grade) */}
-              <div className="sm:col-span-6 flex flex-col gap-2">
+              <div className="sm:col-span-8 flex flex-col gap-2">
                 {/* Header do calendário com botões de navegação */}
                 <div className="flex justify-between items-center px-1">
                   <h3 className="text-xs font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest flex items-center gap-2">
@@ -2077,7 +2077,7 @@ const HubHome: React.FC<HubHomeProps> = ({
               </div>
 
               {/* Lista de Compromissos do Dia (Direita) */}
-              <div className="sm:col-span-6 flex flex-col gap-3 min-w-0 sm:border-l sm:border-zinc-200/20 dark:sm:border-zinc-800/20 sm:pl-6">
+              <div className="sm:col-span-4 flex flex-col gap-3 min-w-0 sm:border-l sm:border-zinc-200/20 dark:sm:border-zinc-800/20 sm:pl-6">
                 <div className="flex justify-between items-center px-1">
                   <h4 className="text-[9px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest">
                     Compromissos do Dia

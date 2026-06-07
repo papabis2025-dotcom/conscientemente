@@ -323,7 +323,7 @@ export default function HabitosHub({ onBack, theme, toggleTheme, userName }: Hab
             <div>
               <p className="text-xs font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400 leading-none">Sequência</p>
               <p className="text-xl font-black text-zinc-900 dark:text-white mt-2.5 leading-none">{currentStreak} {currentStreak === 1 ? 'dia' : 'dias'}</p>
-              <p className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 mt-1.5 leading-none">Recorde ativo 🔥</p>
+              <p className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 mt-1.5 leading-none">Recorde ativo</p>
             </div>
           </div>
 

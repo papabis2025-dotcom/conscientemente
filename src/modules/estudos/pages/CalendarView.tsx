@@ -1,11 +1,13 @@
 import React, { useState, useMemo } from 'react';
-import { Subject, ScheduledStudy, ActivityType, StudySession } from '../types';
+import { Subject, ScheduledStudy, ActivityType, StudySession, Simulado } from '../types';
 import { getBadgeStyle } from '../utils/colors';
+import { FileText, Layers, Video, BookOpen, Clipboard, Book, Clock } from 'lucide-react';
 
 interface CalendarViewProps {
   subjects: Subject[]; // For dropdown (filtered)
   allSubjects?: Subject[]; // For lookup (global)
   scheduledStudies: ScheduledStudy[];
+  simulados: Simulado[];
   onUpdateSchedule: (studies: ScheduledStudy[]) => void;
   onDelete: (id: string) => void;
   onAddSession?: (session: StudySession) => void;
@@ -19,6 +21,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   subjects, 
   allSubjects, 
   scheduledStudies, 
+  simulados,
   onUpdateSchedule, 
   onDelete, 
   onAddSession, 
@@ -177,7 +180,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       results: sim.results
     }));
 
-    return [...dayTasks, ...virtualSims];
+    return [...dayTasks, ...virtualSims] as any[];
   };
 
   const tasksForSelectedDay = getDailyTasks(selectedDayKey || '');
@@ -193,20 +196,21 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   }, [currentDate]);
 
   const getActivityIcon = (type?: ActivityType) => {
+    const size = 12;
     switch (type) {
-      case 'Questões': return '📝';
-      case 'Flashcards': return '🎴';
-      case 'Aula': return '🎥';
-      case 'Leitura': return '📖';
-      case 'Simulado': return '📋';
-      default: return '📚';
+      case 'Questões': return <FileText size={size} />;
+      case 'Flashcards': return <Layers size={size} />;
+      case 'Aula': return <Video size={size} />;
+      case 'Leitura': return <BookOpen size={size} />;
+      case 'Simulado': return <Clipboard size={size} />;
+      default: return <Book size={size} />;
     }
   };
 
   const handleTaskClick = (e: React.MouseEvent, task: any) => {
     e.stopPropagation();
     if (task.isSimuladoVirtual) {
-      alert(`🏆 Simulado: ${task.name}\n⏱️ Duração: ${task.durationInMinutes} min\n📝 Questões: ${task.questionsCorrect}/${task.questionsDone} acertos (${task.questionsDone > 0 ? Math.round((task.questionsCorrect / task.questionsDone) * 100) : 0}%)`);
+      alert(`Simulado: ${task.name}\nDuração: ${task.durationInMinutes} min\nQuestões: ${task.questionsCorrect}/${task.questionsDone} acertos (${task.questionsDone > 0 ? Math.round((task.questionsCorrect / task.questionsDone) * 100) : 0}%)`);
       return;
     }
     setSelectedDayKey(task.date || task.date.split('T')[0]);
@@ -248,10 +252,10 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                             onClick={(e) => handleTaskClick(e, task)}
                             className="p-3 rounded-2xl text-xs font-bold border-2 border-amber-400 bg-gradient-to-r from-amber-500/10 to-orange-500/10 text-amber-900 dark:text-amber-250 cursor-pointer transition-all hover:scale-[1.02] active:scale-95 shadow-sm"
                           >
-                            <span className="flex items-center gap-1 font-black text-amber-600 dark:text-amber-400">🏆 SIMULADO</span>
+                            <span className="flex items-center gap-1 font-black text-amber-600 dark:text-amber-400">SIMULADO</span>
                             <p className="font-black truncate mt-1 text-sm">{task.name}</p>
-                            <p className="text-[10px] opacity-90 mt-1 font-bold">
-                              ⏱️ {task.durationInMinutes} min | 📝 {task.questionsCorrect}/{task.questionsDone} Qs
+                            <p className="text-[10px] opacity-90 mt-1 font-bold flex items-center gap-1">
+                              <Clock size={10} /> {task.durationInMinutes} min | <FileText size={10} /> {task.questionsCorrect}/{task.questionsDone} Qs
                             </p>
                             <div className="flex flex-wrap gap-1 mt-1.5">
                               {(task.results || []).map((r: any, idx: number) => {
@@ -326,9 +330,9 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                               className="px-2 py-1.5 rounded-lg text-[10px] leading-tight font-black border-2 border-amber-400 bg-amber-500/10 text-amber-900 dark:text-amber-200 cursor-pointer transition-all hover:scale-[1.02] active:scale-95 shadow-sm"
                             >
                               <div className="flex flex-col gap-0.5">
-                                <span>🏆 {t.name}</span>
-                                <span className="text-[8px] opacity-80 font-bold">
-                                  {t.durationInMinutes}m | {t.questionsCorrect}/{t.questionsDone} Qs
+                                <span>{t.name}</span>
+                                <span className="text-[8px] opacity-80 font-bold flex items-center gap-1">
+                                  <Clock size={8} /> {t.durationInMinutes}m | <FileText size={8} /> {t.questionsCorrect}/{t.questionsDone} Qs
                                 </span>
                               </div>
                             </div>
@@ -344,7 +348,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                             className={`px-2 py-1.5 rounded-lg text-[10px] leading-tight font-bold line-clamp-2 ${className} cursor-pointer transition-all hover:scale-[1.02] active:scale-95`}
                           >
                             <div className="flex flex-col gap-0.5">
-                              <span className="truncate">{t.activityType === 'Simulado' ? '📋 ' : ''}{sub ? sub.name : 'Disciplina Removida'}</span>
+                              <span className="truncate">{sub ? sub.name : 'Disciplina Removida'}</span>
                               {t.topicId && sub && (
                                 <span className="text-[8px] opacity-80 font-medium line-clamp-1 italic">
                                   {sub.topics.find(top => top.id === t.topicId)?.title}
@@ -413,7 +417,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                     key={task.id} 
                     onClick={() => {
                       if (task.isSimuladoVirtual) {
-                        alert(`🏆 Simulado: ${task.name}\n⏱️ Duração: ${task.durationInMinutes} min\n📝 Questões: ${task.questionsCorrect}/${task.questionsDone} acertos`);
+                        alert(`Simulado: ${task.name}\nDuração: ${task.durationInMinutes} min\nQuestões: ${task.questionsCorrect}/${task.questionsDone} acertos`);
                         return;
                       }
                       setEditingTask(task);
@@ -449,7 +453,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                       </button>
                     )}
                     <p className="text-[8px] font-black uppercase text-zinc-900 dark:text-zinc-100 mb-1 flex justify-between items-center">
-                      <span>{task.isSimuladoVirtual ? '🏆 SIMULADO' : task.activityType}</span>
+                      <span>{task.isSimuladoVirtual ? 'SIMULADO' : task.activityType}</span>
                       <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded-full ${
                         task.isSimuladoVirtual
                           ? 'bg-amber-150 text-amber-800 dark:bg-amber-950/30 dark:text-amber-400 font-black'

@@ -42,7 +42,7 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
     filteredSubjects,
     allSubjects,
     activeConcurso,
-    handleLogout: logout, addSession, addSimulado,
+    handleLogout: logout, addSession, addSimulado, updateSimulado,
     deleteSimulado, deleteSession, clearLogs, deleteLog, updateProfile,
     globalDailyGoal, studyTasks, setStudyTasks, toggleScheduledStudyStatus, updateScheduledStudy,
     resetStudyHubDataOnly
@@ -149,7 +149,7 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
 
   if (!currentUser) {
     return <LoginView users={users} onLogin={setCurrentUser} onCreateFirstUser={(name, pass) => {
-      const newUser = { id: crypto.randomUUID(), name, password: pass, avatar: '🎓' };
+      const newUser = { id: crypto.randomUUID(), name, password: pass, avatar: 'student' };
       const newUsers = [...users, newUser];
       setUsers(newUsers);
       setCurrentUser(newUser);

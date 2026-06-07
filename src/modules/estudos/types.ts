@@ -70,6 +70,7 @@ export interface Simulado {
   date: string;
   totalQuestions: number;
   results: SimuladoSubjectResult[];
+  durationInMinutes?: number;
 }
 
 export type ActivityType = 'Questões' | 'Leitura' | 'Aula' | 'Simulado' | 'Flashcards';

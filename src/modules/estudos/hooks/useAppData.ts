@@ -165,7 +165,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                         id: session.user.id,
                         name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Estudante',
                         password: '',
-                        avatar: session.user.user_metadata?.avatar || '🎓',
+                        avatar: session.user.user_metadata?.avatar || 'student',
                         email: session.user.email
                     });
                 } else {
@@ -184,7 +184,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                         id: session.user.id,
                         name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Estudante',
                         password: '',
-                        avatar: session.user.user_metadata?.avatar || '🎓',
+                        avatar: session.user.user_metadata?.avatar || 'student',
                         email: session.user.email
                     });
                 } else {
@@ -243,10 +243,19 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
     }, [selectedConcursoId, activeConcurso, allSubjects]);
 
     const filteredSessions = useMemo(() => {
-        if (selectedConcursoId === 'all') return sessions;
+        const activeSimDates = new Set((simulados || []).map(sim => sim.date));
+        const validSessions = sessions.filter(s => {
+            if (s.isSimulado || s.activityType === 'Simulado') {
+                const sDate = s.date.split('T')[0];
+                return activeSimDates.has(sDate);
+            }
+            return true;
+        });
+
+        if (selectedConcursoId === 'all') return validSessions;
         const subIds = new Set((activeConcurso?.subjects || []).map(s => s.id));
-        return sessions.filter(s => subIds.has(s.subjectId));
-    }, [sessions, selectedConcursoId, activeConcurso]);
+        return validSessions.filter(s => subIds.has(s.subjectId));
+    }, [sessions, simulados, selectedConcursoId, activeConcurso]);
 
     const filteredSimulados = useMemo(() => {
         if (selectedConcursoId === 'all') return simulados;
@@ -257,10 +266,19 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
     }, [simulados, selectedConcursoId, activeConcurso]);
 
     const filteredScheduledStudies = useMemo(() => {
-        if (selectedConcursoId === 'all') return scheduledStudies;
+        const activeSimDates = new Set((simulados || []).map(sim => sim.date));
+        const validScheduled = scheduledStudies.filter(s => {
+            if (s.activityType === 'Simulado' && s.status === 'realizado') {
+                const sDate = s.date?.split('T')[0];
+                return activeSimDates.has(sDate);
+            }
+            return true;
+        });
+
+        if (selectedConcursoId === 'all') return validScheduled;
         const subIds = new Set((activeConcurso?.subjects || []).map(s => s.id));
-        return scheduledStudies.filter(s => subIds.has(s.subjectId));
-    }, [scheduledStudies, selectedConcursoId, activeConcurso]);
+        return validScheduled.filter(s => subIds.has(s.subjectId));
+    }, [scheduledStudies, simulados, selectedConcursoId, activeConcurso]);
 
     const filteredStudyTasks = useMemo(() => {
         if (selectedConcursoId === 'all') return studyTasks;

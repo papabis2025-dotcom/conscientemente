@@ -238,7 +238,7 @@ const ModuleCard: React.FC<ModuleCardProps> = ({
         <div className="flex-1 flex flex-col">
           <div className="flex items-start justify-between mb-2">
             <div className={`w-8 h-8 rounded-lg flex items-center justify-center shadow-sm group-hover:shadow-md group-hover:scale-105 transition-all duration-300 ${colors.icon} ${module.available ? '' : 'opacity-50 grayscale'}`}>
-              {iconMap[module.id] ? React.cloneElement(iconMap[module.id] as React.ReactElement, { size: 16, strokeWidth: 2.5 }) : <TrendingUp size={16} />}
+              {iconMap[module.id] ? React.cloneElement(iconMap[module.id] as any, { size: 16, strokeWidth: 2.5 }) : <TrendingUp size={16} />}
             </div>
             {!module.available ? (
               <span className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-zinc-400 dark:text-zinc-500 bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded-full">
@@ -506,7 +506,7 @@ const HubHome: React.FC<HubHomeProps> = ({
         })),
         ...simuladosFiltered.map((sim: any) => ({
           id: sim.id,
-          text: `🏆 SIMULADO: ${sim.name} (${sim.duration_minutes || sim.durationInMinutes || 0} min)`,
+          text: `SIMULADO: ${sim.name} (${sim.duration_minutes || sim.durationInMinutes || 0} min)`,
           date: sim.date?.split('T')[0] || sim.date,
           completed: true,
           isSimulado: true
@@ -1060,9 +1060,9 @@ const HubHome: React.FC<HubHomeProps> = ({
       const a = document.createElement('a');
       a.href = url; a.download = `conscientemente-backup-${new Date().toISOString().split('T')[0]}.json`;
       document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
-      alert('✅ Dados exportados com sucesso!');
+      alert('Dados exportados com sucesso!');
     } catch (error) {
-      console.error(error); alert('❌ Erro ao exportar dados.');
+      console.error(error); alert('Erro ao exportar dados.');
     } finally { setIsExporting(false); }
   };
 
@@ -1093,16 +1093,16 @@ const HubHome: React.FC<HubHomeProps> = ({
         });
       }
 
-      alert('✅ Dados importados com sucesso! Recarregue a página.');
+      alert('Dados importados com sucesso! Recarregue a página.');
       window.location.reload();
     } catch (error) {
-      console.error(error); alert('❌ Erro ao importar dados.');
+      console.error(error); alert('Erro ao importar dados.');
     } finally { setIsImporting(false); if (fileRef.current) fileRef.current.value = ''; }
   };
 
   const handleResetAllData = async () => {
-    if (confirm('⚠️ TEM CERTEZA? Isso apagará TODOS os seus dados permanentemente.') &&
-        confirm('⛔ Último aviso: Essa ação não pode ser desfeita. Confirmar reset total?')) {
+    if (confirm('TEM CERTEZA? Isso apagará TODOS os seus dados permanentemente.') &&
+        confirm('Último aviso: Essa ação não pode ser desfeita. Confirmar reset total?')) {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
@@ -1124,7 +1124,7 @@ const HubHome: React.FC<HubHomeProps> = ({
             localStorage.removeItem(key);
           }
         });
-        alert('✅ Todos os dados foram apagados. O sistema foi resetado.');
+        alert('Todos os dados foram apagados. O sistema foi resetado.');
         window.location.reload();
       } catch (e) {
         console.error(e);
@@ -1135,26 +1135,26 @@ const HubHome: React.FC<HubHomeProps> = ({
 
   const handlePasswordChange = async () => {
     setPasswordMessage('');
-    if (!newPassword || !confirmPassword) { setPasswordMessage('❌ Preencha todos os campos'); return; }
-    if (newPassword !== confirmPassword) { setPasswordMessage('❌ As senhas não coincidem'); return; }
-    if (newPassword.length < 6) { setPasswordMessage('❌ A senha deve ter pelo menos 6 caracteres'); return; }
+    if (!newPassword || !confirmPassword) { setPasswordMessage('Preencha todos os campos'); return; }
+    if (newPassword !== confirmPassword) { setPasswordMessage('As senhas não coincidem'); return; }
+    if (newPassword.length < 6) { setPasswordMessage('A senha deve ter pelo menos 6 caracteres'); return; }
     try {
       const { error } = await supabase.auth.updateUser({ password: newPassword });
       if (error) throw error;
-      setPasswordMessage('✅ Senha alterada com sucesso!');
+      setPasswordMessage('Senha alterada com sucesso!');
       setNewPassword(''); setConfirmPassword('');
-    } catch (error: any) { setPasswordMessage(`❌ Erro: ${error.message}`); }
+    } catch (error: any) { setPasswordMessage(`Erro: ${error.message}`); }
   };
 
   const handleEmailChange = async () => {
     setEmailMessage('');
-    if (!newEmail) { setEmailMessage('❌ Digite o novo e-mail'); return; }
+    if (!newEmail) { setEmailMessage('Digite o novo e-mail'); return; }
     try {
       const { error } = await supabase.auth.updateUser({ email: newEmail });
       if (error) throw error;
-      setEmailMessage('✅ E-mail de confirmação enviado! Verifique sua caixa de entrada.');
+      setEmailMessage('E-mail de confirmação enviado! Verifique sua caixa de entrada.');
       setNewEmail('');
-    } catch (error: any) { setEmailMessage(`❌ Erro: ${error.message}`); }
+    } catch (error: any) { setEmailMessage(`Erro: ${error.message}`); }
   };
 
   const handleTogglePushNotifications = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1164,7 +1164,7 @@ const HubHome: React.FC<HubHomeProps> = ({
       if (granted) {
         setPushEnabled(true);
         localStorage.setItem('cn_push_notifications_enabled', 'true');
-        triggerLocalNotification('Notificações Ativas 🔔', 'Você receberá alertas das tarefas limite.');
+        triggerLocalNotification('Notificações Ativas', 'Você receberá alertas das tarefas limite.');
       } else {
         alert('Por favor, autorize a permissão de notificações no seu navegador/dispositivo.');
         setPushEnabled(false);

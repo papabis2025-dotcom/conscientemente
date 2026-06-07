@@ -34,7 +34,7 @@ const LogView: React.FC<LogViewProps> = ({ logs, onClearLogs, onDeleteLog }) => 
       <div className="bg-white dark:bg-zinc-900 rounded-[2.5rem] border border-zinc-200 dark:border-zinc-800 p-6 shadow-sm overflow-hidden">
         {sortedLogs.length === 0 ? (
           <div className="text-center py-20 opacity-40">
-            <span className="text-4xl block mb-2">📜</span>
+            <div className="flex justify-center text-zinc-400 mb-2"><FileText size={40} /></div>
             <p className="font-bold uppercase tracking-widest text-xs">Nenhum registro encontrado</p>
           </div>
         ) : (

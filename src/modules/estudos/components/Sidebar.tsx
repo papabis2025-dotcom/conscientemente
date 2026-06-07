@@ -161,7 +161,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   const handleSaveProfile = () => {
     if (onUpdateUser && editName.trim()) {
-      onUpdateUser(editName, editAvatar || '🎓');
+      onUpdateUser(editName, editAvatar || 'student');
       setIsEditingProfile(false);
     }
   };

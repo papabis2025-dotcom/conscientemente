@@ -5,7 +5,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
   LabelList
 } from 'recharts';
-import { Eye, EyeOff, X, Trophy, Maximize2, Clock, Target } from 'lucide-react';
+import { Eye, EyeOff, X, Trophy, Maximize2, Clock, Target, BookOpen, Check } from 'lucide-react';
 
 import { Subject, StudySession, Concurso, Simulado, ScheduledStudy } from '../types';
 import { getColorHex } from '../utils/colors';
@@ -507,7 +507,7 @@ const Dashboard: React.FC<DashboardProps> = ({
         if (!bestSub && !bestTop) {
           return (
             <div className="flex flex-col items-center justify-center h-full opacity-60 space-y-2 py-4">
-              <div className="text-2xl animate-pulse">📚</div>
+              <div className="text-zinc-500 animate-pulse"><BookOpen className="w-6 h-6" /></div>
               <p className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 text-center uppercase tracking-wide">
                 Nenhuma disciplina ou assunto estudado ainda.
               </p>
@@ -644,7 +644,7 @@ const Dashboard: React.FC<DashboardProps> = ({
           <div className="flex flex-col h-full gap-2">
             {upcomingReviews.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full opacity-60 space-y-2">
-                <div className="w-9 h-9 rounded-full bg-zinc-50 dark:bg-zinc-800 flex items-center justify-center text-base shadow-sm">✅</div>
+                <div className="w-9 h-9 rounded-full bg-zinc-50 dark:bg-zinc-800 flex items-center justify-center text-zinc-500 shadow-sm"><Check className="w-5 h-5" /></div>
                 <p className="text-[10px] font-bold text-zinc-600 dark:text-zinc-300">Nenhuma atividade pendente!</p>
               </div>
             ) : (

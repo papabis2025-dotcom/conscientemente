@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '../services/supabase';
+import { Brain } from 'lucide-react';
 
 interface LoginProps {
   onLogin: () => void;
@@ -62,8 +63,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       <div className="w-full max-w-sm">
 
         {/* Logo / Brand */}
-        <div className="text-center mb-10">
-          <span className="text-5xl select-none">🧠</span>
+        <div className="text-center mb-10 flex flex-col items-center">
+          <Brain size={48} className="text-zinc-700 dark:text-zinc-300 animate-pulse" />
           <h1 className="text-2xl font-black text-zinc-800 dark:text-white mt-3 leading-none tracking-tight">
             Conscientemente
           </h1>

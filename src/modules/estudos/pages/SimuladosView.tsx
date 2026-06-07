@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Subject, Simulado, SimuladoSubjectResult } from '../types';
+import { Edit2, Trash2, Clock, TrendingDown } from 'lucide-react';
 
 interface SimuladosViewProps {
   subjects: Subject[];
@@ -139,13 +140,13 @@ const SimuladosView: React.FC<SimuladosViewProps> = ({ subjects, simulados, onAd
               </select>
               <input type="number" value={currentDone} onChange={(e) => setCurrentDone(e.target.value)} placeholder="Total" className="w-24 px-4 py-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl outline-none text-sm dark:text-white" />
               <input type="number" value={currentCorrect} onChange={(e) => setCurrentCorrect(e.target.value)} placeholder="Acertos" className="w-24 px-4 py-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl outline-none text-sm dark:text-white" />
-              <button onClick={addResultRow} className="bg-zinc-900 dark:bg-zinc-700 text-white px-6 py-2 rounded-xl font-bold text-xs uppercase hover:bg-zinc-800 dark:hover:bg-zinc-600">Add</button>
+              <button type="button" onClick={addResultRow} className="bg-zinc-900 dark:bg-zinc-700 text-white px-6 py-2 rounded-xl font-bold text-xs uppercase hover:bg-zinc-800 dark:hover:bg-zinc-600">Add</button>
             </div>
 
             <div className="space-y-2">
               {results.map((res, i) => {
                 const sub = subjects.find(s => s.id === res.subjectId);
-                const acc = Math.round((res.correct / res.done) * 100);
+                const acc = res.done > 0 ? Math.round((res.correct / res.done) * 100) : 0;
                 return (
                   <div key={i} className="flex items-center justify-between p-3 bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800">
                     <div className="flex items-center gap-3">
@@ -155,7 +156,7 @@ const SimuladosView: React.FC<SimuladosViewProps> = ({ subjects, simulados, onAd
                         <p className="text-[10px] text-zinc-400 mt-1">{res.correct} acertos de {res.done} questões ({acc}%)</p>
                       </div>
                     </div>
-                    <button onClick={() => removeResultRow(i)} className="text-rose-500 hover:text-rose-600">✕</button>
+                    <button type="button" onClick={() => removeResultRow(i)} className="text-rose-500 hover:text-rose-600">✕</button>
                   </div>
                 );
               })}
@@ -163,8 +164,8 @@ const SimuladosView: React.FC<SimuladosViewProps> = ({ subjects, simulados, onAd
           </div>
 
           <div className="flex justify-end gap-3">
-            <button onClick={handleCancel} className="px-6 py-3 text-zinc-400 font-bold uppercase text-xs">Cancelar</button>
-            <button onClick={handleSave} className="bg-emerald-500 text-white px-8 py-3 rounded-2xl font-black uppercase text-xs hover:bg-emerald-600 transition-all">
+            <button type="button" onClick={handleCancel} className="px-6 py-3 text-zinc-400 font-bold uppercase text-xs">Cancelar</button>
+            <button type="button" onClick={handleSave} className="bg-emerald-500 text-white px-8 py-3 rounded-2xl font-black uppercase text-xs hover:bg-emerald-600 transition-all">
               {editingId ? 'Salvar Alterações' : 'Salvar Simulado'}
             </button>
           </div>
@@ -172,9 +173,9 @@ const SimuladosView: React.FC<SimuladosViewProps> = ({ subjects, simulados, onAd
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {simulados.map(sim => {
-          const totalDone = sim.results.reduce((acc, r) => acc + r.done, 0);
-          const totalCorrect = sim.results.reduce((acc, r) => acc + r.correct, 0);
+        {(simulados || []).map(sim => {
+          const totalDone = (sim.results || []).reduce((acc, r) => acc + (r.done || 0), 0);
+          const totalCorrect = (sim.results || []).reduce((acc, r) => acc + (r.correct || 0), 0);
           const accuracy = totalDone > 0 ? Math.round((totalCorrect / totalDone) * 100) : 0;
 
           return (
@@ -185,8 +186,12 @@ const SimuladosView: React.FC<SimuladosViewProps> = ({ subjects, simulados, onAd
                   <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mt-1">{new Date(sim.date).toLocaleDateString('pt-BR')}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button onClick={() => handleEditClick(sim)} className="text-zinc-400 hover:text-blue-500 transition-colors p-1" title="Editar Simulado">✏️</button>
-                  <button onClick={() => confirm('Excluir simulado?') && onDeleteSimulado(sim.id)} className="text-zinc-350 hover:text-rose-500 transition-colors p-1" title="Excluir Simulado">🗑️</button>
+                  <button type="button" onClick={() => handleEditClick(sim)} className="text-zinc-450 hover:text-blue-500 transition-colors p-1" title="Editar Simulado">
+                    <Edit2 size={14} />
+                  </button>
+                  <button type="button" onClick={() => confirm('Excluir simulado?') && onDeleteSimulado(sim.id)} className="text-zinc-350 hover:text-rose-500 transition-colors p-1" title="Excluir Simulado">
+                    <Trash2 size={14} />
+                  </button>
                 </div>
               </div>
 
@@ -197,18 +202,18 @@ const SimuladosView: React.FC<SimuladosViewProps> = ({ subjects, simulados, onAd
                 </div>
                 <div className="text-right">
                   <p className="text-sm font-black text-zinc-700 dark:text-zinc-300">{totalCorrect}/{totalDone}</p>
-                  <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mt-0.5">
-                    {sim.durationInMinutes ? `⏱️ ${sim.durationInMinutes} min` : '⏱️ —'}
+                  <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mt-1 flex items-center justify-end gap-1 font-mono">
+                    <Clock size={10} /> {sim.durationInMinutes ? `${sim.durationInMinutes} min` : '—'}
                   </p>
-                  <p className="text-[8px] font-black text-zinc-400 uppercase tracking-widest">Acertos/Questões</p>
+                  <p className="text-[8px] font-black text-zinc-400 uppercase tracking-widest mt-1">Acertos/Questões</p>
                 </div>
               </div>
 
               <div className="space-y-1 mt-4 max-h-32 overflow-y-auto pr-1 custom-scrollbar">
-                {sim.results.map((res, i) => (
+                {(sim.results || []).map((res, i) => (
                   <div key={i} className="flex justify-between items-center text-[10px]">
                     <span className="text-zinc-500 dark:text-zinc-400 truncate max-w-[120px]">{subjects.find(s => s.id === res.subjectId)?.name}</span>
-                    <span className="font-bold text-zinc-700 dark:text-zinc-300">{Math.round((res.correct / res.done) * 100)}%</span>
+                    <span className="font-bold text-zinc-700 dark:text-zinc-300">{res.done > 0 ? Math.round((res.correct / res.done) * 100) : 0}%</span>
                   </div>
                 ))}
               </div>
@@ -216,9 +221,9 @@ const SimuladosView: React.FC<SimuladosViewProps> = ({ subjects, simulados, onAd
           );
         })}
 
-        {simulados.length === 0 && !isAdding && (
-          <div className="col-span-full py-20 text-center opacity-30">
-            <span className="text-5xl mb-4 block">📉</span>
+        {(simulados || []).length === 0 && !isAdding && (
+          <div className="col-span-full py-20 text-center opacity-30 flex flex-col items-center justify-center gap-3">
+            <TrendingDown size={36} className="text-zinc-400" />
             <p className="font-black uppercase tracking-widest text-xs">Ainda não há simulados registrados</p>
           </div>
         )}

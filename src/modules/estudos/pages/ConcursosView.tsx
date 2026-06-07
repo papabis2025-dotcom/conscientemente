@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { AlertTriangle, Target } from 'lucide-react';
+import { AlertTriangle, Target, Edit2, Trash2, BookOpen } from 'lucide-react';
 import { Concurso } from '../types';
 
 interface ConcursosViewProps {
@@ -248,12 +248,12 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
                     onClick={() => startEditing(conc)}
                     className="text-zinc-300 hover:text-zinc-900 dark:text-zinc-300 transition-colors p-2"
                     title="Editar Concurso"
-                  >✎</button>
+                  ><Edit2 size={14} /></button>
                   <button
                     onClick={() => setDeleteConfirmation({ isOpen: true, id: conc.id, name: conc.name })}
                     className="text-zinc-200 hover:text-rose-500 transition-colors p-2"
                     title="Excluir Concurso"
-                  >🗑️</button>
+                  ><Trash2 size={14} /></button>
                 </div>
               </div>
 
@@ -299,7 +299,7 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
 
         {concursos.length === 0 && !isAdding && (
           <div className="col-span-full py-32 text-center bg-white dark:bg-zinc-900 rounded-[3rem] border border-dashed border-zinc-200 dark:border-zinc-800">
-            <span className="text-6xl mb-6 block">📝</span>
+            <BookOpen size={48} className="text-zinc-400 mx-auto mb-6 block" />
             <h3 className="text-xl font-black text-zinc-400 uppercase tracking-tighter">Nenhum edital cadastrado</h3>
             <p className="text-zinc-400 text-sm mt-2 mb-8">Comece adicionando o edital que você está estudando.</p>
             <button

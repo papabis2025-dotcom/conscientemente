@@ -299,7 +299,7 @@ const StudyPlan: React.FC<StudyPlanProps> = ({ subjects, sessions, studyTasks, o
                     <div className="bg-white dark:bg-zinc-900 rounded-[2.5rem] p-6 border border-zinc-200 dark:border-zinc-800 shadow-sm relative overflow-hidden">
                         <div className="relative z-10">
                             <h3 className="text-lg font-black text-zinc-800 dark:text-white uppercase tracking-tight mb-4 flex items-center gap-2">
-                                Sugestões da IA 🤖
+                                Sugestões da IA <Lightbulb className="w-5 h-5 text-amber-500" />
                             </h3>
                             <AISuggestions suggestions={generatedSuggestions} />
                         </div>

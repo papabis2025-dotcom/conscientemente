@@ -10,6 +10,7 @@ import TarefasApp from './modules/tarefas/App';
 import AnotacoesApp from './modules/anotacoes/App';
 import type { Session } from '@supabase/supabase-js';
 import { playSound } from './utils/audio';
+import { Brain } from 'lucide-react';
 
 interface SyncedPayload {
   updatedAt: number;
@@ -338,7 +339,9 @@ const App: React.FC = () => {
             hub_bg_type: loadedBgType,
             hub_bg_color: loadedBgColor,
             hub_bg_image_url: JSON.stringify(payload)
-          }, { onConflict: 'user_id' }).catch(err => console.error('Background upsert failed:', err));
+          }, { onConflict: 'user_id' }).then(({ error }) => {
+            if (error) console.error('Background upsert failed:', error);
+          });
 
         } else {
           // Initialize DB row with local settings
@@ -366,7 +369,9 @@ const App: React.FC = () => {
             hub_bg_type: bgType,
             hub_bg_color: bgColor,
             hub_bg_image_url: JSON.stringify(payload)
-          }, { onConflict: 'user_id' }).catch(err => console.error('Background upsert failed:', err));
+          }, { onConflict: 'user_id' }).then(({ error }) => {
+            if (error) console.error('Background upsert failed:', error);
+          });
         }
       } catch (err) {
         console.error('Error loading and syncing preferences:', err);
@@ -524,7 +529,9 @@ const App: React.FC = () => {
               hub_bg_type: bgType,
               hub_bg_color: bgColor,
               hub_bg_image_url: payloadJson
-            }, { onConflict: 'user_id' }).catch(err => console.error('pullAndMerge upsert failed:', err));
+            }, { onConflict: 'user_id' }).then(({ error }) => {
+              if (error) console.error('pullAndMerge upsert failed:', error);
+            });
           }
         }
       } catch (err) {
@@ -626,7 +633,7 @@ const App: React.FC = () => {
   if (loading || (session && !isPrefsLoaded)) {
     return (
       <div className="fixed inset-0 bg-zinc-50 dark:bg-zinc-950 flex items-center justify-center">
-        <span className="text-4xl animate-pulse select-none">🧠</span>
+        <Brain className="w-10 h-10 text-zinc-700 dark:text-zinc-300 animate-pulse" />
       </div>
     );
   }

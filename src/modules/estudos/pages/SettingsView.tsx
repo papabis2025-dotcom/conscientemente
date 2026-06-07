@@ -1,6 +1,6 @@
 
 import React, { useRef, useState } from 'react';
-import { Settings } from 'lucide-react';
+import { Settings, Target } from 'lucide-react';
 import { supabase } from '../services/supabase';
 import { api } from '../services/api';
 import { useAppData } from '../hooks/useAppData';
@@ -66,10 +66,10 @@ const SettingsView: React.FC<SettingsViewProps> = ({ currentUserEmail }) => {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
-      alert('✅ Dados exportados com sucesso!');
+      alert('Dados exportados com sucesso!');
     } catch (error) {
       console.error('Export error:', error);
-      alert('❌ Erro ao exportar dados. Verifique o console.');
+      alert('Erro ao exportar dados. Verifique o console.');
     } finally {
       setIsExporting(false);
     }
@@ -124,11 +124,11 @@ const SettingsView: React.FC<SettingsViewProps> = ({ currentUserEmail }) => {
         }
       }
 
-      alert('✅ Dados importados com sucesso! Recarregue a página.');
+      alert('Dados importados com sucesso! Recarregue a página.');
       window.location.reload();
     } catch (error) {
       console.error('Import error:', error);
-      alert('❌ Erro ao importar dados. Verifique o formato do arquivo.');
+      alert('Erro ao importar dados. Verifique o formato do arquivo.');
     } finally {
       setIsImporting(false);
       if (fileRef.current) fileRef.current.value = '';
@@ -139,17 +139,17 @@ const SettingsView: React.FC<SettingsViewProps> = ({ currentUserEmail }) => {
     setPasswordMessage('');
 
     if (!newPassword || !confirmPassword) {
-      setPasswordMessage('❌ Preencha todos os campos');
+      setPasswordMessage('Preencha todos os campos');
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setPasswordMessage('❌ As senhas não coincidem');
+      setPasswordMessage('As senhas não coincidem');
       return;
     }
 
     if (newPassword.length < 6) {
-      setPasswordMessage('❌ A senha deve ter pelo menos 6 caracteres');
+      setPasswordMessage('A senha deve ter pelo menos 6 caracteres');
       return;
     }
 
@@ -157,12 +157,12 @@ const SettingsView: React.FC<SettingsViewProps> = ({ currentUserEmail }) => {
       const { error } = await supabase.auth.updateUser({ password: newPassword });
       if (error) throw error;
 
-      setPasswordMessage('✅ Senha alterada com sucesso!');
+      setPasswordMessage('Senha alterada com sucesso!');
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
     } catch (error: any) {
-      setPasswordMessage(`❌ Erro: ${error.message}`);
+      setPasswordMessage(`Erro: ${error.message}`);
     }
   };
 
@@ -170,7 +170,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ currentUserEmail }) => {
     setEmailMessage('');
 
     if (!newEmail) {
-      setEmailMessage('❌ Digite o novo e-mail');
+      setEmailMessage('Digite o novo e-mail');
       return;
     }
 
@@ -178,10 +178,10 @@ const SettingsView: React.FC<SettingsViewProps> = ({ currentUserEmail }) => {
       const { error } = await supabase.auth.updateUser({ email: newEmail });
       if (error) throw error;
 
-      setEmailMessage('✅ E-mail de confirmação enviado! Verifique sua caixa de entrada.');
+      setEmailMessage('E-mail de confirmação enviado! Verifique sua caixa de entrada.');
       setNewEmail('');
     } catch (error: any) {
-      setEmailMessage(`❌ Erro: ${error.message}`);
+      setEmailMessage(`Erro: ${error.message}`);
     }
   };
 
@@ -200,7 +200,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ currentUserEmail }) => {
 
       {/* Preferências de Estudo */}
       <div className="bg-white dark:bg-zinc-900 p-8 rounded-[2.5rem] border border-zinc-200 dark:border-zinc-800 shadow-sm space-y-6">
-        <h3 className="font-bold text-lg flex items-center gap-2">🎯 Preferências de Estudo</h3>
+        <h3 className="font-bold text-lg flex items-center gap-2"><Target size={20} className="text-zinc-500" /> Preferências de Estudo</h3>
         <div className="space-y-4">
           <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Meta Diária de Questões</p>
           <div className="flex items-center gap-4">

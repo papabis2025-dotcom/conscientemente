@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { Edit2, Trash2 } from 'lucide-react';
 import { Category } from '../types';
 import { COLORS } from '../constants';
 
@@ -93,11 +94,11 @@ const CategoriesView: React.FC<CategoriesViewProps> = ({ categories, onUpdateCat
               )}
 
               <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button onClick={() => startEdit(cat)} className="text-zinc-400 hover:text-zinc-900 dark:text-zinc-300">
-                  ✏️
+                <button onClick={() => startEdit(cat)} className="text-zinc-400 hover:text-zinc-900 dark:text-zinc-300" title="Editar">
+                  <Edit2 size={14} />
                 </button>
-                <button onClick={() => deleteCategory(cat.id)} className="text-zinc-400 hover:text-rose-500">
-                  🗑️
+                <button onClick={() => deleteCategory(cat.id)} className="text-zinc-400 hover:text-rose-500" title="Excluir">
+                  <Trash2 size={14} />
                 </button>
               </div>
             </div>

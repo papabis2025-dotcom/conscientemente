@@ -241,8 +241,8 @@ const SaudePlannerView: React.FC<SaudePlannerViewProps> = ({
                           {act.status === 'planejado' ? <Clock size={10} className="shrink-0" /> : <CheckCircle2 size={10} className="shrink-0" />}
                         </button>
                       </div>
-                      {act.timeInMinutes !== undefined && act.timeInMinutes > 0 && <span className="opacity-80 font-medium text-[9px]">{act.timeInMinutes} min</span>}
-                      {act.distanceKm !== undefined && act.distanceKm > 0 && <span className="opacity-75 text-[8px]">{act.distanceKm} km</span>}
+                      {act.timeInMinutes !== undefined && act.timeInMinutes !== null && act.timeInMinutes > 0 && <span className="opacity-80 font-medium text-[9px]">{act.timeInMinutes} min</span>}
+                      {act.distanceKm !== undefined && act.distanceKm !== null && act.distanceKm > 0 && <span className="opacity-75 text-[8px]">{act.distanceKm} km</span>}
                       {act.type === 'Musculação' && act.muscles && act.muscles.length > 0 && (
                         <div className="flex flex-wrap gap-0.5 mt-0.5 max-h-[22px] overflow-hidden">
                           {act.muscles.map(m => (

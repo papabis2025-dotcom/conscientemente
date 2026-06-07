@@ -463,6 +463,23 @@ const HubHome: React.FC<HubHomeProps> = ({
         .gte('date', startOfMonth)
         .lte('date', endOfMonth);
 
+      // Normalizar simulados para lidar com o novo formato do campo JSONB 'results'
+      const normalizedSimulados = (dbSimulados || []).map((s: any) => {
+        let durationInMinutes = s.duration_minutes || 0;
+        let results = s.results;
+        
+        if (s.results && !Array.isArray(s.results) && typeof s.results === 'object') {
+          durationInMinutes = s.results.durationInMinutes || 0;
+          results = s.results.subjectResults || [];
+        }
+        
+        return {
+          ...s,
+          durationInMinutes,
+          results
+        };
+      });
+
       const activeConcursoId = localStorage.getItem('cp_selected_concurso_id') || 'all';
       let activeSubjectIds = new Set<string>();
       if (activeConcursoId !== 'all' && dbConcursos) {
@@ -478,13 +495,13 @@ const HubHome: React.FC<HubHomeProps> = ({
 
       let studyTasksFiltered = studyTasksRaw;
       let scheduledStudiesFiltered = scheduledStudiesRaw;
-      let simuladosFiltered = dbSimulados || [];
+      let simuladosFiltered = normalizedSimulados;
 
       if (activeConcursoId !== 'all') {
         studyTasksFiltered = studyTasksRaw.filter((t: any) => activeSubjectIds.has(t.subjectId));
         scheduledStudiesFiltered = scheduledStudiesRaw.filter((s: any) => activeSubjectIds.has(s.subjectId));
-        simuladosFiltered = (dbSimulados || []).filter((sim: any) => 
-          sim.results && sim.results.some((r: any) => activeSubjectIds.has(r.subjectId))
+        simuladosFiltered = normalizedSimulados.filter((sim: any) => 
+          sim.results && Array.isArray(sim.results) && sim.results.some((r: any) => activeSubjectIds.has(r.subjectId))
         );
       }
 
@@ -506,7 +523,7 @@ const HubHome: React.FC<HubHomeProps> = ({
         })),
         ...simuladosFiltered.map((sim: any) => ({
           id: sim.id,
-          text: `SIMULADO: ${sim.name} (${sim.duration_minutes || sim.durationInMinutes || 0} min)`,
+          text: `SIMULADO: ${sim.name} (${sim.durationInMinutes || 0} min)`,
           date: sim.date?.split('T')[0] || sim.date,
           completed: true,
           isSimulado: true

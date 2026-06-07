@@ -1,19 +1,20 @@
-
 import React, { useState } from 'react';
 import { Subject, Simulado, SimuladoSubjectResult } from '../types';
-import { GraduationCap } from 'lucide-react';
 
 interface SimuladosViewProps {
   subjects: Subject[];
   simulados: Simulado[];
   onAddSimulado: (sim: Simulado) => void;
   onDeleteSimulado: (id: string) => void;
+  onUpdateSimulado: (id: string, sim: Simulado) => void;
 }
 
-const SimuladosView: React.FC<SimuladosViewProps> = ({ subjects, simulados, onAddSimulado, onDeleteSimulado }) => {
+const SimuladosView: React.FC<SimuladosViewProps> = ({ subjects, simulados, onAddSimulado, onDeleteSimulado, onUpdateSimulado }) => {
   const [isAdding, setIsAdding] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [duration, setDuration] = useState('');
   const [results, setResults] = useState<SimuladoSubjectResult[]>([]);
 
   // Current subject being added to the list
@@ -43,16 +44,48 @@ const SimuladosView: React.FC<SimuladosViewProps> = ({ subjects, simulados, onAd
     }
 
     const totalQuestions = results.reduce((acc, r) => acc + r.done, 0);
-    const newSim: Simulado = {
-      id: crypto.randomUUID(),
-      name,
-      date,
-      totalQuestions,
-      results
-    };
+    const durationVal = parseInt(duration) || 0;
 
-    onAddSimulado(newSim);
-    setName(''); setResults([]); setIsAdding(false);
+    if (editingId) {
+      const updatedSim: Simulado = {
+        id: editingId,
+        name,
+        date,
+        totalQuestions,
+        results,
+        durationInMinutes: durationVal
+      };
+      onUpdateSimulado(editingId, updatedSim);
+    } else {
+      const newSim: Simulado = {
+        id: crypto.randomUUID(),
+        name,
+        date,
+        totalQuestions,
+        results,
+        durationInMinutes: durationVal
+      };
+      onAddSimulado(newSim);
+    }
+
+    handleCancel();
+  };
+
+  const handleEditClick = (sim: Simulado) => {
+    setEditingId(sim.id);
+    setName(sim.name);
+    setDate(sim.date);
+    setResults(sim.results || []);
+    setDuration(sim.durationInMinutes?.toString() || '');
+    setIsAdding(true);
+  };
+
+  const handleCancel = () => {
+    setName('');
+    setResults([]);
+    setDuration('');
+    setEditingId(null);
+    setIsAdding(false);
   };
 
   return (
@@ -65,7 +98,7 @@ const SimuladosView: React.FC<SimuladosViewProps> = ({ subjects, simulados, onAd
           <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">Avalie seu desempenho global em condições de prova.</p>
         </div>
         <button
-          onClick={() => setIsAdding(true)}
+          onClick={() => { handleCancel(); setIsAdding(true); }}
           className="bg-emerald-500 text-white px-6 py-3 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-emerald-600 shadow-lg shadow-emerald-500/20 active:scale-95 transition-all"
         >
           + Novo Simulado
@@ -74,9 +107,11 @@ const SimuladosView: React.FC<SimuladosViewProps> = ({ subjects, simulados, onAd
 
       {isAdding && (
         <div className="bg-white dark:bg-zinc-900 p-8 rounded-[2.5rem] border border-zinc-200 dark:border-zinc-800 shadow-xl animate-in slide-in-from-top-4">
-          <h3 className="text-xl font-black text-zinc-800 dark:text-white mb-6 uppercase tracking-tight">Registro de Simulado</h3>
+          <h3 className="text-xl font-black text-zinc-800 dark:text-white mb-6 uppercase tracking-tight">
+            {editingId ? 'Editar Simulado' : 'Registro de Simulado'}
+          </h3>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <div>
               <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1.5 block">Nome do Simulado</label>
               <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: Simulado Ciclo 1" className="w-full px-4 py-3 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-2xl outline-none focus:ring-2 focus:ring-zinc-500 text-zinc-800 dark:text-white" />
@@ -84,6 +119,10 @@ const SimuladosView: React.FC<SimuladosViewProps> = ({ subjects, simulados, onAd
             <div>
               <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1.5 block">Data</label>
               <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full px-4 py-3 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-2xl outline-none focus:ring-2 focus:ring-zinc-500 text-zinc-800 dark:text-white" />
+            </div>
+            <div>
+              <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1.5 block">Tempo de Realização (minutos)</label>
+              <input type="number" value={duration} onChange={(e) => setDuration(e.target.value)} placeholder="Ex: 180" className="w-full px-4 py-3 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-2xl outline-none focus:ring-2 focus:ring-zinc-500 text-zinc-800 dark:text-white" />
             </div>
           </div>
 
@@ -124,8 +163,10 @@ const SimuladosView: React.FC<SimuladosViewProps> = ({ subjects, simulados, onAd
           </div>
 
           <div className="flex justify-end gap-3">
-            <button onClick={() => setIsAdding(false)} className="px-6 py-3 text-zinc-400 font-bold uppercase text-xs">Cancelar</button>
-            <button onClick={handleSave} className="bg-emerald-500 text-white px-8 py-3 rounded-2xl font-black uppercase text-xs hover:bg-emerald-600 transition-all">Salvar Simulado</button>
+            <button onClick={handleCancel} className="px-6 py-3 text-zinc-400 font-bold uppercase text-xs">Cancelar</button>
+            <button onClick={handleSave} className="bg-emerald-500 text-white px-8 py-3 rounded-2xl font-black uppercase text-xs hover:bg-emerald-600 transition-all">
+              {editingId ? 'Salvar Alterações' : 'Salvar Simulado'}
+            </button>
           </div>
         </div>
       )}
@@ -143,7 +184,10 @@ const SimuladosView: React.FC<SimuladosViewProps> = ({ subjects, simulados, onAd
                   <h4 className="text-lg font-black text-zinc-800 dark:text-white leading-tight">{sim.name}</h4>
                   <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mt-1">{new Date(sim.date).toLocaleDateString('pt-BR')}</p>
                 </div>
-                <button onClick={() => confirm('Excluir simulado?') && onDeleteSimulado(sim.id)} className="text-zinc-200 group-hover:text-rose-500 transition-colors">🗑️</button>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => handleEditClick(sim)} className="text-zinc-400 hover:text-blue-500 transition-colors p-1" title="Editar Simulado">✏️</button>
+                  <button onClick={() => confirm('Excluir simulado?') && onDeleteSimulado(sim.id)} className="text-zinc-350 hover:text-rose-500 transition-colors p-1" title="Excluir Simulado">🗑️</button>
+                </div>
               </div>
 
               <div className="flex items-end justify-between mb-4">
@@ -153,6 +197,9 @@ const SimuladosView: React.FC<SimuladosViewProps> = ({ subjects, simulados, onAd
                 </div>
                 <div className="text-right">
                   <p className="text-sm font-black text-zinc-700 dark:text-zinc-300">{totalCorrect}/{totalDone}</p>
+                  <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mt-0.5">
+                    {sim.durationInMinutes ? `⏱️ ${sim.durationInMinutes} min` : '⏱️ —'}
+                  </p>
                   <p className="text-[8px] font-black text-zinc-400 uppercase tracking-widest">Acertos/Questões</p>
                 </div>
               </div>

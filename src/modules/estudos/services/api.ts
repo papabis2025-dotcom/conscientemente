@@ -132,7 +132,8 @@ export const api = {
                 name: s.name,
                 date: s.date,
                 totalQuestions: s.total_questions,
-                results: s.results
+                results: s.results,
+                durationInMinutes: s.duration_minutes || 0
             }));
         },
         create: async (simulado: Omit<Simulado, 'id' | 'user_id' | 'created_at'>) => {
@@ -144,8 +145,21 @@ export const api = {
                 name: simulado.name,
                 date: simulado.date,
                 total_questions: simulado.totalQuestions,
-                results: simulado.results
+                results: simulado.results,
+                duration_minutes: simulado.durationInMinutes || 0
             }).select().single());
+        },
+        update: async (id: string, simulado: Simulado) => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) throw new Error('Not authenticated');
+
+            return handleRequest(supabase.from('simulados').update({
+                name: simulado.name,
+                date: simulado.date,
+                total_questions: simulado.totalQuestions,
+                results: simulado.results,
+                duration_minutes: simulado.durationInMinutes || 0
+            }).eq('id', id));
         },
         delete: async (id: string) => handleRequest(supabase.from('simulados').delete().eq('id', id)),
         deleteAll: async () => {

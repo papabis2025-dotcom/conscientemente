@@ -451,12 +451,66 @@ const HubHome: React.FC<HubHomeProps> = ({
         .gte('date', startOfMonth)
         .lte('date', endOfMonth);
 
+      const { data: dbConcursos } = await supabase
+        .from('concursos')
+        .select('*')
+        .eq('user_id', user.id);
+
+      const { data: dbSimulados } = await supabase
+        .from('simulados')
+        .select('*')
+        .eq('user_id', user.id)
+        .gte('date', startOfMonth)
+        .lte('date', endOfMonth);
+
+      const activeConcursoId = localStorage.getItem('cp_selected_concurso_id') || 'all';
+      let activeSubjectIds = new Set<string>();
+      if (activeConcursoId !== 'all' && dbConcursos) {
+        const activeConc = dbConcursos.find((c: any) => c.id === activeConcursoId);
+        if (activeConc) {
+          const subjectsList = activeConc.subjects || [];
+          subjectsList.forEach((s: any) => activeSubjectIds.add(s.id));
+        }
+      }
+
       const studyTasksRaw = JSON.parse(localStorage.getItem('cp_study_tasks') || '[]');
       const scheduledStudiesRaw = JSON.parse(localStorage.getItem('cp_scheduled_studies') || '[]');
-      
+
+      let studyTasksFiltered = studyTasksRaw;
+      let scheduledStudiesFiltered = scheduledStudiesRaw;
+      let simuladosFiltered = dbSimulados || [];
+
+      if (activeConcursoId !== 'all') {
+        studyTasksFiltered = studyTasksRaw.filter((t: any) => activeSubjectIds.has(t.subjectId));
+        scheduledStudiesFiltered = scheduledStudiesRaw.filter((s: any) => activeSubjectIds.has(s.subjectId));
+        simuladosFiltered = (dbSimulados || []).filter((sim: any) => 
+          sim.results && sim.results.some((r: any) => activeSubjectIds.has(r.subjectId))
+        );
+      }
+
+      // Filter out individual simulado study sessions from scheduled studies
+      const nonSimuladoScheduledStudies = scheduledStudiesFiltered.filter((s: any) => s.activityType !== 'Simulado');
+
       const studiesList = [
-        ...studyTasksRaw.map((t: any) => ({ id: t.id, text: t.subjectName + ' - ' + (t.topicName || 'Geral'), date: t.date, completed: t.done })),
-        ...scheduledStudiesRaw.map((s: any) => ({ id: s.id, text: s.activityType + ' (' + (s.durationInMinutes || 0) + ' min)', date: s.date?.split('T')[0], completed: s.status === 'realizado' }))
+        ...studyTasksFiltered.map((t: any) => ({ 
+          id: t.id, 
+          text: t.subjectName + ' - ' + (t.topicName || 'Geral'), 
+          date: t.date, 
+          completed: t.done 
+        })),
+        ...nonSimuladoScheduledStudies.map((s: any) => ({ 
+          id: s.id, 
+          text: s.activityType + ' (' + (s.durationInMinutes || 0) + ' min)', 
+          date: s.date?.split('T')[0], 
+          completed: s.status === 'realizado' 
+        })),
+        ...simuladosFiltered.map((sim: any) => ({
+          id: sim.id,
+          text: `🏆 SIMULADO: ${sim.name} (${sim.duration_minutes || sim.durationInMinutes || 0} min)`,
+          date: sim.date?.split('T')[0] || sim.date,
+          completed: true,
+          isSimulado: true
+        }))
       ].filter(s => s.date >= startOfMonth && s.date <= endOfMonth);
 
       setCalendarEvents({
@@ -1913,7 +1967,7 @@ const HubHome: React.FC<HubHomeProps> = ({
         </div>
 
         {!calendarCollapsed && (
-          <div className="w-full bg-white/5 dark:bg-zinc-950/20 backdrop-blur-sm rounded-2xl border border-zinc-200/10 dark:border-zinc-800/10 p-4 opacity-75 hover:opacity-100 transition-all duration-300 animate-in fade-in slide-in-from-top-2">
+          <div className="w-full bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm rounded-2xl border border-zinc-200 dark:border-zinc-800 p-4 opacity-95 hover:opacity-100 transition-all duration-300 animate-in fade-in slide-in-from-top-2">
             <div className="grid grid-cols-1 sm:grid-cols-12 gap-6">
               
               {/* Calendário Mensal (Grade) */}
@@ -2137,7 +2191,7 @@ const HubHome: React.FC<HubHomeProps> = ({
         {!widgetsCollapsed && (
           <div className="w-full animate-in fade-in slide-in-from-top-2 duration-300">
             {/* Habit Tracker Section */}
-            <div className="w-full bg-white/5 dark:bg-zinc-950/20 backdrop-blur-sm rounded-2xl border border-zinc-200/10 dark:border-zinc-800/10 flex flex-col justify-between gap-3.5 p-4 overflow-hidden relative opacity-75 hover:opacity-100 transition-all duration-300">
+            <div className="w-full bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm rounded-2xl border border-zinc-200 dark:border-zinc-800 flex flex-col justify-between gap-3.5 p-4 overflow-hidden relative opacity-95 hover:opacity-100 transition-all duration-300">
               <div>
                 <div className="flex items-center justify-between mb-3">
                   <div>

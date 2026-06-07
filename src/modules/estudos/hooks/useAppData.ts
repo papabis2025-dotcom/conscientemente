@@ -346,12 +346,13 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         setSimulados(prev => [...prev, sim]);
         try {
             await api.simulados.create(sim);
+            const durationPerSubject = sim.durationInMinutes ? Math.round(sim.durationInMinutes / sim.results.length) : 0;
             sim.results.forEach(async res => {
                 const session: StudySession = {
                     id: crypto.randomUUID(),
                     subjectId: res.subjectId,
                     date: new Date(`${sim.date}T12:00:00`).toISOString(),
-                    durationInMinutes: 0,
+                    durationInMinutes: durationPerSubject,
                     questionsDone: res.done,
                     questionsCorrect: res.correct,
                     isSimulado: true
@@ -362,6 +363,45 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         } catch (e) {
             console.error('Error adding simulado:', e);
             setSaveError('Erro ao salvar simulado.');
+        }
+    };
+
+    const updateSimulado = async (id: string, updatedSim: Simulado) => {
+        setSaveError(null);
+        const oldSim = simulados.find(s => s.id === id);
+        setSimulados(prev => prev.map(s => s.id === id ? updatedSim : s));
+        try {
+            await api.simulados.update(id, updatedSim);
+            
+            // Delete associated sessions that were automatically created for the old state
+            if (oldSim) {
+                const oldTargetDate = new Date(`${oldSim.date}T12:00:00`).toISOString();
+                const sessionsToDelete = sessions.filter(s => s.isSimulado && s.date === oldTargetDate);
+                for (const sess of sessionsToDelete) {
+                    await deleteSession(sess.id);
+                }
+            }
+
+            // Create new sessions for the updated simulado
+            const newTargetDate = new Date(`${updatedSim.date}T12:00:00`).toISOString();
+            const durationPerSubject = updatedSim.durationInMinutes ? Math.round(updatedSim.durationInMinutes / updatedSim.results.length) : 0;
+            
+            for (const res of updatedSim.results) {
+                const session: StudySession = {
+                    id: crypto.randomUUID(),
+                    subjectId: res.subjectId,
+                    date: newTargetDate,
+                    durationInMinutes: durationPerSubject,
+                    questionsDone: res.done,
+                    questionsCorrect: res.correct,
+                    isSimulado: true
+                };
+                await addSession(session);
+            }
+            setLastSaved(new Date().toLocaleTimeString());
+        } catch (e) {
+            console.error('Error updating simulado:', e);
+            setSaveError('Erro ao atualizar simulado.');
         }
     };
 
@@ -669,6 +709,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         handleLogout,
         addSession,
         addSimulado,
+        updateSimulado,
         deleteSimulado,
         deleteSession,
         clearLogs,

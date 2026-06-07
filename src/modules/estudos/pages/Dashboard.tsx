@@ -168,7 +168,6 @@ const Dashboard: React.FC<DashboardProps> = ({
     });
 
     sessions.forEach(session => {
-      if (isSimuladoSession(session)) return;
       const sub = subjects.find(s => s.id === session.subjectId);
       if (sub && stats[sub.name]) {
         stats[sub.name].done += (session.questionsDone || 0);
@@ -200,7 +199,6 @@ const Dashboard: React.FC<DashboardProps> = ({
     const stats: Record<string, { done: number, correct: number, title: string, subjectName: string }> = {};
 
     sessions.forEach(session => {
-      if (isSimuladoSession(session)) return;
       if (!session.topicId) return;
 
       const sub = subjects.find(s => s.id === session.subjectId);
@@ -253,9 +251,9 @@ const Dashboard: React.FC<DashboardProps> = ({
     return ids;
   }, [concursos, subjects, selectedConcursoId]);
 
-  // Filter sessions relevant to the weekly chart (all subjects, no simulados)
+  // Filter sessions relevant to the weekly chart (all subjects, including simulados)
   const relevantSessions = useMemo(() => {
-    const filtered = sessions.filter(s => allSubjectIds.has(s.subjectId) && !isSimuladoSession(s));
+    const filtered = sessions.filter(s => allSubjectIds.has(s.subjectId));
     console.debug('[Dashboard] relevantSessions:', filtered.length, '/', sessions.length,
       '| sample dates:', filtered.slice(0, 3).map(s => s.date),
       '| allSubjectIds has sessions?', sessions.slice(0, 3).map(s => ({ id: s.subjectId, has: allSubjectIds.has(s.subjectId), isSimulado: isSimuladoSession(s) }))
@@ -271,7 +269,7 @@ const Dashboard: React.FC<DashboardProps> = ({
     const todayStr = `${year}-${month}-${day}`;
 
     const done = sessions
-      .filter(s => getLocalSessionDate(s.date) === todayStr && s.questionsDone !== undefined && !isSimuladoSession(s))
+      .filter(s => getLocalSessionDate(s.date) === todayStr && s.questionsDone !== undefined)
       .reduce((acc, s) => acc + (Number(s.questionsDone) || 0), 0);
     return { total: done, goal: globalDailyGoal || 20 };
   }, [sessions, globalDailyGoal]);
@@ -428,9 +426,9 @@ const Dashboard: React.FC<DashboardProps> = ({
   const renderWidgetContent = (id: string) => {
     switch (id) {
       case 'general_stats':
-        const totalDone = subjectStats.questionsData.reduce((acc, s) => acc + s.done, 0);
-        const totalCorrect = subjectStats.questionsData.reduce((acc, s) => acc + s.correct, 0);
-        const globalAccuracy = totalDone > 0 ? Math.round((totalCorrect / totalDone) * 100) : 0;
+        const generalDone = sessions.filter(s => !isSimuladoSession(s)).reduce((acc, s) => acc + (s.questionsDone || 0), 0);
+        const generalCorrect = sessions.filter(s => !isSimuladoSession(s)).reduce((acc, s) => acc + (s.questionsCorrect || 0), 0);
+        const globalAccuracy = generalDone > 0 ? Math.round((generalCorrect / generalDone) * 100) : 0;
 
         const simDone = simulados.reduce((acc, s) => acc + (s.results || []).reduce((a, r) => a + r.done, 0), 0);
         const simCorrect = simulados.reduce((acc, s) => acc + (s.results || []).reduce((a, r) => a + r.correct, 0), 0);
@@ -464,7 +462,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                   </svg>
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
                     <span className="text-xl font-black leading-none text-zinc-900 dark:text-white" style={{ color: globalColorHex }}>{globalAccuracy}%</span>
-                    <span className="text-[9px] text-zinc-400 dark:text-zinc-550 font-bold mt-1">{totalDone} q</span>
+                    <span className="text-[9px] text-zinc-400 dark:text-zinc-550 font-bold mt-1">{generalDone} q</span>
                   </div>
                 </div>
               </div>

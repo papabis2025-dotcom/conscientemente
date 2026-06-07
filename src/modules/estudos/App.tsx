@@ -119,7 +119,7 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
       case 'questions':
         return <QuestionsView subjects={filteredSubjects} sessions={sessions} dailyGoals={dailyGoals} onUpdateDailyGoals={setDailyGoals} onAddSession={addSession} onDeleteSession={deleteSession} />;
       case 'simulados':
-        return <SimuladosView subjects={filteredSubjects} simulados={simulados} onAddSimulado={addSimulado} onDeleteSimulado={deleteSimulado} />;
+        return <SimuladosView subjects={filteredSubjects} simulados={simulados} onAddSimulado={addSimulado} onDeleteSimulado={deleteSimulado} onUpdateSimulado={updateSimulado} />;
       case 'calendar':
         return <CalendarView
           subjects={filteredSubjects}
@@ -130,6 +130,7 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
           onAddSession={addSession}
           onToggleStatus={toggleScheduledStudyStatus}
           onUpdateScheduledStudy={updateScheduledStudy}
+          simulados={simulados}
         />;
       case 'study_plan':
         return <StudyPlan

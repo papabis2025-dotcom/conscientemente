@@ -154,7 +154,33 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   };
 
   const visibleScheduledStudies = scheduledStudies.filter(s => !(s.activityType === 'Simulado' && s.status === 'realizado'));
-  const tasksForSelectedDay = visibleScheduledStudies.filter(s => s.date && (s.date === selectedDayKey || s.date.split('T')[0] === selectedDayKey));
+
+  // A helper to get the tasks for a given day (date string YYYY-MM-DD)
+  // including both visibleScheduledStudies and the grouped virtual simulados.
+  const getDailyTasks = (dayKey: string) => {
+    const dayTasks = visibleScheduledStudies.filter(s => s.date && (s.date === dayKey || s.date.split('T')[0] === dayKey));
+    const daySims = (simulados || []).filter(sim => sim.date && (sim.date === dayKey || sim.date.split('T')[0] === dayKey));
+
+    const virtualSims = daySims.map(sim => ({
+      id: `sim-${sim.id}`,
+      date: dayKey,
+      subjectId: '',
+      activityType: 'Simulado' as ActivityType,
+      notes: sim.name,
+      isSimuladoVirtual: true,
+      simuladoId: sim.id,
+      name: sim.name,
+      durationInMinutes: sim.durationInMinutes || 0,
+      questionsDone: sim.results.reduce((acc, r) => acc + r.done, 0),
+      questionsCorrect: sim.results.reduce((acc, r) => acc + r.correct, 0),
+      status: 'realizado' as const,
+      results: sim.results
+    }));
+
+    return [...dayTasks, ...virtualSims];
+  };
+
+  const tasksForSelectedDay = getDailyTasks(selectedDayKey || '');
 
   const weekDays = useMemo(() => {
     const startOfWeek = new Date(currentDate);
@@ -177,8 +203,12 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     }
   };
 
-  const handleTaskClick = (e: React.MouseEvent, task: ScheduledStudy) => {
+  const handleTaskClick = (e: React.MouseEvent, task: any) => {
     e.stopPropagation();
+    if (task.isSimuladoVirtual) {
+      alert(`🏆 Simulado: ${task.name}\n⏱️ Duração: ${task.durationInMinutes} min\n📝 Questões: ${task.questionsCorrect}/${task.questionsDone} acertos (${task.questionsDone > 0 ? Math.round((task.questionsCorrect / task.questionsDone) * 100) : 0}%)`);
+      return;
+    }
     setSelectedDayKey(task.date || task.date.split('T')[0]);
     setEditingTask(task);
     setFormData({
@@ -201,7 +231,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-7 gap-3 flex-1 min-h-0">
             {weekDays.map(date => {
               const key = getDayKey(date);
-              const tasks = visibleScheduledStudies.filter(s => (s.date && (s.date === key || s.date.split('T')[0] === key)));
+              const tasks = getDailyTasks(key);
               const isToday = new Date().toDateString() === date.toDateString();
               return (
                 <div key={key} onClick={() => handleDayClick(key)} className={`bg-white dark:bg-zinc-900 p-3 rounded-3xl border ${isToday ? 'border-blue-400 shadow-lg' : 'border-zinc-100 dark:border-zinc-800'} flex flex-col cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-all overflow-hidden`}>
@@ -211,6 +241,31 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                   </div>
                   <div className="space-y-2 flex-1 overflow-y-auto custom-scrollbar pr-1">
                     {tasks.map(task => {
+                      if (task.isSimuladoVirtual) {
+                        return (
+                          <div 
+                            key={task.id} 
+                            onClick={(e) => handleTaskClick(e, task)}
+                            className="p-3 rounded-2xl text-xs font-bold border-2 border-amber-400 bg-gradient-to-r from-amber-500/10 to-orange-500/10 text-amber-900 dark:text-amber-250 cursor-pointer transition-all hover:scale-[1.02] active:scale-95 shadow-sm"
+                          >
+                            <span className="flex items-center gap-1 font-black text-amber-600 dark:text-amber-400">🏆 SIMULADO</span>
+                            <p className="font-black truncate mt-1 text-sm">{task.name}</p>
+                            <p className="text-[10px] opacity-90 mt-1 font-bold">
+                              ⏱️ {task.durationInMinutes} min | 📝 {task.questionsCorrect}/{task.questionsDone} Qs
+                            </p>
+                            <div className="flex flex-wrap gap-1 mt-1.5">
+                              {(task.results || []).map((r: any, idx: number) => {
+                                const sub = lookupSubjects.find(s => s.id === r.subjectId);
+                                return (
+                                  <span key={idx} className="px-1.5 py-0.5 rounded-full text-[8px] bg-zinc-200/50 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-350 font-bold">
+                                    {sub?.name || 'Matéria'}
+                                  </span>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      }
                       const sub = lookupSubjects.find(s => s.id === task.subjectId);
                       const { style, className } = sub ? getBadgeStyle(sub.color) : { style: {}, className: 'bg-zinc-400 text-white' };
                       return (
@@ -256,13 +311,29 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                 const day = i + 1;
                 const date = new Date(year, month, day);
                 const key = getDayKey(date);
-                const tasks = visibleScheduledStudies.filter(s => (s.date && (s.date === key || s.date.split('T')[0] === key)));
+                const tasks = getDailyTasks(key);
                 const isToday = new Date().toDateString() === date.toDateString();
                 return (
                   <div key={day} onClick={() => handleDayClick(key)} className="p-1.5 border-r border-b border-zinc-100 dark:border-zinc-800 hover:bg-zinc-100 dark:bg-zinc-800/30 dark:hover:bg-blue-900/10 cursor-pointer transition-all flex flex-col min-h-0 overflow-hidden">
                     <span className={`text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full ${isToday ? 'bg-zinc-900 dark:bg-zinc-700 text-white' : 'text-zinc-400'}`}>{day}</span>
                     <div className="mt-1 space-y-1 overflow-y-auto">
                       {tasks.map(t => {
+                        if (t.isSimuladoVirtual) {
+                          return (
+                            <div 
+                              key={t.id}
+                              onClick={(e) => handleTaskClick(e, t)}
+                              className="px-2 py-1.5 rounded-lg text-[10px] leading-tight font-black border-2 border-amber-400 bg-amber-500/10 text-amber-900 dark:text-amber-200 cursor-pointer transition-all hover:scale-[1.02] active:scale-95 shadow-sm"
+                            >
+                              <div className="flex flex-col gap-0.5">
+                                <span>🏆 {t.name}</span>
+                                <span className="text-[8px] opacity-80 font-bold">
+                                  {t.durationInMinutes}m | {t.questionsCorrect}/{t.questionsDone} Qs
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        }
                         const sub = lookupSubjects.find(s => s.id === t.subjectId);
                         const { style, className } = sub ? getBadgeStyle(sub.color) : { style: {}, className: 'bg-zinc-400 text-white' };
                         return (
@@ -314,7 +385,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
               <button
                 key={mode}
                 onClick={() => setViewMode(mode)}
-                className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === mode ? 'bg-zinc-900 dark:bg-zinc-700 text-white shadow-md' : 'text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200'}`}
+                className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === mode ? 'bg-zinc-950 dark:bg-zinc-700 text-white shadow-md' : 'text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200'}`}
               >
                 {mode}
               </button>
@@ -341,6 +412,10 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                   <div 
                     key={task.id} 
                     onClick={() => {
+                      if (task.isSimuladoVirtual) {
+                        alert(`🏆 Simulado: ${task.name}\n⏱️ Duração: ${task.durationInMinutes} min\n📝 Questões: ${task.questionsCorrect}/${task.questionsDone} acertos`);
+                        return;
+                      }
                       setEditingTask(task);
                       setFormData({
                         subjectId: task.subjectId,
@@ -354,33 +429,39 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                       });
                     }}
                     className={`p-4 rounded-[1.5rem] border cursor-pointer transition-all hover:scale-[1.02] active:scale-95 group relative ${
-                      editingTask?.id === task.id 
-                        ? 'bg-blue-50 border-blue-300 dark:bg-blue-950/20 dark:border-blue-800' 
-                        : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700'
+                      task.isSimuladoVirtual
+                        ? 'border-amber-400 bg-amber-500/10 text-amber-900 dark:text-amber-250 shadow-sm'
+                        : editingTask?.id === task.id 
+                          ? 'bg-blue-50 border-blue-300 dark:bg-blue-950/20 dark:border-blue-800' 
+                          : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700'
                     }`}
                   >
-                    <button 
-                      onClick={(e) => { 
-                        e.stopPropagation(); 
-                        handleDelete(task.id); 
-                        if (editingTask?.id === task.id) setEditingTask(null); 
-                      }} 
-                      className="absolute top-2 right-2 text-zinc-300 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-all"
-                    >
-                      ✕
-                    </button>
+                    {!task.isSimuladoVirtual && (
+                      <button 
+                        onClick={(e) => { 
+                          e.stopPropagation(); 
+                          handleDelete(task.id); 
+                          if (editingTask?.id === task.id) setEditingTask(null); 
+                        }} 
+                        className="absolute top-2 right-2 text-zinc-300 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-all"
+                      >
+                        ✕
+                      </button>
+                    )}
                     <p className="text-[8px] font-black uppercase text-zinc-900 dark:text-zinc-100 mb-1 flex justify-between items-center">
-                      <span>{task.activityType}</span>
+                      <span>{task.isSimuladoVirtual ? '🏆 SIMULADO' : task.activityType}</span>
                       <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded-full ${
-                        task.status === 'realizado' 
-                          ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-400' 
-                          : 'bg-amber-100 text-amber-800 dark:bg-amber-950/30 dark:text-amber-400'
+                        task.isSimuladoVirtual
+                          ? 'bg-amber-150 text-amber-800 dark:bg-amber-950/30 dark:text-amber-400 font-black'
+                          : task.status === 'realizado' 
+                            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-400' 
+                            : 'bg-amber-100 text-amber-800 dark:bg-amber-950/30 dark:text-amber-400'
                       }`}>
-                        {task.status === 'realizado' ? 'Realizado' : 'Planejado'}
+                        {task.isSimuladoVirtual ? 'Realizado' : (task.status === 'realizado' ? 'Realizado' : 'Planejado')}
                       </span>
                     </p>
                     <h5 className="text-xs font-bold dark:text-white truncate">
-                      {lookupSubjects.find(s => s.id === task.subjectId)?.name || <span className="text-rose-400 italic">Desconhecida</span>}
+                      {task.isSimuladoVirtual ? task.name : (lookupSubjects.find(s => s.id === task.subjectId)?.name || <span className="text-rose-400 italic">Desconhecida</span>)}
                     </h5>
                     {task.questionsDone !== undefined && (
                       <p className="text-[9px] text-zinc-400 mt-1 font-bold">{task.questionsCorrect}/{task.questionsDone} Questões</p>

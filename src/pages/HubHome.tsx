@@ -2023,7 +2023,7 @@ const HubHome: React.FC<HubHomeProps> = ({
                     const cells = [];
                     // Células vazias do mês anterior
                     for (let i = 0; i < firstDayIndex; i++) {
-                      cells.push(<div key={`empty-${i}`} className="aspect-square" />);
+                      cells.push(<div key={`empty-${i}`} className="py-2" />);
                     }
 
                     // Dias do mês atual
@@ -2050,7 +2050,7 @@ const HubHome: React.FC<HubHomeProps> = ({
                             e.stopPropagation();
                             setSelectedCalendarDate(dateStr);
                           }}
-                          className={`aspect-square rounded-xl border flex flex-col items-center justify-center relative cursor-pointer transition-all hover:scale-105 active:scale-95 ${
+                          className={`py-2 rounded-xl border flex flex-col items-center justify-center relative cursor-pointer transition-all hover:scale-105 active:scale-95 ${
                             isSelected
                               ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-950 border-zinc-900 dark:border-white shadow-sm'
                               : isToday

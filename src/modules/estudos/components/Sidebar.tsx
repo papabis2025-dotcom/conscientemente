@@ -215,36 +215,6 @@ const Sidebar: React.FC<SidebarProps> = ({
         {!isCollapsed && <span className="text-xs font-black uppercase tracking-widest">Adicionar Atividade</span>}
       </button>
 
-      <div className="mb-5 bg-zinc-50 dark:bg-zinc-800/50 p-3 rounded-2xl border border-zinc-100 dark:border-zinc-700">
-        {!isCollapsed ? (
-          <div className="space-y-3">
-            <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Progresso Geral</span>
-            
-            <div className="grid grid-cols-2 gap-2">
-              <div className="bg-white dark:bg-zinc-800 p-2.5 rounded-xl border border-zinc-100 dark:border-zinc-700">
-                <div className="flex items-center gap-1.5 mb-1">
-                  <Trophy size={12} className="text-amber-500" />
-                  <span className="text-[9px] font-bold text-zinc-500 uppercase">Questões</span>
-                </div>
-                <p className="text-lg font-black text-zinc-800 dark:text-white leading-none">{totalQuestions}</p>
-              </div>
-
-              <div className="bg-white dark:bg-zinc-800 p-2.5 rounded-xl border border-zinc-100 dark:border-zinc-700">
-                <div className="flex items-center gap-1.5 mb-1">
-                  <Clock size={12} className="text-blue-500" />
-                  <span className="text-[9px] font-bold text-zinc-500 uppercase">Horas</span>
-                </div>
-                <p className="text-lg font-black text-zinc-800 dark:text-white leading-none">{totalHours}<span className="text-[10px] font-bold ml-0.5">h</span></p>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="flex flex-col items-center gap-3">
-             <Trophy size={16} className="text-amber-500" />
-             <Clock size={16} className="text-blue-500" />
-          </div>
-        )}
-      </div>
 
       {isReorderMode && !isCollapsed && (
         <div className="mb-4 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-2xl border border-amber-200 dark:border-amber-800 animate-in fade-in">

@@ -385,24 +385,7 @@ export default function HabitosHub({ onBack, theme, toggleTheme, userName }: Hab
       {/* Conteúdo Principal à Direita */}
       <div className="flex-1 flex flex-col h-screen overflow-hidden">
         
-        {/* Top Header Simplificado */}
-        <header className="bg-white/50 dark:bg-zinc-900/50 backdrop-blur-md border-b border-zinc-250/20 dark:border-zinc-800/20 px-6 py-4 flex items-center justify-between shrink-0">
-          <div>
-            <h2 className="text-xl font-black text-zinc-800 dark:text-white tracking-tight uppercase">
-              {activeTab === 'painel' ? 'Painel Diário' : 'Consistência'}
-            </h2>
-            <p className="text-xs font-semibold text-zinc-550 dark:text-zinc-400 mt-0.5">
-              {activeTab === 'painel' ? 'Acompanhamento de hábitos diários' : 'Relatório de consistência e heatmap'}
-            </p>
-          </div>
-          
-          <div className="flex items-center gap-4">
-            <div className="text-right">
-              <p className="text-[9px] font-black uppercase tracking-wider text-zinc-400 leading-none">Usuário</p>
-              <p className="text-xs font-extrabold text-zinc-900 dark:text-white leading-none mt-1">{userName}</p>
-            </div>
-          </div>
-        </header>
+
 
         {/* Scrollable Main Area */}
         <div className="flex-1 overflow-y-auto px-6 py-6 custom-scrollbar">

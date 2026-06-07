@@ -407,6 +407,7 @@ const App: React.FC = () => {
   }, [bgType, bgColor, isPrefsLoaded, session]);
 
   // Periodic background check & sync loop
+  // Runs every 60s (not 5s) to avoid overwhelming the database.
   useEffect(() => {
     if (!session || !isPrefsLoaded) return;
 
@@ -424,12 +425,24 @@ const App: React.FC = () => {
           settings: localSettings
         };
 
+        const payloadJson = JSON.stringify(payload);
+
+        // Safety guard: skip write if payload is larger than 500 KB.
+        // A large payload indicates corrupted/duplicated data in localStorage.
+        if (payloadJson.length > 500_000) {
+          console.warn(
+            `Sync skipped: payload too large (${(payloadJson.length / 1024).toFixed(0)} KB). ` +
+            'Clear corrupted localStorage keys to resume sync.'
+          );
+          return;
+        }
+
         try {
           await supabase.from('user_preferences').upsert({
             user_id: session.user.id,
             hub_bg_type: bgType,
             hub_bg_color: bgColor,
-            hub_bg_image_url: JSON.stringify(payload)
+            hub_bg_image_url: payloadJson
           }, { onConflict: 'user_id' });
 
           setLastKnownSettings(currentSerialized);
@@ -438,7 +451,7 @@ const App: React.FC = () => {
           console.error('Failed to sync local settings to Supabase:', err);
         }
       }
-    }, 5000);
+    }, 60_000); // 60 seconds — was 5s, reduced to avoid DB overload
 
     return () => clearInterval(interval);
   }, [session, isPrefsLoaded, lastKnownSettings, bgType, bgColor, lastSyncTime]);
@@ -498,12 +511,20 @@ const App: React.FC = () => {
               settings: merged
             };
 
-            await supabase.from('user_preferences').upsert({
+            const payloadJson = JSON.stringify(payload);
+
+            // Safety guard: skip write if payload exceeds 500 KB
+            if (payloadJson.length > 500_000) {
+              console.warn(`pullAndMerge: payload too large (${(payloadJson.length / 1024).toFixed(0)} KB), skipping write.`);
+              return;
+            }
+
+            supabase.from('user_preferences').upsert({
               user_id: session.user.id,
               hub_bg_type: bgType,
               hub_bg_color: bgColor,
-              hub_bg_image_url: JSON.stringify(payload)
-            }, { onConflict: 'user_id' });
+              hub_bg_image_url: payloadJson
+            }, { onConflict: 'user_id' }).catch(err => console.error('pullAndMerge upsert failed:', err));
           }
         }
       } catch (err) {

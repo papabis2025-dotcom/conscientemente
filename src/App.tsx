@@ -257,13 +257,11 @@ const App: React.FC = () => {
     prefsLoadedForUserRef.current = session.user.id;
 
     const loadPreferences = async () => {
-      let finished = false;
+      // Safety timeout: show the app after 4s no matter what
       const safetyTimeout = setTimeout(() => {
-        if (!finished) {
-          console.warn('loadPreferences timed out after 3 seconds. Proceeding.');
-          setIsPrefsLoaded(true);
-        }
-      }, 3000);
+        console.warn('loadPreferences timed out after 4 seconds. Proceeding.');
+        setIsPrefsLoaded(true);
+      }, 4000);
 
       try {
         const { data: prefs, error: selectError } = await supabase
@@ -326,17 +324,22 @@ const App: React.FC = () => {
           setLastSyncTime(updatedTime);
           setLastKnownSettings(JSON.stringify(merged));
 
+          // ✅ Mark UI as ready BEFORE the write so the app never hangs on upsert
+          clearTimeout(safetyTimeout);
+          setIsPrefsLoaded(true);
+
+          // Fire-and-forget: write merged settings back to DB in background
           const payload: SyncedPayload = {
             updatedAt: updatedTime,
             settings: merged
           };
-
-          await supabase.from('user_preferences').upsert({
+          supabase.from('user_preferences').upsert({
             user_id: session.user.id,
             hub_bg_type: loadedBgType,
             hub_bg_color: loadedBgColor,
             hub_bg_image_url: JSON.stringify(payload)
-          }, { onConflict: 'user_id' });
+          }, { onConflict: 'user_id' }).catch(err => console.error('Background upsert failed:', err));
+
         } else {
           // Initialize DB row with local settings
           initialBgRef.current = { bgType, bgColor };
@@ -349,28 +352,31 @@ const App: React.FC = () => {
           setLastSyncTime(updatedTime);
           setLastKnownSettings(JSON.stringify(localSettings));
 
+          // ✅ Mark UI as ready BEFORE the write
+          clearTimeout(safetyTimeout);
+          setIsPrefsLoaded(true);
+
+          // Fire-and-forget: initialize preferences row in DB
           const payload: SyncedPayload = {
             updatedAt: updatedTime,
             settings: localSettings
           };
-
-          await supabase.from('user_preferences').upsert({
+          supabase.from('user_preferences').upsert({
             user_id: session.user.id,
             hub_bg_type: bgType,
             hub_bg_color: bgColor,
             hub_bg_image_url: JSON.stringify(payload)
-          }, { onConflict: 'user_id' });
+          }, { onConflict: 'user_id' }).catch(err => console.error('Background upsert failed:', err));
         }
       } catch (err) {
         console.error('Error loading and syncing preferences:', err);
-      } finally {
-        finished = true;
         clearTimeout(safetyTimeout);
         setIsPrefsLoaded(true);
       }
     };
     loadPreferences();
   }, [session]);
+
 
   useEffect(() => {
     if (!isPrefsLoaded || !session) return;

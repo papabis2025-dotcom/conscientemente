@@ -165,7 +165,26 @@ function mergeSettings(
       } catch {
         merged[key] = preferRemote ? remoteVal : localVal;
       }
-    } else if (key === 'cn_saude_activity_types' || key === 'cn_saude_muscle_groups') {
+    } else if (key === 'cn_saude_activity_types') {
+      try {
+        const localList = JSON.parse(localVal);
+        const remoteList = JSON.parse(remoteVal);
+        if (Array.isArray(localList) && Array.isArray(remoteList)) {
+          const map = new Map<string, { name: string; color: string }>();
+          localList.forEach((item: any) => {
+            if (item && item.name) map.set(item.name.toLowerCase(), item);
+          });
+          remoteList.forEach((item: any) => {
+            if (item && item.name) map.set(item.name.toLowerCase(), item);
+          });
+          merged[key] = JSON.stringify(Array.from(map.values()));
+        } else {
+          merged[key] = preferRemote ? remoteVal : localVal;
+        }
+      } catch {
+        merged[key] = preferRemote ? remoteVal : localVal;
+      }
+    } else if (key === 'cn_saude_muscle_groups') {
       try {
         const localList = JSON.parse(localVal);
         const remoteList = JSON.parse(remoteVal);

@@ -136,11 +136,12 @@ export const api = {
                 durationInMinutes: s.duration_minutes || 0
             }));
         },
-        create: async (simulado: Omit<Simulado, 'id' | 'user_id' | 'created_at'>) => {
+        create: async (simulado: Omit<Simulado, 'user_id' | 'created_at'> & { id?: string }) => {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) throw new Error('Not authenticated');
 
             return handleRequest<Simulado>(supabase.from('simulados').insert({
+                id: simulado.id || crypto.randomUUID(),
                 user_id: user.id,
                 name: simulado.name,
                 date: simulado.date,

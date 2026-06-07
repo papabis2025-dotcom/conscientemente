@@ -609,16 +609,46 @@ const SaudeApp: React.FC = () => {
         return (
           <div className="h-full flex flex-col">
             {cardioLevelData.length > 0 ? (
-              <div className="flex-1 w-full min-h-0">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={cardioLevelData} margin={{ top: 10, right: 0, left: -25, bottom: 0 }} layout="vertical">
-                    <CartesianGrid strokeDasharray="3 3" horizontal={false} strokeOpacity={0.1} />
-                    <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#888' }} />
-                    <YAxis dataKey="name" type="category" width={80} axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 600, fill: '#666' }} />
-                    <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                    <Bar dataKey="count" fill="#06b6d4" radius={[0, 4, 4, 0]} barSize={20} />
-                  </BarChart>
-                </ResponsiveContainer>
+              <div className="flex-1 w-full min-h-0 overflow-y-auto custom-scrollbar pr-1">
+                <div className="space-y-3.5 py-2">
+                  {(() => {
+                    const total = cardioLevelData.reduce((sum, item) => sum + item.count, 0) || 1;
+                    const levelColors: Record<string, string> = {
+                      'Leve': '#10b981',
+                      'Moderado': '#06b6d4',
+                      'Ritmado': '#3b82f6',
+                      'Longo': '#8b5cf6',
+                      'Arrancada': '#ef4444',
+                      'Específico': '#ec4899'
+                    };
+                    return cardioLevelData.map((item) => {
+                      const percentage = (item.count / total) * 100;
+                      const color = levelColors[item.name] || '#06b6d4';
+                      return (
+                        <div key={item.name} className="flex flex-col gap-1">
+                          <div className="flex items-center justify-between text-[10px] font-bold text-zinc-800 dark:text-zinc-200">
+                            <div className="flex items-center gap-1.5">
+                              <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: color }}></span>
+                              <span className="truncate max-w-[120px]">{item.name}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-extrabold text-[10px]">{item.count} {item.count === 1 ? 'treino' : 'treinos'}</span>
+                              <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 min-w-[36px] text-center font-bold">
+                                {percentage.toFixed(1)}%
+                              </span>
+                            </div>
+                          </div>
+                          <div className="w-full bg-zinc-100 dark:bg-zinc-800/60 h-2 rounded-full overflow-hidden">
+                            <div 
+                              className="h-full rounded-full transition-all duration-500" 
+                              style={{ width: `${percentage}%`, backgroundColor: color }}
+                            ></div>
+                          </div>
+                        </div>
+                      );
+                    });
+                  })()}
+                </div>
               </div>
             ) : (
               <div className="flex-1 flex items-center justify-center text-zinc-400 text-[10px] font-medium">Nenhum treino com nível/ritmo registrado.</div>

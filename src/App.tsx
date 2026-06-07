@@ -506,14 +506,27 @@ const App: React.FC = () => {
   // Auth state listener
   useEffect(() => {
     let subscription: any = null;
+    let finished = false;
+
+    // Safety timeout for loading state to prevent hanging on offline Supabase
+    const safetyTimeout = setTimeout(() => {
+      if (!finished) {
+        console.warn('supabase.auth.getSession() timed out. Proceeding.');
+        setLoading(false);
+      }
+    }, 4000);
 
     // Get initial session on mount to ensure we load the session immediately
     supabase.auth.getSession()
       .then(({ data }) => {
+        finished = true;
+        clearTimeout(safetyTimeout);
         setSession(data?.session || null);
         setLoading(false);
       })
       .catch(err => {
+        finished = true;
+        clearTimeout(safetyTimeout);
         console.error('Error getting initial session:', err);
         setLoading(false);
       });

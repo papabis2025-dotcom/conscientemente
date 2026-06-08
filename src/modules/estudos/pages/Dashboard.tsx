@@ -790,9 +790,13 @@ const Dashboard: React.FC<DashboardProps> = ({
           const date = new Date(year, month, i + 1);
           const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i + 1).padStart(2, '0')}`;
 
-          // All realized sessions for the day (including simulado for calendar dots)
-          const daySessions = sessions.filter(s => getLocalSessionDate(s.date) === dateStr);
-          // Planned activities from planner that are marked as done (non-simulado, since simulado comes from sessions)
+          // Simulado sessions for the day — rendered as a ring, not as dots
+          const daySimuladoSessions = sessions.filter(s => getLocalSessionDate(s.date) === dateStr && isSimuladoSession(s));
+          const hasSimulado = daySimuladoSessions.length > 0;
+
+          // Non-simulado sessions for the day — rendered as color dots
+          const daySessions = sessions.filter(s => getLocalSessionDate(s.date) === dateStr && !isSimuladoSession(s));
+          // Planned activities from planner that are marked as done (non-simulado only)
           const dayPlannerRealized = scheduledStudies.filter(s => {
             const sDate = s.date ? s.date.split('T')[0] : '';
             return sDate === dateStr && s.status === 'realizado' && s.activityType !== 'Simulado';
@@ -811,6 +815,7 @@ const Dashboard: React.FC<DashboardProps> = ({
           return {
             day: i + 1,
             subjects: daySubjects,
+            hasSimulado,
             isToday: date.toDateString() === today.toDateString()
           };
         });
@@ -836,13 +841,26 @@ const Dashboard: React.FC<DashboardProps> = ({
               {days.map(d => (
                 <div
                   key={d.day}
-                  className={`rounded-lg flex flex-col items-center justify-center relative border overflow-hidden ${
+                  className={`rounded-lg flex flex-col items-center justify-center relative overflow-hidden ${
                     d.isToday
-                      ? 'border-blue-400 bg-blue-50/40 dark:bg-blue-900/15'
-                      : 'border-zinc-100 dark:border-zinc-800/50 hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors'
+                      ? 'bg-blue-50/40 dark:bg-blue-900/15'
+                      : 'hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors'
                   }`}
+                  style={{
+                    border: d.hasSimulado
+                      ? '2px solid #a855f7'
+                      : d.isToday
+                        ? '1.5px solid #60a5fa'
+                        : '1px solid rgba(161,161,170,0.18)'
+                  }}
                 >
-                  <span className={`text-[10px] font-bold leading-none ${d.isToday ? 'text-blue-600 dark:text-blue-400' : 'text-zinc-500 dark:text-zinc-400'}`}>
+                  <span className={`text-[10px] font-bold leading-none ${
+                    d.hasSimulado
+                      ? 'text-purple-600 dark:text-purple-400 font-black'
+                      : d.isToday
+                        ? 'text-blue-600 dark:text-blue-400'
+                        : 'text-zinc-500 dark:text-zinc-400'
+                  }`}>
                     {d.day}
                   </span>
                   {d.subjects.length > 0 && (
@@ -851,6 +869,14 @@ const Dashboard: React.FC<DashboardProps> = ({
                         <div key={sub.id} className="w-1 h-1 rounded-full" style={{ backgroundColor: getColorHex(sub.color) }} title={sub.name} />
                       ))}
                     </div>
+                  )}
+                  {/* Simulado indicator: small purple star/diamond badge */}
+                  {d.hasSimulado && (
+                    <div
+                      className="absolute top-0 right-0 w-1.5 h-1.5 rounded-bl-sm"
+                      style={{ backgroundColor: '#a855f7' }}
+                      title="Simulado realizado"
+                    />
                   )}
                 </div>
               ))}

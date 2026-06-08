@@ -1817,7 +1817,7 @@ const HubHome: React.FC<HubHomeProps> = ({
                             {dayStudies.map((s, idx) => {
                               const isAtrasado = dateStr < todayStr && !s.completed;
                               return (
-                                <Brain 
+                                <BookOpen 
                                   key={`study-${s.id || idx}`}
                                   size={12} 
                                   className={`shrink-0 transition-all ${
@@ -2074,24 +2074,24 @@ const HubHome: React.FC<HubHomeProps> = ({
                         <div
                           key={h.id}
                           onClick={() => toggleHabit(h.id)}
-                          className={`flex items-center gap-3 p-2.5 rounded-xl border transition-all duration-200 cursor-pointer ${
+                          className={`flex items-center gap-3 p-2.5 rounded-xl border transition-all duration-200 cursor-pointer select-none ${
                             isCompleted
-                              ? 'bg-zinc-200/20 dark:bg-zinc-950/10 border-zinc-200/10 dark:border-zinc-900/10 opacity-65'
-                              : 'bg-white dark:bg-zinc-850 border-zinc-250 dark:border-zinc-700/80 hover:border-zinc-350 dark:hover:border-zinc-700 hover:shadow-sm'
+                              ? 'bg-zinc-100/50 dark:bg-zinc-950/15 border-zinc-200 dark:border-zinc-900/50 opacity-60'
+                              : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800/80 hover:border-slate-400 dark:hover:border-slate-600 hover:shadow-sm'
                           }`}
                         >
                           <div className="relative flex items-center justify-center shrink-0">
                             <div className={`w-4 h-4 rounded-md border flex items-center justify-center transition-all ${
                               isCompleted
-                                ? 'bg-indigo-600 dark:bg-indigo-500 border-indigo-600 dark:border-indigo-500 text-white'
-                                : 'border-zinc-400 dark:border-zinc-500 bg-white dark:bg-zinc-900'
+                                ? 'bg-slate-700 dark:bg-slate-600 border-slate-700 dark:border-slate-600 text-white shadow-sm shadow-slate-500/25'
+                                : 'border-zinc-300 dark:border-zinc-600 bg-zinc-50 dark:bg-zinc-800 group-hover:border-slate-500'
                             }`}>
                               {isCompleted && <Check size={9} strokeWidth={3} />}
                             </div>
                           </div>
                           <span className={`text-[10px] font-bold transition-all truncate leading-none ${
                             isCompleted
-                              ? 'line-through text-zinc-450 dark:text-zinc-500 font-medium'
+                              ? 'line-through text-zinc-400 dark:text-zinc-500 font-medium'
                               : 'text-zinc-800 dark:text-zinc-150'
                           }`}>
                             {h.name}
@@ -2106,9 +2106,15 @@ const HubHome: React.FC<HubHomeProps> = ({
               {/* Progress Indicator */}
               {habits.length > 0 && (
                 <div className="mt-1 pt-2 border-t border-zinc-200/20 dark:border-zinc-800/20 animate-in fade-in duration-300 shrink-0">
+                  <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-wider text-zinc-400 mb-1">
+                    <span>Progresso de hoje</span>
+                    <span className="text-slate-600 dark:text-slate-400">
+                      {habits.filter(h => (habitHistory[todayStr] || []).includes(h.id)).length}/{habits.length}
+                    </span>
+                  </div>
                   <div className="w-full h-1.5 bg-zinc-200/40 dark:bg-zinc-800/40 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-indigo-600 dark:bg-indigo-500 transition-all duration-500"
+                      className="h-full bg-gradient-to-r from-slate-600 to-zinc-500 rounded-full transition-all duration-500"
                       style={{ width: `${(habits.filter(h => (habitHistory[todayStr] || []).includes(h.id)).length / habits.length) * 100}%` }}
                     />
                   </div>

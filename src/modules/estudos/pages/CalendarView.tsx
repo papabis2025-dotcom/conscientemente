@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Subject, ScheduledStudy, ActivityType, StudySession, Simulado } from '../types';
+import { Subject, ScheduledStudy, ActivityType, Topic, StudySession, Simulado } from '../types';
 import { getBadgeStyle } from '../utils/colors';
 import { FileText, Layers, Video, BookOpen, Clipboard, Book, Clock } from 'lucide-react';
 
@@ -16,6 +16,14 @@ interface CalendarViewProps {
 }
 
 type ViewMode = 'semanal' | 'mensal' | 'anual';
+
+const parseNotesGroup = (notes: string) => {
+  const match = notes?.match(/^\[groupId:([^\]]+)\](.*)/s);
+  if (match) {
+    return { groupId: match[1], cleanNotes: match[2].trim() };
+  }
+  return { groupId: null, cleanNotes: notes || '' };
+};
 
 const CalendarView: React.FC<CalendarViewProps> = ({ 
   subjects, 
@@ -39,7 +47,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
 
   const [formData, setFormData] = useState({
     subjectId: '',
-    topicId: '',
+    topicIds: [] as string[],
     activityTypes: ['Leitura'] as string[],
     duration: '',
     questionsDone: '',
@@ -67,7 +75,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     setEditingTask(null);
     setFormData({
       subjectId: '',
-      topicId: '',
+      topicIds: [],
       activityTypes: ['Leitura'],
       duration: '',
       questionsDone: '',
@@ -78,7 +86,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     setShowModal(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!formData.subjectId || selectedDayKey === null) return;
 
     const durationVal = parseInt(formData.duration) || 0;
@@ -88,52 +96,101 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     const questionsCorrectVal = hasQuestions ? (parseInt(formData.questionsCorrect) || undefined) : undefined;
     const activityTypesStr = selectedTypes.join(', ');
 
+    const selectedTopicIds = formData.topicIds;
+    const topicIdsToSave = selectedTopicIds.length > 0 ? selectedTopicIds : [undefined];
+    const count = topicIdsToSave.length;
+
+    // 1. Clean up old entries if editing
     if (editingTask) {
-      const updates: Partial<ScheduledStudy> = {
-        subjectId: formData.subjectId,
-        topicId: formData.topicId || undefined,
-        activityType: activityTypesStr,
-        durationInMinutes: durationVal || undefined,
-        questionsDone: questionsDoneVal,
-        questionsCorrect: questionsCorrectVal,
-        notes: formData.notes,
-        status: formData.status
-      };
-      onUpdateScheduledStudy(editingTask.id, updates);
-      setEditingTask(null);
-    } else {
-      if (formData.status === 'realizado' && onAddSession) {
-        onAddSession({
-          id: crypto.randomUUID(),
-          subjectId: formData.subjectId,
-          topicId: formData.topicId || undefined,
-          durationInMinutes: durationVal,
-          date: new Date(`${selectedDayKey}T12:00:00`).toISOString(),
-          questionsDone: questionsDoneVal,
-          questionsCorrect: questionsCorrectVal,
-          activityType: activityTypesStr
-        });
+      if (editingTask.notes) {
+        const { groupId } = parseNotesGroup(editingTask.notes);
+        if (groupId) {
+          const groupTasks = scheduledStudies.filter(t => t.notes && parseNotesGroup(t.notes).groupId === groupId);
+          for (const t of groupTasks) {
+            const res = onDelete(t.id);
+            if (res instanceof Promise) await res;
+          }
+        } else {
+          const res = onDelete(editingTask.id);
+          if (res instanceof Promise) await res;
+        }
       } else {
-        const newEntry: ScheduledStudy = {
-          id: crypto.randomUUID(),
-          date: selectedDayKey,
-          subjectId: formData.subjectId,
-          topicId: formData.topicId || undefined,
-          activityType: activityTypesStr,
-          notes: formData.notes,
-          durationInMinutes: durationVal || undefined,
-          questionsDone: questionsDoneVal,
-          questionsCorrect: questionsCorrectVal,
-          status: formData.status
-        };
-        onUpdateSchedule([...scheduledStudies, newEntry]);
+        const res = onDelete(editingTask.id);
+        if (res instanceof Promise) await res;
       }
     }
 
+    // 2. Insert new entries
+    const newGroupId = count > 1 ? crypto.randomUUID() : null;
+    const notesToSave = newGroupId ? `[groupId:${newGroupId}] ${formData.notes}`.trim() : formData.notes;
+
+    const baseDuration = Math.floor(durationVal / count);
+    const remDuration = durationVal % count;
+
+    const baseDone = questionsDoneVal !== undefined ? Math.floor(questionsDoneVal / count) : undefined;
+    const remDone = questionsDoneVal !== undefined ? questionsDoneVal % count : 0;
+
+    const baseCorrect = questionsCorrectVal !== undefined ? Math.floor(questionsCorrectVal / count) : undefined;
+    const remCorrect = questionsCorrectVal !== undefined ? questionsCorrectVal % count : 0;
+
+    const newEntries: ScheduledStudy[] = [];
+
+    for (let i = 0; i < count; i++) {
+      const itemDuration = i === 0 ? baseDuration + remDuration : baseDuration;
+      const itemDone = questionsDoneVal !== undefined ? (i === 0 ? baseDone! + remDone : baseDone) : undefined;
+      const itemCorrect = questionsCorrectVal !== undefined ? (i === 0 ? baseCorrect! + remCorrect : baseCorrect) : undefined;
+      const topicId = topicIdsToSave[i];
+
+      if (formData.status === 'realizado' && onAddSession) {
+        await onAddSession({
+          id: crypto.randomUUID(),
+          subjectId: formData.subjectId,
+          topicId: topicId,
+          durationInMinutes: itemDuration,
+          date: new Date(`${selectedDayKey}T12:00:00`).toISOString(),
+          questionsDone: itemDone,
+          questionsCorrect: itemCorrect,
+          activityType: activityTypesStr,
+          notes: notesToSave
+        } as any);
+      } else {
+        newEntries.push({
+          id: crypto.randomUUID(),
+          date: selectedDayKey,
+          subjectId: formData.subjectId,
+          topicId: topicId,
+          activityType: activityTypesStr,
+          notes: notesToSave,
+          durationInMinutes: itemDuration || undefined,
+          questionsDone: itemDone,
+          questionsCorrect: itemCorrect,
+          status: formData.status
+        });
+      }
+    }
+
+    if (newEntries.length > 0) {
+      let remainingStudies = [...scheduledStudies];
+      if (editingTask) {
+        if (editingTask.notes) {
+          const { groupId } = parseNotesGroup(editingTask.notes);
+          if (groupId) {
+            remainingStudies = remainingStudies.filter(t => !t.notes || parseNotesGroup(t.notes).groupId !== groupId);
+          } else {
+            remainingStudies = remainingStudies.filter(t => t.id !== editingTask.id);
+          }
+        } else {
+          remainingStudies = remainingStudies.filter(t => t.id !== editingTask.id);
+        }
+      }
+      onUpdateSchedule([...remainingStudies, ...newEntries]);
+    }
+
+    setEditingTask(null);
     setShowModal(false);
     setFormData({
       subjectId: '',
-      topicId: '',
+      topicIds: [],
       activityTypes: ['Leitura'],
       duration: '',
       questionsDone: '',
@@ -143,8 +200,21 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     });
   };
 
-  const handleDelete = (id: string) => {
-    onDelete(id);
+  const handleDelete = async (id: string) => {
+    const task = scheduledStudies.find(t => t.id === id);
+    if (task && task.notes) {
+      const { groupId } = parseNotesGroup(task.notes);
+      if (groupId) {
+        const groupTasks = scheduledStudies.filter(t => t.notes && parseNotesGroup(t.notes).groupId === groupId);
+        for (const t of groupTasks) {
+          const res = onDelete(t.id);
+          if (res instanceof Promise) await res;
+        }
+        return;
+      }
+    }
+    const res = onDelete(id);
+    if (res instanceof Promise) await res;
   };
 
   const handleNavigate = (direction: number) => {
@@ -167,6 +237,55 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     const dayTasks = visibleScheduledStudies.filter(s => s.date && (s.date === dayKey || s.date.split('T')[0] === dayKey));
     const daySims = (simulados || []).filter(sim => sim.date && (sim.date === dayKey || sim.date.split('T')[0] === dayKey));
 
+    // Grouping logic
+    const groupedMap = new Map<string, ScheduledStudy[]>();
+    const nonGrouped: ScheduledStudy[] = [];
+
+    dayTasks.forEach(task => {
+      if (task.notes) {
+        const { groupId } = parseNotesGroup(task.notes);
+        if (groupId) {
+          if (!groupedMap.has(groupId)) {
+            groupedMap.set(groupId, []);
+          }
+          groupedMap.get(groupId)!.push(task);
+          return;
+        }
+      }
+      nonGrouped.push(task);
+    });
+
+    const groupedVirtualTasks = Array.from(groupedMap.entries()).map(([groupId, tasks]) => {
+      const firstTask = tasks[0];
+      const { cleanNotes } = parseNotesGroup(firstTask.notes || '');
+      const topicIds = tasks.map(t => t.topicId).filter(Boolean) as string[];
+      
+      const totalDuration = tasks.reduce((acc, t) => acc + (t.durationInMinutes || 0), 0);
+      const totalDone = tasks.some(t => t.questionsDone !== undefined)
+        ? tasks.reduce((acc, t) => acc + (t.questionsDone || 0), 0)
+        : undefined;
+      const totalCorrect = tasks.some(t => t.questionsCorrect !== undefined)
+        ? tasks.reduce((acc, t) => acc + (t.questionsCorrect || 0), 0)
+        : undefined;
+
+      return {
+        id: firstTask.id,
+        date: firstTask.date,
+        subjectId: firstTask.subjectId,
+        topicIds: topicIds,
+        topicId: firstTask.topicId, 
+        activityType: firstTask.activityType,
+        notes: cleanNotes,
+        durationInMinutes: totalDuration || undefined,
+        questionsDone: totalDone,
+        questionsCorrect: totalCorrect,
+        status: firstTask.status,
+        isGroupedVirtual: true,
+        groupId: groupId,
+        taskIds: tasks.map(t => t.id)
+      };
+    });
+
     const virtualSims = daySims.map(sim => ({
       id: `sim-${sim.id}`,
       date: dayKey,
@@ -183,7 +302,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       results: sim.results
     }));
 
-    return [...dayTasks, ...virtualSims] as any[];
+    return [...groupedVirtualTasks, ...nonGrouped, ...virtualSims] as any[];
   };
 
   const tasksForSelectedDay = getDailyTasks(selectedDayKey || '');
@@ -288,7 +407,12 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                         >
                           <span className="opacity-70 flex items-center gap-1">{getActivityIcon(task.activityType)} {task.activityType}</span>
                           <p className="truncate font-black">{sub ? sub.name : 'Disciplina Removida'}</p>
-                          {task.topicId && sub && (
+                          {task.isGroupedVirtual && sub && task.topicIds && task.topicIds.length > 0 && (
+                            <p className="text-[10px] opacity-80 mt-0.5 line-clamp-1 font-medium italic">
+                              {task.topicIds.map((id: string) => sub.topics.find(t => t.id === id)?.title).filter(Boolean).join(', ')}
+                            </p>
+                          )}
+                          {!task.isGroupedVirtual && task.topicId && sub && (
                             <p className="text-[10px] opacity-80 mt-0.5 line-clamp-1 font-medium italic">
                               {sub.topics.find(t => t.id === task.topicId)?.title || 'Assunto não encontrado'}
                             </p>
@@ -356,7 +480,12 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                           >
                             <div className="flex flex-col gap-0.5">
                               <span className="truncate">{sub ? sub.name : 'Disciplina Removida'}</span>
-                              {t.topicId && sub && (
+                              {t.isGroupedVirtual && sub && t.topicIds && t.topicIds.length > 0 && (
+                                <span className="text-[8px] opacity-80 font-medium line-clamp-1 italic">
+                                  {t.topicIds.map((id: string) => sub.topics.find(top => top.id === id)?.title).filter(Boolean).join(', ')}
+                                </span>
+                              )}
+                              {!t.isGroupedVirtual && t.topicId && sub && (
                                 <span className="text-[8px] opacity-80 font-medium line-clamp-1 italic">
                                   {sub.topics.find(top => top.id === t.topicId)?.title}
                                 </span>
@@ -428,10 +557,13 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                         return;
                       }
                       setEditingTask(task);
+                      const types = task.activityType
+                        ? task.activityType.split(',').map((t: string) => t.trim())
+                        : ['Leitura'];
                       setFormData({
                         subjectId: task.subjectId,
-                        topicId: task.topicId || '',
-                        activityType: task.activityType || 'Leitura',
+                        topicIds: task.topicIds || (task.topicId ? [task.topicId] : []),
+                        activityTypes: types,
                         duration: task.durationInMinutes?.toString() || '',
                         questionsDone: task.questionsDone?.toString() || '',
                         questionsCorrect: task.questionsCorrect?.toString() || '',
@@ -500,8 +632,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                     setEditingTask(null);
                     setFormData({
                       subjectId: '',
-                      topicId: '',
-                      activityType: 'Leitura',
+                      topicIds: [],
+                      activityTypes: ['Leitura'],
                       duration: '',
                       questionsDone: '',
                       questionsCorrect: '',
@@ -548,20 +680,46 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                 </div>
                 <div>
                   <label className="text-[10px] font-black text-zinc-400 uppercase mb-1 block">Disciplina</label>
-                  <select value={formData.subjectId} onChange={(e) => setFormData({ ...formData, subjectId: e.target.value, topicId: '' })} className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 border rounded-2xl outline-none text-sm dark:text-white">
+                  <select value={formData.subjectId} onChange={(e) => setFormData({ ...formData, subjectId: e.target.value, topicIds: [] })} className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 border rounded-2xl outline-none text-sm dark:text-white">
                     <option value="">Selecione...</option>
                     {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                   </select>
                 </div>
                 {formData.subjectId && (
-                  <div>
-                    <label className="text-[10px] font-black text-zinc-400 uppercase mb-1 block">Assunto</label>
-                    <select value={formData.topicId} onChange={(e) => setFormData({ ...formData, topicId: e.target.value })} className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 border rounded-2xl outline-none text-sm dark:text-white">
-                      <option value="">Geral / Outros</option>
-                      {subjects.find(s => s.id === formData.subjectId)?.topics.map(t => (
-                        <option key={t.id} value={t.id}>{t.title}</option>
-                      ))}
-                    </select>
+                  <div className="animate-in fade-in slide-in-from-top-2">
+                    <label className="text-[10px] font-bold text-zinc-400 uppercase mb-1.5 block font-mono">Assunto / Tópico (Selecione vários)</label>
+                    <div className="max-h-40 overflow-y-auto space-y-2 p-3 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200/50 dark:border-zinc-800/80 rounded-2xl outline-none focus:ring-zinc-500 custom-scrollbar">
+                      <label className="flex items-center gap-2.5 text-xs font-bold dark:text-white cursor-pointer select-none hover:opacity-85 py-0.5">
+                        <input
+                          type="checkbox"
+                          checked={formData.topicIds.length === 0}
+                          onChange={() => setFormData({ ...formData, topicIds: [] })}
+                          className="rounded border-zinc-300 dark:border-zinc-700 text-zinc-900 focus:ring-zinc-500"
+                        />
+                        <span className="text-zinc-500 dark:text-zinc-400">Geral / Outros</span>
+                      </label>
+                      <div className="h-px bg-zinc-200 dark:bg-zinc-700 my-1 w-full" />
+                      {(subjects.find(s => s.id === formData.subjectId)?.topics || []).map((t: Topic) => {
+                        const isChecked = formData.topicIds.includes(t.id);
+                        return (
+                          <label key={t.id} className="flex items-center gap-2.5 text-xs font-bold dark:text-white cursor-pointer select-none hover:opacity-85 py-0.5">
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => {
+                                const current = formData.topicIds;
+                                const next = isChecked 
+                                  ? current.filter(id => id !== t.id) 
+                                  : [...current, t.id];
+                                setFormData({ ...formData, topicIds: next });
+                              }}
+                              className="rounded border-zinc-300 dark:border-zinc-700 text-zinc-900 focus:ring-zinc-500"
+                            />
+                            <span>{t.title}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
                 

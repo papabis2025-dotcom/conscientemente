@@ -474,7 +474,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                             <div className="flex flex-col gap-2" onClick={e => e.stopPropagation()}>
                               <div className="flex items-center gap-2">
                                 <input
-                                  className="px-2 py-1 bg-white dark:bg-zinc-900 border rounded text-sm"
+                                  className="px-2 py-1 bg-white dark:bg-zinc-900 border rounded text-sm text-zinc-800 dark:text-white"
                                   value={editName}
                                   onChange={e => setEditName(e.target.value)}
                                   autoFocus
@@ -531,7 +531,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                           <input
                             type="number"
                             placeholder="Qtd"
-                            className="w-20 px-2 py-1 bg-white dark:bg-zinc-900 border rounded text-sm"
+                            className="w-20 px-2 py-1 bg-white dark:bg-zinc-900 border rounded text-sm text-zinc-800 dark:text-white"
                             value={editQuestionsGoal}
                             onChange={e => setEditQuestionsGoal(e.target.value === '' ? '' : Number(e.target.value))}
                           />
@@ -547,7 +547,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                           <input
                             type="number"
                             placeholder="Peso"
-                            className="w-16 px-2 py-1 bg-white dark:bg-zinc-900 border rounded text-sm"
+                            className="w-16 px-2 py-1 bg-white dark:bg-zinc-900 border rounded text-sm text-zinc-800 dark:text-white"
                             value={editWeight}
                             onChange={e => setEditWeight(e.target.value === '' ? '' : Number(e.target.value))}
                             step="0.1"
@@ -574,7 +574,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                                     {addingTopicToId === subject.id ? (
                                       <div className="flex items-center gap-2 animate-in fade-in" onClick={e => e.stopPropagation()}>
                                         <input
-                                          className="text-xs px-2 py-1 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 outline-none font-normal normal-case tracking-normal"
+                                          className="text-xs px-2 py-1 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 outline-none font-normal normal-case tracking-normal text-zinc-800 dark:text-zinc-100"
                                           placeholder="Nome do tópico..."
                                           value={newTopicTitle}
                                           onChange={e => setNewTopicTitle(e.target.value)}
@@ -675,7 +675,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                                           {editingTopicId === topic.id ? (
                                             <div className="flex items-center gap-2">
                                               <input
-                                                className="px-2 py-1 bg-white dark:bg-zinc-900 border rounded text-xs w-full outline-none focus:ring-1 focus:ring-zinc-500"
+                                                className="px-2 py-1 bg-white dark:bg-zinc-900 border rounded text-xs w-full outline-none focus:ring-1 focus:ring-zinc-500 text-zinc-800 dark:text-zinc-100"
                                                 value={editTopicTitle}
                                                 onChange={e => setEditTopicTitle(e.target.value)}
                                                 autoFocus

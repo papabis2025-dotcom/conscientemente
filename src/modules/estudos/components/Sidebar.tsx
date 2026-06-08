@@ -186,7 +186,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         </button>
       )}
 
-      <div className={`fixed md:relative ${isCollapsed ? 'w-64 md:w-20 -translate-x-full md:translate-x-0' : 'w-64 translate-x-0'} h-screen md:h-full bg-white/95 dark:bg-zinc-900/95 md:bg-white/50 md:dark:bg-zinc-900/50 border-r border-zinc-200 dark:border-zinc-800 flex flex-col p-5 transition-all duration-300 z-50 shadow-sm text-sm backdrop-blur-xl`}>
+      <div className={`fixed md:relative ${isCollapsed ? 'w-64 md:w-20 -translate-x-full md:translate-x-0' : 'w-64 translate-x-0'} h-screen md:h-full ${isCollapsed ? 'bg-white dark:bg-zinc-900' : 'bg-white/95 dark:bg-zinc-900/95 md:bg-white/50 md:dark:bg-zinc-900/50 backdrop-blur-xl'} border-r border-zinc-200 dark:border-zinc-800 flex flex-col p-5 transition-all duration-300 z-50 shadow-sm text-sm`}>
         <button
           onClick={onToggleCollapse}
           className="absolute -right-3 top-9 w-6 h-6 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-full flex items-center justify-center text-zinc-500 hover:text-zinc-900 dark:text-zinc-100 shadow-sm z-50 hover:scale-110 transition-transform cursor-pointer"

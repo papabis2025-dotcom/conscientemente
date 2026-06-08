@@ -313,7 +313,8 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
             durationInMinutes: session.durationInMinutes,
             questionsDone: session.questionsDone,
             questionsCorrect: session.questionsCorrect,
-            status: 'realizado'
+            status: 'realizado',
+            notes: (session as any).notes
         };
 
         // Optimistically add schedule entry to local state

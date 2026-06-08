@@ -399,6 +399,7 @@ const HubHome: React.FC<HubHomeProps> = ({
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   });
+  const [hasPastPendingEvents, setHasPastPendingEvents] = useState(false);
 
   const toggleCalendar = () => {
     setCalendarCollapsed(prev => {
@@ -499,6 +500,48 @@ const HubHome: React.FC<HubHomeProps> = ({
       // Filter out individual simulado study sessions from scheduled studies
       const nonSimuladoScheduledStudies = scheduledStudiesFiltered.filter((s: any) => s.activityType !== 'Simulado');
 
+      // Helper to parse notes group
+      const parseNotesGroup = (notes: string) => {
+        const match = notes?.match(/^\[groupId:([^\]]+)\](.*)/s);
+        if (match) {
+          return { groupId: match[1], cleanNotes: match[2].trim() };
+        }
+        return { groupId: null, cleanNotes: notes || '' };
+      };
+
+      // Group nonSimuladoScheduledStudies by groupId
+      const groupedMap = new Map<string, any[]>();
+      const nonGroupedStudies: any[] = [];
+
+      nonSimuladoScheduledStudies.forEach((s: any) => {
+        if (s.notes) {
+          const { groupId } = parseNotesGroup(s.notes);
+          if (groupId) {
+            if (!groupedMap.has(groupId)) {
+              groupedMap.set(groupId, []);
+            }
+            groupedMap.get(groupId)!.push(s);
+            return;
+          }
+        }
+        nonGroupedStudies.push(s);
+      });
+
+      const groupedStudies = Array.from(groupedMap.entries()).map(([groupId, list]) => {
+        const first = list[0];
+        const totalDuration = list.reduce((acc, item) => acc + (item.durationInMinutes || 0), 0);
+        return {
+          id: first.id,
+          activityType: first.activityType,
+          durationInMinutes: totalDuration,
+          date: first.date,
+          status: first.status,
+          notes: first.notes
+        };
+      });
+
+      const consolidatedStudies = [...nonGroupedStudies, ...groupedStudies];
+
       const studiesList = [
         ...studyTasksFiltered.map((t: any) => ({ 
           id: t.id, 
@@ -506,7 +549,7 @@ const HubHome: React.FC<HubHomeProps> = ({
           date: t.date, 
           completed: t.done 
         })),
-        ...nonSimuladoScheduledStudies.map((s: any) => ({ 
+        ...consolidatedStudies.map((s: any) => ({ 
           id: s.id, 
           text: s.activityType + ' (' + (s.durationInMinutes || 0) + ' min)', 
           date: s.date?.split('T')[0], 
@@ -527,6 +570,25 @@ const HubHome: React.FC<HubHomeProps> = ({
         workouts: dbWorkouts || [],
         finances: dbFinances || []
       });
+
+      // Query past incomplete tasks from Supabase
+      const { count: pastTasksCount } = await supabase
+        .from('tarefas')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .eq('completed', false)
+        .lt('due_date', startOfMonth);
+
+      const hasPastTasks = (pastTasksCount || 0) > 0;
+      
+      const hasPastStudies = 
+        studyTasksFiltered.some((t: any) => t.date && t.date < startOfMonth && !t.done) ||
+        nonSimuladoScheduledStudies.some((s: any) => {
+          const sDate = s.date?.split('T')[0];
+          return sDate && sDate < startOfMonth && s.status !== 'realizado';
+        });
+
+      setHasPastPendingEvents(hasPastTasks || hasPastStudies);
     } catch (e) {
       console.error('Error fetching calendar data:', e);
     }
@@ -1675,7 +1737,9 @@ const HubHome: React.FC<HubHomeProps> = ({
                         setCalendarMonth(newDate);
                       }}
                       type="button"
-                      className="p-1 hover:bg-zinc-200/30 dark:hover:bg-zinc-800 rounded-lg text-zinc-500 transition-colors cursor-pointer"
+                      className={`p-1 hover:bg-zinc-200/30 dark:hover:bg-zinc-800 rounded-lg text-zinc-500 transition-colors cursor-pointer ${
+                        hasPastPendingEvents ? 'animate-pulse text-amber-500 dark:text-amber-400 font-black' : ''
+                      }`}
                     >
                       <ChevronLeft size={14} />
                     </button>
@@ -1750,8 +1814,16 @@ const HubHome: React.FC<HubHomeProps> = ({
                           
                           {/* Bolinhas indicadoras sob o dia */}
                           <div className="flex gap-1 mt-1 shrink-0">
-                            {hasStudies && <div className="w-1.5 h-1.5 rounded-full bg-purple-500 shadow-sm" />}
-                            {hasTasks && <div className="w-1.5 h-1.5 rounded-full bg-red-500 shadow-sm" />}
+                            {hasStudies && (
+                              <div className={`w-1.5 h-1.5 rounded-full bg-purple-500 shadow-sm ${
+                                dateStr < todayStr && dayStudies.some(s => !s.completed) ? 'animate-pulse' : ''
+                              }`} />
+                            )}
+                            {hasTasks && (
+                              <div className={`w-1.5 h-1.5 rounded-full bg-red-500 shadow-sm ${
+                                dateStr < todayStr && dayTasks.some(t => !t.completed) ? 'animate-pulse' : ''
+                              }`} />
+                            )}
                             {hasFinances && <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-sm" />}
                             {hasWorkouts && <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-sm" />}
                           </div>

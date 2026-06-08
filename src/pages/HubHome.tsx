@@ -1814,42 +1814,62 @@ const HubHome: React.FC<HubHomeProps> = ({
                           
                           {/* Ícones indicadores sob o dia */}
                           <div className="flex gap-0.5 mt-1 shrink-0 flex-wrap justify-center max-w-full">
-                            {dayStudies.map((s, idx) => (
-                              <Brain 
-                                key={`study-${s.id || idx}`}
-                                size={9} 
-                                className={`text-purple-500 shrink-0 ${
-                                  dateStr < todayStr && !s.completed ? 'animate-pulse' : ''
-                                }`} 
-                              />
-                            ))}
-                            {dayTasks.map((t, idx) => (
-                              <ListTodo 
-                                key={`task-${t.id || idx}`}
-                                size={9} 
-                                className={`text-red-500 shrink-0 ${
-                                  dateStr < todayStr && !t.completed ? 'animate-pulse' : ''
-                                }`} 
-                              />
-                            ))}
-                            {dayFinances.map((f, idx) => (
-                              <DollarSign 
-                                key={`finance-${f.id || idx}`}
-                                size={9} 
-                                className={`text-emerald-500 shrink-0 ${
-                                  dateStr < todayStr ? 'animate-pulse' : ''
-                                }`} 
-                              />
-                            ))}
-                            {dayWorkouts.map((w, idx) => (
-                              <Activity 
-                                key={`workout-${w.id || idx}`}
-                                size={9} 
-                                className={`text-blue-500 shrink-0 ${
-                                  dateStr < todayStr && w.status !== 'realizado' ? 'animate-pulse' : ''
-                                }`} 
-                              />
-                            ))}
+                            {dayStudies.map((s, idx) => {
+                              const isAtrasado = dateStr < todayStr && !s.completed;
+                              return (
+                                <Brain 
+                                  key={`study-${s.id || idx}`}
+                                  size={12} 
+                                  className={`shrink-0 transition-all ${
+                                    isAtrasado 
+                                      ? 'text-purple-600 dark:text-purple-400 drop-shadow-[0_0_4px_rgba(168,85,247,0.85)] scale-110 animate-pulse' 
+                                      : 'text-purple-500/80 dark:text-purple-400/80'
+                                  }`} 
+                                />
+                              );
+                            })}
+                            {dayTasks.map((t, idx) => {
+                              const isAtrasado = dateStr < todayStr && !t.completed;
+                              return (
+                                <ListTodo 
+                                  key={`task-${t.id || idx}`}
+                                  size={12} 
+                                  className={`shrink-0 transition-all ${
+                                    isAtrasado 
+                                      ? 'text-red-600 dark:text-red-400 drop-shadow-[0_0_4px_rgba(239,68,68,0.85)] scale-110 animate-pulse' 
+                                      : 'text-red-500/80 dark:text-red-400/80'
+                                  }`} 
+                                />
+                              );
+                            })}
+                            {dayFinances.map((f, idx) => {
+                              const isAtrasado = dateStr < todayStr;
+                              return (
+                                <DollarSign 
+                                  key={`finance-${f.id || idx}`}
+                                  size={12} 
+                                  className={`shrink-0 transition-all ${
+                                    isAtrasado 
+                                      ? 'text-emerald-600 dark:text-emerald-400 drop-shadow-[0_0_4px_rgba(16,185,129,0.85)] scale-110 animate-pulse' 
+                                      : 'text-emerald-500/80 dark:text-emerald-400/80'
+                                  }`} 
+                                />
+                              );
+                            })}
+                            {dayWorkouts.map((w, idx) => {
+                              const isAtrasado = dateStr < todayStr && w.status !== 'realizado';
+                              return (
+                                <Activity 
+                                  key={`workout-${w.id || idx}`}
+                                  size={12} 
+                                  className={`shrink-0 transition-all ${
+                                    isAtrasado 
+                                      ? 'text-blue-600 dark:text-blue-400 drop-shadow-[0_0_4px_rgba(59,130,246,0.85)] scale-110 animate-pulse' 
+                                      : 'text-blue-500/80 dark:text-blue-400/80'
+                                  }`} 
+                                />
+                              );
+                            })}
                           </div>
                         </div>
                       );
@@ -1897,52 +1917,107 @@ const HubHome: React.FC<HubHomeProps> = ({
 
                     return (
                       <>
-                        {/* Estudos */}
-                        {dayStudies.map(s => (
-                          <div key={s.id} className="flex items-center gap-2 p-2 rounded-xl bg-purple-550/5 dark:bg-purple-500/5 border border-purple-500/10 dark:border-purple-500/15 hover:bg-purple-500/10 transition-colors">
-                            <Brain size={12} className="text-purple-500 shrink-0" />
-                            <div className="min-w-0 flex-1">
-                              <p className="text-[9px] font-black text-purple-600 dark:text-purple-400 uppercase tracking-wider leading-none">Estudo</p>
-                              <p className={`text-[10px] font-bold text-zinc-750 dark:text-zinc-200 truncate mt-0.5 leading-none ${s.completed ? 'line-through opacity-50' : ''}`}>{s.text}</p>
-                            </div>
-                          </div>
-                        ))}
+                         {/* Estudos */}
+                         {dayStudies.map(s => {
+                           const isCompleted = s.completed;
+                           return (
+                             <div 
+                               key={s.id} 
+                               className={`flex items-center gap-2 p-2 rounded-xl transition-all duration-200 ${
+                                 isCompleted
+                                   ? 'bg-zinc-100/40 dark:bg-zinc-800/20 border border-zinc-200/25 dark:border-zinc-800/30 opacity-40'
+                                   : 'bg-purple-500/10 dark:bg-purple-500/10 border-2 border-purple-500/40 dark:border-purple-400/50 shadow-xs'
+                               }`}
+                             >
+                               <Brain size={12} className={isCompleted ? 'text-zinc-450 dark:text-zinc-600 shrink-0' : 'text-purple-500 shrink-0'} />
+                               <div className="min-w-0 flex-1">
+                                 <p className={`text-[9px] font-black uppercase tracking-wider leading-none ${
+                                   isCompleted ? 'text-zinc-400 dark:text-zinc-550' : 'text-purple-600 dark:text-purple-400'
+                                 }`}>
+                                   Estudo {!isCompleted && '• Pendente'}
+                                 </p>
+                                 <p className={`text-[10px] font-bold text-zinc-750 dark:text-zinc-200 truncate mt-0.5 leading-none ${
+                                   isCompleted ? 'line-through opacity-50' : ''
+                                 }`}>{s.text}</p>
+                               </div>
+                             </div>
+                           );
+                         })}
 
-                        {/* Tarefas */}
-                        {dayTasks.map(t => (
-                          <div key={t.id} className="flex items-center gap-2 p-2 rounded-xl bg-red-550/5 dark:bg-red-500/5 border border-red-500/10 dark:border-red-500/15 hover:bg-red-550/10 transition-colors">
-                            <ListTodo size={12} className="text-red-500 shrink-0" />
-                            <div className="min-w-0 flex-1">
-                              <p className="text-[9px] font-black text-red-600 dark:text-red-400 uppercase tracking-wider leading-none">Tarefa</p>
-                              <p className={`text-[10px] font-bold text-zinc-750 dark:text-zinc-200 truncate mt-0.5 leading-none ${t.completed ? 'line-through opacity-50' : ''}`}>{t.text}</p>
-                            </div>
-                          </div>
-                        ))}
+                         {/* Tarefas */}
+                         {dayTasks.map(t => {
+                           const isCompleted = t.completed;
+                           return (
+                             <div 
+                               key={t.id} 
+                               className={`flex items-center gap-2 p-2 rounded-xl transition-all duration-200 ${
+                                 isCompleted
+                                   ? 'bg-zinc-100/40 dark:bg-zinc-800/20 border border-zinc-200/25 dark:border-zinc-800/30 opacity-40'
+                                   : 'bg-red-500/10 dark:bg-red-500/10 border-2 border-red-500/40 dark:border-red-400/50 shadow-xs'
+                               }`}
+                             >
+                               <ListTodo size={12} className={isCompleted ? 'text-zinc-450 dark:text-zinc-600 shrink-0' : 'text-red-500 shrink-0'} />
+                               <div className="min-w-0 flex-1">
+                                 <p className={`text-[9px] font-black uppercase tracking-wider leading-none ${
+                                   isCompleted ? 'text-zinc-400 dark:text-zinc-550' : 'text-red-600 dark:text-red-400'
+                                 }`}>
+                                   Tarefa {!isCompleted && '• Pendente'}
+                                 </p>
+                                 <p className={`text-[10px] font-bold text-zinc-750 dark:text-zinc-200 truncate mt-0.5 leading-none ${
+                                   isCompleted ? 'line-through opacity-50' : ''
+                                 }`}>{t.text}</p>
+                               </div>
+                             </div>
+                           );
+                         })}
 
-                        {/* Treinos */}
-                        {dayWorkouts.map(w => (
-                          <div key={w.id} className="flex items-center gap-2 p-2 rounded-xl bg-blue-550/5 dark:bg-blue-500/5 border border-blue-500/10 dark:border-blue-500/15 hover:bg-blue-550/10 transition-colors">
-                            <Activity size={12} className="text-blue-500 shrink-0" />
-                            <div className="min-w-0 flex-1">
-                              <p className="text-[9px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-wider leading-none">Treino</p>
-                              <p className={`text-[10px] font-bold text-zinc-750 dark:text-zinc-200 truncate mt-0.5 leading-none ${w.status === 'realizado' ? 'line-through opacity-50' : ''}`}>{w.type}</p>
-                            </div>
-                          </div>
-                        ))}
+                         {/* Treinos */}
+                         {dayWorkouts.map(w => {
+                           const isCompleted = w.status === 'realizado';
+                           return (
+                             <div 
+                               key={w.id} 
+                               className={`flex items-center gap-2 p-2 rounded-xl transition-all duration-200 ${
+                                 isCompleted
+                                   ? 'bg-zinc-100/40 dark:bg-zinc-800/20 border border-zinc-200/25 dark:border-zinc-800/30 opacity-40'
+                                   : 'bg-blue-500/10 dark:bg-blue-500/10 border-2 border-blue-500/40 dark:border-blue-400/50 shadow-xs'
+                               }`}
+                             >
+                               <Activity size={12} className={isCompleted ? 'text-zinc-450 dark:text-zinc-600 shrink-0' : 'text-blue-500 shrink-0'} />
+                               <div className="min-w-0 flex-1">
+                                 <p className={`text-[9px] font-black uppercase tracking-wider leading-none ${
+                                   isCompleted ? 'text-zinc-400 dark:text-zinc-550' : 'text-blue-600 dark:text-blue-400'
+                                 }`}>
+                                   Treino {!isCompleted && '• Pendente'}
+                                 </p>
+                                 <p className={`text-[10px] font-bold text-zinc-750 dark:text-zinc-200 truncate mt-0.5 leading-none ${
+                                   isCompleted ? 'line-through opacity-50' : ''
+                                 }`}>{w.type}</p>
+                               </div>
+                             </div>
+                           );
+                         })}
 
-                        {/* Finanças */}
-                        {dayFinances.map(f => (
-                          <div key={f.id} className="flex items-center gap-2 p-2 rounded-xl bg-emerald-550/5 dark:bg-emerald-500/5 border border-emerald-500/10 dark:border-emerald-500/15 hover:bg-emerald-550/10 transition-colors">
-                            <DollarSign size={12} className="text-emerald-500 shrink-0" />
-                            <div className="min-w-0 flex-1">
-                              <p className="text-[9px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider leading-none">Despesa</p>
-                              <p className="text-[10px] font-bold text-zinc-750 dark:text-zinc-200 truncate mt-0.5 leading-none">{f.name}</p>
-                            </div>
-                            <span className="text-[9px] font-bold text-emerald-500 shrink-0">
-                              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(f.amount)}
-                            </span>
-                          </div>
-                        ))}
+                         {/* Finanças */}
+                         {dayFinances.map(f => (
+                           <div 
+                             key={f.id} 
+                             className="flex items-center gap-2 p-2 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/10 border border-emerald-500/30 dark:border-emerald-400/45 shadow-xs"
+                           >
+                             <DollarSign size={12} className="text-emerald-500 shrink-0" />
+                             <div className="min-w-0 flex-1">
+                               <p className="text-[9px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider leading-none">
+                                 Despesa • Pendente
+                               </p>
+                               <p className="text-[10px] font-bold text-zinc-750 dark:text-zinc-200 truncate mt-0.5 leading-none">
+                                 {f.name}
+                               </p>
+                             </div>
+                             <span className="text-[9px] font-bold text-emerald-650 dark:text-emerald-400 shrink-0">
+                               {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(f.amount)}
+                             </span>
+                           </div>
+                         ))}
                       </>
                     );
                   })()}
@@ -2001,15 +2076,15 @@ const HubHome: React.FC<HubHomeProps> = ({
                           onClick={() => toggleHabit(h.id)}
                           className={`flex items-center gap-3 p-2.5 rounded-xl border transition-all duration-200 cursor-pointer ${
                             isCompleted
-                              ? 'bg-zinc-200/20 dark:bg-zinc-950/10 border-zinc-200/10 dark:border-zinc-900/10 opacity-40'
-                              : 'bg-white/20 dark:bg-zinc-900/10 border-zinc-200/30 dark:border-zinc-850/40 hover:border-zinc-350 dark:hover:border-zinc-700 hover:shadow-sm'
+                              ? 'bg-zinc-200/20 dark:bg-zinc-950/10 border-zinc-200/10 dark:border-zinc-900/10 opacity-65'
+                              : 'bg-white dark:bg-zinc-850 border-zinc-250 dark:border-zinc-700/80 hover:border-zinc-350 dark:hover:border-zinc-700 hover:shadow-sm'
                           }`}
                         >
                           <div className="relative flex items-center justify-center shrink-0">
                             <div className={`w-4 h-4 rounded-md border flex items-center justify-center transition-all ${
                               isCompleted
-                                ? 'bg-zinc-950 dark:bg-white border-zinc-900 dark:border-white text-white dark:text-zinc-950'
-                                : 'border-zinc-350 dark:border-zinc-700 bg-transparent'
+                                ? 'bg-indigo-600 dark:bg-indigo-500 border-indigo-600 dark:border-indigo-500 text-white'
+                                : 'border-zinc-400 dark:border-zinc-500 bg-white dark:bg-zinc-900'
                             }`}>
                               {isCompleted && <Check size={9} strokeWidth={3} />}
                             </div>
@@ -2017,7 +2092,7 @@ const HubHome: React.FC<HubHomeProps> = ({
                           <span className={`text-[10px] font-bold transition-all truncate leading-none ${
                             isCompleted
                               ? 'line-through text-zinc-450 dark:text-zinc-500 font-medium'
-                              : 'text-zinc-650 dark:text-zinc-300'
+                              : 'text-zinc-800 dark:text-zinc-150'
                           }`}>
                             {h.name}
                           </span>
@@ -2031,9 +2106,9 @@ const HubHome: React.FC<HubHomeProps> = ({
               {/* Progress Indicator */}
               {habits.length > 0 && (
                 <div className="mt-1 pt-2 border-t border-zinc-200/20 dark:border-zinc-800/20 animate-in fade-in duration-300 shrink-0">
-                  <div className="w-full h-1 bg-zinc-200/40 dark:bg-zinc-800/40 rounded-full overflow-hidden">
+                  <div className="w-full h-1.5 bg-zinc-200/40 dark:bg-zinc-800/40 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-zinc-450 dark:bg-zinc-500 transition-all duration-500"
+                      className="h-full bg-indigo-600 dark:bg-indigo-500 transition-all duration-500"
                       style={{ width: `${(habits.filter(h => (habitHistory[todayStr] || []).includes(h.id)).length / habits.length) * 100}%` }}
                     />
                   </div>

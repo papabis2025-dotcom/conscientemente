@@ -184,6 +184,12 @@ const TarefasApp: React.FC = () => {
       const pA = priorityMap[a.category] || 4;
       const pB = priorityMap[b.category] || 4;
       if (pA !== pB) return pA - pB;
+      if (!a.dueDate && !b.dueDate) return b.createdAt - a.createdAt;
+      if (!a.dueDate) return 1;
+      if (!b.dueDate) return -1;
+      const dateA = new Date(`${a.dueDate}T${a.dueTime || '23:59'}`).getTime();
+      const dateB = new Date(`${b.dueDate}T${b.dueTime || '23:59'}`).getTime();
+      if (dateA !== dateB) return dateB - dateA;
       return b.createdAt - a.createdAt;
     } else {
       if (!a.dueDate && !b.dueDate) return b.createdAt - a.createdAt;

@@ -265,7 +265,7 @@ export default function HabitosHub({ onBack, theme, toggleTheme, userName }: Hab
   const daysInMonthList = getDaysInMonthList();
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-zinc-100 dark:bg-zinc-950 text-zinc-800 dark:text-zinc-100 transition-colors duration-300">
+    <div className="flex h-screen w-screen overflow-hidden bg-transparent text-zinc-800 dark:text-zinc-100 transition-colors duration-300">
       
       {/* Backdrop para mobile quando a sidebar estiver aberta */}
       {!isSidebarCollapsed && (

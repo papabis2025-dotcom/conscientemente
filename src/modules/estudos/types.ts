@@ -73,7 +73,7 @@ export interface Simulado {
   durationInMinutes?: number;
 }
 
-export type ActivityType = 'Questões' | 'Leitura' | 'Aula' | 'Simulado' | 'Flashcards';
+export type ActivityType = 'Questões' | 'Leitura' | 'Aula' | 'Simulado' | 'Flashcards' | string;
 
 export interface ScheduledStudy {
   id: string;

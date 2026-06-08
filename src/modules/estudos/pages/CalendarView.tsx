@@ -40,7 +40,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   const [formData, setFormData] = useState({
     subjectId: '',
     topicId: '',
-    activityType: 'Leitura' as ActivityType,
+    activityTypes: ['Leitura'] as string[],
     duration: '',
     questionsDone: '',
     questionsCorrect: '',
@@ -68,7 +68,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     setFormData({
       subjectId: '',
       topicId: '',
-      activityType: 'Leitura' as ActivityType,
+      activityTypes: ['Leitura'],
       duration: '',
       questionsDone: '',
       questionsCorrect: '',
@@ -82,14 +82,17 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     if (!formData.subjectId || selectedDayKey === null) return;
 
     const durationVal = parseInt(formData.duration) || 0;
-    const questionsDoneVal = (formData.activityType === 'Questões' || formData.activityType === 'Flashcards') ? (parseInt(formData.questionsDone) || undefined) : undefined;
-    const questionsCorrectVal = (formData.activityType === 'Questões' || formData.activityType === 'Flashcards') ? (parseInt(formData.questionsCorrect) || undefined) : undefined;
+    const selectedTypes = formData.activityTypes;
+    const hasQuestions = selectedTypes.includes('Questões') || selectedTypes.includes('Flashcards');
+    const questionsDoneVal = hasQuestions ? (parseInt(formData.questionsDone) || undefined) : undefined;
+    const questionsCorrectVal = hasQuestions ? (parseInt(formData.questionsCorrect) || undefined) : undefined;
+    const activityTypesStr = selectedTypes.join(', ');
 
     if (editingTask) {
       const updates: Partial<ScheduledStudy> = {
         subjectId: formData.subjectId,
         topicId: formData.topicId || undefined,
-        activityType: formData.activityType,
+        activityType: activityTypesStr,
         durationInMinutes: durationVal || undefined,
         questionsDone: questionsDoneVal,
         questionsCorrect: questionsCorrectVal,
@@ -108,7 +111,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
           date: new Date(`${selectedDayKey}T12:00:00`).toISOString(),
           questionsDone: questionsDoneVal,
           questionsCorrect: questionsCorrectVal,
-          activityType: formData.activityType
+          activityType: activityTypesStr
         });
       } else {
         const newEntry: ScheduledStudy = {
@@ -116,7 +119,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
           date: selectedDayKey,
           subjectId: formData.subjectId,
           topicId: formData.topicId || undefined,
-          activityType: formData.activityType,
+          activityType: activityTypesStr,
           notes: formData.notes,
           durationInMinutes: durationVal || undefined,
           questionsDone: questionsDoneVal,
@@ -131,7 +134,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     setFormData({
       subjectId: '',
       topicId: '',
-      activityType: 'Leitura' as ActivityType,
+      activityTypes: ['Leitura'],
       duration: '',
       questionsDone: '',
       questionsCorrect: '',
@@ -215,10 +218,14 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     }
     setSelectedDayKey(task.date || task.date.split('T')[0]);
     setEditingTask(task);
+    const types = task.activityType
+      ? task.activityType.split(',').map((t: string) => t.trim())
+      : ['Leitura'];
+
     setFormData({
       subjectId: task.subjectId,
       topicId: task.topicId || '',
-      activityType: task.activityType || 'Leitura',
+      activityTypes: types,
       duration: task.durationInMinutes?.toString() || '',
       questionsDone: task.questionsDone?.toString() || '',
       questionsCorrect: task.questionsCorrect?.toString() || '',
@@ -510,14 +517,34 @@ const CalendarView: React.FC<CalendarViewProps> = ({
 
               <div className="space-y-4">
                 <div>
-                  <label className="text-[10px] font-black text-zinc-400 uppercase mb-1 block">Tipo de Atividade</label>
-                  <select value={formData.activityType} onChange={(e) => setFormData({ ...formData, activityType: e.target.value as any })} className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 border rounded-2xl outline-none text-sm dark:text-white">
-                    <option value="Leitura">Leitura</option>
-                    <option value="Questões">Questões</option>
-                    <option value="Flashcards">Flashcards</option>
-                    <option value="Aula">Aula</option>
-                    <option value="Simulado">Simulado</option>
-                  </select>
+                  <label className="text-[10px] font-black text-zinc-400 uppercase mb-2 block">Tipo de Atividade (Selecione uma ou mais)</label>
+                  <div className="flex flex-wrap gap-2">
+                    {['Leitura', 'Questões', 'Flashcards', 'Aula', 'Simulado'].map(type => {
+                      const isSelected = formData.activityTypes.includes(type);
+                      return (
+                        <button
+                          key={type}
+                          type="button"
+                          onClick={() => {
+                            const current = formData.activityTypes;
+                            const next = current.includes(type)
+                              ? current.filter(t => t !== type)
+                              : [...current, type];
+                            if (next.length > 0) {
+                              setFormData({ ...formData, activityTypes: next });
+                            }
+                          }}
+                          className={`px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase transition-all border ${
+                            isSelected
+                              ? 'bg-zinc-950 dark:bg-zinc-100 text-white dark:text-zinc-900 border-transparent shadow-sm'
+                              : 'border-zinc-200 dark:border-zinc-800 text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800'
+                          }`}
+                        >
+                          {type}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
                 <div>
                   <label className="text-[10px] font-black text-zinc-400 uppercase mb-1 block">Disciplina</label>
@@ -552,7 +579,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                   </div>
                 </div>
 
-                {(formData.activityType === 'Questões' || formData.activityType === 'Flashcards') && (
+                {(formData.activityTypes.includes('Questões') || formData.activityTypes.includes('Flashcards')) && (
                   <div className="grid grid-cols-2 gap-3 animate-in fade-in slide-in-from-top-2">
                     <div>
                       <label className="text-[10px] font-black text-zinc-400 uppercase mb-1 block">Total Questões</label>

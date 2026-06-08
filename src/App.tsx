@@ -11,6 +11,7 @@ import AnotacoesApp from './modules/anotacoes/App';
 import type { Session } from '@supabase/supabase-js';
 import { playSound } from './utils/audio';
 import { Brain } from 'lucide-react';
+import GlobalSidebar from './components/GlobalSidebar';
 
 interface SyncedPayload {
   updatedAt: number;
@@ -209,6 +210,7 @@ const App: React.FC = () => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [currentRoute, setCurrentRoute] = useState(() => window.location.hash.replace('#', '') || 'hub');
+  const [isHomeEditMode, setIsHomeEditMode] = useState(false);
 
   // Global click event listener for premium click sound feedback
   useEffect(() => {
@@ -708,16 +710,37 @@ const App: React.FC = () => {
         setBgImage={setBgImage}
         bgImageStyle={bgImageStyle}
         setBgImageStyle={setBgImageStyle}
+        isHomeEditMode={isHomeEditMode}
+        setIsHomeEditMode={setIsHomeEditMode}
       />
     );
   }
 
   return (
     <div 
-      className={`min-h-screen ${bgClass} transition-colors duration-300`}
+      className={`min-h-screen ${bgClass} flex relative transition-colors duration-300`}
       style={bgStyle}
     >
-      {pageContent}
+      <GlobalSidebar
+        currentRoute={currentRoute}
+        userName={userName}
+        theme={theme}
+        toggleTheme={toggleTheme}
+        onLogout={handleLogout}
+        isHomeEditMode={isHomeEditMode}
+        setIsHomeEditMode={setIsHomeEditMode}
+        bgType={bgType}
+        setBgType={setBgType}
+        bgColor={bgColor}
+        setBgColor={setBgColor}
+        bgImage={bgImage}
+        setBgImage={setBgImage}
+        bgImageStyle={bgImageStyle}
+        setBgImageStyle={setBgImageStyle}
+      />
+      <div className="flex-1 min-h-screen overflow-x-hidden relative">
+        {pageContent}
+      </div>
     </div>
   );
 };

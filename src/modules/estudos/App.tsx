@@ -70,7 +70,7 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
   const [activityFormData, setActivityFormData] = useState({
     subjectId: '',
     topicId: '',
-    activityType: 'Questões' as ActivityType,
+    activityTypes: ['Questões'] as string[],
     duration: '',
     questionsDone: '',
     questionsCorrect: '',
@@ -80,22 +80,25 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
   const handleSaveActivity = () => {
     if (!activityFormData.subjectId) return;
 
+    const selectedTypes = activityFormData.activityTypes;
+    const hasQuestions = selectedTypes.includes('Questões') || selectedTypes.includes('Flashcards');
+
     addSession({
       id: crypto.randomUUID(),
       subjectId: activityFormData.subjectId,
       topicId: activityFormData.topicId || undefined,
       durationInMinutes: parseInt(activityFormData.duration) || 0,
       date: new Date(`${activityFormData.date}T12:00:00`).toISOString(),
-      questionsDone: (activityFormData.activityType === 'Questões' || activityFormData.activityType === 'Flashcards') ? (parseInt(activityFormData.questionsDone) || undefined) : undefined,
-      questionsCorrect: (activityFormData.activityType === 'Questões' || activityFormData.activityType === 'Flashcards') ? (parseInt(activityFormData.questionsCorrect) || undefined) : undefined,
-      activityType: activityFormData.activityType
+      questionsDone: hasQuestions ? (parseInt(activityFormData.questionsDone) || undefined) : undefined,
+      questionsCorrect: hasQuestions ? (parseInt(activityFormData.questionsCorrect) || undefined) : undefined,
+      activityType: selectedTypes.join(', ')
     });
 
     setShowAddModal(false);
     setActivityFormData({
       subjectId: '',
       topicId: '',
-      activityType: 'Questões',
+      activityTypes: ['Questões'],
       duration: '',
       questionsDone: '',
       questionsCorrect: '',
@@ -198,61 +201,80 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
 
             <h3 className="text-xl font-bold uppercase tracking-tight mb-6 dark:text-white flex items-center gap-2">Nova Atividade <Clock size={20} className="text-zinc-900 dark:text-zinc-300" /></h3>
 
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-4">
                 <div>
-                  <label className="text-[10px] font-bold text-zinc-400 uppercase mb-1.5 block">Tipo</label>
-                  <select value={activityFormData.activityType} onChange={(e) => setActivityFormData({ ...activityFormData, activityType: e.target.value as any })} className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 border-none rounded-2xl outline-none text-sm font-bold dark:text-white ring-1 ring-zinc-100 dark:ring-zinc-800 focus:ring-zinc-500">
-                    <option value="Leitura">Leitura</option>
-                    <option value="Questões">Questões</option>
-                    <option value="Flashcards">Flashcards</option>
-                    <option value="Aula">Aula</option>
-                    <option value="Simulado">Simulado</option>
-                  </select>
+                  <label className="text-[10px] font-bold text-zinc-400 uppercase mb-2 block">Tipo de Atividade (Selecione uma ou mais)</label>
+                  <div className="flex flex-wrap gap-2">
+                    {['Leitura', 'Questões', 'Flashcards', 'Aula', 'Simulado'].map(type => {
+                      const isSelected = activityFormData.activityTypes.includes(type);
+                      return (
+                        <button
+                          key={type}
+                          type="button"
+                          onClick={() => {
+                            const current = activityFormData.activityTypes;
+                            const next = current.includes(type)
+                              ? current.filter(t => t !== type)
+                              : [...current, type];
+                            if (next.length > 0) {
+                              setActivityFormData({ ...activityFormData, activityTypes: next });
+                            }
+                          }}
+                          className={`px-4 py-2 rounded-2xl text-[10px] font-bold uppercase transition-all border ${
+                            isSelected
+                              ? 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 border-transparent shadow-sm scale-95'
+                              : 'border-zinc-200 dark:border-zinc-800 text-zinc-500 hover:bg-zinc-55 dark:hover:bg-zinc-800/60'
+                          }`}
+                        >
+                          {type}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
+
                 <div>
                   <label className="text-[10px] font-bold text-zinc-400 uppercase mb-1.5 block">Data</label>
                   <input type="date" value={activityFormData.date} onChange={(e) => setActivityFormData({ ...activityFormData, date: e.target.value })} className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 border-none rounded-2xl outline-none text-sm font-bold dark:text-white ring-1 ring-zinc-100 dark:ring-zinc-800 focus:ring-zinc-500" />
                 </div>
-              </div>
 
-              <div>
-                <label className="text-[10px] font-bold text-zinc-400 uppercase mb-1.5 block">Disciplina</label>
-                <select value={activityFormData.subjectId} onChange={(e) => setActivityFormData({ ...activityFormData, subjectId: e.target.value, topicId: '' })} className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 border-none rounded-2xl outline-none text-sm font-bold dark:text-white ring-1 ring-zinc-100 dark:ring-zinc-800 focus:ring-zinc-500">
-                  <option value="">Selecione a matéria...</option>
-                  {filteredSubjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                </select>
-              </div>
-
-              {activityFormData.subjectId && (
-                <div className="animate-in fade-in slide-in-from-top-2">
-                  <label className="text-[10px] font-bold text-zinc-400 uppercase mb-1.5 block">Assunto / Tópico</label>
-                  <select value={activityFormData.topicId} onChange={(e) => setActivityFormData({ ...activityFormData, topicId: e.target.value })} className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 border-none rounded-2xl outline-none text-sm font-bold dark:text-white ring-1 ring-zinc-100 dark:ring-zinc-800 focus:ring-zinc-500">
-                    <option value="">Geral / Outros</option>
-                    {(filteredSubjects.find(s => s.id === activityFormData.subjectId)?.topics || []).map((t: Topic) => (
-                      <option key={t.id} value={t.id}>{t.title}</option>
-                    ))}
+                <div>
+                  <label className="text-[10px] font-bold text-zinc-400 uppercase mb-1.5 block">Disciplina</label>
+                  <select value={activityFormData.subjectId} onChange={(e) => setActivityFormData({ ...activityFormData, subjectId: e.target.value, topicId: '' })} className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 border-none rounded-2xl outline-none text-sm font-bold dark:text-white ring-1 ring-zinc-100 dark:ring-zinc-800 focus:ring-zinc-500">
+                    <option value="">Selecione a matéria...</option>
+                    {filteredSubjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                   </select>
                 </div>
-              )}
 
-              <div>
-                <label className="text-[10px] font-bold text-zinc-400 uppercase mb-1.5 block">Tempo Dedicado (min)</label>
-                <input type="number" placeholder="Ex: 45" value={activityFormData.duration} onChange={(e) => setActivityFormData({ ...activityFormData, duration: e.target.value })} className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 border-none rounded-2xl outline-none text-sm font-bold dark:text-white ring-1 ring-zinc-100 dark:ring-zinc-800 focus:ring-zinc-500" />
-              </div>
+                {activityFormData.subjectId && (
+                  <div className="animate-in fade-in slide-in-from-top-2">
+                    <label className="text-[10px] font-bold text-zinc-400 uppercase mb-1.5 block">Assunto / Tópico</label>
+                    <select value={activityFormData.topicId} onChange={(e) => setActivityFormData({ ...activityFormData, topicId: e.target.value })} className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 border-none rounded-2xl outline-none text-sm font-bold dark:text-white ring-1 ring-zinc-100 dark:ring-zinc-800 focus:ring-zinc-500">
+                      <option value="">Geral / Outros</option>
+                      {(filteredSubjects.find(s => s.id === activityFormData.subjectId)?.topics || []).map((t: Topic) => (
+                        <option key={t.id} value={t.id}>{t.title}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
 
-              {(activityFormData.activityType === 'Questões' || activityFormData.activityType === 'Flashcards') && (
-                <div className="grid grid-cols-2 gap-4 p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl border border-dashed border-zinc-200 dark:border-zinc-800 animate-in fade-in slide-in-from-top-2">
-                  <div>
-                    <label className="text-[10px] font-bold text-zinc-400 uppercase mb-1.5 block">Resolvidas</label>
-                    <input type="number" placeholder="0" value={activityFormData.questionsDone} onChange={(e) => setActivityFormData({ ...activityFormData, questionsDone: e.target.value })} className="w-full p-3 bg-white dark:bg-zinc-900 border-none rounded-xl outline-none text-sm font-bold dark:text-white shadow-sm" />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-bold text-zinc-400 uppercase mb-1.5 block">Acertos</label>
-                    <input type="number" placeholder="0" value={activityFormData.questionsCorrect} onChange={(e) => setActivityFormData({ ...activityFormData, questionsCorrect: e.target.value })} className="w-full p-3 bg-white dark:bg-zinc-900 border-none rounded-xl outline-none text-sm font-bold dark:text-white shadow-sm" />
-                  </div>
+                <div>
+                  <label className="text-[10px] font-bold text-zinc-400 uppercase mb-1.5 block">Tempo Dedicado (min)</label>
+                  <input type="number" placeholder="Ex: 45" value={activityFormData.duration} onChange={(e) => setActivityFormData({ ...activityFormData, duration: e.target.value })} className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 border-none rounded-2xl outline-none text-sm font-bold dark:text-white ring-1 ring-zinc-100 dark:ring-zinc-800 focus:ring-zinc-500" />
                 </div>
-              )}
+
+                {(activityFormData.activityTypes.includes('Questões') || activityFormData.activityTypes.includes('Flashcards')) && (
+                  <div className="grid grid-cols-2 gap-4 p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl border border-dashed border-zinc-200 dark:border-zinc-800 animate-in fade-in slide-in-from-top-2">
+                    <div>
+                      <label className="text-[10px] font-bold text-zinc-400 uppercase mb-1.5 block">Resolvidas</label>
+                      <input type="number" placeholder="0" value={activityFormData.questionsDone} onChange={(e) => setActivityFormData({ ...activityFormData, questionsDone: e.target.value })} className="w-full p-3 bg-white dark:bg-zinc-900 border-none rounded-xl outline-none text-sm font-bold dark:text-white shadow-sm" />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-zinc-400 uppercase mb-1.5 block">Acertos</label>
+                      <input type="number" placeholder="0" value={activityFormData.questionsCorrect} onChange={(e) => setActivityFormData({ ...activityFormData, questionsCorrect: e.target.value })} className="w-full p-3 bg-white dark:bg-zinc-900 border-none rounded-xl outline-none text-sm font-bold dark:text-white shadow-sm" />
+                    </div>
+                  </div>
+                )}
 
               <button
                 onClick={handleSaveActivity}

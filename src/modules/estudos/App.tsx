@@ -69,7 +69,7 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
 
   const [activityFormData, setActivityFormData] = useState({
     subjectId: '',
-    topicId: '',
+    topicIds: [] as string[],
     activityTypes: ['Questões'] as string[],
     duration: '',
     questionsDone: '',
@@ -77,33 +77,71 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
     date: new Date().toISOString().split('T')[0]
   });
 
-  const handleSaveActivity = () => {
+  const handleSaveActivity = async () => {
     if (!activityFormData.subjectId) return;
 
     const selectedTypes = activityFormData.activityTypes;
     const hasQuestions = selectedTypes.includes('Questões') || selectedTypes.includes('Flashcards');
+    const qDone = hasQuestions ? (parseInt(activityFormData.questionsDone) || undefined) : undefined;
+    const qCorrect = hasQuestions ? (parseInt(activityFormData.questionsCorrect) || undefined) : undefined;
 
-    addSession({
-      id: crypto.randomUUID(),
-      subjectId: activityFormData.subjectId,
-      topicId: activityFormData.topicId || undefined,
-      durationInMinutes: parseInt(activityFormData.duration) || 0,
-      date: new Date(`${activityFormData.date}T12:00:00`).toISOString(),
-      questionsDone: hasQuestions ? (parseInt(activityFormData.questionsDone) || undefined) : undefined,
-      questionsCorrect: hasQuestions ? (parseInt(activityFormData.questionsCorrect) || undefined) : undefined,
-      activityType: selectedTypes.join(', ')
-    });
+    const selectedTopicIds = activityFormData.topicIds;
+    const durationVal = parseInt(activityFormData.duration) || 0;
 
-    setShowAddModal(false);
-    setActivityFormData({
-      subjectId: '',
-      topicId: '',
-      activityTypes: ['Questões'],
-      duration: '',
-      questionsDone: '',
-      questionsCorrect: '',
-      date: new Date().toISOString().split('T')[0]
-    });
+    try {
+      if (selectedTopicIds.length <= 1) {
+        await addSession({
+          id: crypto.randomUUID(),
+          subjectId: activityFormData.subjectId,
+          topicId: selectedTopicIds[0] || undefined,
+          durationInMinutes: durationVal,
+          date: new Date(`${activityFormData.date}T12:00:00`).toISOString(),
+          questionsDone: qDone,
+          questionsCorrect: qCorrect,
+          activityType: selectedTypes.join(', ')
+        });
+      } else {
+        const count = selectedTopicIds.length;
+        const baseDuration = Math.floor(durationVal / count);
+        const remDuration = durationVal % count;
+
+        const baseDone = qDone !== undefined ? Math.floor(qDone / count) : undefined;
+        const remDone = qDone !== undefined ? qDone % count : 0;
+
+        const baseCorrect = qCorrect !== undefined ? Math.floor(qCorrect / count) : undefined;
+        const remCorrect = qCorrect !== undefined ? qCorrect % count : 0;
+
+        for (let i = 0; i < count; i++) {
+          const itemDuration = i === 0 ? baseDuration + remDuration : baseDuration;
+          const itemDone = qDone !== undefined ? (i === 0 ? baseDone! + remDone : baseDone) : undefined;
+          const itemCorrect = qCorrect !== undefined ? (i === 0 ? baseCorrect! + remCorrect : baseCorrect) : undefined;
+
+          await addSession({
+            id: crypto.randomUUID(),
+            subjectId: activityFormData.subjectId,
+            topicId: selectedTopicIds[i],
+            durationInMinutes: itemDuration,
+            date: new Date(`${activityFormData.date}T12:00:00`).toISOString(),
+            questionsDone: itemDone,
+            questionsCorrect: itemCorrect,
+            activityType: selectedTypes.join(', ')
+          });
+        }
+      }
+
+      setShowAddModal(false);
+      setActivityFormData({
+        subjectId: '',
+        topicIds: [],
+        activityTypes: ['Questões'],
+        duration: '',
+        questionsDone: '',
+        questionsCorrect: '',
+        date: new Date().toISOString().split('T')[0]
+      });
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const handleLogout = () => {
@@ -240,7 +278,7 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
 
                 <div>
                   <label className="text-[10px] font-bold text-zinc-400 uppercase mb-1.5 block">Disciplina</label>
-                  <select value={activityFormData.subjectId} onChange={(e) => setActivityFormData({ ...activityFormData, subjectId: e.target.value, topicId: '' })} className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 border-none rounded-2xl outline-none text-sm font-bold dark:text-white ring-1 ring-zinc-100 dark:ring-zinc-800 focus:ring-zinc-500">
+                  <select value={activityFormData.subjectId} onChange={(e) => setActivityFormData({ ...activityFormData, subjectId: e.target.value, topicIds: [] })} className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 border-none rounded-2xl outline-none text-sm font-bold dark:text-white ring-1 ring-zinc-100 dark:ring-zinc-800 focus:ring-zinc-500">
                     <option value="">Selecione a matéria...</option>
                     {filteredSubjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                   </select>
@@ -248,13 +286,39 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
 
                 {activityFormData.subjectId && (
                   <div className="animate-in fade-in slide-in-from-top-2">
-                    <label className="text-[10px] font-bold text-zinc-400 uppercase mb-1.5 block">Assunto / Tópico</label>
-                    <select value={activityFormData.topicId} onChange={(e) => setActivityFormData({ ...activityFormData, topicId: e.target.value })} className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 border-none rounded-2xl outline-none text-sm font-bold dark:text-white ring-1 ring-zinc-100 dark:ring-zinc-800 focus:ring-zinc-500">
-                      <option value="">Geral / Outros</option>
-                      {(filteredSubjects.find(s => s.id === activityFormData.subjectId)?.topics || []).map((t: Topic) => (
-                        <option key={t.id} value={t.id}>{t.title}</option>
-                      ))}
-                    </select>
+                    <label className="text-[10px] font-bold text-zinc-400 uppercase mb-1.5 block font-mono">Assunto / Tópico (Selecione vários)</label>
+                    <div className="max-h-40 overflow-y-auto space-y-2 p-3 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200/50 dark:border-zinc-800/80 rounded-2xl ring-1 ring-zinc-100 dark:ring-zinc-800 focus:ring-zinc-500 custom-scrollbar">
+                      <label className="flex items-center gap-2.5 text-xs font-bold dark:text-white cursor-pointer select-none hover:opacity-85 py-0.5">
+                        <input
+                          type="checkbox"
+                          checked={activityFormData.topicIds.length === 0}
+                          onChange={() => setActivityFormData({ ...activityFormData, topicIds: [] })}
+                          className="rounded border-zinc-300 dark:border-zinc-700 text-zinc-900 focus:ring-zinc-500"
+                        />
+                        <span className="text-zinc-500 dark:text-zinc-400">Geral / Outros</span>
+                      </label>
+                      <div className="h-px bg-zinc-200 dark:bg-zinc-700 my-1 w-full" />
+                      {(filteredSubjects.find(s => s.id === activityFormData.subjectId)?.topics || []).map((t: Topic) => {
+                        const isChecked = activityFormData.topicIds.includes(t.id);
+                        return (
+                          <label key={t.id} className="flex items-center gap-2.5 text-xs font-bold dark:text-white cursor-pointer select-none hover:opacity-85 py-0.5">
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => {
+                                const current = activityFormData.topicIds;
+                                const next = isChecked 
+                                  ? current.filter(id => id !== t.id) 
+                                  : [...current, t.id];
+                                setActivityFormData({ ...activityFormData, topicIds: next });
+                              }}
+                              className="rounded border-zinc-300 dark:border-zinc-700 text-zinc-900 focus:ring-zinc-500"
+                            />
+                            <span>{t.title}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
 

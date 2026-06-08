@@ -61,6 +61,19 @@ const SimuladosView: React.FC<SimuladosViewProps> = ({ subjects, simulados, onAd
     setResults(results.filter((_, i) => i !== idx));
   };
 
+  const handlePrepopulateWithMySubjects = () => {
+    if (subjects.length === 0) {
+      alert("Nenhuma disciplina cadastrada na guia de disciplinas.");
+      return;
+    }
+    const newResults: SimuladoSubjectResult[] = subjects.map(s => ({
+      subjectId: s.id,
+      done: 0,
+      correct: 0
+    }));
+    setResults(newResults);
+  };
+
   const handleSave = () => {
     if (!name || results.length === 0) {
       alert("Dê um nome ao simulado e adicione pelo menos um resultado de matéria.");
@@ -177,7 +190,7 @@ const SimuladosView: React.FC<SimuladosViewProps> = ({ subjects, simulados, onAd
         const subjectsList = subjects.map(s => ({ id: s.id, name: s.name }));
         const response = await geminiService.parseSimuladoImage(base64Data, mimeType, subjectsList);
 
-        if (response && response.results) {
+        if (response && response.results && response.results.length > 0) {
           setExtractedData({
             name: response.name || `Simulado via Print ${new Date().toLocaleDateString('pt-BR')}`,
             date: response.date || new Date().toISOString().split('T')[0],
@@ -191,7 +204,7 @@ const SimuladosView: React.FC<SimuladosViewProps> = ({ subjects, simulados, onAd
           });
           setIsUploading(false);
         } else {
-          alert('Não foi possível identificar dados na imagem. Verifique a imagem e tente novamente.');
+          alert('Não foi possível identificar dados na imagem. Verifique a imagem, certifique-se de que a sua chave Gemini está salva e correta em configurações, e tente novamente.');
         }
         setIsLoadingAI(false);
       };
@@ -588,7 +601,16 @@ const SimuladosView: React.FC<SimuladosViewProps> = ({ subjects, simulados, onAd
           </div>
 
           <div className="bg-zinc-50 dark:bg-zinc-800/50 p-6 rounded-3xl border border-zinc-200 dark:border-zinc-700 mb-8">
-            <h4 className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-4">Detalhamento por Disciplina</h4>
+            <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 mb-4">
+              <h4 className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Detalhamento por Disciplina</h4>
+              <button 
+                type="button"
+                onClick={handlePrepopulateWithMySubjects}
+                className="text-[9px] font-black uppercase tracking-wider px-3 py-1.5 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-200/50 dark:border-indigo-900 hover:bg-indigo-600 hover:text-white transition-all rounded-xl"
+              >
+                Preencher com minhas matérias
+              </button>
+            </div>
             <div className="flex flex-wrap gap-3 mb-6">
               <select
                 value={currentSubjectId}
@@ -606,17 +628,51 @@ const SimuladosView: React.FC<SimuladosViewProps> = ({ subjects, simulados, onAd
             <div className="space-y-2">
               {results.map((res, i) => {
                 const sub = subjects.find(s => s.id === res.subjectId);
-                const acc = res.done > 0 ? Math.round((res.correct / res.done) * 100) : 0;
                 return (
-                  <div key={i} className="flex items-center justify-between p-3 bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-2 h-8 rounded-full ${sub?.color || 'bg-zinc-500'}`} />
-                      <div>
-                        <p className="text-xs font-black dark:text-white leading-none">{sub?.name}</p>
-                        <p className="text-[10px] text-zinc-400 mt-1">{res.correct} acertos de {res.done} questões ({acc}%)</p>
-                      </div>
+                  <div key={i} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 animate-in fade-in duration-200">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div className={`w-2 h-8 rounded-full shrink-0 ${sub?.color || 'bg-zinc-500'}`} />
+                      <span className="text-xs font-black dark:text-white truncate">{sub?.name || 'Matéria desconhecida'}</span>
                     </div>
-                    <button type="button" onClick={() => removeResultRow(i)} className="text-rose-500 hover:text-rose-600">✕</button>
+                    
+                    <div className="flex items-center gap-4 shrink-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] font-bold text-zinc-450 uppercase font-mono">Questões</span>
+                        <input
+                          type="number"
+                          value={res.done === 0 ? '' : res.done}
+                          onChange={(e) => {
+                            const newResults = [...results];
+                            newResults[i].done = parseInt(e.target.value) || 0;
+                            setResults(newResults);
+                          }}
+                          placeholder="0"
+                          className="w-16 px-2 py-1 bg-zinc-50 dark:bg-zinc-805 border border-zinc-200 dark:border-zinc-700 rounded-lg outline-none text-xs text-center dark:text-white font-mono"
+                        />
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] font-bold text-zinc-450 uppercase font-mono">Acertos</span>
+                        <input
+                          type="number"
+                          value={res.correct === 0 ? '' : res.correct}
+                          onChange={(e) => {
+                            const newResults = [...results];
+                            newResults[i].correct = parseInt(e.target.value) || 0;
+                            setResults(newResults);
+                          }}
+                          placeholder="0"
+                          className="w-16 px-2 py-1 bg-zinc-50 dark:bg-zinc-805 border border-zinc-200 dark:border-zinc-700 rounded-lg outline-none text-xs text-center dark:text-white font-mono"
+                        />
+                      </div>
+                      <button 
+                        type="button" 
+                        onClick={() => removeResultRow(i)} 
+                        className="text-rose-500 hover:text-rose-600 p-1 font-bold text-xs"
+                        title="Remover matéria"
+                      >
+                        ✕
+                      </button>
+                    </div>
                   </div>
                 );
               })}

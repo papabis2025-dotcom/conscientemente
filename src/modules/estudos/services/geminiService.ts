@@ -51,19 +51,17 @@ export const geminiService = {
       const ai = getAIClient();
       const response = await ai.models.generateContent({
         model: "gemini-2.0-flash",
-        contents: {
-          parts: [
-            {
-              inlineData: {
-                data: base64Data,
-                mimeType: "application/pdf"
-              }
-            },
-            {
-              text: "Analise este edital e extraia as disciplinas e tópicos. Retorne um array JSON estruturado."
+        contents: [
+          {
+            inlineData: {
+              data: base64Data,
+              mimeType: "application/pdf"
             }
-          ]
-        },
+          },
+          {
+            text: "Analise este edital e extraia as disciplinas e tópicos. Retorne um array JSON estruturado."
+          }
+        ],
         config: {
           responseMimeType: "application/json",
           responseSchema: {
@@ -113,16 +111,15 @@ export const geminiService = {
       const ai = getAIClient();
       const response = await ai.models.generateContent({
         model: "gemini-2.0-flash",
-        contents: {
-          parts: [
-            {
-              inlineData: {
-                data: base64Data,
-                mimeType: mimeType
-              }
-            },
-            {
-              text: `Analise esta imagem de um simulado ou boletim de desempenho. Ela contém disciplinas (matérias) e a quantidade de questões feitas (total/done) e acertos (corretas/correct).
+        contents: [
+          {
+            inlineData: {
+              data: base64Data,
+              mimeType: mimeType
+            }
+          },
+          {
+            text: `Analise esta imagem de um simulado ou boletim de desempenho. Ela contém disciplinas (matérias) e a quantidade de questões feitas (total/done) e acertos (corretas/correct).
 Extraia os dados de cada disciplina. Você deve tentar mapear o nome da disciplina detectada para uma das seguintes disciplinas existentes no sistema:
 ${JSON.stringify(subjectsList)}
 
@@ -145,9 +142,8 @@ A resposta deve ser ESTRITAMENTE um objeto JSON com o seguinte formato:
   ]
 }
 `
-            }
-          ]
-        },
+          }
+        ],
         config: {
           responseMimeType: "application/json",
           responseSchema: {

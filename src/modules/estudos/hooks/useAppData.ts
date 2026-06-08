@@ -243,7 +243,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
     }, [selectedConcursoId, activeConcurso, allSubjects]);
 
     const filteredSessions = useMemo(() => {
-        const activeSimDates = new Set((simulados || []).map(sim => sim.date));
+        const activeSimDates = new Set((simulados || []).map(sim => sim.date?.split('T')[0]).filter(Boolean));
         const validSessions = sessions.filter(s => {
             if (s.isSimulado || s.activityType === 'Simulado') {
                 const sDate = s.date.split('T')[0];
@@ -266,7 +266,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
     }, [simulados, selectedConcursoId, activeConcurso]);
 
     const filteredScheduledStudies = useMemo(() => {
-        const activeSimDates = new Set((simulados || []).map(sim => sim.date));
+        const activeSimDates = new Set((simulados || []).map(sim => sim.date?.split('T')[0]).filter(Boolean));
         const validScheduled = scheduledStudies.filter(s => {
             if (s.activityType === 'Simulado' && s.status === 'realizado') {
                 const sDate = s.date?.split('T')[0];

@@ -1812,20 +1812,44 @@ const HubHome: React.FC<HubHomeProps> = ({
                         >
                           <span className="text-[10px] font-black leading-none">{day}</span>
                           
-                          {/* Bolinhas indicadoras sob o dia */}
-                          <div className="flex gap-1 mt-1 shrink-0">
-                            {hasStudies && (
-                              <div className={`w-1.5 h-1.5 rounded-full bg-purple-500 shadow-sm ${
-                                dateStr < todayStr && dayStudies.some(s => !s.completed) ? 'animate-pulse' : ''
-                              }`} />
-                            )}
-                            {hasTasks && (
-                              <div className={`w-1.5 h-1.5 rounded-full bg-red-500 shadow-sm ${
-                                dateStr < todayStr && dayTasks.some(t => !t.completed) ? 'animate-pulse' : ''
-                              }`} />
-                            )}
-                            {hasFinances && <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-sm" />}
-                            {hasWorkouts && <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-sm" />}
+                          {/* Ícones indicadores sob o dia */}
+                          <div className="flex gap-0.5 mt-1 shrink-0 flex-wrap justify-center max-w-full">
+                            {dayStudies.map((s, idx) => (
+                              <Brain 
+                                key={`study-${s.id || idx}`}
+                                size={9} 
+                                className={`text-purple-500 shrink-0 ${
+                                  dateStr < todayStr && !s.completed ? 'animate-pulse' : ''
+                                }`} 
+                              />
+                            ))}
+                            {dayTasks.map((t, idx) => (
+                              <ListTodo 
+                                key={`task-${t.id || idx}`}
+                                size={9} 
+                                className={`text-red-500 shrink-0 ${
+                                  dateStr < todayStr && !t.completed ? 'animate-pulse' : ''
+                                }`} 
+                              />
+                            ))}
+                            {dayFinances.map((f, idx) => (
+                              <DollarSign 
+                                key={`finance-${f.id || idx}`}
+                                size={9} 
+                                className={`text-emerald-500 shrink-0 ${
+                                  dateStr < todayStr ? 'animate-pulse' : ''
+                                }`} 
+                              />
+                            ))}
+                            {dayWorkouts.map((w, idx) => (
+                              <Activity 
+                                key={`workout-${w.id || idx}`}
+                                size={9} 
+                                className={`text-blue-500 shrink-0 ${
+                                  dateStr < todayStr && w.status !== 'realizado' ? 'animate-pulse' : ''
+                                }`} 
+                              />
+                            ))}
                           </div>
                         </div>
                       );
@@ -1853,7 +1877,7 @@ const HubHome: React.FC<HubHomeProps> = ({
                   </span>
                 </div>
 
-                <div className="flex-1 overflow-y-auto max-h-[190px] pr-1 space-y-1.5 flex flex-col">
+                <div className="flex-1 overflow-y-auto pr-1 space-y-1.5 flex flex-col">
                   {(() => {
                     const dayTasks = calendarEvents.tasks.filter(t => t.due_date === selectedCalendarDate);
                     const dayStudies = calendarEvents.studies.filter(s => s.date === selectedCalendarDate);

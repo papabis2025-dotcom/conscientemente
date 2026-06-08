@@ -3,6 +3,13 @@ import { Subject, StudySession, Concurso, ScheduledStudy, DailyGoal, LogEntry, U
 import { supabase } from '../services/supabase';
 import { api } from '../services/api';
 
+const getDeterministicSessionId = (simId: string, subjectId: string): string => {
+    if (simId.length < 36 || subjectId.length < 36) {
+        return crypto.randomUUID();
+    }
+    return `${simId.substring(0, 18)}${subjectId.substring(18)}`;
+};
+
 export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme?: () => void) => {
     const [currentUser, setCurrentUser] = useState<User | null>(null);
     const [users, setUsers] = useState<User[]>([]); // Keeping for legacy/compatibility
@@ -101,6 +108,93 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         localStorage.setItem('cn_theme', theme);
     }, [theme]);
 
+    const syncSimuladoSessions = useCallback(async (activeSims: Simulado[], allSess: StudySession[]) => {
+        const expectedSessions: StudySession[] = [];
+        activeSims.forEach(sim => {
+            const durationPerSubject = sim.durationInMinutes ? Math.round(sim.durationInMinutes / sim.results.length) : 0;
+            sim.results.forEach(res => {
+                expectedSessions.push({
+                    id: getDeterministicSessionId(sim.id, res.subjectId),
+                    subjectId: res.subjectId,
+                    date: new Date(`${sim.date}T12:00:00`).toISOString(),
+                    durationInMinutes: durationPerSubject,
+                    questionsDone: res.done,
+                    questionsCorrect: res.correct,
+                    isSimulado: true
+                });
+            });
+        });
+
+        const expectedIds = new Set(expectedSessions.map(s => s.id));
+
+        const sessionsToDelete = allSess.filter(s => 
+            (s.isSimulado || s.activityType === 'Simulado') && !expectedIds.has(s.id)
+        );
+
+        const currentIds = new Set(allSess.map(s => s.id));
+        const sessionsToCreate = expectedSessions.filter(s => !currentIds.has(s.id));
+
+        if (sessionsToDelete.length > 0) {
+            console.log('Syncing simulados: deleting obsolete sessions:', sessionsToDelete.map(s => s.id));
+            for (const s of sessionsToDelete) {
+                try {
+                    await api.sessions.delete(s.id);
+                    await api.schedule.delete(s.id);
+                } catch (e) {
+                    console.error('Error deleting obsolete session:', s.id, e);
+                }
+            }
+        }
+
+        if (sessionsToCreate.length > 0) {
+            console.log('Syncing simulados: creating missing sessions:', sessionsToCreate.map(s => s.id));
+            for (const s of sessionsToCreate) {
+                try {
+                    await api.sessions.create(s);
+                    const sessionDate = s.date.split('T')[0];
+                    const newScheduled: ScheduledStudy = {
+                        id: s.id,
+                        date: sessionDate,
+                        subjectId: s.subjectId,
+                        activityType: 'Simulado',
+                        durationInMinutes: s.durationInMinutes,
+                        questionsDone: s.questionsDone,
+                        questionsCorrect: s.questionsCorrect,
+                        status: 'realizado'
+                    };
+                    await api.schedule.create(newScheduled);
+                } catch (e) {
+                    console.error('Error creating missing session:', s.id, e);
+                }
+            }
+        }
+
+        if (sessionsToDelete.length > 0 || sessionsToCreate.length > 0) {
+            setSessions(prev => {
+                const filtered = prev.filter(s => !sessionsToDelete.some(td => td.id === s.id));
+                const combined = [...filtered, ...sessionsToCreate];
+                return combined;
+            });
+
+            setScheduledStudies(prev => {
+                const filtered = prev.filter(s => !sessionsToDelete.some(td => td.id === s.id));
+                const newScheduledItems = sessionsToCreate.map(s => ({
+                    id: s.id,
+                    date: s.date.split('T')[0],
+                    subjectId: s.subjectId,
+                    activityType: 'Simulado',
+                    durationInMinutes: s.durationInMinutes,
+                    questionsDone: s.questionsDone,
+                    questionsCorrect: s.questionsCorrect,
+                    status: 'realizado' as const
+                }));
+                const combined = [...filtered, ...newScheduledItems];
+                localStorage.setItem('cp_scheduled_studies', JSON.stringify(combined));
+                return combined;
+            });
+        }
+    }, []);
+
     // Initial Data Fetch
     const fetchData = useCallback(async () => {
         if (!currentUser) return;
@@ -145,13 +239,16 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
             if (goalsData) setDailyGoals(goalsData);
             if (logsData) setLogs(logsData);
 
+            // Sync simulated sessions
+            await syncSimuladoSessions(simuladosData || [], sessionsData || []);
+
             setLastSaved(new Date().toLocaleTimeString());
         } catch (error) {
             console.error('Failed to fetch data:', error);
         } finally {
             setIsLoading(false);
         }
-    }, [currentUser]);
+    }, [currentUser, syncSimuladoSessions]);
 
     // Supabase Auth and User Setup
     useEffect(() => {
@@ -362,22 +459,11 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
 
     const addSimulado = async (sim: Simulado) => {
         setSaveError(null);
-        setSimulados(prev => [...prev, sim]);
+        const updatedSims = [...simulados, sim];
+        setSimulados(updatedSims);
         try {
             await api.simulados.create(sim);
-            const durationPerSubject = sim.durationInMinutes ? Math.round(sim.durationInMinutes / sim.results.length) : 0;
-            sim.results.forEach(async res => {
-                const session: StudySession = {
-                    id: crypto.randomUUID(),
-                    subjectId: res.subjectId,
-                    date: new Date(`${sim.date}T12:00:00`).toISOString(),
-                    durationInMinutes: durationPerSubject,
-                    questionsDone: res.done,
-                    questionsCorrect: res.correct,
-                    isSimulado: true
-                };
-                addSession(session);
-            });
+            await syncSimuladoSessions(updatedSims, sessions);
             setLastSaved(new Date().toLocaleTimeString());
         } catch (e) {
             console.error('Error adding simulado:', e);
@@ -387,36 +473,11 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
 
     const updateSimulado = async (id: string, updatedSim: Simulado) => {
         setSaveError(null);
-        const oldSim = simulados.find(s => s.id === id);
-        setSimulados(prev => prev.map(s => s.id === id ? updatedSim : s));
+        const updatedSims = simulados.map(s => s.id === id ? updatedSim : s);
+        setSimulados(updatedSims);
         try {
             await api.simulados.update(id, updatedSim);
-            
-            // Delete associated sessions that were automatically created for the old state
-            if (oldSim) {
-                const oldTargetDate = new Date(`${oldSim.date}T12:00:00`).toISOString();
-                const sessionsToDelete = sessions.filter(s => s.isSimulado && s.date === oldTargetDate);
-                for (const sess of sessionsToDelete) {
-                    await deleteSession(sess.id);
-                }
-            }
-
-            // Create new sessions for the updated simulado
-            const newTargetDate = new Date(`${updatedSim.date}T12:00:00`).toISOString();
-            const durationPerSubject = updatedSim.durationInMinutes ? Math.round(updatedSim.durationInMinutes / updatedSim.results.length) : 0;
-            
-            for (const res of updatedSim.results) {
-                const session: StudySession = {
-                    id: crypto.randomUUID(),
-                    subjectId: res.subjectId,
-                    date: newTargetDate,
-                    durationInMinutes: durationPerSubject,
-                    questionsDone: res.done,
-                    questionsCorrect: res.correct,
-                    isSimulado: true
-                };
-                await addSession(session);
-            }
+            await syncSimuladoSessions(updatedSims, sessions);
             setLastSaved(new Date().toLocaleTimeString());
         } catch (e) {
             console.error('Error updating simulado:', e);
@@ -426,22 +487,11 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
 
     const deleteSimulado = async (id: string) => {
         setSaveError(null);
-        const simToDelete = simulados.find(s => s.id === id);
-        setSimulados(prev => prev.filter(s => s.id !== id));
+        const updatedSims = simulados.filter(s => s.id !== id);
+        setSimulados(updatedSims);
         try {
             await api.simulados.delete(id);
-            
-            // Delete associated sessions that were automatically created
-            if (simToDelete) {
-                // The exact date string used when creating the session
-                const targetDate = new Date(`${simToDelete.date}T12:00:00`).toISOString();
-                const sessionsToDelete = sessions.filter(s => s.isSimulado && s.date === targetDate);
-                
-                for (const sess of sessionsToDelete) {
-                    await deleteSession(sess.id);
-                }
-            }
-            
+            await syncSimuladoSessions(updatedSims, sessions);
             setLastSaved(new Date().toLocaleTimeString());
         } catch (e) {
             console.error('Error deleting simulado:', e);
@@ -676,36 +726,43 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         }
     };
 
-    const toggleScheduledStudyStatus = async (id: string) => {
-        const study = scheduledStudies.find(s => s.id === id);
-        if (!study) return;
+    const toggleScheduledStudyStatus = async (idOrIds: string | string[]) => {
+        const ids = Array.isArray(idOrIds) ? idOrIds : [idOrIds];
+        if (ids.length === 0) return;
 
-        const newStatus: 'planejado' | 'realizado' = study.status === 'realizado' ? 'planejado' : 'realizado';
+        const studies = scheduledStudies.filter(s => ids.includes(s.id));
+        if (studies.length === 0) return;
 
-        // Status is purely client-side (DB has no 'status' column).
-        // Update local state + localStorage only.
+        const targetStatus: 'planejado' | 'realizado' = studies[0].status === 'realizado' ? 'planejado' : 'realizado';
+
         setScheduledStudies(prev => {
-            const updated = prev.map(s => s.id === id ? { ...s, status: newStatus } : s);
+            const updated = prev.map(s => ids.includes(s.id) ? { ...s, status: targetStatus } : s);
             localStorage.setItem('cp_scheduled_studies', JSON.stringify(updated));
             return updated;
         });
 
-        if (newStatus === 'planejado') {
-            setSessions(prev => prev.filter(s => s.id !== id));
-            try { await api.sessions.delete(id); } catch(e) {}
+        if (targetStatus === 'planejado') {
+            setSessions(prev => prev.filter(s => !ids.includes(s.id)));
+            for (const id of ids) {
+                try { await api.sessions.delete(id); } catch(e) {}
+            }
         } else {
-            const newSession: StudySession = {
-                id: study.id,
-                subjectId: study.subjectId,
-                topicId: study.topicId,
-                durationInMinutes: study.durationInMinutes || 0,
-                date: new Date(`${study.date}T12:00:00`).toISOString(),
-                questionsDone: study.questionsDone,
-                questionsCorrect: study.questionsCorrect,
-                activityType: study.activityType
-            };
-            setSessions(prev => [...prev, newSession]);
-            try { await api.sessions.create(newSession); } catch(e) {}
+            const newSessions: StudySession[] = [];
+            for (const study of studies) {
+                const newSession: StudySession = {
+                    id: study.id,
+                    subjectId: study.subjectId,
+                    topicId: study.topicId,
+                    durationInMinutes: study.durationInMinutes || 0,
+                    date: new Date(`${study.date}T12:00:00`).toISOString(),
+                    questionsDone: study.questionsDone,
+                    questionsCorrect: study.questionsCorrect,
+                    activityType: study.activityType
+                };
+                newSessions.push(newSession);
+                try { await api.sessions.create(newSession); } catch(e) {}
+            }
+            setSessions(prev => [...prev, ...newSessions]);
         }
     };
 

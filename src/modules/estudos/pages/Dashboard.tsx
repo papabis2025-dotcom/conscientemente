@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   AreaChart, Area, BarChart, Bar,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
@@ -182,7 +182,8 @@ const Dashboard: React.FC<DashboardProps> = ({
         accuracy: s.done > 0 ? Math.round((s.correct / s.done) * 100) : 0,
         hours: parseFloat((s.minutes / 60).toFixed(2)),
         hexColor: getColorHex(s.colorClass),
-        acronym: getAcronym(s.name)
+        acronym: getAcronym(s.name),
+        wrong: s.done - s.correct
       }));
 
     return {
@@ -194,6 +195,29 @@ const Dashboard: React.FC<DashboardProps> = ({
       worst: list.filter(s => s.done > 0).length > 0 ? [...list].filter(s => s.done > 0).sort((a, b) => a.accuracy - b.accuracy)[0] : null
     };
   }, [sessions, subjects]);
+
+  const CustomXAxisTick = useCallback((props: any) => {
+    const { x, y, payload } = props;
+    const subject = subjectStats.all.find(s => s.acronym === payload.value);
+    const fullName = subject ? subject.name : payload.value;
+    return (
+      <g transform={`translate(${x},${y})`}>
+        <text
+          x={0}
+          y={0}
+          dy={10}
+          textAnchor="middle"
+          fontSize={10}
+          fontWeight={600}
+          fill={chartTextColor}
+          style={{ cursor: 'help' }}
+        >
+          {payload.value}
+          <title>{fullName}</title>
+        </text>
+      </g>
+    );
+  }, [subjectStats.all, chartTextColor]);
 
   const topicStats = useMemo(() => {
     const stats: Record<string, { done: number, correct: number, title: string, subjectName: string }> = {};
@@ -860,17 +884,34 @@ const Dashboard: React.FC<DashboardProps> = ({
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={subjectStats.questionsData} margin={{ top: 5, right: 0, bottom: 10, left: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} strokeOpacity={0.1} />
-                      <XAxis dataKey="acronym" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 600, fill: chartTextColor }} />
+                      <XAxis dataKey="acronym" axisLine={false} tickLine={false} tick={CustomXAxisTick} />
                       <YAxis width={30} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: chartTextColor }} domain={[0, 'auto']} allowDataOverflow={false} padding={{ top: 20 }} />
                       <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ fontSize: '11px', borderRadius: '12px', border: 'none', backgroundColor: isDarkMode ? '#0f172a' : '#fff' }} />
-                      <Bar dataKey="done" radius={[6, 6, 0, 0]} barSize={35} animationDuration={500}>
+                      <Bar dataKey="correct" stackId="a" name="Acertos" radius={[0, 0, 0, 0]} barSize={35} animationDuration={500}>
                         {subjectStats.questionsData.map((entry, index) => <Cell key={index} fill={entry.hexColor} />)}
+                      </Bar>
+                      <Bar dataKey="wrong" stackId="a" name="Erros" radius={[6, 6, 0, 0]} barSize={35} animationDuration={500}>
+                        {subjectStats.questionsData.map((entry, index) => <Cell key={index} fill="transparent" stroke={entry.hexColor} strokeWidth={2} />)}
                         <LabelList
                           dataKey="done"
                           position="top"
                           offset={5}
-                          fill={isDarkMode ? '#94a3b8' : '#64748b'}
-                          style={{ fontSize: '11px', fontWeight: 'bold' }}
+                          content={(props: any) => {
+                            const { x, y, width, index } = props;
+                            const entry = subjectStats.questionsData[index];
+                            if (!entry) return null;
+                            return (
+                              <text
+                                x={x + width / 2}
+                                y={y - 6}
+                                fill={isDarkMode ? '#94a3b8' : '#64748b'}
+                                textAnchor="middle"
+                                style={{ fontSize: '10px', fontWeight: 'bold' }}
+                              >
+                                {`${entry.correct}/${entry.done}`}
+                              </text>
+                            );
+                          }}
                         />
                       </Bar>
                     </BarChart>
@@ -883,7 +924,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={subjectStats.timeData} margin={{ top: 5, right: 0, bottom: 10, left: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} strokeOpacity={0.1} />
-                      <XAxis dataKey="acronym" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 600, fill: chartTextColor }} />
+                      <XAxis dataKey="acronym" axisLine={false} tickLine={false} tick={CustomXAxisTick} />
                       <YAxis width={30} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: chartTextColor }} domain={[0, 'auto']} allowDataOverflow={false} padding={{ top: 20 }} />
                       <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ fontSize: '11px', borderRadius: '12px', border: 'none', backgroundColor: isDarkMode ? '#0f172a' : '#fff' }} />
                       <Bar dataKey="hours" radius={[6, 6, 0, 0]} barSize={35} animationDuration={500}>
@@ -907,7 +948,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={subjectStats.performanceData} margin={{ top: 5, right: 0, bottom: 10, left: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} strokeOpacity={0.1} />
-                      <XAxis dataKey="acronym" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 600, fill: chartTextColor }} />
+                      <XAxis dataKey="acronym" axisLine={false} tickLine={false} tick={CustomXAxisTick} />
                       <YAxis width={30} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: chartTextColor }} domain={[0, 100]} padding={{ top: 20 }} />
                       <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ fontSize: '11px', borderRadius: '12px', border: 'none', backgroundColor: isDarkMode ? '#0f172a' : '#fff' }} />
                       <Bar dataKey="accuracy" radius={[6, 6, 0, 0]} barSize={35} animationDuration={500}>

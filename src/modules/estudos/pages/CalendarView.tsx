@@ -11,7 +11,7 @@ interface CalendarViewProps {
   onUpdateSchedule: (studies: ScheduledStudy[]) => void;
   onDelete: (id: string) => void;
   onAddSession?: (session: StudySession) => void;
-  onToggleStatus?: (id: string) => void;
+  onToggleStatus?: (idOrIds: string | string[]) => void;
   onUpdateScheduledStudy: (id: string, updates: Partial<ScheduledStudy>) => void;
 }
 
@@ -401,8 +401,11 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                       return (
                         <div 
                           key={task.id} 
-                          style={{ ...style, opacity: task.status === 'planejado' ? 0.45 : 1 }} 
-                          onClick={(e) => handleTaskClick(e, task)}
+                          style={{ ...style, opacity: task.status === 'realizado' ? 0.45 : 1 }} 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (onToggleStatus) onToggleStatus(task.isGroupedVirtual ? task.taskIds : task.id);
+                          }}
                           className={`p-4 rounded-2xl text-xs font-bold border border-white/10 ${className} cursor-pointer transition-all hover:scale-[1.02] active:scale-95`}
                         >
                           <span className="opacity-70 flex items-center gap-1">{getActivityIcon(task.activityType)} {task.activityType}</span>
@@ -474,8 +477,11 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                         return (
                           <div 
                             key={t.id} 
-                            style={{ ...style, opacity: t.status === 'planejado' ? 0.45 : 1 }} 
-                            onClick={(e) => handleTaskClick(e, t)}
+                            style={{ ...style, opacity: t.status === 'realizado' ? 0.45 : 1 }} 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (onToggleStatus) onToggleStatus(t.isGroupedVirtual ? t.taskIds : t.id);
+                            }}
                             className={`px-2 py-1.5 rounded-lg text-[10px] leading-tight font-bold line-clamp-2 ${className} cursor-pointer transition-all hover:scale-[1.02] active:scale-95`}
                           >
                             <div className="flex flex-col gap-0.5">

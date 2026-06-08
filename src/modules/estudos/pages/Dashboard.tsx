@@ -789,16 +789,23 @@ const Dashboard: React.FC<DashboardProps> = ({
         const days = Array.from({ length: daysInMonth }, (_, i) => {
           const date = new Date(year, month, i + 1);
           const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i + 1).padStart(2, '0')}`;
-          const simuladoSessions = scheduledStudies.filter(st => st.activityType === 'Simulado');
-          const daySessions = sessions.filter(s => getLocalSessionDate(s.date) === dateStr && !isSimuladoSession(s));
-          const dayPlannerRealized = scheduledStudies.filter(s => s.date === dateStr && s.status === 'realizado' && s.activityType !== 'Simulado');
+
+          // All realized sessions for the day (including simulado for calendar dots)
+          const daySessions = sessions.filter(s => getLocalSessionDate(s.date) === dateStr);
+          // Planned activities from planner that are marked as done (non-simulado, since simulado comes from sessions)
+          const dayPlannerRealized = scheduledStudies.filter(s => {
+            const sDate = s.date ? s.date.split('T')[0] : '';
+            return sDate === dateStr && s.status === 'realizado' && s.activityType !== 'Simulado';
+          });
           
-          const sessionSubjectIds = daySessions.map(s => s.subjectId);
-          const plannerSubjectIds = dayPlannerRealized.map(s => s.subjectId);
+          const sessionSubjectIds = daySessions.map(s => s.subjectId).filter(Boolean);
+          const plannerSubjectIds = dayPlannerRealized.map(s => s.subjectId).filter(Boolean);
           
           const allDaySubjectIds = Array.from(new Set([...sessionSubjectIds, ...plannerSubjectIds]));
+          // Use all subjects from all concursos for lookup so dots always resolve
+          const allSubjectsLookup = concursos.flatMap(c => c.subjects || []);
           const daySubjects = allDaySubjectIds
-            .map(id => subjects.find(sub => sub.id === id))
+            .map(id => allSubjectsLookup.find(sub => sub.id === id))
             .filter(Boolean) as Subject[];
 
           return {
@@ -891,7 +898,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                         {subjectStats.questionsData.map((entry, index) => <Cell key={index} fill={entry.hexColor} />)}
                       </Bar>
                       <Bar dataKey="wrong" stackId="a" name="Erros" radius={[6, 6, 0, 0]} barSize={35} animationDuration={500}>
-                        {subjectStats.questionsData.map((entry, index) => <Cell key={index} fill="transparent" stroke={entry.hexColor} strokeWidth={2} />)}
+                        {subjectStats.questionsData.map((entry, index) => <Cell key={index} fill={entry.hexColor} fillOpacity={0.22} />)}
                         <LabelList
                           dataKey="done"
                           position="top"

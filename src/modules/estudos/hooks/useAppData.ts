@@ -349,9 +349,21 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
             return true;
         });
 
-        if (selectedConcursoId === 'all') return validSessions;
+        // Deduplicate simulado sessions — keep only one per (simDate, subjectId) combination
+        // to avoid double-counting when old random-ID sessions coexist with new deterministic-ID ones
+        const seenSimKeys = new Set<string>();
+        const deduped = validSessions.filter(s => {
+            if (s.isSimulado || s.activityType === 'Simulado') {
+                const key = `${s.date.split('T')[0]}__${s.subjectId}`;
+                if (seenSimKeys.has(key)) return false;
+                seenSimKeys.add(key);
+            }
+            return true;
+        });
+
+        if (selectedConcursoId === 'all') return deduped;
         const subIds = new Set((activeConcurso?.subjects || []).map(s => s.id));
-        return validSessions.filter(s => subIds.has(s.subjectId));
+        return deduped.filter(s => subIds.has(s.subjectId));
     }, [sessions, simulados, selectedConcursoId, activeConcurso]);
 
     const filteredSimulados = useMemo(() => {

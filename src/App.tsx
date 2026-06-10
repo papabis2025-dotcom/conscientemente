@@ -36,6 +36,9 @@ const SYNC_KEYS = [
   'cn_custom_bg_style',
   'cn_push_notifications_enabled',
   'cn_deleted_habit_ids',
+  'cn_deleted_note_ids',
+  'cn_deleted_folder_ids',
+  'cp_deleted_study_task_ids',
   'cp_scheduled_studies',
   'cn_saude_activity_types',
   'cn_saude_muscle_groups',
@@ -89,9 +92,6 @@ function mergeSettings(
     }
 
     if (
-      key === 'cp_study_tasks' || 
-      key === 'cn_anotacoes' || 
-      key === 'cn_anotacoes_folders' ||
       key === 'cp_dashboard_layout_v19' ||
       key === 'cp_dashboard_layout_v20' ||
       key === 'cp_scheduled_studies' ||
@@ -106,6 +106,93 @@ function mergeSettings(
             ? mergeLists(localList, remoteList)
             : mergeLists(remoteList, localList);
           merged[key] = JSON.stringify(mergedList);
+        } else {
+          merged[key] = preferRemote ? remoteVal : localVal;
+        }
+      } catch {
+        merged[key] = preferRemote ? remoteVal : localVal;
+      }
+    } else if (key === 'cn_anotacoes') {
+      try {
+        const localList = JSON.parse(localVal);
+        const remoteList = JSON.parse(remoteVal);
+        if (Array.isArray(localList) && Array.isArray(remoteList)) {
+          const mergedList = preferRemote
+            ? mergeLists(localList, remoteList)
+            : mergeLists(remoteList, localList);
+          
+          const localDeletedRaw = local['cn_deleted_note_ids'] || '[]';
+          const remoteDeletedRaw = remote['cn_deleted_note_ids'] || '[]';
+          const deletedIdsSet = new Set<string>();
+          try {
+            const localDeleted = JSON.parse(localDeletedRaw);
+            if (Array.isArray(localDeleted)) localDeleted.forEach(id => deletedIdsSet.add(id));
+          } catch {}
+          try {
+            const remoteDeleted = JSON.parse(remoteDeletedRaw);
+            if (Array.isArray(remoteDeleted)) remoteDeleted.forEach(id => deletedIdsSet.add(id));
+          } catch {}
+
+          const filteredList = mergedList.filter((n: any) => !deletedIdsSet.has(n.id));
+          merged[key] = JSON.stringify(filteredList);
+        } else {
+          merged[key] = preferRemote ? remoteVal : localVal;
+        }
+      } catch {
+        merged[key] = preferRemote ? remoteVal : localVal;
+      }
+    } else if (key === 'cn_anotacoes_folders') {
+      try {
+        const localList = JSON.parse(localVal);
+        const remoteList = JSON.parse(remoteVal);
+        if (Array.isArray(localList) && Array.isArray(remoteList)) {
+          const mergedList = preferRemote
+            ? mergeLists(localList, remoteList)
+            : mergeLists(remoteList, localList);
+          
+          const localDeletedRaw = local['cn_deleted_folder_ids'] || '[]';
+          const remoteDeletedRaw = remote['cn_deleted_folder_ids'] || '[]';
+          const deletedIdsSet = new Set<string>();
+          try {
+            const localDeleted = JSON.parse(localDeletedRaw);
+            if (Array.isArray(localDeleted)) localDeleted.forEach(id => deletedIdsSet.add(id));
+          } catch {}
+          try {
+            const remoteDeleted = JSON.parse(remoteDeletedRaw);
+            if (Array.isArray(remoteDeleted)) remoteDeleted.forEach(id => deletedIdsSet.add(id));
+          } catch {}
+
+          const filteredList = mergedList.filter((f: any) => !deletedIdsSet.has(f.id));
+          merged[key] = JSON.stringify(filteredList);
+        } else {
+          merged[key] = preferRemote ? remoteVal : localVal;
+        }
+      } catch {
+        merged[key] = preferRemote ? remoteVal : localVal;
+      }
+    } else if (key === 'cp_study_tasks') {
+      try {
+        const localList = JSON.parse(localVal);
+        const remoteList = JSON.parse(remoteVal);
+        if (Array.isArray(localList) && Array.isArray(remoteList)) {
+          const mergedList = preferRemote
+            ? mergeLists(localList, remoteList)
+            : mergeLists(remoteList, localList);
+          
+          const localDeletedRaw = local['cp_deleted_study_task_ids'] || '[]';
+          const remoteDeletedRaw = remote['cp_deleted_study_task_ids'] || '[]';
+          const deletedIdsSet = new Set<string>();
+          try {
+            const localDeleted = JSON.parse(localDeletedRaw);
+            if (Array.isArray(localDeleted)) localDeleted.forEach(id => deletedIdsSet.add(id));
+          } catch {}
+          try {
+            const remoteDeleted = JSON.parse(remoteDeletedRaw);
+            if (Array.isArray(remoteDeleted)) remoteDeleted.forEach(id => deletedIdsSet.add(id));
+          } catch {}
+
+          const filteredList = mergedList.filter((t: any) => !deletedIdsSet.has(t.id));
+          merged[key] = JSON.stringify(filteredList);
         } else {
           merged[key] = preferRemote ? remoteVal : localVal;
         }
@@ -143,7 +230,13 @@ function mergeSettings(
       } catch {
         merged[key] = preferRemote ? remoteVal : localVal;
       }
-    } else if (key === 'cn_cleared_notifications' || key === 'cn_deleted_habit_ids') {
+    } else if (
+      key === 'cn_cleared_notifications' ||
+      key === 'cn_deleted_habit_ids' ||
+      key === 'cn_deleted_note_ids' ||
+      key === 'cn_deleted_folder_ids' ||
+      key === 'cp_deleted_study_task_ids'
+    ) {
       try {
         const localList = JSON.parse(localVal);
         const remoteList = JSON.parse(remoteVal);

@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Subject, ScheduledStudy, ActivityType, Topic, StudySession, Simulado } from '../types';
 import { getBadgeStyle } from '../utils/colors';
-import { FileText, Layers, Video, BookOpen, Clipboard, Book, Clock } from 'lucide-react';
+import { FileText, Layers, Video, BookOpen, Clipboard, Book, Clock, RefreshCw } from 'lucide-react';
 
 interface CalendarViewProps {
   subjects: Subject[]; // For dropdown (filtered)
@@ -44,6 +44,21 @@ const CalendarView: React.FC<CalendarViewProps> = ({
 
   // Use allSubjects for lookup if available, otherwise fallback to subjects
   const lookupSubjects = allSubjects || subjects;
+
+  const handleDragStart = (e: React.DragEvent, idOrIds: string) => {
+    e.dataTransfer.setData('text/plain', idOrIds);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDrop = async (e: React.DragEvent, targetDate: string) => {
+    e.preventDefault();
+    const idOrIds = e.dataTransfer.getData('text/plain');
+    if (!idOrIds) return;
+    const ids = idOrIds.split(',');
+    for (const id of ids) {
+      onUpdateScheduledStudy(id, { date: targetDate });
+    }
+  };
 
   const [formData, setFormData] = useState({
     subjectId: '',
@@ -91,7 +106,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
 
     const durationVal = parseInt(formData.duration) || 0;
     const selectedTypes = formData.activityTypes;
-    const hasQuestions = selectedTypes.includes('Questões') || selectedTypes.includes('Flashcards');
+    const hasQuestions = selectedTypes.includes('Questões') || selectedTypes.includes('Flashcards') || selectedTypes.includes('Revisão');
     const questionsDoneVal = hasQuestions ? (parseInt(formData.questionsDone) || undefined) : undefined;
     const questionsCorrectVal = hasQuestions ? (parseInt(formData.questionsCorrect) || undefined) : undefined;
     const activityTypesStr = selectedTypes.join(', ');
@@ -325,6 +340,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       case 'Aula': return <Video size={size} />;
       case 'Leitura': return <BookOpen size={size} />;
       case 'Simulado': return <Clipboard size={size} />;
+      case 'Revisão': return <RefreshCw size={size} />;
       default: return <Book size={size} />;
     }
   };
@@ -364,7 +380,13 @@ const CalendarView: React.FC<CalendarViewProps> = ({
               const tasks = getDailyTasks(key);
               const isToday = new Date().toDateString() === date.toDateString();
               return (
-                <div key={key} onClick={() => handleDayClick(key)} className={`bg-white dark:bg-zinc-900 p-3 rounded-3xl border ${isToday ? 'border-blue-400 shadow-lg' : 'border-zinc-100 dark:border-zinc-800'} flex flex-col cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-all overflow-hidden`}>
+                <div 
+                  key={key} 
+                  onClick={() => handleDayClick(key)} 
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => handleDrop(e, key)}
+                  className={`bg-white dark:bg-zinc-900 p-3 rounded-3xl border ${isToday ? 'border-blue-400 shadow-lg' : 'border-zinc-100 dark:border-zinc-800'} flex flex-col cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-all overflow-hidden`}
+                >
                   <div className="mb-2">
                     <p className="text-[10px] font-black uppercase text-zinc-400 leading-tight">{['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'][date.getDay()]}</p>
                     <h4 className={`text-xl font-black ${isToday ? 'text-zinc-900 dark:text-zinc-100' : 'text-zinc-700 dark:text-zinc-200'}`}>{date.getDate()}</h4>
@@ -402,6 +424,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                         <div 
                           key={task.id} 
                           style={{ ...style, opacity: task.status === 'realizado' ? 0.45 : 1 }} 
+                          draggable={true}
+                          onDragStart={(e) => handleDragStart(e, task.isGroupedVirtual ? task.taskIds.join(',') : task.id)}
                           onClick={(e) => {
                             e.stopPropagation();
                             if (onToggleStatus) onToggleStatus(task.isGroupedVirtual ? task.taskIds : task.id);
@@ -452,7 +476,13 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                 const tasks = getDailyTasks(key);
                 const isToday = new Date().toDateString() === date.toDateString();
                 return (
-                  <div key={day} onClick={() => handleDayClick(key)} className="p-1.5 border-r border-b border-zinc-100 dark:border-zinc-800 hover:bg-zinc-100 dark:bg-zinc-800/30 dark:hover:bg-blue-900/10 cursor-pointer transition-all flex flex-col min-h-0 overflow-hidden">
+                  <div 
+                    key={day} 
+                    onClick={() => handleDayClick(key)} 
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={(e) => handleDrop(e, key)}
+                    className="p-1.5 border-r border-b border-zinc-100 dark:border-zinc-800 hover:bg-zinc-100 dark:bg-zinc-800/30 dark:hover:bg-blue-900/10 cursor-pointer transition-all flex flex-col min-h-0 overflow-hidden"
+                  >
                     <span className={`text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full ${isToday ? 'bg-zinc-900 dark:bg-zinc-700 text-white' : 'text-zinc-400'}`}>{day}</span>
                     <div className="mt-1 space-y-1 overflow-y-auto">
                       {tasks.map(t => {
@@ -478,6 +508,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                           <div 
                             key={t.id} 
                             style={{ ...style, opacity: t.status === 'realizado' ? 0.45 : 1 }} 
+                            draggable={true}
+                            onDragStart={(e) => handleDragStart(e, t.isGroupedVirtual ? t.taskIds.join(',') : t.id)}
                             onClick={(e) => {
                               e.stopPropagation();
                               if (onToggleStatus) onToggleStatus(t.isGroupedVirtual ? t.taskIds : t.id);
@@ -657,7 +689,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                 <div>
                   <label className="text-[10px] font-black text-zinc-400 uppercase mb-2 block">Tipo de Atividade (Selecione uma ou mais)</label>
                   <div className="flex flex-wrap gap-2">
-                    {['Leitura', 'Questões', 'Flashcards', 'Aula', 'Simulado'].map(type => {
+                    {['Leitura', 'Questões', 'Flashcards', 'Aula', 'Simulado', 'Revisão'].map(type => {
                       const isSelected = formData.activityTypes.includes(type);
                       return (
                         <button
@@ -743,7 +775,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                   </div>
                 </div>
 
-                {(formData.activityTypes.includes('Questões') || formData.activityTypes.includes('Flashcards')) && (
+                {(formData.activityTypes.includes('Questões') || formData.activityTypes.includes('Flashcards') || formData.activityTypes.includes('Revisão')) && (
                   <div className="grid grid-cols-2 gap-3 animate-in fade-in slide-in-from-top-2">
                     <div>
                       <label className="text-[10px] font-black text-zinc-400 uppercase mb-1 block">Total Questões</label>

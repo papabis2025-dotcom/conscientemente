@@ -173,6 +173,16 @@ const AnotacoesApp: React.FC = () => {
       if (selectedNote && selectedNote.id === id) {
         handleNewNote();
       }
+      try {
+        const deletedRaw = localStorage.getItem('cn_deleted_note_ids') || '[]';
+        const deletedList = JSON.parse(deletedRaw);
+        if (!deletedList.includes(id)) {
+          deletedList.push(id);
+          localStorage.setItem('cn_deleted_note_ids', JSON.stringify(deletedList));
+        }
+      } catch (e) {
+        console.error('Error tracking deleted note:', e);
+      }
     }
   };
 
@@ -218,6 +228,16 @@ const AnotacoesApp: React.FC = () => {
       }
       if (editorFolderId === id) {
         setEditorFolderId(undefined);
+      }
+      try {
+        const deletedRaw = localStorage.getItem('cn_deleted_folder_ids') || '[]';
+        const deletedList = JSON.parse(deletedRaw);
+        if (!deletedList.includes(id)) {
+          deletedList.push(id);
+          localStorage.setItem('cn_deleted_folder_ids', JSON.stringify(deletedList));
+        }
+      } catch (e) {
+        console.error('Error tracking deleted folder:', e);
       }
     }
   };

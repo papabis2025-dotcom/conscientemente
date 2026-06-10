@@ -423,9 +423,7 @@ const HubHome: React.FC<HubHomeProps> = ({
       const { data: dbTasks } = await supabase
         .from('tarefas')
         .select('id, text, due_date, completed, due_time, category')
-        .eq('user_id', user.id)
-        .gte('due_date', startOfMonth)
-        .lte('due_date', endOfMonth);
+        .eq('user_id', user.id);
 
       const { data: dbWorkouts } = await supabase
         .from('saude_treinos')
@@ -564,8 +562,22 @@ const HubHome: React.FC<HubHomeProps> = ({
         }))
       ].filter(s => s.date >= startOfMonth && s.date <= endOfMonth);
 
+      const parsedTasks = (dbTasks || []).map(t => {
+        let endDate: string | undefined = undefined;
+        let dueTime = t.due_time || '';
+        if (dueTime.startsWith('range:')) {
+          endDate = dueTime.substring(6);
+          dueTime = '';
+        }
+        return {
+          ...t,
+          due_time: dueTime,
+          endDate
+        };
+      });
+
       setCalendarEvents({
-        tasks: dbTasks || [],
+        tasks: parsedTasks,
         studies: studiesList,
         workouts: dbWorkouts || [],
         finances: dbFinances || []
@@ -1785,12 +1797,18 @@ const HubHome: React.FC<HubHomeProps> = ({
                       const isSelected = dateStr === selectedCalendarDate;
 
                       // Filtrar eventos do dia
-                      const dayTasks = calendarEvents.tasks.filter(t => t.due_date === dateStr);
+                      const dayTasks = calendarEvents.tasks.filter(t => {
+                        if (t.endDate) {
+                          return t.due_date <= dateStr && dateStr <= t.endDate;
+                        }
+                        return t.due_date === dateStr;
+                      });
                       const dayStudies = calendarEvents.studies.filter(s => s.date === dateStr);
                       const dayWorkouts = calendarEvents.workouts.filter(w => w.date === dateStr);
                       const dayFinances = calendarEvents.finances.filter(f => f.date === dateStr);
 
                       const hasTasks = dayTasks.length > 0;
+                      const hasRangeTask = dayTasks.some(t => !!t.endDate);
                       const hasStudies = dayStudies.length > 0;
                       const hasWorkouts = dayWorkouts.length > 0;
                       const hasFinances = dayFinances.length > 0;
@@ -1807,7 +1825,9 @@ const HubHome: React.FC<HubHomeProps> = ({
                               ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-950 border-zinc-900 dark:border-white shadow-sm'
                               : isToday
                                 ? 'bg-zinc-200/50 dark:bg-zinc-800/60 border-zinc-300 dark:border-zinc-700 text-zinc-800 dark:text-white font-bold'
-                                : 'bg-white/10 dark:bg-zinc-900/10 border-zinc-200/10 dark:border-zinc-800/10 text-zinc-750 dark:text-zinc-350 hover:border-zinc-300 dark:hover:border-zinc-700'
+                                : hasRangeTask
+                                  ? 'bg-rose-500/10 dark:bg-rose-500/20 border-rose-500/20 dark:border-rose-900/50 text-rose-800 dark:text-rose-200'
+                                  : 'bg-zinc-50/40 dark:bg-zinc-900/40 border-zinc-250/60 dark:border-zinc-800/70 text-zinc-800 dark:text-zinc-200 hover:border-zinc-300 dark:hover:border-zinc-650'
                           }`}
                         >
                           <span className="text-[10px] font-black leading-none">{day}</span>
@@ -1828,7 +1848,7 @@ const HubHome: React.FC<HubHomeProps> = ({
                                 />
                               );
                             })}
-                            {dayTasks.map((t, idx) => {
+                            {dayTasks.filter(t => !t.endDate).map((t, idx) => {
                               const isAtrasado = dateStr < todayStr && !t.completed;
                               return (
                                 <ListTodo 
@@ -1850,7 +1870,7 @@ const HubHome: React.FC<HubHomeProps> = ({
                                   size={12} 
                                   className={`shrink-0 transition-all ${
                                     isAtrasado 
-                                      ? 'text-emerald-600 dark:text-emerald-400 drop-shadow-[0_0_4px_rgba(16,185,129,0.85)] scale-110 animate-pulse' 
+                                      ? 'text-emerald-600 dark:text-emerald-400 drop-shadow-[0_0_4px_rgba(10,185,129,0.85)] scale-110 animate-pulse' 
                                       : 'text-emerald-500/80 dark:text-emerald-400/80'
                                   }`} 
                                 />
@@ -1899,7 +1919,12 @@ const HubHome: React.FC<HubHomeProps> = ({
 
                 <div className="flex-1 overflow-y-auto pr-1 space-y-1.5 flex flex-col">
                   {(() => {
-                    const dayTasks = calendarEvents.tasks.filter(t => t.due_date === selectedCalendarDate);
+                    const dayTasks = calendarEvents.tasks.filter(t => {
+                      if (t.endDate) {
+                        return t.due_date <= selectedCalendarDate && selectedCalendarDate <= t.endDate;
+                      }
+                      return t.due_date === selectedCalendarDate;
+                    });
                     const dayStudies = calendarEvents.studies.filter(s => s.date === selectedCalendarDate);
                     const dayWorkouts = calendarEvents.workouts.filter(w => w.date === selectedCalendarDate);
                     const dayFinances = calendarEvents.finances.filter(f => f.date === selectedCalendarDate);

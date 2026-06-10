@@ -24,6 +24,10 @@ const TarefasApp: React.FC = () => {
   const [newTaskCategory, setNewTaskCategory] = useState('Tarefa');
   const [newTaskRecurrence, setNewTaskRecurrence] = useState<'none' | 'days' | 'monthly'>('none');
   const [newTaskRecurrenceValue, setNewTaskRecurrenceValue] = useState<number>(1);
+  const [isNewTaskRange, setIsNewTaskRange] = useState(false);
+  const [newTaskEndDate, setNewTaskEndDate] = useState('');
+  const [isEditingTaskRange, setIsEditingTaskRange] = useState(false);
+  const [editingTaskEndDate, setEditingTaskEndDate] = useState('');
 
   const [sortBy, setSortBy] = useState<'data' | 'alfabetica' | 'prioridade'>('prioridade');
 
@@ -77,19 +81,25 @@ const TarefasApp: React.FC = () => {
     if (e) e.preventDefault();
     if (!newTaskText.trim()) return;
 
+    let dueTime = newTaskTime;
+    if (isNewTaskRange && newTaskEndDate) {
+      dueTime = `range:${newTaskEndDate}`;
+    }
+
     const newTask: Task = {
       id: crypto.randomUUID(),
       text: newTaskText.trim(),
       completed: false,
       dueDate: newTaskDate,
-      dueTime: newTaskTime,
+      dueTime: isNewTaskRange ? '' : newTaskTime,
+      endDate: isNewTaskRange ? newTaskEndDate : undefined,
       category: newTaskCategory || 'Tarefa',
       createdAt: Date.now(),
       recurrenceType: newTaskRecurrence,
       recurrenceValue: newTaskRecurrenceValue
     };
 
-    tarefasApi.create(newTask).catch(err => console.error('Error creating task:', err));
+    tarefasApi.create({ ...newTask, dueTime }).catch(err => console.error('Error creating task:', err));
     setTasks(prev => [...prev, newTask]);
     setNewTaskText('');
     setNewTaskDate('');
@@ -97,6 +107,8 @@ const TarefasApp: React.FC = () => {
     setNewTaskCategory('Tarefa');
     setNewTaskRecurrence('none');
     setNewTaskRecurrenceValue(1);
+    setIsNewTaskRange(false);
+    setNewTaskEndDate('');
     setMobileView('list');
     setShowAddModal(false);
   };
@@ -151,18 +163,29 @@ const TarefasApp: React.FC = () => {
     e.preventDefault();
     if (!editingTask || !editingTaskText.trim()) return;
 
+    let dueTime = editingTaskTime;
+    if (isEditingTaskRange && editingTaskEndDate) {
+      dueTime = `range:${editingTaskEndDate}`;
+    }
+
     const updatedFields: Partial<Task> = {
       text: editingTaskText.trim(),
       dueDate: editingTaskDate,
-      dueTime: editingTaskTime,
+      dueTime: isEditingTaskRange ? '' : editingTaskTime,
       category: editingTaskCategory,
       recurrenceType: editingTaskRecurrence,
       recurrenceValue: editingTaskRecurrenceValue
     };
 
-    tarefasApi.update(editingTask.id, updatedFields).catch(err => console.error('Error updating task:', err));
+    tarefasApi.update(editingTask.id, { ...updatedFields, dueTime }).catch(err => console.error('Error updating task:', err));
     
-    setTasks(prev => prev.map(t => t.id === editingTask.id ? { ...t, ...updatedFields } : t));
+    const updatedTask = {
+      ...editingTask,
+      ...updatedFields,
+      endDate: isEditingTaskRange ? editingTaskEndDate : undefined
+    };
+    
+    setTasks(prev => prev.map(t => t.id === editingTask.id ? updatedTask : t));
     setEditingTask(null);
   };
 
@@ -208,7 +231,8 @@ const TarefasApp: React.FC = () => {
     if (!task.dueDate || task.completed) return false;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const taskDate = new Date(`${task.dueDate}T12:00:00`);
+    const checkDateStr = task.endDate || task.dueDate;
+    const taskDate = new Date(`${checkDateStr}T12:00:00`);
     taskDate.setHours(0, 0, 0, 0);
     return taskDate < today;
   };
@@ -296,7 +320,7 @@ const TarefasApp: React.FC = () => {
               {task.category}
             </span>
           )}
-          {(task.dueDate || task.dueTime) && (
+          {(task.dueDate || task.dueTime || task.endDate) && (
             <span className={`flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded ${
               task.completed 
                 ? 'text-zinc-400 bg-zinc-200/50 dark:bg-zinc-800/50' 
@@ -305,9 +329,15 @@ const TarefasApp: React.FC = () => {
                   : 'text-zinc-600 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800'
             }`}>
               <CalendarIcon size={10} />
-              {task.dueDate ? new Date(`${task.dueDate}T12:00:00`).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }) : ''}
-              {task.dueDate && task.dueTime && ' • '}
-              {task.dueTime}
+              {task.endDate ? (
+                `De ${new Date(`${task.dueDate}T12:00:00`).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })} até ${new Date(`${task.endDate}T12:00:00`).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}`
+              ) : (
+                <>
+                  {task.dueDate ? new Date(`${task.dueDate}T12:00:00`).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }) : ''}
+                  {task.dueDate && task.dueTime && ' • '}
+                  {task.dueTime}
+                </>
+              )}
               {!task.completed && isOverdue(task) && ' (Atrasada)'}
             </span>
           )}
@@ -339,8 +369,14 @@ const TarefasApp: React.FC = () => {
     return Array.from({ length: daysInCalendarMonth }, (_, i) => {
       const day = i + 1;
       const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-      const dayTasks = tasks.filter(t => t.dueDate === dateStr);
-      return { day, dateStr, dayTasks };
+      const dayTasks = tasks.filter(t => {
+        if (t.endDate) {
+          return t.dueDate <= dateStr && dateStr <= t.endDate;
+        }
+        return t.dueDate === dateStr;
+      });
+      const hasRangeTask = dayTasks.some(t => !!t.endDate);
+      return { day, dateStr, dayTasks, hasRangeTask };
     });
   }, [tasks, year, month, daysInCalendarMonth]);
 
@@ -394,7 +430,7 @@ const TarefasApp: React.FC = () => {
               <div key={`empty-${i}`} className="bg-transparent" />
             ))}
 
-            {calendarDaysList.map(({ day, dateStr, dayTasks }) => {
+            {calendarDaysList.map(({ day, dateStr, dayTasks, hasRangeTask }) => {
               const isToday = todayStr === dateStr;
               return (
                 <div 
@@ -406,7 +442,9 @@ const TarefasApp: React.FC = () => {
                   className={`border rounded-xl p-2 transition-all cursor-pointer flex flex-col gap-1.5 min-h-[70px] overflow-hidden group/cell
                     ${isToday 
                       ? 'bg-rose-50/30 dark:bg-rose-950/10 border-rose-350 dark:border-rose-900/60 ring-1 ring-rose-400/30' 
-                      : 'bg-zinc-50/50 dark:bg-zinc-900/30 border-zinc-150 dark:border-zinc-800/80 hover:border-rose-300 dark:hover:border-rose-900/50 hover:shadow-sm'
+                      : hasRangeTask
+                        ? 'bg-rose-500/10 dark:bg-rose-500/20 border-rose-500/20 dark:border-rose-900/50'
+                        : 'bg-zinc-50/50 dark:bg-zinc-900/30 border-zinc-150 dark:border-zinc-800/80 hover:border-rose-300 dark:hover:border-rose-900/50 hover:shadow-sm'
                     }
                   `}
                 >
@@ -423,7 +461,15 @@ const TarefasApp: React.FC = () => {
                           setEditingTask(t);
                           setEditingTaskText(t.text);
                           setEditingTaskDate(t.dueDate);
-                          setEditingTaskTime(t.dueTime || '');
+                          if (t.endDate) {
+                            setIsEditingTaskRange(true);
+                            setEditingTaskEndDate(t.endDate);
+                            setEditingTaskTime('');
+                          } else {
+                            setIsEditingTaskRange(false);
+                            setEditingTaskEndDate('');
+                            setEditingTaskTime(t.dueTime || '');
+                          }
                           setEditingTaskCategory(t.category);
                           setEditingTaskRecurrence(t.recurrenceType || 'none');
                           setEditingTaskRecurrenceValue(t.recurrenceValue || 1);
@@ -599,9 +645,22 @@ const TarefasApp: React.FC = () => {
                         />
                       </div>
 
+                      <div className="flex items-center gap-2 py-1 select-none">
+                        <input
+                          type="checkbox"
+                          id="isNewTaskRange"
+                          checked={isNewTaskRange}
+                          onChange={(e) => setIsNewTaskRange(e.target.checked)}
+                          className="rounded border-zinc-300 dark:border-zinc-800 text-rose-500 focus:ring-rose-500"
+                        />
+                        <label htmlFor="isNewTaskRange" className="text-[10px] font-bold text-zinc-650 dark:text-zinc-450 uppercase cursor-pointer">Tarefa Contínua (Duração)</label>
+                      </div>
+
                       <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-1">
-                          <label className="text-[9px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Data Limite</label>
+                          <label className="text-[9px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                            {isNewTaskRange ? 'Data de Início' : 'Data Limite'}
+                          </label>
                           <div className="flex items-center bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-rose-500">
                             <div className="pl-2.5 text-zinc-400"><CalendarIcon size={13} /></div>
                             <input 
@@ -614,13 +673,17 @@ const TarefasApp: React.FC = () => {
                         </div>
 
                         <div className="space-y-1">
-                          <label className="text-[9px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Hora</label>
+                          <label className="text-[9px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                            {isNewTaskRange ? 'Data de Fim' : 'Hora'}
+                          </label>
                           <div className="flex items-center bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-rose-500">
-                            <div className="pl-2.5 text-zinc-400"><Clock size={13} /></div>
+                            <div className="pl-2.5 text-zinc-400">
+                              {isNewTaskRange ? <CalendarIcon size={13} /> : <Clock size={13} />}
+                            </div>
                             <input 
-                              type="time" 
-                              value={newTaskTime}
-                              onChange={(e) => setNewTaskTime(e.target.value)}
+                              type={isNewTaskRange ? "date" : "time"} 
+                              value={isNewTaskRange ? newTaskEndDate : newTaskTime}
+                              onChange={(e) => isNewTaskRange ? setNewTaskEndDate(e.target.value) : setNewTaskTime(e.target.value)}
                               className="bg-transparent border-none outline-none text-xs p-2 text-zinc-700 dark:text-zinc-300 cursor-pointer w-full"
                             />
                           </div>
@@ -816,9 +879,21 @@ const TarefasApp: React.FC = () => {
                   autoFocus
                 />
               </div>
+              <div className="flex items-center gap-2 py-1 select-none">
+                <input
+                  type="checkbox"
+                  id="modalIsNewTaskRange"
+                  checked={isNewTaskRange}
+                  onChange={(e) => setIsNewTaskRange(e.target.checked)}
+                  className="rounded border-zinc-300 dark:border-zinc-800 text-rose-500 focus:ring-rose-500"
+                />
+                <label htmlFor="modalIsNewTaskRange" className="text-[10px] font-bold text-zinc-650 dark:text-zinc-450 uppercase cursor-pointer">Tarefa Contínua (Duração)</label>
+              </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-[9px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Data Limite</label>
+                  <label className="text-[9px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                    {isNewTaskRange ? 'Data de Início' : 'Data Limite'}
+                  </label>
                   <input 
                     type="date" 
                     value={newTaskDate}
@@ -827,11 +902,13 @@ const TarefasApp: React.FC = () => {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[9px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Hora</label>
+                  <label className="text-[9px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                    {isNewTaskRange ? 'Data de Fim' : 'Hora'}
+                  </label>
                   <input 
-                    type="time" 
-                    value={newTaskTime}
-                    onChange={(e) => setNewTaskTime(e.target.value)}
+                    type={isNewTaskRange ? "date" : "time"} 
+                    value={isNewTaskRange ? newTaskEndDate : newTaskTime}
+                    onChange={(e) => isNewTaskRange ? setNewTaskEndDate(e.target.value) : setNewTaskTime(e.target.value)}
                     className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl p-2.5 text-xs text-zinc-700 dark:text-zinc-300 focus:ring-2 focus:ring-rose-500 outline-none"
                   />
                 </div>
@@ -906,9 +983,21 @@ const TarefasApp: React.FC = () => {
                   required
                 />
               </div>
+              <div className="flex items-center gap-2 py-1 select-none">
+                <input
+                  type="checkbox"
+                  id="modalIsEditingTaskRange"
+                  checked={isEditingTaskRange}
+                  onChange={(e) => setIsEditingTaskRange(e.target.checked)}
+                  className="rounded border-zinc-300 dark:border-zinc-800 text-rose-500 focus:ring-rose-500"
+                />
+                <label htmlFor="modalIsEditingTaskRange" className="text-[10px] font-bold text-zinc-650 dark:text-zinc-450 uppercase cursor-pointer">Tarefa Contínua (Duração)</label>
+              </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-[9px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Data Limite</label>
+                  <label className="text-[9px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                    {isEditingTaskRange ? 'Data de Início' : 'Data Limite'}
+                  </label>
                   <input 
                     type="date" 
                     value={editingTaskDate}
@@ -917,11 +1006,13 @@ const TarefasApp: React.FC = () => {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[9px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Hora</label>
+                  <label className="text-[9px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                    {isEditingTaskRange ? 'Data de Fim' : 'Hora'}
+                  </label>
                   <input 
-                    type="time" 
-                    value={editingTaskTime}
-                    onChange={(e) => setEditingTaskTime(e.target.value)}
+                    type={isEditingTaskRange ? "date" : "time"} 
+                    value={isEditingTaskRange ? editingTaskEndDate : editingTaskTime}
+                    onChange={(e) => isEditingTaskRange ? setEditingTaskEndDate(e.target.value) : setEditingTaskTime(e.target.value)}
                     className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl p-2.5 text-xs text-zinc-700 dark:text-zinc-300 focus:ring-2 focus:ring-rose-500 outline-none"
                   />
                 </div>

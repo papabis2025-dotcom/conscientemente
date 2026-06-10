@@ -81,7 +81,7 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
     if (!activityFormData.subjectId) return;
 
     const selectedTypes = activityFormData.activityTypes;
-    const hasQuestions = selectedTypes.includes('Questões') || selectedTypes.includes('Flashcards');
+    const hasQuestions = selectedTypes.includes('Questões') || selectedTypes.includes('Flashcards') || selectedTypes.includes('Revisão');
     const qDone = hasQuestions ? (parseInt(activityFormData.questionsDone) || undefined) : undefined;
     const qCorrect = hasQuestions ? (parseInt(activityFormData.questionsCorrect) || undefined) : undefined;
 
@@ -243,7 +243,7 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
                 <div>
                   <label className="text-[10px] font-bold text-zinc-400 uppercase mb-2 block">Tipo de Atividade (Selecione uma ou mais)</label>
                   <div className="flex flex-wrap gap-2">
-                    {['Leitura', 'Questões', 'Flashcards', 'Aula', 'Simulado'].map(type => {
+                    {['Leitura', 'Questões', 'Flashcards', 'Aula', 'Simulado', 'Revisão'].map(type => {
                       const isSelected = activityFormData.activityTypes.includes(type);
                       return (
                         <button
@@ -327,7 +327,7 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
                   <input type="number" placeholder="Ex: 45" value={activityFormData.duration} onChange={(e) => setActivityFormData({ ...activityFormData, duration: e.target.value })} className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 border-none rounded-2xl outline-none text-sm font-bold dark:text-white ring-1 ring-zinc-100 dark:ring-zinc-800 focus:ring-zinc-500" />
                 </div>
 
-                {(activityFormData.activityTypes.includes('Questões') || activityFormData.activityTypes.includes('Flashcards')) && (
+                {(activityFormData.activityTypes.includes('Questões') || activityFormData.activityTypes.includes('Flashcards') || activityFormData.activityTypes.includes('Revisão')) && (
                   <div className="grid grid-cols-2 gap-4 p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl border border-dashed border-zinc-200 dark:border-zinc-800 animate-in fade-in slide-in-from-top-2">
                     <div>
                       <label className="text-[10px] font-bold text-zinc-400 uppercase mb-1.5 block">Resolvidas</label>

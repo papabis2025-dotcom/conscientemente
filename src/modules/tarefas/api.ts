@@ -10,6 +10,7 @@ export interface Task {
   createdAt: number;
   recurrenceType?: 'none' | 'days' | 'monthly';
   recurrenceValue?: number;
+  endDate?: string;
 }
 
 export const tarefasApi = {
@@ -18,17 +19,26 @@ export const tarefasApi = {
     if (!user) return [];
     const { data, error } = await supabase.from('tarefas').select('*').eq('user_id', user.id);
     if (error) throw error;
-    return (data || []).map(t => ({
-      id: t.id,
-      text: t.text,
-      completed: t.completed,
-      dueDate: t.due_date,
-      dueTime: t.due_time,
-      category: t.category,
-      createdAt: t.created_at,
-      recurrenceType: t.recurrence_type,
-      recurrenceValue: t.recurrence_value
-    })) as Task[];
+    return (data || []).map(t => {
+      let endDate: string | undefined = undefined;
+      let dueTime = t.due_time || '';
+      if (dueTime.startsWith('range:')) {
+        endDate = dueTime.substring(6);
+        dueTime = '';
+      }
+      return {
+        id: t.id,
+        text: t.text,
+        completed: t.completed,
+        dueDate: t.due_date,
+        dueTime: dueTime,
+        endDate: endDate,
+        category: t.category,
+        createdAt: t.created_at,
+        recurrenceType: t.recurrence_type,
+        recurrenceValue: t.recurrence_value
+      };
+    }) as Task[];
   },
   
   create: async (task: Task) => {

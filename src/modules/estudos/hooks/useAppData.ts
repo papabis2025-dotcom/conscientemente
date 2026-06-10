@@ -10,6 +10,19 @@ const getDeterministicSessionId = (simId: string, subjectId: string): string => 
     return `${simId.substring(0, 18)}${subjectId.substring(18)}`;
 };
 
+const getDeterministicReviewId = (subId: string, topicId: string | undefined, lastSessId: string, idx: number): string => {
+    const cleanSub = subId.replace(/-/g, '').padEnd(32, '0');
+    const cleanTopic = (topicId || 'geral').replace(/-/g, '').padEnd(32, '0');
+    const cleanSess = lastSessId.replace(/-/g, '').padEnd(32, '0');
+    
+    const part1 = cleanSub.substring(0, 8);
+    const part2 = cleanTopic.substring(8, 12);
+    const part3 = cleanSess.substring(12, 16);
+    const part4 = `400${idx}`;
+    const part5 = cleanSess.substring(16, 28);
+    return `${part1}-${part2}-${part3}-${part4}-${part5}`;
+};
+
 export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme?: () => void) => {
     const [currentUser, setCurrentUser] = useState<User | null>(null);
     const [users, setUsers] = useState<User[]>([]); // Keeping for legacy/compatibility
@@ -58,6 +71,28 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
 
     const updateStudyTasks = (newTasks: { id: string, subjectId: string, subjectName: string, topicId?: string, topicName?: string, done: boolean, date: string }[]) => {
         const subIds = new Set((concursos.find(c => c.id === selectedConcursoId)?.subjects || []).map(s => s.id));
+        
+        // Find deleted tasks: tasks for these subjects that are not in newTasks
+        const tasksToDelete = studyTasks.filter(t => subIds.has(t.subjectId) && !newTasks.find(nt => nt.id === t.id));
+        if (tasksToDelete.length > 0) {
+            try {
+                const deletedRaw = localStorage.getItem('cp_deleted_study_task_ids') || '[]';
+                const deletedList = JSON.parse(deletedRaw);
+                let modified = false;
+                tasksToDelete.forEach(t => {
+                    if (!deletedList.includes(t.id)) {
+                        deletedList.push(t.id);
+                        modified = true;
+                    }
+                });
+                if (modified) {
+                    localStorage.setItem('cp_deleted_study_task_ids', JSON.stringify(deletedList));
+                }
+            } catch (e) {
+                console.error('Error tracking deleted study tasks:', e);
+            }
+        }
+
         setStudyTasks(prev => {
             const preserved = prev.filter(t => !subIds.has(t.subjectId));
             const updated = [...preserved, ...newTasks];
@@ -111,8 +146,16 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
     const syncSimuladoSessions = useCallback(async (activeSims: Simulado[], allSess: StudySession[]) => {
         const expectedSessions: StudySession[] = [];
         activeSims.forEach(sim => {
-            const durationPerSubject = sim.durationInMinutes ? Math.round(sim.durationInMinutes / sim.results.length) : 0;
+            const totalQuestionsDone = sim.results.reduce((sum, r) => sum + (r.done || 0), 0);
             sim.results.forEach(res => {
+                let durationPerSubject = 0;
+                if (sim.durationInMinutes) {
+                    if (totalQuestionsDone > 0) {
+                        durationPerSubject = Math.round(sim.durationInMinutes * (res.done || 0) / totalQuestionsDone);
+                    } else {
+                        durationPerSubject = Math.round(sim.durationInMinutes / sim.results.length);
+                    }
+                }
                 expectedSessions.push({
                     id: getDeterministicSessionId(sim.id, res.subjectId),
                     subjectId: res.subjectId,
@@ -133,6 +176,18 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
 
         const currentIds = new Set(allSess.map(s => s.id));
         const sessionsToCreate = expectedSessions.filter(s => !currentIds.has(s.id));
+
+        const sessionsToUpdate: StudySession[] = [];
+        expectedSessions.forEach(es => {
+            const existing = allSess.find(s => s.id === es.id);
+            if (existing) {
+                if (existing.durationInMinutes !== es.durationInMinutes || 
+                    existing.questionsDone !== es.questionsDone || 
+                    existing.questionsCorrect !== es.questionsCorrect) {
+                    sessionsToUpdate.push(es);
+                }
+            }
+        });
 
         if (sessionsToDelete.length > 0) {
             console.log('Syncing simulados: deleting obsolete sessions:', sessionsToDelete.map(s => s.id));
@@ -169,26 +224,137 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
             }
         }
 
-        if (sessionsToDelete.length > 0 || sessionsToCreate.length > 0) {
+        if (sessionsToUpdate.length > 0) {
+            console.log('Syncing simulados: updating modified sessions:', sessionsToUpdate.map(s => s.id));
+            for (const s of sessionsToUpdate) {
+                try {
+                    await api.sessions.update(s.id, s);
+                    await api.schedule.update(s.id, {
+                        durationInMinutes: s.durationInMinutes,
+                        questionsDone: s.questionsDone,
+                        questionsCorrect: s.questionsCorrect
+                    });
+                } catch (e) {
+                    console.error('Error updating modified session:', s.id, e);
+                }
+            }
+        }
+
+        if (sessionsToDelete.length > 0 || sessionsToCreate.length > 0 || sessionsToUpdate.length > 0) {
             setSessions(prev => {
-                const filtered = prev.filter(s => !sessionsToDelete.some(td => td.id === s.id));
-                const combined = [...filtered, ...sessionsToCreate];
+                const filtered = prev.filter(s => !sessionsToDelete.some(td => td.id === s.id) && !sessionsToUpdate.some(tu => tu.id === s.id));
+                const combined = [...filtered, ...sessionsToCreate, ...sessionsToUpdate];
                 return combined;
             });
 
             setScheduledStudies(prev => {
-                const filtered = prev.filter(s => !sessionsToDelete.some(td => td.id === s.id));
-                const newScheduledItems = sessionsToCreate.map(s => ({
+                const filtered = prev.filter(s => !sessionsToDelete.some(td => td.id === s.id) && !sessionsToUpdate.some(tu => tu.id === s.id));
+                const newScheduledItems = [...sessionsToCreate, ...sessionsToUpdate].map(s => ({
                     id: s.id,
                     date: s.date.split('T')[0],
                     subjectId: s.subjectId,
-                    activityType: 'Simulado',
+                    activityType: 'Simulado' as const,
                     durationInMinutes: s.durationInMinutes,
                     questionsDone: s.questionsDone,
                     questionsCorrect: s.questionsCorrect,
                     status: 'realizado' as const
                 }));
                 const combined = [...filtered, ...newScheduledItems];
+                localStorage.setItem('cp_scheduled_studies', JSON.stringify(combined));
+                return combined;
+            });
+        }
+    }, []);
+
+    const syncPlannedReviewsDb = useCallback(async (allSess: StudySession[], allSchedule: ScheduledStudy[], allConcursos: Concurso[]) => {
+        let customReviewDays = [7, 30, 90, 15, 45];
+        try {
+            const saved = localStorage.getItem('estudos_custom_review_days');
+            if (saved) customReviewDays = JSON.parse(saved);
+        } catch (e) {
+            console.error('Error reading custom review days:', e);
+        }
+
+        const expectedReviews: ScheduledStudy[] = [];
+
+        allConcursos.forEach(concurso => {
+            (concurso.subjects || []).forEach(subject => {
+                const topicsList = [{ id: 'geral', title: 'Geral / Outros' }, ...(subject.topics || [])];
+                topicsList.forEach(topic => {
+                    const isSimuladoSession = (s: StudySession) => s.isSimulado || s.activityType === 'Simulado';
+                    const topicSessions = allSess.filter(s => 
+                        s.subjectId === subject.id && 
+                        (topic.id === 'geral' ? !s.topicId : s.topicId === topic.id) &&
+                        !isSimuladoSession(s)
+                    );
+
+                    if (topicSessions.length > 0) {
+                        const sorted = [...topicSessions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+                        const latestSession = sorted[0];
+                        const lastDate = new Date(latestSession.date);
+
+                        customReviewDays.forEach((days, idx) => {
+                            const plannedDate = new Date(lastDate);
+                            plannedDate.setDate(plannedDate.getDate() + days);
+                            const dateStr = plannedDate.toISOString().split('T')[0];
+
+                            const reviewId = getDeterministicReviewId(subject.id, topic.id === 'geral' ? undefined : topic.id, latestSession.id, idx);
+
+                            expectedReviews.push({
+                                id: reviewId,
+                                date: dateStr,
+                                subjectId: subject.id,
+                                topicId: topic.id === 'geral' ? undefined : topic.id,
+                                activityType: 'Revisão',
+                                notes: `Revisão automática (${days}d)`,
+                                durationInMinutes: 30,
+                                questionsDone: 10,
+                                questionsCorrect: 8,
+                                status: 'planejado'
+                            });
+                        });
+                    }
+                });
+            });
+        });
+
+        const expectedIds = new Set(expectedReviews.map(r => r.id));
+
+        const reviewsToDelete = allSchedule.filter(s => 
+            s.activityType === 'Revisão' && 
+            s.status === 'planejado' && 
+            !expectedIds.has(s.id)
+        );
+
+        const currentIds = new Set(allSchedule.map(s => s.id));
+        const reviewsToCreate = expectedReviews.filter(r => !currentIds.has(r.id));
+
+        if (reviewsToDelete.length > 0) {
+            console.log('Syncing planned reviews: deleting obsolete reviews:', reviewsToDelete.map(r => r.id));
+            for (const r of reviewsToDelete) {
+                try {
+                    await api.schedule.delete(r.id);
+                } catch (e) {
+                    console.error('Error deleting obsolete review:', r.id, e);
+                }
+            }
+        }
+
+        if (reviewsToCreate.length > 0) {
+            console.log('Syncing planned reviews: creating missing reviews:', reviewsToCreate.map(r => r.id));
+            for (const r of reviewsToCreate) {
+                try {
+                    await api.schedule.create(r);
+                } catch (e) {
+                    console.error('Error creating missing review:', r.id, e);
+                }
+            }
+        }
+
+        if (reviewsToDelete.length > 0 || reviewsToCreate.length > 0) {
+            setScheduledStudies(prev => {
+                const filtered = prev.filter(s => !reviewsToDelete.some(rd => rd.id === s.id));
+                const combined = [...filtered, ...reviewsToCreate];
                 localStorage.setItem('cp_scheduled_studies', JSON.stringify(combined));
                 return combined;
             });
@@ -212,6 +378,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
             if (concursosData) setConcursos(concursosData);
             if (sessionsData) setSessions(sessionsData);
             if (simuladosData) setSimulados(simuladosData);
+            let finalSchedule: ScheduledStudy[] = [];
             if (scheduleData) {
                 // Server is the source of truth for WHICH items exist.
                 // Reconstruct status based on matching session existence, falling back to local state.
@@ -220,7 +387,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                 const localStatusMap = new Map(localStudies.map(s => [s.id, s.status]));
                 const sessionIds = new Set(sessionsData?.map(s => s.id) || []);
 
-                const finalSchedule: ScheduledStudy[] = scheduleData.map(s => {
+                finalSchedule = scheduleData.map(s => {
                     let status: 'planejado' | 'realizado' = 'planejado';
                     if (localStatusMap.has(s.id)) {
                         status = localStatusMap.get(s.id) as 'planejado' | 'realizado';
@@ -242,13 +409,16 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
             // Sync simulated sessions
             await syncSimuladoSessions(simuladosData || [], sessionsData || []);
 
+            // Sync planned reviews
+            await syncPlannedReviewsDb(sessionsData || [], finalSchedule, concursosData || []);
+
             setLastSaved(new Date().toLocaleTimeString());
         } catch (error) {
             console.error('Failed to fetch data:', error);
         } finally {
             setIsLoading(false);
         }
-    }, [currentUser, syncSimuladoSessions]);
+    }, [currentUser, syncSimuladoSessions, syncPlannedReviewsDb]);
 
     // Supabase Auth and User Setup
     useEffect(() => {
@@ -466,6 +636,9 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
             });
         } catch (e) { /* non-critical */ }
 
+        // Sync planned reviews immediately
+        await syncPlannedReviewsDb([...sessions, session], [...scheduledStudies, newScheduled], concursos);
+
         setLastSaved(new Date().toLocaleTimeString());
     };
 
@@ -523,6 +696,8 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         try {
             await api.sessions.delete(id);
             await api.schedule.delete(id); // Cascade
+            // Sync planned reviews immediately
+            await syncPlannedReviewsDb(sessions.filter(s => s.id !== id), scheduledStudies.filter(s => s.id !== id), concursos);
             setLastSaved(new Date().toLocaleTimeString());
         } catch (e) {
             console.error('Error deleting session:', e);
@@ -758,6 +933,10 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
             for (const id of ids) {
                 try { await api.sessions.delete(id); } catch(e) {}
             }
+            // Sync planned reviews immediately (when toggling back to planejado)
+            const updatedSessions = sessions.filter(s => !ids.includes(s.id));
+            const updatedSchedule = scheduledStudies.map(s => ids.includes(s.id) ? { ...s, status: targetStatus } : s);
+            await syncPlannedReviewsDb(updatedSessions, updatedSchedule, concursos);
         } else {
             const newSessions: StudySession[] = [];
             for (const study of studies) {
@@ -775,6 +954,11 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                 try { await api.sessions.create(newSession); } catch(e) {}
             }
             setSessions(prev => [...prev, ...newSessions]);
+            
+            // Sync planned reviews immediately
+            const updatedSessions = [...sessions, ...newSessions];
+            const updatedSchedule = scheduledStudies.map(s => ids.includes(s.id) ? { ...s, status: targetStatus } : s);
+            await syncPlannedReviewsDb(updatedSessions, updatedSchedule, concursos);
         }
     };
 

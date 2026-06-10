@@ -56,6 +56,8 @@ interface SidebarProps {
   onOpenAddModal?: () => void;
 }
 
+import { PercentSearchIcon } from './PercentSearchIcon';
+
 interface MenuItem {
   id: string;
   label: string;
@@ -66,7 +68,7 @@ const DEFAULT_MENU_ITEMS: MenuItem[] = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'concursos', label: 'Meus Editais', icon: GraduationCap },
   { id: 'subjects', label: 'Disciplinas', icon: Library },
-  { id: 'statistics', label: 'Análise Estatística', icon: BarChart2 },
+  { id: 'statistics', label: 'Análise Estatística', icon: PercentSearchIcon },
   { id: 'simulados', label: 'Simulados', icon: FileSpreadsheet },
   { id: 'calendar', label: 'Planner', icon: Calendar },
 ];

@@ -41,6 +41,20 @@ const SaudePlannerView: React.FC<SaudePlannerViewProps> = ({
   const [showModal, setShowModal] = useState(false);
   const [editingActivity, setEditingActivity] = useState<HealthActivity | null>(null);
 
+  const handleDragStart = (e: React.DragEvent, id: string) => {
+    e.dataTransfer.setData('text/plain', id);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDrop = (e: React.DragEvent, targetDate: string) => {
+    e.preventDefault();
+    const id = e.dataTransfer.getData('text/plain');
+    if (!id) return;
+    if (onUpdateActivity) {
+      onUpdateActivity(id, { date: targetDate });
+    }
+  };
+
   const [formType, setFormType] = useState<ActivityType>('');
   const [formTime, setFormTime] = useState('');
   const [formDistance, setFormDistance] = useState('');
@@ -208,6 +222,8 @@ const SaudePlannerView: React.FC<SaudePlannerViewProps> = ({
               <div 
                 key={dayKey} 
                 onClick={() => handleDayClick(dayKey)}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => handleDrop(e, dayKey)}
                 className={`border rounded-xl p-1.5 transition-all cursor-pointer hover:border-cyan-400 dark:hover:border-cyan-600 flex flex-col gap-1
                   ${isToday ? 'bg-cyan-50 dark:bg-cyan-950/30 border-cyan-300 dark:border-cyan-800 ring-1 ring-cyan-400/50' : 'bg-zinc-50 dark:bg-zinc-900/50 border-zinc-200 dark:border-zinc-800 hover:shadow-md'}
                 `}
@@ -221,6 +237,8 @@ const SaudePlannerView: React.FC<SaudePlannerViewProps> = ({
                     <div 
                       key={act.id} 
                       onClick={(e) => handleActivityClick(e, act)}
+                      draggable={true}
+                      onDragStart={(e) => handleDragStart(e, act.id)}
                       className={`text-[9px] font-bold px-1.5 py-1 rounded-lg border flex flex-col gap-0.5 transition-all cursor-pointer hover:scale-[1.02] active:scale-95
                         ${act.status === 'planejado' ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 border-dashed border-zinc-300 dark:border-zinc-700 opacity-65 hover:opacity-100' : ''}
                       `}

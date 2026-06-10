@@ -172,7 +172,7 @@ const StudyPlan: React.FC<StudyPlanProps> = ({ subjects, sessions, studyTasks, o
 
         // 1. Check for low performance subjects (< 60%)
         subjects.forEach(sub => {
-            const subSessions = sessions.filter(s => s.subjectId === sub.id && (s.activityType === 'Questões' || s.activityType === 'Simulado' || s.activityType === 'Flashcards'));
+            const subSessions = sessions.filter(s => s.subjectId === sub.id && (s.activityType === 'Questões' || s.activityType === 'Simulado' || s.activityType === 'Flashcards' || s.activityType === 'Revisão'));
             const totalDone = subSessions.reduce((acc, s) => acc + (s.questionsDone || 0), 0);
             const totalCorrect = subSessions.reduce((acc, s) => acc + (s.questionsCorrect || 0), 0);
 

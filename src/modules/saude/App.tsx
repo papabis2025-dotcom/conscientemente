@@ -57,6 +57,15 @@ const SaudeApp: React.FC = () => {
     localStorage.setItem('isSidebarCollapsed_saude', String(isSidebarCollapsed));
   }, [isSidebarCollapsed]);
 
+  // Handle navigation from hub calendar (opens specific tab)
+  useEffect(() => {
+    const targetTab = sessionStorage.getItem('saude_active_tab');
+    if (targetTab === 'planner') {
+      sessionStorage.removeItem('saude_active_tab');
+      setActiveTab('planner');
+    }
+  }, []);
+
   const [activityTypes, setActivityTypes] = useState<HealthActivityType[]>(() => {
     const saved = localStorage.getItem('cn_saude_activity_types');
     if (saved) return JSON.parse(saved);

@@ -1050,14 +1050,36 @@ const FinancasApp: React.FC = () => {
                 </div>
               ) : (
                 <ul className="space-y-1.5">
-                  {saidas.map(t => (
-                    <li key={t.id} className="group flex items-center justify-between p-2 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/55 transition-colors border border-transparent hover:border-zinc-100 dark:hover:border-zinc-800">
+                      {saidas.map(t => {
+                    // Detect last installment: name matches "(X/Y)" pattern where X === Y
+                    const installMatch = t.name.match(/(.+) \((\d+)\/(\d+)\)$/);
+                    const isLastInstallment = installMatch ? installMatch[2] === installMatch[3] : false;
+                    // Detect last recurrence: same name/amount/category, no future occurrences
+                    const isPixOrDinheiro = t.paymentMethod?.toLowerCase().includes('pix') || t.paymentMethod?.toLowerCase().includes('dinheiro');
+                    const isLastRecurring = !installMatch && isPixOrDinheiro && (() => {
+                      const sameGroup = transactions.filter(tx => 
+                        tx.name === t.name && tx.amount === t.amount && tx.category === t.category && tx.type === t.type
+                      );
+                      if (sameGroup.length < 2) return false;
+                      const sorted = [...sameGroup].sort((a, b) => a.date.localeCompare(b.date));
+                      return sorted[sorted.length - 1].id === t.id;
+                    })();
+                    const isLastPayment = isLastInstallment || isLastRecurring;
+                    return (
+                    <li key={t.id} className={`group flex items-center justify-between p-2 rounded-xl transition-colors border ${isLastPayment ? 'bg-amber-50/70 dark:bg-amber-900/15 border-amber-300/50 dark:border-amber-600/40 hover:bg-amber-50 dark:hover:bg-amber-900/25' : 'hover:bg-zinc-50 dark:hover:bg-zinc-800/55 border-transparent hover:border-zinc-100 dark:hover:border-zinc-800'}`}>
                       <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-full bg-rose-100 dark:bg-rose-500/10 flex items-center justify-center text-rose-600 dark:text-rose-400 font-bold text-[10px]">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-[10px] ${isLastPayment ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400' : 'bg-rose-100 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400'}`}>
                           {t.dayOnly ? t.date.split('-')[2] : new Date(`${t.date}T12:00:00`).getDate()}
                         </div>
                         <div>
-                          <p className="font-bold text-xs text-zinc-800 dark:text-zinc-200">{t.name}</p>
+                          <div className="flex items-center gap-1.5">
+                            <p className="font-bold text-xs text-zinc-800 dark:text-zinc-200">{t.name}</p>
+                            {isLastPayment && (
+                              <span className="text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-amber-400/20 dark:bg-amber-500/25 text-amber-700 dark:text-amber-400 border border-amber-300/50 dark:border-amber-500/40 leading-none">
+                                {isLastInstallment ? 'Última Parcela' : 'Última Recorrência'}
+                              </span>
+                            )}
+                          </div>
                           <p className="text-[9px] font-bold uppercase tracking-wider text-zinc-400 flex gap-1.5">
                             <span>{t.category}</span>
                             <span className="text-zinc-300 dark:text-zinc-700">•</span>
@@ -1074,9 +1096,11 @@ const FinancasApp: React.FC = () => {
                         <button onClick={() => deleteTransaction(t.id)} className="opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-rose-500 p-1" title="Excluir"><Trash2 size={14}/></button>
                       </div>
                     </li>
-                  ))}
-                </ul>
+                    );
+                   })}
+                 </ul>
               )}
+
             </div>
           </section>
 

@@ -1945,21 +1945,26 @@ const HubHome: React.FC<HubHomeProps> = ({
                          {/* Estudos */}
                          {dayStudies.map(s => {
                            const isCompleted = s.completed;
+                           const isRevisao = s.text && (s.text.toLowerCase().includes('revisão') || s.text.toLowerCase().includes('revisao'));
                            return (
                              <div 
                                key={s.id} 
-                               className={`flex items-center gap-2 p-2 rounded-xl transition-all duration-200 ${
+                               onClick={() => { window.location.hash = 'estudos'; sessionStorage.setItem('estudosActiveTab', 'calendar'); }}
+                               title="Abrir no módulo de Estudos"
+                               className={`flex items-center gap-2 p-2 rounded-xl transition-all duration-200 cursor-pointer hover:scale-[1.01] ${
                                  isCompleted
                                    ? 'bg-zinc-100/40 dark:bg-zinc-800/20 border border-zinc-200/25 dark:border-zinc-800/30 opacity-40'
-                                   : 'bg-purple-500/10 dark:bg-purple-500/10 border-2 border-purple-500/40 dark:border-purple-400/50 shadow-xs'
+                                   : isRevisao
+                                     ? 'bg-amber-500/10 dark:bg-amber-500/10 border-2 border-amber-500/40 dark:border-amber-400/50 shadow-xs'
+                                     : 'bg-purple-500/10 dark:bg-purple-500/10 border-2 border-purple-500/40 dark:border-purple-400/50 shadow-xs'
                                }`}
                              >
-                               <Brain size={12} className={isCompleted ? 'text-zinc-450 dark:text-zinc-600 shrink-0' : 'text-purple-500 shrink-0'} />
+                               <Brain size={12} className={isCompleted ? 'text-zinc-450 dark:text-zinc-600 shrink-0' : isRevisao ? 'text-amber-500 shrink-0' : 'text-purple-500 shrink-0'} />
                                <div className="min-w-0 flex-1">
                                  <p className={`text-[9px] font-black uppercase tracking-wider leading-none ${
-                                   isCompleted ? 'text-zinc-400 dark:text-zinc-550' : 'text-purple-600 dark:text-purple-400'
+                                   isCompleted ? 'text-zinc-400 dark:text-zinc-550' : isRevisao ? 'text-amber-600 dark:text-amber-400' : 'text-purple-600 dark:text-purple-400'
                                  }`}>
-                                   Estudo {!isCompleted && '• Pendente'}
+                                   {isRevisao ? 'Revisão' : 'Estudo'} {!isCompleted && '• Pendente'}
                                  </p>
                                  <p className={`text-[10px] font-bold text-zinc-750 dark:text-zinc-200 truncate mt-0.5 leading-none ${
                                    isCompleted ? 'line-through opacity-50' : ''
@@ -1975,7 +1980,9 @@ const HubHome: React.FC<HubHomeProps> = ({
                            return (
                              <div 
                                key={t.id} 
-                               className={`flex items-center gap-2 p-2 rounded-xl transition-all duration-200 ${
+                               onClick={() => { window.location.hash = 'tarefas'; }}
+                               title="Abrir no módulo de Tarefas"
+                               className={`flex items-center gap-2 p-2 rounded-xl transition-all duration-200 cursor-pointer hover:scale-[1.01] ${
                                  isCompleted
                                    ? 'bg-zinc-100/40 dark:bg-zinc-800/20 border border-zinc-200/25 dark:border-zinc-800/30 opacity-40'
                                    : 'bg-red-500/10 dark:bg-red-500/10 border-2 border-red-500/40 dark:border-red-400/50 shadow-xs'
@@ -2002,7 +2009,9 @@ const HubHome: React.FC<HubHomeProps> = ({
                            return (
                              <div 
                                key={w.id} 
-                               className={`flex items-center gap-2 p-2 rounded-xl transition-all duration-200 ${
+                               onClick={() => { window.location.hash = 'saude'; sessionStorage.setItem('saude_active_tab', 'planner'); }}
+                               title="Abrir no módulo de Saúde"
+                               className={`flex items-center gap-2 p-2 rounded-xl transition-all duration-200 cursor-pointer hover:scale-[1.01] ${
                                  isCompleted
                                    ? 'bg-zinc-100/40 dark:bg-zinc-800/20 border border-zinc-200/25 dark:border-zinc-800/30 opacity-40'
                                    : 'bg-blue-500/10 dark:bg-blue-500/10 border-2 border-blue-500/40 dark:border-blue-400/50 shadow-xs'
@@ -2027,7 +2036,9 @@ const HubHome: React.FC<HubHomeProps> = ({
                          {dayFinances.map(f => (
                            <div 
                              key={f.id} 
-                             className="flex items-center gap-2 p-2 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/10 border border-emerald-500/30 dark:border-emerald-400/45 shadow-xs"
+                             onClick={() => { window.location.hash = 'financas'; sessionStorage.setItem('openAddFinancasType', 'saida'); }}
+                             title="Abrir no módulo de Finanças"
+                             className="flex items-center gap-2 p-2 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/10 border border-emerald-500/30 dark:border-emerald-400/45 shadow-xs cursor-pointer hover:scale-[1.01] transition-all duration-200"
                            >
                              <DollarSign size={12} className="text-emerald-500 shrink-0" />
                              <div className="min-w-0 flex-1">

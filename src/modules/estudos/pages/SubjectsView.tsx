@@ -157,11 +157,34 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
       const d90 = new Date(lastDate);
       d90.setDate(d90.getDate() + 90);
       review90dDate = formatDate(d90);
+      // Find targetDate of the active concurso (cap reviews at exam date)
+      let examDateStr: string | null = null;
+      if (concursos && selectedConcursoId && selectedConcursoId !== 'all') {
+        const activeConcurso = concursos.find(c => c.id === selectedConcursoId);
+        if (activeConcurso?.targetDate) {
+          examDateStr = activeConcurso.targetDate.split('T')[0];
+        }
+      }
+
+      const capToExam = (date: Date): { date: Date; capped: boolean } => {
+        if (examDateStr) {
+          const dateStr = date.toISOString().split('T')[0];
+          if (dateStr > examDateStr) {
+            // Cap at the exam date
+            const targetDateObj = new Date(examDateStr + 'T12:00:00');
+            return { date: targetDateObj, capped: true };
+          }
+        }
+        return { date, capped: false };
+      };
 
       for (let i = 0; i < 5; i++) {
         const dCustom = new Date(lastDate);
         dCustom.setDate(dCustom.getDate() + customReviewDays[i]);
-        customReviewDates[i] = formatDate(dCustom);
+        const { date: cappedDate, capped } = capToExam(dCustom);
+        customReviewDates[i] = capped
+          ? `\u26a0\ufe0f ${formatDate(cappedDate)}`
+          : formatDate(cappedDate);
       }
     }
 

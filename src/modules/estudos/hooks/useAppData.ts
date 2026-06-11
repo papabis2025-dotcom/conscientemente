@@ -296,6 +296,14 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                         customReviewDays.forEach((days, idx) => {
                             const plannedDate = new Date(lastDate);
                             plannedDate.setDate(plannedDate.getDate() + days);
+
+                            // Do not schedule reviews past the exam date (targetDate)
+                            if (concurso.targetDate) {
+                                const examDateStr = concurso.targetDate.split('T')[0];
+                                const plannedDateStr = plannedDate.toISOString().split('T')[0];
+                                if (plannedDateStr > examDateStr) return; // skip this review
+                            }
+
                             const dateStr = plannedDate.toISOString().split('T')[0];
 
                             const reviewId = getDeterministicReviewId(subject.id, topic.id === 'geral' ? undefined : topic.id, latestSession.id, idx);

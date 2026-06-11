@@ -1962,7 +1962,6 @@ const HubHome: React.FC<HubHomeProps> = ({
                          {/* Estudos */}
                          {dayStudies.map(s => {
                            const isCompleted = s.completed;
-                           const subject = subjects.find(sub => sub.id === s.subjectId);
                            const isRevisao = s.text && (s.text.toLowerCase().includes('revisão') || s.text.toLowerCase().includes('revisao'));
                            return (
                              <div 
@@ -1982,7 +1981,7 @@ const HubHome: React.FC<HubHomeProps> = ({
                                  <p className={`text-[9px] font-black uppercase tracking-wider leading-none ${
                                    isCompleted ? 'text-zinc-400 dark:text-zinc-550' : isRevisao ? 'text-amber-600 dark:text-amber-400' : 'text-purple-600 dark:text-purple-400'
                                  }`}>
-                                   {subject ? subject.name : (isRevisao ? 'Revisão' : 'Estudo')} {!isCompleted && '• Pendente'}
+                                   {isRevisao ? 'Revisão' : 'Estudo'} {!isCompleted && '• Pendente'}
                                  </p>
                                  <p className={`text-[10px] font-bold text-zinc-750 dark:text-zinc-200 truncate mt-0.5 leading-none ${
                                    isCompleted ? 'line-through opacity-50' : ''

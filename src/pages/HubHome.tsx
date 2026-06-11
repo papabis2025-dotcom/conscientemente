@@ -427,7 +427,7 @@ const HubHome: React.FC<HubHomeProps> = ({
 
       const { data: dbWorkouts } = await supabase
         .from('saude_treinos')
-        .select('id, type, date, status')
+        .select('id, type, date, status, muscles')
         .eq('user_id', user.id)
         .gte('date', startOfMonth)
         .lte('date', endOfMonth);
@@ -534,11 +534,22 @@ const HubHome: React.FC<HubHomeProps> = ({
           durationInMinutes: totalDuration,
           date: first.date,
           status: first.status,
-          notes: first.notes
+          notes: first.notes,
+          subjectId: first.subjectId
         };
       });
 
       const consolidatedStudies = [...nonGroupedStudies, ...groupedStudies];
+
+      const subjectMap = new Map<string, any>();
+      if (dbConcursos) {
+        dbConcursos.forEach((c: any) => {
+          const subjectsList = c.subjects || [];
+          subjectsList.forEach((sub: any) => {
+            subjectMap.set(sub.id, sub);
+          });
+        });
+      }
 
       const studiesList = [
         ...studyTasksFiltered.map((t: any) => ({ 
@@ -547,12 +558,20 @@ const HubHome: React.FC<HubHomeProps> = ({
           date: t.date, 
           completed: t.done 
         })),
-        ...consolidatedStudies.map((s: any) => ({ 
-          id: s.id, 
-          text: s.activityType + ' (' + (s.durationInMinutes || 0) + ' min)', 
-          date: s.date?.split('T')[0], 
-          completed: s.status === 'realizado' 
-        })),
+        ...consolidatedStudies.map((s: any) => {
+          const sub = subjectMap.get(s.subjectId);
+          const subjectName = sub ? sub.name : 'Disciplina';
+          const isCompleted = s.status === 'realizado';
+          const text = !isCompleted
+            ? `${subjectName} - ${s.activityType} (${s.durationInMinutes || 0} min)`
+            : `${s.activityType} (${s.durationInMinutes || 0} min)`;
+          return {
+            id: s.id,
+            text,
+            date: s.date?.split('T')[0],
+            completed: isCompleted
+          };
+        }),
         ...simuladosFiltered.map((sim: any) => ({
           id: sim.id,
           text: `SIMULADO: ${sim.name} (${sim.durationInMinutes || 0} min)`,
@@ -1673,9 +1692,8 @@ const HubHome: React.FC<HubHomeProps> = ({
               onClick={toggleModules}
           className="flex items-center gap-3 mb-4 cursor-pointer group/section select-none"
         >
-          <span className="w-1.5 h-1.5 rounded-full bg-zinc-400 dark:bg-zinc-600" />
           <p className="text-[10px] font-black text-zinc-400 dark:text-zinc-600 uppercase tracking-[0.2em]">Módulos</p>
-          <div className="flex-1 h-px bg-gradient-to-r from-zinc-200 to-transparent dark:from-zinc-800" />
+          <div className="flex-1" />
           
           <button 
             type="button"
@@ -1715,9 +1733,8 @@ const HubHome: React.FC<HubHomeProps> = ({
           onClick={toggleCalendar}
           className="flex items-center gap-3 mt-8 mb-4 cursor-pointer group/section select-none"
         >
-          <span className="w-1.5 h-1.5 rounded-full bg-zinc-400 dark:bg-zinc-600" />
           <p className="text-[10px] font-black text-zinc-400 dark:text-zinc-600 uppercase tracking-[0.2em]">Calendário Unificado</p>
-          <div className="flex-1 h-px bg-gradient-to-r from-zinc-200 to-transparent dark:from-zinc-800" />
+          <div className="flex-1" />
           
           <button 
             type="button"
@@ -1945,6 +1962,7 @@ const HubHome: React.FC<HubHomeProps> = ({
                          {/* Estudos */}
                          {dayStudies.map(s => {
                            const isCompleted = s.completed;
+                           const subject = subjects.find(sub => sub.id === s.subjectId);
                            const isRevisao = s.text && (s.text.toLowerCase().includes('revisão') || s.text.toLowerCase().includes('revisao'));
                            return (
                              <div 
@@ -1964,7 +1982,7 @@ const HubHome: React.FC<HubHomeProps> = ({
                                  <p className={`text-[9px] font-black uppercase tracking-wider leading-none ${
                                    isCompleted ? 'text-zinc-400 dark:text-zinc-550' : isRevisao ? 'text-amber-600 dark:text-amber-400' : 'text-purple-600 dark:text-purple-400'
                                  }`}>
-                                   {isRevisao ? 'Revisão' : 'Estudo'} {!isCompleted && '• Pendente'}
+                                   {subject ? subject.name : (isRevisao ? 'Revisão' : 'Estudo')} {!isCompleted && '• Pendente'}
                                  </p>
                                  <p className={`text-[10px] font-bold text-zinc-750 dark:text-zinc-200 truncate mt-0.5 leading-none ${
                                    isCompleted ? 'line-through opacity-50' : ''
@@ -2026,7 +2044,7 @@ const HubHome: React.FC<HubHomeProps> = ({
                                  </p>
                                  <p className={`text-[10px] font-bold text-zinc-750 dark:text-zinc-200 truncate mt-0.5 leading-none ${
                                    isCompleted ? 'line-through opacity-50' : ''
-                                 }`}>{w.type}</p>
+                                 }`}>{w.type}{w.muscles && w.muscles.length > 0 ? ` (${w.muscles.join(', ')})` : ''}</p>
                                </div>
                              </div>
                            );
@@ -2069,9 +2087,8 @@ const HubHome: React.FC<HubHomeProps> = ({
           onClick={toggleWidgets}
           className="flex items-center gap-3 mt-8 mb-4 cursor-pointer group/section select-none"
         >
-          <span className="w-1.5 h-1.5 rounded-full bg-zinc-400 dark:bg-zinc-600" />
           <p className="text-[10px] font-black text-zinc-400 dark:text-zinc-600 uppercase tracking-[0.2em]">Widgets</p>
-          <div className="flex-1 h-px bg-gradient-to-r from-zinc-200 to-transparent dark:from-zinc-800" />
+          <div className="flex-1" />
           
           <button 
             type="button"

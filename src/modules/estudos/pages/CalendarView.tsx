@@ -552,6 +552,79 @@ const CalendarView: React.FC<CalendarViewProps> = ({
             </div>
           </div>
         );
+      case 'anual':
+        const currentYear = currentDate.getFullYear();
+        return (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {monthNames.map((monthName, monthIndex) => {
+              const numDays = daysInMonth(currentYear, monthIndex);
+              const startDay = firstDayOfMonth(currentYear, monthIndex);
+              
+              return (
+                <div 
+                  key={monthIndex}
+                  className="bg-white dark:bg-zinc-900 p-4 rounded-3xl border border-zinc-150 dark:border-zinc-800 shadow-sm flex flex-col hover:shadow-md transition-all duration-200"
+                >
+                  <button
+                    onClick={() => {
+                      const newDate = new Date(currentDate);
+                      newDate.setMonth(monthIndex);
+                      setCurrentDate(newDate);
+                      setViewMode('mensal');
+                    }}
+                    className="text-left font-black text-sm uppercase tracking-wider text-zinc-700 dark:text-zinc-250 mb-3 hover:text-zinc-900 dark:hover:text-white transition-colors"
+                  >
+                    {monthName}
+                  </button>
+                  <div className="grid grid-cols-7 gap-1">
+                    {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((d, idx) => (
+                      <div key={idx} className="text-center text-[8px] font-black text-zinc-400 dark:text-zinc-650 uppercase py-0.5">{d}</div>
+                    ))}
+                    {Array.from({ length: startDay }).map((_, i) => (
+                      <div key={`empty-${i}`} className="py-1" />
+                    ))}
+                    {Array.from({ length: numDays }).map((_, i) => {
+                      const day = i + 1;
+                      const date = new Date(currentYear, monthIndex, day);
+                      const key = getDayKey(date);
+                      const tasks = getDailyTasks(key);
+                      const isToday = new Date().toDateString() === date.toDateString();
+                      
+                      let cellClass = 'text-zinc-450 dark:text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800/40';
+                      if (isToday) {
+                        cellClass = 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 border border-zinc-300 dark:border-zinc-700';
+                      }
+                      
+                      if (tasks.length > 0) {
+                        const allRealized = tasks.every(t => t.status === 'realizado');
+                        if (allRealized) {
+                          cellClass = 'bg-emerald-500/25 text-emerald-700 dark:text-emerald-350 border border-emerald-500/20 hover:bg-emerald-500/35';
+                        } else {
+                          cellClass = 'bg-blue-500/25 text-blue-700 dark:text-blue-350 border border-blue-500/20 hover:bg-blue-500/35';
+                        }
+                      }
+                      
+                      const titleAttr = tasks.length > 0 
+                        ? `${day} de ${monthName}: ${tasks.filter(t => t.status === 'planejado').length} planejados, ${tasks.filter(t => t.status === 'realizado').length} realizados`
+                        : `${day} de ${monthName}`;
+
+                      return (
+                        <button
+                          key={day}
+                          onClick={() => handleDayClick(key)}
+                          title={titleAttr}
+                          className={`w-6 h-6 flex items-center justify-center text-[9px] font-black rounded-lg transition-all ${cellClass}`}
+                        >
+                          {day}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        );
       default: return <div className="p-20 text-center text-zinc-400 font-bold uppercase tracking-widest opacity-30">Selecione uma visualização</div>;
     }
   };
@@ -559,6 +632,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   const getTitle = () => {
     if (viewMode === 'mensal') return `${monthNames[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
     if (viewMode === 'semanal') return `Semana de ${weekDays[0].getDate()} a ${weekDays[6].getDate()} de ${monthNames[weekDays[6].getMonth()]}`;
+    if (viewMode === 'anual') return `${currentDate.getFullYear()}`;
     return "Planner";
   };
 

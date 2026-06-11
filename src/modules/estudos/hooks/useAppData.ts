@@ -589,24 +589,60 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         const sessionDate = session.date.split('T')[0];
         const activityType = session.activityType || (session.isSimulado ? 'Simulado' : session.questionsDone !== undefined ? 'Questões' : 'Leitura');
 
-        // Use the same ID to link the session and the scheduled entry.
-        const scheduleId = session.id;
-        const newScheduled: ScheduledStudy = {
-            id: scheduleId,
-            date: sessionDate,
-            subjectId: session.subjectId,
-            topicId: session.topicId,
-            activityType: activityType as ActivityType,
-            durationInMinutes: session.durationInMinutes,
-            questionsDone: session.questionsDone,
-            questionsCorrect: session.questionsCorrect,
-            status: 'realizado',
-            notes: (session as any).notes
-        };
+        let existingPlanned = scheduledStudies.find(s => s.id === session.id && s.status === 'planejado');
+        if (!existingPlanned && activityType === 'Revisão') {
+            existingPlanned = scheduledStudies.find(s => 
+                s.subjectId === session.subjectId && 
+                s.topicId === session.topicId && 
+                s.activityType === 'Revisão' && 
+                s.status === 'planejado'
+            );
+        }
 
-        // Optimistically add schedule entry to local state
+        let newScheduled: ScheduledStudy;
+        let isUpdatingExisting = false;
+
+        if (existingPlanned) {
+            isUpdatingExisting = true;
+            newScheduled = {
+                ...existingPlanned,
+                date: sessionDate,
+                status: 'realizado',
+                durationInMinutes: session.durationInMinutes,
+                questionsDone: session.questionsDone,
+                questionsCorrect: session.questionsCorrect,
+                notes: (session as any).notes || existingPlanned.notes
+            };
+        } else {
+            newScheduled = {
+                id: session.id,
+                date: sessionDate,
+                subjectId: session.subjectId,
+                topicId: session.topicId,
+                activityType: activityType as ActivityType,
+                durationInMinutes: session.durationInMinutes,
+                questionsDone: session.questionsDone,
+                questionsCorrect: session.questionsCorrect,
+                status: 'realizado',
+                notes: (session as any).notes
+            };
+        }
+
+        if (existingPlanned && session.id !== existingPlanned.id) {
+            setSessions(prev => prev.map(s => s.id === session.id ? { ...s, id: existingPlanned!.id } : s));
+            session.id = existingPlanned.id;
+        }
+
+        const scheduleId = newScheduled.id;
+
+        // Optimistically update/add schedule entry in local state
         setScheduledStudies(prev => {
-            const updated = [...prev, newScheduled];
+            let updated: ScheduledStudy[];
+            if (prev.some(s => s.id === scheduleId)) {
+                updated = prev.map(s => s.id === scheduleId ? newScheduled : s);
+            } else {
+                updated = [...prev, newScheduled];
+            }
             localStorage.setItem('cp_scheduled_studies', JSON.stringify(updated));
             return updated;
         });
@@ -616,24 +652,32 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
             await api.sessions.create(session);
         } catch (e) {
             console.error('Error saving session to DB:', e);
-            // Don't block schedule creation — local state already updated
         }
 
-        // Persist schedule entry to DB
+        // Persist/Update schedule entry in DB
         try {
-            const saved = await api.schedule.create(newScheduled);
-            if (saved && saved.id && saved.id !== scheduleId) {
-                // If server assigned a different ID, sync it locally
-                const syncedEntry: ScheduledStudy = { ...newScheduled, id: saved.id };
-                setScheduledStudies(prev => {
-                    const updated = prev.map(s => s.id === scheduleId ? syncedEntry : s);
-                    localStorage.setItem('cp_scheduled_studies', JSON.stringify(updated));
-                    return updated;
+            if (isUpdatingExisting) {
+                await api.schedule.update(scheduleId, {
+                    status: 'realizado',
+                    date: newScheduled.date,
+                    durationInMinutes: newScheduled.durationInMinutes,
+                    questionsDone: newScheduled.questionsDone,
+                    questionsCorrect: newScheduled.questionsCorrect,
+                    notes: newScheduled.notes
                 });
+            } else {
+                const saved = await api.schedule.create(newScheduled);
+                if (saved && saved.id && saved.id !== scheduleId) {
+                    const syncedEntry: ScheduledStudy = { ...newScheduled, id: saved.id };
+                    setScheduledStudies(prev => {
+                        const updated = prev.map(s => s.id === scheduleId ? syncedEntry : s);
+                        localStorage.setItem('cp_scheduled_studies', JSON.stringify(updated));
+                        return updated;
+                    });
+                }
             }
         } catch (e) {
-            console.error('Error saving schedule entry to DB:', e);
-            // Local state already updated; schedule entry survives in localStorage
+            console.error('Error saving/updating schedule entry in DB:', e);
         }
 
         // Log

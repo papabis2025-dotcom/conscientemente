@@ -613,7 +613,6 @@ const Dashboard: React.FC<DashboardProps> = ({
           </div>
         );
       case 'study_tasks': {
-        const todayMs = new Date().setHours(0, 0, 0, 0);
         const todayStr = new Date().toISOString().split('T')[0];
         const upcomingReviews: { subjectName: string; topicName: string; daysUntil: number; reviewType: string }[] = [];
 
@@ -630,39 +629,26 @@ const Dashboard: React.FC<DashboardProps> = ({
             const todayNoon = new Date().setHours(12, 0, 0, 0);
             
             const diffDays = Math.round((todayNoon - sDateNoon) / (1000 * 60 * 60 * 24));
+            const isDelayed = diffDays > 0;
+            
+            let labelType = 'Tarefa Programada';
+            if (s.activityType === 'Revisão') {
+              labelType = isDelayed ? 'Revisão Atrasada' : 'Revisão';
+            } else {
+              labelType = isDelayed ? 'Tarefa Atrasada' : 'Tarefa Programada';
+            }
+
             upcomingReviews.push({ 
               subjectName: sub.name, 
               topicName: topic?.title || s.activityType || 'Estudo Pendente', 
-              daysUntil: diffDays < 0 ? 0 : diffDays, // 0 means Today, diffDays > 0 means Delayed
-              reviewType: diffDays > 0 ? 'Tarefa Atrasada' : 'Tarefa Programada'
+              daysUntil: diffDays < 0 ? 0 : diffDays,
+              reviewType: labelType
             });
           }
         });
 
-        // Find upcoming reviews (topics with sessions 7 or 30 days ago)
-
-        subjects.forEach(sub => {
-          (sub.topics || []).forEach(topic => {
-            const topicSessions = sessions.filter(s => s.subjectId === sub.id && s.topicId === topic.id && !isSimuladoSession(s));
-            if (topicSessions.length > 0) {
-              const lastTopicDate = new Date([...topicSessions].sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime())[0]?.date || 0);
-              lastTopicDate.setHours(0, 0, 0, 0);
-              const diffDays = Math.round((todayMs - lastTopicDate.getTime()) / (1000 * 60 * 60 * 24));
-              const daysTo7 = 7 - diffDays;
-              const daysTo30 = 30 - diffDays;
-              const daysTo90 = 90 - diffDays;
-              if (daysTo7 >= 0 && daysTo7 <= 7) {
-                upcomingReviews.push({ subjectName: sub.name, topicName: topic.title, daysUntil: daysTo7, reviewType: 'Revisão 7d' });
-              } else if (daysTo30 >= 0 && daysTo30 <= 7) {
-                upcomingReviews.push({ subjectName: sub.name, topicName: topic.title, daysUntil: daysTo30, reviewType: 'Revisão 30d' });
-              } else if (daysTo90 >= 0 && daysTo90 <= 7) {
-                upcomingReviews.push({ subjectName: sub.name, topicName: topic.title, daysUntil: daysTo90, reviewType: 'Revisão 90d' });
-              }
-            }
-          });
-        });
-
-        upcomingReviews.sort((a, b) => a.daysUntil - b.daysUntil);
+        // Sort by delay (delayed tasks first, then scheduled for today)
+        upcomingReviews.sort((a, b) => b.daysUntil - a.daysUntil);
 
         return (
           <div className="flex flex-col h-full gap-2">

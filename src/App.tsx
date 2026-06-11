@@ -814,23 +814,26 @@ const App: React.FC = () => {
       className={`min-h-screen ${bgClass} flex relative transition-colors duration-300`}
       style={bgStyle}
     >
-      <GlobalSidebar
-        currentRoute={currentRoute}
-        userName={userName}
-        theme={theme}
-        toggleTheme={toggleTheme}
-        onLogout={handleLogout}
-        isHomeEditMode={isHomeEditMode}
-        setIsHomeEditMode={setIsHomeEditMode}
-        bgType={bgType}
-        setBgType={setBgType}
-        bgColor={bgColor}
-        setBgColor={setBgColor}
-        bgImage={bgImage}
-        setBgImage={setBgImage}
-        bgImageStyle={bgImageStyle}
-        setBgImageStyle={setBgImageStyle}
-      />
+      {currentRoute === 'hub' && (
+        <GlobalSidebar
+          currentRoute={currentRoute}
+          userName={userName}
+          theme={theme}
+          toggleTheme={toggleTheme}
+          onLogout={handleLogout}
+          isHomeEditMode={isHomeEditMode}
+          setIsHomeEditMode={setIsHomeEditMode}
+          bgType={bgType}
+          setBgType={setBgType}
+          bgColor={bgColor}
+          setBgColor={setBgColor}
+          bgImage={bgImage}
+          setBgImage={setBgImage}
+          bgImageStyle={bgImageStyle}
+          setBgImageStyle={setBgImageStyle}
+        />
+      )}
+
       <div className="flex-1 min-h-screen overflow-x-hidden relative">
         {pageContent}
       </div>

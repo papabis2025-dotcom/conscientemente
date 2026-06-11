@@ -218,19 +218,9 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
         onOpenAddModal={() => setShowAddModal(true)}
       />
       <main className="flex-1 overflow-y-auto p-3 relative">
-        <div className="max-w-[1440px] mx-auto lg:pb-0 pb-8">{renderContent()}</div>
+        <div className="max-w-[1440px] mx-auto">{renderContent()}</div>
       </main>
-      <footer className={`fixed bottom-0 right-0 h-9 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md border-t border-zinc-200 dark:border-zinc-800 px-4 flex items-center justify-between text-[9px] font-medium z-40 transition-all duration-300 ${isSidebarCollapsed ? 'left-20' : 'left-64'}`}>
-        <div className="flex items-center gap-3">
-          <div className={`w-1.5 h-1.5 rounded-full ${saveError ? 'bg-red-500' : isSaving ? 'bg-blue-400 animate-ping' : 'bg-emerald-500'}`}></div>
-          <span className={`${saveError ? 'text-red-500 font-bold' : 'opacity-70 dark:text-zinc-400'}`}>
-            {saveError ? saveError : (isSaving ? 'Salvando...' : `Sincronizado: ${lastSaved}`)}
-          </span>
-        </div>
-        <div className="uppercase font-bold tracking-widest text-zinc-400 dark:text-zinc-500">
-          Estudos - {activeConcurso ? activeConcurso.name : 'Visão Global'}
-        </div>
-      </footer>
+
 
       {showAddModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-zinc-950/80 backdrop-blur-sm p-4">

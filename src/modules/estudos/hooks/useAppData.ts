@@ -337,6 +337,19 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         const currentIds = new Set(allSchedule.map(s => s.id));
         const reviewsToCreate = expectedReviews.filter(r => !currentIds.has(r.id));
 
+        // Find existing reviews that need updates (e.g. have legacy notes format without groupId tag)
+        const currentScheduleMap = new Map(allSchedule.map(s => [s.id, s]));
+        const reviewsToUpdate: ScheduledStudy[] = [];
+        expectedReviews.forEach(expected => {
+            const current = currentScheduleMap.get(expected.id);
+            if (current && current.notes !== expected.notes) {
+                reviewsToUpdate.push({
+                    ...current,
+                    notes: expected.notes
+                });
+            }
+        });
+
         if (reviewsToDelete.length > 0) {
             console.log('Syncing planned reviews: deleting obsolete reviews:', reviewsToDelete.map(r => r.id));
             for (const r of reviewsToDelete) {
@@ -359,9 +372,24 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
             }
         }
 
-        if (reviewsToDelete.length > 0 || reviewsToCreate.length > 0) {
+        if (reviewsToUpdate.length > 0) {
+            console.log('Syncing planned reviews: updating legacy review notes:', reviewsToUpdate.map(r => r.id));
+            for (const r of reviewsToUpdate) {
+                try {
+                    await api.schedule.update(r.id, { notes: r.notes });
+                } catch (e) {
+                    console.error('Error updating legacy review notes:', r.id, e);
+                }
+            }
+        }
+
+        if (reviewsToDelete.length > 0 || reviewsToCreate.length > 0 || reviewsToUpdate.length > 0) {
             setScheduledStudies(prev => {
-                const filtered = prev.filter(s => !reviewsToDelete.some(rd => rd.id === s.id));
+                let filtered = prev.filter(s => !reviewsToDelete.some(rd => rd.id === s.id));
+                filtered = filtered.map(s => {
+                    const updated = reviewsToUpdate.find(ru => ru.id === s.id);
+                    return updated ? { ...s, notes: updated.notes } : s;
+                });
                 const combined = [...filtered, ...reviewsToCreate];
                 localStorage.setItem('cp_scheduled_studies', JSON.stringify(combined));
                 return combined;

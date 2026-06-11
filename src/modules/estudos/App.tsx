@@ -42,7 +42,7 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
     filteredSubjects,
     allSubjects,
     activeConcurso,
-    handleLogout: logout, addSession, addSimulado, updateSimulado,
+    handleLogout: logout, addSession, addSessionsBatch, addSimulado, updateSimulado,
     deleteSimulado, deleteSession, clearLogs, deleteLog, updateProfile,
     globalDailyGoal, studyTasks, setStudyTasks, toggleScheduledStudyStatus, updateScheduledStudy,
     resetStudyHubDataOnly
@@ -111,12 +111,14 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
         const baseCorrect = qCorrect !== undefined ? Math.floor(qCorrect / count) : undefined;
         const remCorrect = qCorrect !== undefined ? qCorrect % count : 0;
 
+        const sessionsList: StudySession[] = [];
+
         for (let i = 0; i < count; i++) {
           const itemDuration = i === 0 ? baseDuration + remDuration : baseDuration;
           const itemDone = qDone !== undefined ? (i === 0 ? baseDone! + remDone : baseDone) : undefined;
           const itemCorrect = qCorrect !== undefined ? (i === 0 ? baseCorrect! + remCorrect : baseCorrect) : undefined;
 
-          await addSession({
+          sessionsList.push({
             id: crypto.randomUUID(),
             subjectId: activityFormData.subjectId,
             topicId: selectedTopicIds[i],
@@ -127,6 +129,8 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
             activityType: selectedTypes.join(', ')
           });
         }
+
+        await addSessionsBatch(sessionsList);
       }
 
       setShowAddModal(false);
@@ -169,6 +173,7 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
           onUpdateSchedule={setScheduledStudies}
           onDelete={deleteScheduledStudy}
           onAddSession={addSession}
+          onAddSessionsBatch={addSessionsBatch}
           onToggleStatus={toggleScheduledStudyStatus}
           onUpdateScheduledStudy={updateScheduledStudy}
           simulados={simulados}

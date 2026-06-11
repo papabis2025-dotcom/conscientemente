@@ -11,6 +11,7 @@ interface CalendarViewProps {
   onUpdateSchedule: (studies: ScheduledStudy[]) => void;
   onDelete: (id: string) => void;
   onAddSession?: (session: StudySession) => void;
+  onAddSessionsBatch?: (sessions: StudySession[]) => void;
   onToggleStatus?: (idOrIds: string | string[]) => void;
   onUpdateScheduledStudy: (id: string, updates: Partial<ScheduledStudy>) => void;
 }
@@ -33,6 +34,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   onUpdateSchedule, 
   onDelete, 
   onAddSession, 
+  onAddSessionsBatch,
   onToggleStatus,
   onUpdateScheduledStudy 
 }) => {
@@ -149,6 +151,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     const remCorrect = questionsCorrectVal !== undefined ? questionsCorrectVal % count : 0;
 
     const newEntries: ScheduledStudy[] = [];
+    const sessionsList: StudySession[] = [];
 
     for (let i = 0; i < count; i++) {
       const itemDuration = i === 0 ? baseDuration + remDuration : baseDuration;
@@ -156,9 +159,9 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       const itemCorrect = questionsCorrectVal !== undefined ? (i === 0 ? baseCorrect! + remCorrect : baseCorrect) : undefined;
       const topicId = topicIdsToSave[i];
 
-      if (formData.status === 'realizado' && onAddSession) {
-        await onAddSession({
-          id: crypto.randomUUID(),
+      if (formData.status === 'realizado') {
+        sessionsList.push({
+          id: count > 1 ? crypto.randomUUID() : (editingTask ? editingTask.id : crypto.randomUUID()),
           subjectId: formData.subjectId,
           topicId: topicId,
           durationInMinutes: itemDuration,
@@ -181,6 +184,16 @@ const CalendarView: React.FC<CalendarViewProps> = ({
           questionsCorrect: itemCorrect,
           status: formData.status
         });
+      }
+    }
+
+    if (formData.status === 'realizado' && sessionsList.length > 0) {
+      if (onAddSessionsBatch) {
+        await onAddSessionsBatch(sessionsList);
+      } else if (onAddSession) {
+        for (const s of sessionsList) {
+          await onAddSession(s);
+        }
       }
     }
 

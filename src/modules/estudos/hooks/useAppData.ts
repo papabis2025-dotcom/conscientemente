@@ -314,7 +314,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                                 subjectId: subject.id,
                                 topicId: topic.id === 'geral' ? undefined : topic.id,
                                 activityType: 'Revisão',
-                                notes: `Revisão automática (${days}d)`,
+                                notes: `[groupId:rev_${subject.id}_${dateStr}] Revisão automática (${days}d)`,
                                 durationInMinutes: 30,
                                 questionsDone: 10,
                                 questionsCorrect: 8,
@@ -694,6 +694,156 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         setLastSaved(new Date().toLocaleTimeString());
     };
 
+    const addSessionsBatch = async (sessionsList: StudySession[]) => {
+        if (sessionsList.length === 0) return;
+        setSaveError(null);
+
+        // Optimistically add all sessions to local state
+        setSessions(prev => [...prev, ...sessionsList]);
+
+        const newScheduledList: ScheduledStudy[] = [];
+        const updatesList: { id: string; updates: any }[] = [];
+        const creationsList: ScheduledStudy[] = [];
+
+        let currentLocalSchedule = [...scheduledStudies];
+
+        for (const session of sessionsList) {
+            const sessionDate = session.date.split('T')[0];
+            const activityType = session.activityType || (session.isSimulado ? 'Simulado' : session.questionsDone !== undefined ? 'Questões' : 'Leitura');
+
+            let existingPlanned = currentLocalSchedule.find(s => s.id === session.id && s.status === 'planejado');
+            if (!existingPlanned && activityType === 'Revisão') {
+                existingPlanned = currentLocalSchedule.find(s => 
+                    s.subjectId === session.subjectId && 
+                    s.topicId === session.topicId && 
+                    s.activityType === 'Revisão' && 
+                    s.status === 'planejado' &&
+                    !newScheduledList.some(ns => ns.id === s.id)
+                );
+            }
+
+            let newScheduled: ScheduledStudy;
+            if (existingPlanned) {
+                newScheduled = {
+                    ...existingPlanned,
+                    date: sessionDate,
+                    status: 'realizado',
+                    durationInMinutes: session.durationInMinutes,
+                    questionsDone: session.questionsDone,
+                    questionsCorrect: session.questionsCorrect,
+                    notes: (session as any).notes || existingPlanned.notes
+                };
+                updatesList.push({
+                    id: existingPlanned.id,
+                    updates: {
+                        status: 'realizado',
+                        date: newScheduled.date,
+                        durationInMinutes: newScheduled.durationInMinutes,
+                        questionsDone: newScheduled.questionsDone,
+                        questionsCorrect: newScheduled.questionsCorrect,
+                        notes: newScheduled.notes
+                    }
+                });
+            } else {
+                newScheduled = {
+                    id: session.id,
+                    date: sessionDate,
+                    subjectId: session.subjectId,
+                    topicId: session.topicId,
+                    activityType: activityType as ActivityType,
+                    durationInMinutes: session.durationInMinutes,
+                    questionsDone: session.questionsDone,
+                    questionsCorrect: session.questionsCorrect,
+                    status: 'realizado',
+                    notes: (session as any).notes
+                };
+                creationsList.push(newScheduled);
+            }
+
+            if (existingPlanned && session.id !== existingPlanned.id) {
+                session.id = existingPlanned.id;
+            }
+
+            newScheduledList.push(newScheduled);
+
+            if (existingPlanned) {
+                currentLocalSchedule = currentLocalSchedule.map(s => s.id === newScheduled.id ? newScheduled : s);
+            } else {
+                currentLocalSchedule.push(newScheduled);
+            }
+        }
+
+        // Optimistically update/add all schedule entries in local state
+        setScheduledStudies(prev => {
+            let updated = [...prev];
+            newScheduledList.forEach(ns => {
+                if (updated.some(s => s.id === ns.id)) {
+                    updated = updated.map(s => s.id === ns.id ? ns : s);
+                } else {
+                    updated.push(ns);
+                }
+            });
+            localStorage.setItem('cp_scheduled_studies', JSON.stringify(updated));
+            return updated;
+        });
+
+        // Persist all sessions to DB
+        for (const session of sessionsList) {
+            try {
+                await api.sessions.create(session);
+            } catch (e) {
+                console.error('Error saving batch session to DB:', e);
+            }
+        }
+
+        // Persist updates to DB
+        for (const up of updatesList) {
+            try {
+                await api.schedule.update(up.id, up.updates);
+            } catch (e) {
+                console.error('Error updating batch schedule in DB:', e);
+            }
+        }
+
+        // Persist creations to DB
+        for (const cr of creationsList) {
+            try {
+                const saved = await api.schedule.create(cr);
+                if (saved && saved.id && saved.id !== cr.id) {
+                    const syncedEntry = { ...cr, id: saved.id };
+                    setScheduledStudies(prev => {
+                        const updated = prev.map(s => s.id === cr.id ? syncedEntry : s);
+                        localStorage.setItem('cp_scheduled_studies', JSON.stringify(updated));
+                        return updated;
+                    });
+                }
+            } catch (e) {
+                console.error('Error creating batch schedule in DB:', e);
+            }
+        }
+
+        // Log
+        try {
+            addLog({
+                message: `${sessionsList.length} sessões de estudos registradas em lote`,
+                type: 'success'
+            });
+        } catch (e) { /* non-critical */ }
+
+        // Sync planned reviews once for the entire batch
+        const finalSessions = [...sessions, ...sessionsList];
+        const finalSchedule = [...scheduledStudies];
+        newScheduledList.forEach(ns => {
+            const idx = finalSchedule.findIndex(s => s.id === ns.id);
+            if (idx !== -1) finalSchedule[idx] = ns;
+            else finalSchedule.push(ns);
+        });
+
+        await syncPlannedReviewsDb(finalSessions, finalSchedule, concursos);
+
+        setLastSaved(new Date().toLocaleTimeString());
+    };
+
     const addSimulado = async (sim: Simulado) => {
         setSaveError(null);
         const updatedSims = [...simulados, sim];
@@ -1032,6 +1182,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         handleManualSave,
         handleLogout,
         addSession,
+        addSessionsBatch,
         addSimulado,
         updateSimulado,
         deleteSimulado,

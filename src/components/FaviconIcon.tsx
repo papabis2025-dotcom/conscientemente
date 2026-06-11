@@ -1,0 +1,63 @@
+import React from 'react';
+
+interface FaviconIconProps {
+  size?: number;
+  className?: string;
+}
+
+export const FaviconIcon: React.FC<FaviconIconProps> = ({ size = 16, className = '' }) => {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 512 512"
+      width={size}
+      height={size}
+      className={className}
+    >
+      <defs>
+        {/* Fundo gradiente escuro */}
+        <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#0f172a" />
+          <stop offset="100%" stopColor="#1e1b4b" />
+        </linearGradient>
+        {/* Brilho roxo para elementos centrais */}
+        <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#c084fc" stopOpacity="0.35" />
+          <stop offset="100%" stopColor="#a855f7" stopOpacity="0" />
+        </radialGradient>
+        {/* Gradiente branco-roxo para símbolo */}
+        <linearGradient id="symbol" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#ffffff" />
+          <stop offset="100%" stopColor="#e9d5ff" />
+        </linearGradient>
+        {/* Filtro glow suave */}
+        <filter id="blur-glow" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation="8" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+      </defs>
+
+      {/* Fundo com cantos arredondados (iOS-style) */}
+      <rect width="512" height="512" rx="115" ry="115" fill="url(#bg)" />
+
+      {/* Halo brilho central */}
+      <circle cx="256" cy="256" r="180" fill="url(#glow)" />
+
+      {/* Letra C estilizada como símbolo principal */}
+      <path
+        d="M 340 156 A 120 120 0 1 0 340 356 L 308 324 A 80 80 0 1 1 308 188 Z"
+        fill="url(#symbol)"
+        filter="url(#blur-glow)"
+      />
+
+      {/* Ponto de acento / detalhe roxo no centro */}
+      <circle cx="268" cy="256" r="22" fill="#a855f7" opacity="0.9" />
+      <circle cx="268" cy="256" r="12" fill="#f3e8ff" />
+    </svg>
+  );
+};
+
+export default FaviconIcon;

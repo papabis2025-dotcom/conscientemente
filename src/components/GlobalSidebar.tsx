@@ -9,6 +9,8 @@ import LogView from '../modules/estudos/pages/LogView';
 import { api } from '../modules/estudos/services/api';
 import { supabase } from '../modules/estudos/services/supabase';
 import { playSound } from '../utils/audio';
+import FaviconIcon from './FaviconIcon';
+
 
 interface AppNotification {
   id: string;
@@ -451,7 +453,7 @@ const GlobalSidebar: React.FC<GlobalSidebarProps> = ({
             }`}
             title="Conscientemente"
           >
-            <Brain size={16} className="text-zinc-900 dark:text-white shrink-0" />
+            <FaviconIcon size={18} className="shrink-0" />
             {sidebarExpanded && (
               <span className="text-[10px] font-black uppercase tracking-wider select-none animate-in fade-in duration-200">
                 Conscientemente

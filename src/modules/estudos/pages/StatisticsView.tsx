@@ -26,7 +26,6 @@ function getAccuracyText(accuracy: number, hasData: boolean): string {
 }
 
 const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions }) => {
-  const [expandedSubjects, setExpandedSubjects] = useState<Set<string>>(new Set());
   const [sortBy, setSortBy] = useState<'name' | 'questions' | 'time' | 'accuracy' | 'weight' | 'priority'>('priority');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
@@ -80,21 +79,6 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions }) =
     localStorage.setItem('estudos_weight_time', String(finalVal));
   };
 
-  const toggleExpand = (id: string) => {
-    const s = new Set(expandedSubjects);
-    s.has(id) ? s.delete(id) : s.add(id);
-    setExpandedSubjects(s);
-  };
-
-  const isAllExpanded = subjects.length > 0 && expandedSubjects.size === subjects.length;
-  const toggleExpandAll = () => {
-    if (isAllExpanded) {
-      setExpandedSubjects(new Set());
-    } else {
-      setExpandedSubjects(new Set(subjects.map(s => s.id)));
-    }
-  };
-
   const subjectData = useMemo(() => {
     return subjects.map(sub => {
       const subSessions = sessions.filter(s => s.subjectId === sub.id);
@@ -105,18 +89,10 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions }) =
       const questionsGoal = sub.questionsGoal || 0;
       const minutes = subSessions.reduce((acc, s) => acc + (s.durationInMinutes || 0), 0);
 
-      const topics = (sub.topics || []).map(topic => {
-        const tSessions = sessions.filter(s => s.subjectId === sub.id && s.topicId === topic.id);
-        const tQ = tSessions.reduce((acc, s) => acc + (s.questionsDone || 0), 0);
-        const tC = tSessions.reduce((acc, s) => acc + (s.questionsCorrect || 0), 0);
-        const tAcc = tQ > 0 ? Math.round((tC / tQ) * 100) : 0;
-        const tMin = tSessions.reduce((acc, s) => acc + (s.durationInMinutes || 0), 0);
-        return { id: topic.id, title: topic.title, priority: topic.priority, questions: tQ, accuracy: tAcc, minutes: tMin };
-      });
-
-      return { sub, questions, correct, accuracy, weight, questionsGoal, topics, minutes };
+      return { sub, questions, correct, accuracy, weight, questionsGoal, minutes };
     });
   }, [subjects, sessions]);
+
 
   const maxWeight = useMemo(() => Math.max(1, ...subjectData.map(d => d.weight)), [subjectData]);
   const maxQuestions = useMemo(() => Math.max(1, ...subjectData.map(d => d.questions)), [subjectData]);
@@ -201,23 +177,11 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions }) =
         </div>
       </header>
 
-      {subjects.length > 0 && (
-        <div className="flex justify-end px-1">
-          <button
-            onClick={toggleExpandAll}
-            className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 px-4 py-2 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800 flex items-center justify-center gap-1.5 text-xs font-bold shadow-sm transition-all"
-          >
-            {isAllExpanded ? 'Recolher Todos' : 'Expandir Todos'}
-          </button>
-        </div>
-      )}
-
       <div className="overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-700">
         <table className="w-full text-sm border-collapse bg-white dark:bg-zinc-900">
           <thead>
             <tr>
-              <th className="px-4 py-2.5 w-8 border-b-2 border-zinc-200 dark:border-zinc-700" />
-              {th('name', 'Disciplina / Assunto')}
+              {th('name', 'Disciplina')}
               {th('questions', 'Questões', 'text-right')}
               {th('time', 'Tempo', 'text-right')}
               {th('accuracy', 'Aproveitamento', 'text-right')}
@@ -226,96 +190,49 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions }) =
             </tr>
           </thead>
           <tbody>
-            {sortedData.map(({ sub, questions, accuracy, weight, questionsGoal, topics, minutes }) => {
+            {sortedData.map(({ sub, questions, accuracy, weight, questionsGoal, minutes }) => {
               const priority = getPriority(weight, accuracy, questions, minutes);
               const priorityPct = Math.round(priority * 100);
-              const isExpanded = expandedSubjects.has(sub.id);
 
               return (
-                <React.Fragment key={sub.id}>
-                  {/* Subject row */}
-                  <tr
-                    className="cursor-pointer border-b border-zinc-100 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors"
-                    onClick={() => toggleExpand(sub.id)}
-                  >
-                    <td className="px-4 py-3 text-zinc-400">
-                      {isExpanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="font-bold text-zinc-800 dark:text-white">{sub.name}</span>
-                      {questionsGoal > 0 && (
-                        <span className="ml-2 text-[10px] text-zinc-400">Prev. {questionsGoal} Qs</span>
-                      )}
-                    </td>
-                    <td className={`px-4 py-3 text-right font-mono tabular-nums font-bold ${questions > 0 ? 'text-zinc-700 dark:text-zinc-200' : 'text-zinc-300 dark:text-zinc-600'}`}>
-                      {questions > 0 ? questions : '—'}
-                    </td>
-                    <td className={`px-4 py-3 text-right font-mono tabular-nums ${minutes > 0 ? 'text-zinc-700 dark:text-zinc-200' : 'text-zinc-300 dark:text-zinc-600'}`}>
-                      {minutes > 0 ? `${parseFloat((minutes / 60).toFixed(1))}h` : '—'}
-                    </td>
-                    <td className={`px-4 py-3 text-right font-mono tabular-nums ${getAccuracyText(accuracy, questions > 0)}`}>
-                      {questions > 0 ? `${accuracy}%` : '—'}
-                    </td>
-                    <td className="px-4 py-3 text-right text-zinc-500 dark:text-zinc-400 font-bold">
-                      {weight}x
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <span className={`inline-block px-2 py-0.5 rounded text-[11px] font-black tabular-nums ${
-                        priorityPct >= 65 ? 'bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300'
-                        : priorityPct >= 40 ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
-                        : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400'
-                      }`}>
-                        {priorityPct}%
-                      </span>
-                    </td>
-                  </tr>
-
-                  {/* Topic rows */}
-                  {isExpanded && topics.map(topic => {
-                    const tPriority = getPriority(weight, topic.accuracy, topic.questions, topic.minutes);
-                    const tPriorityPct = Math.round(tPriority * 100);
-                    return (
-                      <tr key={topic.id} className={`border-b border-zinc-100 dark:border-zinc-800/50 ${getAccuracyBg(topic.accuracy, topic.questions > 0)}`}>
-                        <td className="px-4 py-2" />
-                        <td className="px-4 py-2 pl-12">
-                          <div className="flex items-center gap-2">
-                            <span className={`text-[9px] font-black uppercase px-1 py-0.5 rounded ${
-                              topic.priority === 'Alta' ? 'bg-rose-200 dark:bg-rose-800 text-rose-700 dark:text-rose-200'
-                              : topic.priority === 'Média' ? 'bg-amber-200 dark:bg-amber-800 text-amber-700 dark:text-amber-200'
-                              : 'bg-zinc-200 dark:bg-zinc-700 text-zinc-500'
-                            }`}>{topic.priority}</span>
-                            <span className="text-xs text-zinc-600 dark:text-zinc-300">{topic.title}</span>
-                          </div>
-                        </td>
-                        <td className={`px-4 py-2 text-right font-mono text-xs tabular-nums ${topic.questions > 0 ? 'text-zinc-600 dark:text-zinc-300' : 'text-zinc-300 dark:text-zinc-600'}`}>
-                          {topic.questions > 0 ? topic.questions : '—'}
-                        </td>
-                        <td className={`px-4 py-2 text-right font-mono text-xs tabular-nums ${topic.minutes > 0 ? 'text-zinc-600 dark:text-zinc-300' : 'text-zinc-300 dark:text-zinc-600'}`}>
-                          {topic.minutes > 0 ? `${parseFloat((topic.minutes / 60).toFixed(1))}h` : '—'}
-                        </td>
-                        <td className={`px-4 py-2 text-right font-mono text-xs tabular-nums ${getAccuracyText(topic.accuracy, topic.questions > 0)}`}>
-                          {topic.questions > 0 ? `${topic.accuracy}%` : '—'}
-                        </td>
-                        <td className="px-4 py-2 text-right text-[10px] text-zinc-300 dark:text-zinc-600">—</td>
-                        <td className="px-4 py-2 text-right">
-                          <span className={`text-[10px] font-black tabular-nums ${
-                            tPriorityPct >= 65 ? 'text-rose-600 dark:text-rose-400'
-                            : tPriorityPct >= 40 ? 'text-amber-600 dark:text-amber-400'
-                            : 'text-zinc-400'
-                          }`}>
-                            {topic.questions > 0 ? `${tPriorityPct}%` : '—'}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </React.Fragment>
+                <tr
+                  key={sub.id}
+                  className="border-b border-zinc-100 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors"
+                >
+                  <td className="px-4 py-3">
+                    <span className="font-bold text-zinc-800 dark:text-white">{sub.name}</span>
+                    {questionsGoal > 0 && (
+                      <span className="ml-2 text-[10px] text-zinc-400">Prev. {questionsGoal} Qs</span>
+                    )}
+                  </td>
+                  <td className={`px-4 py-3 text-right font-mono tabular-nums font-bold ${questions > 0 ? 'text-zinc-700 dark:text-zinc-200' : 'text-zinc-300 dark:text-zinc-600'}`}>
+                    {questions > 0 ? questions : '—'}
+                  </td>
+                  <td className={`px-4 py-3 text-right font-mono tabular-nums ${minutes > 0 ? 'text-zinc-700 dark:text-zinc-200' : 'text-zinc-300 dark:text-zinc-600'}`}>
+                    {minutes > 0 ? `${parseFloat((minutes / 60).toFixed(1))}h` : '—'}
+                  </td>
+                  <td className={`px-4 py-3 text-right font-mono tabular-nums ${getAccuracyText(accuracy, questions > 0)}`}>
+                    {questions > 0 ? `${accuracy}%` : '—'}
+                  </td>
+                  <td className="px-4 py-3 text-right text-zinc-500 dark:text-zinc-400 font-bold">
+                    {weight}x
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <span className={`inline-block px-2 py-0.5 rounded text-[11px] font-black tabular-nums ${
+                      priorityPct >= 65 ? 'bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300'
+                      : priorityPct >= 40 ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
+                      : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400'
+                    }`}>
+                      {priorityPct}%
+                    </span>
+                  </td>
+                </tr>
               );
             })}
 
             {subjects.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-5 py-16 text-center text-zinc-400 text-sm">
+                <td colSpan={6} className="px-5 py-16 text-center text-zinc-400 text-sm">
                   Nenhuma disciplina encontrada. Adicione disciplinas e registre sessões de estudo para ver a análise.
                 </td>
               </tr>

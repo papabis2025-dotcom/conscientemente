@@ -787,11 +787,22 @@ const Dashboard: React.FC<DashboardProps> = ({
             const sDate = s.date ? s.date.split('T')[0] : '';
             return sDate === dateStr && s.status === 'realizado' && s.activityType !== 'Simulado';
           });
+          // Planned reviews for the day (status === 'planejado' && activityType === 'Revisão')
+          const dayPendingReviews = (scheduledStudies || []).filter(s => {
+            const sDate = s.date ? s.date.split('T')[0] : '';
+            return sDate === dateStr && s.status === 'planejado' && s.activityType === 'Revisão';
+          });
+          const hasPendingReview = dayPendingReviews.length > 0;
           
           const sessionSubjectIds = daySessions.map(s => s.subjectId).filter(Boolean);
           const plannerSubjectIds = dayPlannerRealized.map(s => s.subjectId).filter(Boolean);
+          const pendingReviewSubjectIds = dayPendingReviews.map(s => s.subjectId).filter(Boolean);
           
-          const allDaySubjectIds = Array.from(new Set([...sessionSubjectIds, ...plannerSubjectIds]));
+          const allDaySubjectIds = Array.from(new Set([
+            ...sessionSubjectIds, 
+            ...plannerSubjectIds,
+            ...pendingReviewSubjectIds
+          ]));
           // Use all subjects from all concursos for lookup so dots always resolve
           const allSubjectsLookup = concursos.flatMap(c => c.subjects || []);
           const daySubjects = allDaySubjectIds
@@ -802,6 +813,7 @@ const Dashboard: React.FC<DashboardProps> = ({
             day: i + 1,
             subjects: daySubjects,
             hasSimulado,
+            hasPendingReview,
             isToday: date.toDateString() === today.toDateString()
           };
         });
@@ -840,6 +852,15 @@ const Dashboard: React.FC<DashboardProps> = ({
                         : '1px solid rgba(161,161,170,0.18)'
                   }}
                 >
+                  {/* Pending review indicator: small amber badge */}
+                  {d.hasPendingReview && (
+                    <div
+                      className="absolute top-0 left-0 w-1.5 h-1.5 rounded-br-sm"
+                      style={{ backgroundColor: '#f59e0b' }}
+                      title="Revisão pendente"
+                    />
+                  )}
+
                   <span className={`text-[10px] font-bold leading-none ${
                     d.hasSimulado
                       ? 'text-purple-600 dark:text-purple-400 font-black'

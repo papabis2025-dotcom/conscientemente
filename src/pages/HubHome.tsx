@@ -1687,26 +1687,8 @@ const HubHome: React.FC<HubHomeProps> = ({
           </div>
         ) : (
           <>
-            {/* Section label — Módulos */}
-            <div 
-              onClick={toggleModules}
-          className="flex items-center gap-3 mb-4 cursor-pointer group/section select-none"
-        >
-          <p className="text-[10px] font-black text-zinc-400 dark:text-zinc-600 uppercase tracking-[0.2em]">Módulos</p>
-          <div className="flex-1" />
-          
-          <button 
-            type="button"
-            className="text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors p-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg cursor-pointer"
-            title={modulesCollapsed ? 'Expandir Módulos' : 'Minimizar Módulos'}
-          >
-            {modulesCollapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
-          </button>
-        </div>
-
-        {/* Module grid */}
-        {!modulesCollapsed && (
-          <div className="grid grid-cols-1 sm:grid-cols-6 lg:grid-cols-12 gap-3 w-full animate-in fade-in slide-in-from-top-2 duration-300">
+            {/* Module grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-6 lg:grid-cols-12 gap-3 w-full animate-in fade-in slide-in-from-top-2 duration-300">
             {homeCards.map((card, i) => {
               const mod = MODULES.find(m => m.id === card.id);
               if (!mod) return null;
@@ -1726,27 +1708,8 @@ const HubHome: React.FC<HubHomeProps> = ({
               );
             })}
           </div>
-        )}
 
-        {/* Section label — Calendário Unificado */}
-        <div 
-          onClick={toggleCalendar}
-          className="flex items-center gap-3 mt-8 mb-4 cursor-pointer group/section select-none"
-        >
-          <p className="text-[10px] font-black text-zinc-400 dark:text-zinc-600 uppercase tracking-[0.2em]">Calendário Unificado</p>
-          <div className="flex-1" />
-          
-          <button 
-            type="button"
-            className="text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors p-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg cursor-pointer"
-            title={calendarCollapsed ? 'Expandir Calendário' : 'Minimizar Calendário'}
-          >
-            {calendarCollapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
-          </button>
-        </div>
-
-        {!calendarCollapsed && (
-          <div className="w-full bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm rounded-2xl border border-zinc-200 dark:border-zinc-800 p-4 opacity-95 hover:opacity-100 transition-all duration-300 animate-in fade-in slide-in-from-top-2">
+        <div className="w-full mt-6 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm rounded-2xl border border-zinc-200 dark:border-zinc-800 p-4 opacity-95 hover:opacity-100 transition-all duration-300 animate-in fade-in slide-in-from-top-2">
             <div className="grid grid-cols-1 sm:grid-cols-12 gap-6">
               
               {/* Calendário Mensal (Grade) */}
@@ -1918,7 +1881,7 @@ const HubHome: React.FC<HubHomeProps> = ({
               </div>
 
               {/* Lista de Compromissos do Dia (Direita) */}
-              <div className="sm:col-span-4 flex flex-col gap-3 min-w-0 sm:border-l sm:border-zinc-200/20 dark:sm:border-zinc-800/20 sm:pl-6">
+              <div className="sm:col-span-4 flex flex-col gap-3 min-w-0 sm:pl-6">
                 <div className="flex justify-between items-center px-1">
                   <h4 className="text-[9px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest">
                     Compromissos do Dia
@@ -2079,28 +2042,9 @@ const HubHome: React.FC<HubHomeProps> = ({
 
             </div>
           </div>
-        )}
-
-        {/* Widgets section label */}
-        <div 
-          onClick={toggleWidgets}
-          className="flex items-center gap-3 mt-8 mb-4 cursor-pointer group/section select-none"
-        >
-          <p className="text-[10px] font-black text-zinc-400 dark:text-zinc-600 uppercase tracking-[0.2em]">Widgets</p>
-          <div className="flex-1" />
-          
-          <button 
-            type="button"
-            className="text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors p-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg cursor-pointer"
-            title={widgetsCollapsed ? 'Expandir Widgets' : 'Minimizar Widgets'}
-          >
-            {widgetsCollapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
-          </button>
-        </div>
 
         {/* Habit Tracker Container */}
-        {!widgetsCollapsed && (
-          <div className="w-full animate-in fade-in slide-in-from-top-2 duration-300">
+        <div className="w-full mt-6 animate-in fade-in slide-in-from-top-2 duration-300">
             {/* Habit Tracker Section */}
             <div className="w-full bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm rounded-2xl border border-zinc-200 dark:border-zinc-800 flex flex-col justify-between gap-3.5 p-4 overflow-hidden relative opacity-95 hover:opacity-100 transition-all duration-300">
               <div>
@@ -2174,7 +2118,6 @@ const HubHome: React.FC<HubHomeProps> = ({
               )}
             </div>
           </div>
-        )}
 
           </>
         )}

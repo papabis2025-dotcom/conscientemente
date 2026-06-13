@@ -299,6 +299,25 @@ function mergeSettings(
   return merged;
 }
 
+function isColorDark(hexColor: string): boolean {
+  if (!hexColor || !hexColor.startsWith('#')) return true;
+  const c = hexColor.substring(1);
+  let r = 0, g = 0, b = 0;
+  if (c.length === 3) {
+    r = parseInt(c[0] + c[0], 16);
+    g = parseInt(c[1] + c[1], 16);
+    b = parseInt(c[2] + c[2], 16);
+  } else if (c.length === 6) {
+    r = parseInt(c.substring(0, 2), 16);
+    g = parseInt(c.substring(2, 4), 16);
+    b = parseInt(c.substring(4, 6), 16);
+  } else {
+    return true;
+  }
+  const luma = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  return luma < 128;
+}
+
 const App: React.FC = () => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
@@ -646,10 +665,14 @@ const App: React.FC = () => {
   // Apply theme to <html>
   useEffect(() => {
     const root = document.documentElement;
-    if (theme === 'dark') root.classList.add('dark');
+    let isDark = theme === 'dark';
+    if (bgType === 'color') {
+      isDark = isColorDark(bgColor);
+    }
+    if (isDark) root.classList.add('dark');
     else root.classList.remove('dark');
     localStorage.setItem('cn_theme', theme);
-  }, [theme]);
+  }, [theme, bgType, bgColor]);
 
   // Auth state listener
   useEffect(() => {
@@ -741,6 +764,8 @@ const App: React.FC = () => {
     || session.user.email?.split('@')[0]
     || 'você';
 
+  const effectiveTheme = bgType === 'color' ? (isColorDark(bgColor) ? 'dark' : 'light') : theme;
+
   let bgStyle: React.CSSProperties = {};
   if (bgType === 'color') {
     bgStyle = { backgroundColor: bgColor };
@@ -770,7 +795,7 @@ const App: React.FC = () => {
 
   let pageContent;
   if (currentRoute === 'estudos') {
-    pageContent = <EstudosApp theme={theme} toggleTheme={toggleTheme} />;
+    pageContent = <EstudosApp theme={effectiveTheme} toggleTheme={toggleTheme} />;
   } else if (currentRoute === 'financas') {
     pageContent = <FinancasApp />;
   } else if (currentRoute === 'saude') {
@@ -783,7 +808,7 @@ const App: React.FC = () => {
     pageContent = (
       <HabitosHub
         onBack={() => { window.location.hash = 'hub'; }}
-        theme={theme}
+        theme={effectiveTheme}
         toggleTheme={toggleTheme}
         userName={userName}
       />
@@ -792,7 +817,7 @@ const App: React.FC = () => {
     pageContent = (
       <HubHome
         userName={userName}
-        theme={theme}
+        theme={effectiveTheme}
         toggleTheme={toggleTheme}
         onLogout={handleLogout}
         bgType={bgType}
@@ -818,7 +843,7 @@ const App: React.FC = () => {
         <GlobalSidebar
           currentRoute={currentRoute}
           userName={userName}
-          theme={theme}
+          theme={effectiveTheme}
           toggleTheme={toggleTheme}
           onLogout={handleLogout}
           isHomeEditMode={isHomeEditMode}

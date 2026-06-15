@@ -172,9 +172,9 @@ const ModuleCard: React.FC<ModuleCardProps> = ({
   };
 
   const sizeClasses = {
-    normal: 'col-span-1 sm:col-span-2 lg:col-span-2 h-24',
-    wide: 'col-span-1 sm:col-span-4 lg:col-span-4 h-24',
-    full: 'col-span-1 sm:col-span-6 lg:col-span-12 h-24',
+    normal: 'col-span-1 sm:col-span-2 lg:col-span-2 h-28',
+    wide: 'col-span-1 sm:col-span-4 lg:col-span-4 h-28',
+    full: 'col-span-1 sm:col-span-6 lg:col-span-12 h-28',
   };
 
   return (
@@ -242,7 +242,7 @@ const ModuleCard: React.FC<ModuleCardProps> = ({
             'text-amber-500/5 dark:text-amber-400/5 group-hover:text-amber-500/10'
           ].join(' ')}>
             {React.cloneElement(iconMap[module.id] as any, { 
-              size: size === 'normal' ? 56 : size === 'wide' ? 64 : 72, 
+              size: size === 'normal' ? 64 : size === 'wide' ? 72 : 80, 
               strokeWidth: 1.2
             })}
           </div>
@@ -322,6 +322,18 @@ const HubHome: React.FC<HubHomeProps> = ({
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   });
   const [hasPastPendingEvents, setHasPastPendingEvents] = useState(false);
+
+  // Opacity states for widgets
+  const [calendarOpacity, setCalendarOpacity] = useState<number>(() => {
+    const saved = localStorage.getItem('cn_calendar_opacity');
+    return saved ? parseFloat(saved) : 0.95;
+  });
+  const [habitsOpacity, setHabitsOpacity] = useState<number>(() => {
+    const saved = localStorage.getItem('cn_habits_opacity');
+    return saved ? parseFloat(saved) : 0.95;
+  });
+  const [isCalendarHovered, setIsCalendarHovered] = useState(false);
+  const [isHabitsHovered, setIsHabitsHovered] = useState(false);
 
   const toggleCalendar = () => {
     setCalendarCollapsed(prev => {
@@ -1631,7 +1643,12 @@ const HubHome: React.FC<HubHomeProps> = ({
             })}
           </div>
 
-        <div className="w-full mt-6 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm rounded-2xl border border-zinc-200 dark:border-zinc-800 p-3.5 opacity-95 hover:opacity-100 transition-all duration-300 animate-in fade-in slide-in-from-top-2">
+        <div 
+          onMouseEnter={() => setIsCalendarHovered(true)}
+          onMouseLeave={() => setIsCalendarHovered(false)}
+          style={{ opacity: isCalendarHovered ? 1 : calendarOpacity }}
+          className="w-full mt-6 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm rounded-2xl border border-zinc-200 dark:border-zinc-800 p-3.5 transition-all duration-300 animate-in fade-in slide-in-from-top-2"
+        >
             <div className="grid grid-cols-1 sm:grid-cols-12 gap-6">
               
               {/* Calendário Mensal (Grade) */}
@@ -1642,7 +1659,30 @@ const HubHome: React.FC<HubHomeProps> = ({
                     <CalendarDays size={12} />
                     {calendarMonth.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }).toUpperCase()}
                   </h3>
-                  <div className="flex gap-2">
+                  <div className="flex items-center gap-2">
+                    {/* Opacity control for Calendar */}
+                    <div className="flex items-center gap-1 bg-zinc-100/50 dark:bg-zinc-800/40 px-2 py-0.5 rounded-lg border border-zinc-250/20 dark:border-zinc-800/50">
+                      <Sliders size={10} className="text-zinc-400 dark:text-zinc-500" />
+                      <input 
+                        type="range" 
+                        min="0.2" 
+                        max="1" 
+                        step="0.05" 
+                        value={calendarOpacity} 
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          const val = parseFloat(e.target.value);
+                          setCalendarOpacity(val);
+                          localStorage.setItem('cn_calendar_opacity', val.toString());
+                        }}
+                        className="w-12 h-1 bg-zinc-250 dark:bg-zinc-750 rounded-lg appearance-none cursor-pointer accent-zinc-500 dark:accent-zinc-400"
+                        title="Opacidade do calendário"
+                      />
+                      <span className="text-[8px] font-bold text-zinc-450 dark:text-zinc-500 w-6 text-right">
+                        {Math.round(calendarOpacity * 100)}%
+                      </span>
+                    </div>
+
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -1968,7 +2008,12 @@ const HubHome: React.FC<HubHomeProps> = ({
         {/* Habit Tracker Container */}
         <div className="w-full mt-6 animate-in fade-in slide-in-from-top-2 duration-300">
             {/* Habit Tracker Section */}
-            <div className="w-full bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm rounded-2xl border border-zinc-200 dark:border-zinc-800 flex flex-col justify-between gap-3.5 p-3.5 overflow-hidden relative opacity-95 hover:opacity-100 transition-all duration-300">
+            <div 
+              onMouseEnter={() => setIsHabitsHovered(true)}
+              onMouseLeave={() => setIsHabitsHovered(false)}
+              style={{ opacity: isHabitsHovered ? 1 : habitsOpacity }}
+              className="w-full bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm rounded-2xl border border-zinc-200 dark:border-zinc-800 flex flex-col justify-between gap-3.5 p-3.5 overflow-hidden relative transition-all duration-300"
+            >
               <div>
                 <div className="flex items-center justify-between mb-3">
                   <div>
@@ -1976,6 +2021,29 @@ const HubHome: React.FC<HubHomeProps> = ({
                       <ClipboardList size={12} className="text-zinc-450 dark:text-zinc-500" />
                       Rastreador de Hábitos
                     </h3>
+                  </div>
+
+                  {/* Opacity control for Habit Tracker */}
+                  <div className="flex items-center gap-1 bg-zinc-100/50 dark:bg-zinc-800/40 px-2 py-0.5 rounded-lg border border-zinc-250/20 dark:border-zinc-800/50">
+                    <Sliders size={10} className="text-zinc-400 dark:text-zinc-500" />
+                    <input 
+                      type="range" 
+                      min="0.2" 
+                      max="1" 
+                      step="0.05" 
+                      value={habitsOpacity} 
+                      onChange={(e) => {
+                        e.stopPropagation();
+                        const val = parseFloat(e.target.value);
+                        setHabitsOpacity(val);
+                        localStorage.setItem('cn_habits_opacity', val.toString());
+                      }}
+                      className="w-12 h-1 bg-zinc-250 dark:bg-zinc-750 rounded-lg appearance-none cursor-pointer accent-zinc-500 dark:accent-zinc-400"
+                      title="Opacidade dos hábitos"
+                    />
+                    <span className="text-[8px] font-bold text-zinc-450 dark:text-zinc-500 w-6 text-right">
+                      {Math.round(habitsOpacity * 100)}%
+                    </span>
                   </div>
                 </div>
 

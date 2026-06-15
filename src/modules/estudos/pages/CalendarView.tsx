@@ -14,6 +14,7 @@ interface CalendarViewProps {
   onAddSessionsBatch?: (sessions: StudySession[]) => void;
   onToggleStatus?: (idOrIds: string | string[]) => void;
   onUpdateScheduledStudy: (id: string, updates: Partial<ScheduledStudy>) => void;
+  onSyncReviews?: (forceRecalculate?: boolean) => Promise<void>;
 }
 
 type ViewMode = 'semanal' | 'mensal' | 'anual';
@@ -36,13 +37,15 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   onAddSession, 
   onAddSessionsBatch,
   onToggleStatus,
-  onUpdateScheduledStudy 
+  onUpdateScheduledStudy,
+  onSyncReviews
 }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<ViewMode>('mensal');
   const [selectedDayKey, setSelectedDayKey] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [editingTask, setEditingTask] = useState<ScheduledStudy | null>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   // Use allSubjects for lookup if available, otherwise fallback to subjects
   const lookupSubjects = allSubjects || subjects;
@@ -645,6 +648,28 @@ const CalendarView: React.FC<CalendarViewProps> = ({
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
+          {onSyncReviews && (
+            <button
+              onClick={async () => {
+                setIsSyncing(true);
+                try {
+                  await onSyncReviews(true);
+                  alert('Revisões recalculadas e atualizadas com sucesso!');
+                } catch (e) {
+                  console.error('Error syncing reviews:', e);
+                  alert('Erro ao atualizar revisões.');
+                } finally {
+                  setIsSyncing(false);
+                }
+              }}
+              disabled={isSyncing}
+              className="flex items-center gap-1.5 px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-sm transition-all disabled:opacity-50"
+            >
+              <RefreshCw size={11} className={isSyncing ? 'animate-spin' : ''} />
+              {isSyncing ? 'Atualizando...' : 'Atualizar Revisões'}
+            </button>
+          )}
+
           <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-1 shadow-sm flex">
             {(['semanal', 'mensal', 'anual'] as ViewMode[]).map((mode) => (
               <button

@@ -158,6 +158,10 @@ const Dashboard: React.FC<DashboardProps> = ({
     return dateStr;
   };
 
+  const getLocalDateStr = (d: Date): string => {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+
   const subjectStats = useMemo(() => {
     const stats: Record<string, { done: number, correct: number, minutes: number, name: string, colorClass: string }> = {};
 
@@ -419,13 +423,10 @@ const Dashboard: React.FC<DashboardProps> = ({
     }
 
     const today = new Date();
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, '0');
-    const day = String(today.getDate()).padStart(2, '0');
-    const todayStr = `${year}-${month}-${day}`;
+    const todayStr = getLocalDateStr(today);
     const yest = new Date();
     yest.setDate(yest.getDate() - 1);
-    const yestStr = yest.toISOString().split('T')[0];
+    const yestStr = getLocalDateStr(yest);
 
     // If analyzed up to today/yesterday, that's the active streak
     if (uniqueDays.has(todayStr) || uniqueDays.has(yestStr)) {
@@ -441,7 +442,7 @@ const Dashboard: React.FC<DashboardProps> = ({
     for (let i = 0; i < 7; i++) {
       const d = new Date(now);
       d.setDate(now.getDate() - i);
-      if (uniqueDays.has(d.toISOString().split('T')[0])) last7DaysCount++;
+      if (uniqueDays.has(getLocalDateStr(d))) last7DaysCount++;
     }
 
     return { streak, last7DaysCount };
@@ -613,7 +614,7 @@ const Dashboard: React.FC<DashboardProps> = ({
           </div>
         );
       case 'study_tasks': {
-        const todayStr = new Date().toISOString().split('T')[0];
+        const todayStr = getLocalDateStr(new Date());
         const upcomingReviews: { subjectName: string; topicName: string; daysUntil: number; reviewType: string }[] = [];
 
         // Add Planner Pending Tasks (Planejado para hoje ou atrasado)

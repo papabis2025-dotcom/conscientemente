@@ -334,18 +334,27 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
             !expectedIds.has(s.id)
         );
 
-        const currentIds = new Set(allSchedule.map(s => s.id));
-        const reviewsToCreate = expectedReviews.filter(r => !currentIds.has(r.id));
+        let deletedReviewIds: string[] = [];
+        try {
+            const savedDeleted = localStorage.getItem('estudos_deleted_review_ids');
+            if (savedDeleted) deletedReviewIds = JSON.parse(savedDeleted);
+        } catch (e) {
+            console.error('Error reading deleted review IDs:', e);
+        }
 
-        // Find existing reviews that need updates (e.g. have legacy notes format without groupId tag)
+        const currentIds = new Set(allSchedule.map(s => s.id));
+        const reviewsToCreate = expectedReviews.filter(r => !currentIds.has(r.id) && !deletedReviewIds.includes(r.id));
+
+        // Find existing reviews that need updates (e.g. have legacy notes format or changed dates)
         const currentScheduleMap = new Map(allSchedule.map(s => [s.id, s]));
         const reviewsToUpdate: ScheduledStudy[] = [];
         expectedReviews.forEach(expected => {
             const current = currentScheduleMap.get(expected.id);
-            if (current && current.notes !== expected.notes) {
+            if (current && (current.notes !== expected.notes || current.date !== expected.date)) {
                 reviewsToUpdate.push({
                     ...current,
-                    notes: expected.notes
+                    notes: expected.notes,
+                    date: expected.date
                 });
             }
         });
@@ -373,12 +382,12 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         }
 
         if (reviewsToUpdate.length > 0) {
-            console.log('Syncing planned reviews: updating legacy review notes:', reviewsToUpdate.map(r => r.id));
+            console.log('Syncing planned reviews: updating review notes/dates:', reviewsToUpdate.map(r => r.id));
             for (const r of reviewsToUpdate) {
                 try {
-                    await api.schedule.update(r.id, { notes: r.notes });
+                    await api.schedule.update(r.id, { notes: r.notes, date: r.date });
                 } catch (e) {
-                    console.error('Error updating legacy review notes:', r.id, e);
+                    console.error('Error updating review notes/date:', r.id, e);
                 }
             }
         }
@@ -388,7 +397,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                 let filtered = prev.filter(s => !reviewsToDelete.some(rd => rd.id === s.id));
                 filtered = filtered.map(s => {
                     const updated = reviewsToUpdate.find(ru => ru.id === s.id);
-                    return updated ? { ...s, notes: updated.notes } : s;
+                    return updated ? { ...s, notes: updated.notes, date: updated.date } : s;
                 });
                 const combined = [...filtered, ...reviewsToCreate];
                 localStorage.setItem('cp_scheduled_studies', JSON.stringify(combined));
@@ -396,6 +405,13 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
             });
         }
     }, []);
+
+    const syncPlannedReviews = useCallback(async (forceRecalculate: boolean = false) => {
+        if (forceRecalculate) {
+            localStorage.removeItem('estudos_deleted_review_ids');
+        }
+        await syncPlannedReviewsDb(sessions, scheduledStudies, concursos);
+    }, [sessions, scheduledStudies, concursos, syncPlannedReviewsDb]);
 
     // Initial Data Fetch
     const fetchData = useCallback(async () => {
@@ -997,6 +1013,22 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
 
     const deleteScheduledStudy = async (id: string) => {
         setSaveError(null);
+
+        // If it's a review, track it as deleted so it's not auto-recreated
+        const taskToDelete = scheduledStudies.find(s => s.id === id);
+        if (taskToDelete && taskToDelete.activityType === 'Revisão') {
+            try {
+                const deletedRaw = localStorage.getItem('estudos_deleted_review_ids') || '[]';
+                const deletedList = JSON.parse(deletedRaw);
+                if (!deletedList.includes(id)) {
+                    deletedList.push(id);
+                    localStorage.setItem('estudos_deleted_review_ids', JSON.stringify(deletedList));
+                }
+            } catch (e) {
+                console.error('Error saving deleted review ID:', e);
+            }
+        }
+
         // Cascade: Remove from schedule AND sessions
         setScheduledStudies(prev => {
             const updated = prev.filter(s => s.id !== id);
@@ -1223,6 +1255,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         studyTasks: filteredStudyTasks,
         setStudyTasks: updateStudyTasks,
         toggleScheduledStudyStatus,
+        syncPlannedReviews,
         updateProfile: async (name: string, avatar: string) => {
             if (!currentUser) return;
             const updated = { ...currentUser, name, avatar };

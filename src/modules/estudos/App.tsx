@@ -45,7 +45,7 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
     handleLogout: logout, addSession, addSessionsBatch, addSimulado, updateSimulado,
     deleteSimulado, deleteSession, clearLogs, deleteLog, updateProfile,
     globalDailyGoal, studyTasks, setStudyTasks, toggleScheduledStudyStatus, updateScheduledStudy,
-    resetStudyHubDataOnly
+    resetStudyHubDataOnly, syncPlannedReviews
   } = useAppData(extTheme, extToggleTheme);
 
   const {
@@ -177,6 +177,7 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
           onToggleStatus={toggleScheduledStudyStatus}
           onUpdateScheduledStudy={updateScheduledStudy}
           simulados={simulados}
+          onSyncReviews={syncPlannedReviews}
         />;
       case 'study_plan':
         return <StudyPlan

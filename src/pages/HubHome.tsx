@@ -1660,28 +1660,30 @@ const HubHome: React.FC<HubHomeProps> = ({
                     {calendarMonth.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }).toUpperCase()}
                   </h3>
                   <div className="flex items-center gap-2">
-                    {/* Opacity control for Calendar */}
-                    <div className="flex items-center gap-1 bg-zinc-100/50 dark:bg-zinc-800/40 px-2 py-0.5 rounded-lg border border-zinc-250/20 dark:border-zinc-800/50">
-                      <Sliders size={10} className="text-zinc-400 dark:text-zinc-500" />
-                      <input 
-                        type="range" 
-                        min="0.2" 
-                        max="1" 
-                        step="0.05" 
-                        value={calendarOpacity} 
-                        onChange={(e) => {
-                          e.stopPropagation();
-                          const val = parseFloat(e.target.value);
-                          setCalendarOpacity(val);
-                          localStorage.setItem('cn_calendar_opacity', val.toString());
-                        }}
-                        className="w-12 h-1 bg-zinc-250 dark:bg-zinc-750 rounded-lg appearance-none cursor-pointer accent-zinc-500 dark:accent-zinc-400"
-                        title="Opacidade do calendário"
-                      />
-                      <span className="text-[8px] font-bold text-zinc-450 dark:text-zinc-500 w-6 text-right">
-                        {Math.round(calendarOpacity * 100)}%
-                      </span>
-                    </div>
+                    {/* Opacity control for Calendar — only visible in edit mode */}
+                    {isHomeEditMode && (
+                      <div className="flex items-center gap-1 bg-zinc-100/60 dark:bg-zinc-800/50 px-2 py-0.5 rounded-lg border border-zinc-300/30 dark:border-zinc-700/50 animate-in fade-in duration-200">
+                        <Sliders size={10} className="text-zinc-400 dark:text-zinc-500" />
+                        <input 
+                          type="range" 
+                          min="0.2" 
+                          max="1" 
+                          step="0.05" 
+                          value={calendarOpacity} 
+                          onChange={(e) => {
+                            e.stopPropagation();
+                            const val = parseFloat(e.target.value);
+                            setCalendarOpacity(val);
+                            localStorage.setItem('cn_calendar_opacity', val.toString());
+                          }}
+                          className="w-14 h-1 bg-zinc-250 dark:bg-zinc-750 rounded-lg appearance-none cursor-pointer accent-zinc-500 dark:accent-zinc-400"
+                          title="Opacidade do calendário"
+                        />
+                        <span className="text-[8px] font-bold text-zinc-450 dark:text-zinc-500 w-6 text-right">
+                          {Math.round(calendarOpacity * 100)}%
+                        </span>
+                      </div>
+                    )}
 
                     <button
                       onClick={(e) => {
@@ -2023,28 +2025,30 @@ const HubHome: React.FC<HubHomeProps> = ({
                     </h3>
                   </div>
 
-                  {/* Opacity control for Habit Tracker */}
-                  <div className="flex items-center gap-1 bg-zinc-100/50 dark:bg-zinc-800/40 px-2 py-0.5 rounded-lg border border-zinc-250/20 dark:border-zinc-800/50">
-                    <Sliders size={10} className="text-zinc-400 dark:text-zinc-500" />
-                    <input 
-                      type="range" 
-                      min="0.2" 
-                      max="1" 
-                      step="0.05" 
-                      value={habitsOpacity} 
-                      onChange={(e) => {
-                        e.stopPropagation();
-                        const val = parseFloat(e.target.value);
-                        setHabitsOpacity(val);
-                        localStorage.setItem('cn_habits_opacity', val.toString());
-                      }}
-                      className="w-12 h-1 bg-zinc-250 dark:bg-zinc-750 rounded-lg appearance-none cursor-pointer accent-zinc-500 dark:accent-zinc-400"
-                      title="Opacidade dos hábitos"
-                    />
-                    <span className="text-[8px] font-bold text-zinc-450 dark:text-zinc-500 w-6 text-right">
-                      {Math.round(habitsOpacity * 100)}%
-                    </span>
-                  </div>
+                  {/* Opacity control for Habit Tracker — only visible in edit mode */}
+                  {isHomeEditMode && (
+                    <div className="flex items-center gap-1 bg-zinc-100/60 dark:bg-zinc-800/50 px-2 py-0.5 rounded-lg border border-zinc-300/30 dark:border-zinc-700/50 animate-in fade-in duration-200">
+                      <Sliders size={10} className="text-zinc-400 dark:text-zinc-500" />
+                      <input 
+                        type="range" 
+                        min="0.2" 
+                        max="1" 
+                        step="0.05" 
+                        value={habitsOpacity} 
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          const val = parseFloat(e.target.value);
+                          setHabitsOpacity(val);
+                          localStorage.setItem('cn_habits_opacity', val.toString());
+                        }}
+                        className="w-14 h-1 bg-zinc-250 dark:bg-zinc-750 rounded-lg appearance-none cursor-pointer accent-zinc-500 dark:accent-zinc-400"
+                        title="Opacidade dos hábitos"
+                      />
+                      <span className="text-[8px] font-bold text-zinc-450 dark:text-zinc-500 w-6 text-right">
+                        {Math.round(habitsOpacity * 100)}%
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 {/* List of habits checkboxes */}

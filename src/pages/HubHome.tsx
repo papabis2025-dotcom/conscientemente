@@ -229,40 +229,55 @@ const ModuleCard: React.FC<ModuleCardProps> = ({
         </div>
       )}
 
-      <div className="p-4 relative z-10 flex-1 flex flex-col justify-between h-full">
-        <div className="flex-1 flex flex-col">
-          <div className="flex items-start justify-between mb-2">
-            <div className={`w-8 h-8 rounded-lg flex items-center justify-center shadow-sm group-hover:shadow-md group-hover:scale-105 transition-all duration-300 ${colors.icon} ${module.available ? '' : 'opacity-50 grayscale'}`}>
-              {iconMap[module.id] ? React.cloneElement(iconMap[module.id] as any, { size: 16, strokeWidth: 2.5 }) : <TrendingUp size={16} />}
-            </div>
-            {!module.available ? (
-              <span className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-zinc-400 dark:text-zinc-500 bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded-full">
-                <Lock size={9} />
-                Em breve
-              </span>
-            ) : isEditMode ? (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onCycleSize();
-                }}
-                className="text-[9px] font-black uppercase tracking-wider px-2 py-1 bg-zinc-100 dark:bg-zinc-850 hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded-md text-zinc-700 dark:text-zinc-200 shadow-sm border border-zinc-300 dark:border-zinc-700 cursor-pointer"
-              >
-                Tam: {size === 'normal' ? 'P' : size === 'wide' ? 'M' : 'G'}
-              </button>
-            ) : (
-              <span className={`flex items-center justify-center w-7 h-7 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-400 opacity-0 group-hover:opacity-100 transition-all duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5`}>
-                <ArrowUpRight size={14} />
-              </span>
-            )}
+      {/* Background Icon Watermark acting as the "Background Image" */}
+      {iconMap[module.id] && (
+        <div className="absolute inset-0 flex items-center justify-center overflow-hidden pointer-events-none z-0 select-none">
+          <div className={[
+            'transition-all duration-500 ease-out transform group-hover:scale-110 group-hover:rotate-6',
+            module.color === 'indigo' ? 'text-indigo-500/5 dark:text-indigo-400/5 group-hover:text-indigo-500/10' :
+            module.color === 'emerald' ? 'text-emerald-500/5 dark:text-emerald-400/5 group-hover:text-emerald-500/10' :
+            module.color === 'cyan' ? 'text-cyan-500/5 dark:text-cyan-400/5 group-hover:text-cyan-500/10' :
+            module.color === 'rose' ? 'text-rose-500/5 dark:text-rose-400/5 group-hover:text-rose-500/10' :
+            module.color === 'spacegray' ? 'text-slate-500/5 dark:text-zinc-500/5 group-hover:text-slate-500/10' :
+            'text-amber-500/5 dark:text-amber-400/5 group-hover:text-amber-500/10'
+          ].join(' ')}>
+            {React.cloneElement(iconMap[module.id] as any, { 
+              size: size === 'normal' ? 110 : size === 'wide' ? 140 : 185, 
+              strokeWidth: 1.0
+            })}
           </div>
+        </div>
+      )}
 
-          <p className="text-xs font-black text-zinc-800 dark:text-white uppercase tracking-wider mb-1">
+      <div className="p-4 relative z-10 flex-1 flex flex-col justify-between h-full">
+        <div className="flex items-start justify-end mb-1">
+          {!module.available ? (
+            <span className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-zinc-400 dark:text-zinc-500 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded-full">
+              <Lock size={9} />
+              Em breve
+            </span>
+          ) : isEditMode ? (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onCycleSize();
+              }}
+              className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 bg-zinc-100 dark:bg-zinc-850 hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded-md text-zinc-700 dark:text-zinc-200 shadow-sm border border-zinc-300 dark:border-zinc-700 cursor-pointer"
+            >
+              Tam: {size === 'normal' ? 'P' : size === 'wide' ? 'M' : 'G'}
+            </button>
+          ) : (
+            <span className={`flex items-center justify-center w-6 h-6 rounded-full bg-zinc-100/80 dark:bg-zinc-800/80 text-zinc-400 opacity-0 group-hover:opacity-100 transition-all duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5`}>
+              <ArrowUpRight size={12} />
+            </span>
+          )}
+        </div>
+
+        <div className="flex-1 flex flex-col justify-center items-center my-auto">
+          <p className="text-sm font-black text-zinc-800 dark:text-white uppercase tracking-widest text-center">
             {module.label}
           </p>
-
-        {/* Description removed */}
         </div>
       </div>
     </div>
@@ -1600,6 +1615,31 @@ const HubHome: React.FC<HubHomeProps> = ({
           </div>
         ) : (
           <>
+            {/* Elegant Header */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 w-full select-none">
+              <div>
+                <h1 className="text-2xl font-black text-zinc-850 dark:text-white uppercase tracking-tight leading-none">
+                  Painel Principal
+                </h1>
+                <p className="text-xs text-zinc-400 dark:text-zinc-500 font-semibold mt-2">
+                  Organize seus hábitos, acompanhe seus estudos e gerencie sua rotina.
+                </p>
+              </div>
+
+              {/* Layout Customizer Toggle */}
+              <button
+                onClick={() => setIsHomeEditMode(!isHomeEditMode)}
+                className={`flex items-center gap-2 px-4 py-2 border rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-sm ${
+                  isHomeEditMode
+                    ? 'bg-emerald-500 hover:bg-emerald-600 text-white border-emerald-500 shadow-lg shadow-emerald-500/10'
+                    : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-500 hover:text-zinc-800 dark:hover:text-white hover:bg-zinc-50 dark:hover:bg-zinc-800'
+                }`}
+              >
+                <Settings size={13} className={isHomeEditMode ? 'animate-spin' : ''} />
+                {isHomeEditMode ? 'Salvar Organização' : 'Organizar Widgets'}
+              </button>
+            </div>
+
             {/* Module grid */}
             <div className="grid grid-cols-1 sm:grid-cols-6 lg:grid-cols-12 gap-3 w-full animate-in fade-in slide-in-from-top-2 duration-300">
             {homeCards.map((card, i) => {

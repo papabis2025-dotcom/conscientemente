@@ -172,9 +172,9 @@ const ModuleCard: React.FC<ModuleCardProps> = ({
   };
 
   const sizeClasses = {
-    normal: 'col-span-1 sm:col-span-2 lg:col-span-2 lg:aspect-square',
-    wide: 'col-span-1 sm:col-span-4 lg:col-span-4 lg:aspect-[2/1]',
-    full: 'col-span-1 sm:col-span-6 lg:col-span-12 lg:min-h-[140px]',
+    normal: 'col-span-1 sm:col-span-2 lg:col-span-2 h-24',
+    wide: 'col-span-1 sm:col-span-4 lg:col-span-4 h-24',
+    full: 'col-span-1 sm:col-span-6 lg:col-span-12 h-24',
   };
 
   return (
@@ -242,15 +242,15 @@ const ModuleCard: React.FC<ModuleCardProps> = ({
             'text-amber-500/5 dark:text-amber-400/5 group-hover:text-amber-500/10'
           ].join(' ')}>
             {React.cloneElement(iconMap[module.id] as any, { 
-              size: size === 'normal' ? 110 : size === 'wide' ? 140 : 185, 
-              strokeWidth: 1.0
+              size: size === 'normal' ? 56 : size === 'wide' ? 64 : 72, 
+              strokeWidth: 1.2
             })}
           </div>
         </div>
       )}
 
-      <div className="p-4 relative z-10 flex-1 flex flex-col justify-between h-full">
-        <div className="flex items-start justify-end mb-1">
+      <div className="p-3 relative z-10 flex flex-col justify-between h-full w-full">
+        <div className="flex items-start justify-end">
           {!module.available ? (
             <span className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-zinc-400 dark:text-zinc-500 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded-full">
               <Lock size={9} />
@@ -272,12 +272,6 @@ const ModuleCard: React.FC<ModuleCardProps> = ({
               <ArrowUpRight size={12} />
             </span>
           )}
-        </div>
-
-        <div className="flex-1 flex flex-col justify-center items-center my-auto">
-          <p className="text-sm font-black text-zinc-800 dark:text-white uppercase tracking-widest text-center">
-            {module.label}
-          </p>
         </div>
       </div>
     </div>
@@ -1615,31 +1609,6 @@ const HubHome: React.FC<HubHomeProps> = ({
           </div>
         ) : (
           <>
-            {/* Elegant Header */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 w-full select-none">
-              <div>
-                <h1 className="text-2xl font-black text-zinc-850 dark:text-white uppercase tracking-tight leading-none">
-                  Painel Principal
-                </h1>
-                <p className="text-xs text-zinc-400 dark:text-zinc-500 font-semibold mt-2">
-                  Organize seus hábitos, acompanhe seus estudos e gerencie sua rotina.
-                </p>
-              </div>
-
-              {/* Layout Customizer Toggle */}
-              <button
-                onClick={() => setIsHomeEditMode(!isHomeEditMode)}
-                className={`flex items-center gap-2 px-4 py-2 border rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-sm ${
-                  isHomeEditMode
-                    ? 'bg-emerald-500 hover:bg-emerald-600 text-white border-emerald-500 shadow-lg shadow-emerald-500/10'
-                    : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-500 hover:text-zinc-800 dark:hover:text-white hover:bg-zinc-50 dark:hover:bg-zinc-800'
-                }`}
-              >
-                <Settings size={13} className={isHomeEditMode ? 'animate-spin' : ''} />
-                {isHomeEditMode ? 'Salvar Organização' : 'Organizar Widgets'}
-              </button>
-            </div>
-
             {/* Module grid */}
             <div className="grid grid-cols-1 sm:grid-cols-6 lg:grid-cols-12 gap-3 w-full animate-in fade-in slide-in-from-top-2 duration-300">
             {homeCards.map((card, i) => {
@@ -1662,7 +1631,7 @@ const HubHome: React.FC<HubHomeProps> = ({
             })}
           </div>
 
-        <div className="w-full mt-6 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm rounded-2xl border border-zinc-200 dark:border-zinc-800 p-4 opacity-95 hover:opacity-100 transition-all duration-300 animate-in fade-in slide-in-from-top-2">
+        <div className="w-full mt-6 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm rounded-2xl border border-zinc-200 dark:border-zinc-800 p-3.5 opacity-95 hover:opacity-100 transition-all duration-300 animate-in fade-in slide-in-from-top-2">
             <div className="grid grid-cols-1 sm:grid-cols-12 gap-6">
               
               {/* Calendário Mensal (Grade) */}
@@ -1720,7 +1689,7 @@ const HubHome: React.FC<HubHomeProps> = ({
                     const cells = [];
                     // Células vazias do mês anterior
                     for (let i = 0; i < firstDayIndex; i++) {
-                      cells.push(<div key={`empty-${i}`} className="py-2" />);
+                      cells.push(<div key={`empty-${i}`} className="py-1.5" />);
                     }
 
                     // Dias do mês atual
@@ -1753,7 +1722,7 @@ const HubHome: React.FC<HubHomeProps> = ({
                             e.stopPropagation();
                             setSelectedCalendarDate(dateStr);
                           }}
-                          className={`py-2 rounded-xl border flex flex-col items-center justify-center relative cursor-pointer transition-all hover:scale-105 active:scale-95 ${
+                          className={`py-1.5 rounded-xl border flex flex-col items-center justify-center relative cursor-pointer transition-all hover:scale-105 active:scale-95 ${
                             isSelected
                               ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-950 border-zinc-900 dark:border-white shadow-sm'
                               : isToday
@@ -1999,7 +1968,7 @@ const HubHome: React.FC<HubHomeProps> = ({
         {/* Habit Tracker Container */}
         <div className="w-full mt-6 animate-in fade-in slide-in-from-top-2 duration-300">
             {/* Habit Tracker Section */}
-            <div className="w-full bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm rounded-2xl border border-zinc-200 dark:border-zinc-800 flex flex-col justify-between gap-3.5 p-4 overflow-hidden relative opacity-95 hover:opacity-100 transition-all duration-300">
+            <div className="w-full bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm rounded-2xl border border-zinc-200 dark:border-zinc-800 flex flex-col justify-between gap-3.5 p-3.5 overflow-hidden relative opacity-95 hover:opacity-100 transition-all duration-300">
               <div>
                 <div className="flex items-center justify-between mb-3">
                   <div>
@@ -2023,7 +1992,7 @@ const HubHome: React.FC<HubHomeProps> = ({
                         <div
                           key={h.id}
                           onClick={() => toggleHabit(h.id)}
-                          className={`flex items-center gap-3 p-2.5 rounded-xl border transition-all duration-200 cursor-pointer select-none ${
+                          className={`flex items-center gap-3 p-1.5 rounded-xl border transition-all duration-200 cursor-pointer select-none ${
                             isCompleted
                               ? 'bg-zinc-100/50 dark:bg-zinc-950/15 border-zinc-200 dark:border-zinc-900/50 opacity-60'
                               : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800/80 hover:border-slate-400 dark:hover:border-slate-600 hover:shadow-sm'

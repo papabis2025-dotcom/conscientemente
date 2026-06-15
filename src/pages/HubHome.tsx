@@ -172,10 +172,12 @@ const ModuleCard: React.FC<ModuleCardProps> = ({
   };
 
   const sizeClasses = {
-    normal: 'col-span-1 sm:col-span-2 lg:col-span-2 h-28',
-    wide: 'col-span-1 sm:col-span-4 lg:col-span-4 h-28',
-    full: 'col-span-1 sm:col-span-6 lg:col-span-12 h-28',
+    normal: 'col-span-1 sm:col-span-2 lg:col-span-2',
+    wide: 'col-span-1 sm:col-span-4 lg:col-span-4',
+    full: 'col-span-1 sm:col-span-6 lg:col-span-12',
   };
+
+  const cardHeight = 144; // px — valor médio entre o pequeno (96) e o original (aspect-square ~200px)
 
   return (
     <div
@@ -184,7 +186,7 @@ const ModuleCard: React.FC<ModuleCardProps> = ({
       onDragStart={onDragStart}
       onDragOver={onDragOver}
       onDragEnd={onDragEnd}
-      style={{ animationDelay: `${index * 80}ms` }}
+      style={{ animationDelay: `${index * 80}ms`, minHeight: `${cardHeight}px`, height: `${cardHeight}px` }}
       className={[
         'group relative w-full text-left rounded-2xl border-2 transition-all duration-300',
         'bg-white/90 dark:bg-zinc-900/90 backdrop-blur-sm',
@@ -198,7 +200,7 @@ const ModuleCard: React.FC<ModuleCardProps> = ({
         isDragged ? 'opacity-50 scale-95' : 'opacity-100',
         !module.available ? 'opacity-45 cursor-not-allowed' : '',
         'animate-in fade-in slide-in-from-bottom-4 duration-500',
-        'overflow-hidden h-full flex flex-col justify-between',
+        'overflow-hidden flex flex-col justify-between',
       ].join(' ')}
     >
       {/* Gradient top strip — always visible subtly, bright on hover */}

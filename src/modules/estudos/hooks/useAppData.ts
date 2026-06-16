@@ -635,10 +635,17 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
 
         let existingPlanned = scheduledStudies.find(s => s.id === session.id && s.status === 'planejado');
         if (!existingPlanned && activityType === 'Revisão') {
-            existingPlanned = scheduledStudies.find(s => 
-                s.subjectId === session.subjectId && 
-                s.topicId === session.topicId && 
-                s.activityType === 'Revisão' && 
+            // Prefer a review on the same date; fallback to any pending review for same subject/topic
+            existingPlanned = scheduledStudies.find(s =>
+                s.subjectId === session.subjectId &&
+                s.topicId === session.topicId &&
+                s.activityType === 'Revisão' &&
+                s.status === 'planejado' &&
+                s.date === sessionDate
+            ) || scheduledStudies.find(s =>
+                s.subjectId === session.subjectId &&
+                s.topicId === session.topicId &&
+                s.activityType === 'Revisão' &&
                 s.status === 'planejado'
             );
         }
@@ -757,10 +764,19 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
 
             let existingPlanned = currentLocalSchedule.find(s => s.id === session.id && s.status === 'planejado');
             if (!existingPlanned && activityType === 'Revisão') {
-                existingPlanned = currentLocalSchedule.find(s => 
-                    s.subjectId === session.subjectId && 
-                    s.topicId === session.topicId && 
-                    s.activityType === 'Revisão' && 
+                const sessionDate = session.date.split('T')[0];
+                // Prefer a review on the same date; fallback to any pending review for same subject/topic
+                existingPlanned = currentLocalSchedule.find(s =>
+                    s.subjectId === session.subjectId &&
+                    s.topicId === session.topicId &&
+                    s.activityType === 'Revisão' &&
+                    s.status === 'planejado' &&
+                    s.date === sessionDate &&
+                    !newScheduledList.some(ns => ns.id === s.id)
+                ) || currentLocalSchedule.find(s =>
+                    s.subjectId === session.subjectId &&
+                    s.topicId === session.topicId &&
+                    s.activityType === 'Revisão' &&
                     s.status === 'planejado' &&
                     !newScheduledList.some(ns => ns.id === s.id)
                 );
@@ -1206,17 +1222,31 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                     id: study.id,
                     subjectId: study.subjectId,
                     topicId: study.topicId,
-                    durationInMinutes: study.durationInMinutes || 0,
+                    durationInMinutes: study.durationInMinutes ?? 0,
                     date: new Date(`${study.date}T12:00:00`).toISOString(),
                     questionsDone: study.questionsDone,
                     questionsCorrect: study.questionsCorrect,
                     activityType: study.activityType
                 };
                 newSessions.push(newSession);
-                try { await api.sessions.create(newSession); } catch(e) {}
+                // Persist session to study_sessions table
+                try { await api.sessions.create(newSession); } catch(e) {
+                    console.error('Error creating session on toggle:', study.id, e);
+                }
+                // Also persist the updated scheduled_study entry to DB
+                // (update questionsDone, questionsCorrect, durationInMinutes which may have been defaults)
+                try {
+                    await api.schedule.update(study.id, {
+                        durationInMinutes: newSession.durationInMinutes,
+                        questionsDone: newSession.questionsDone,
+                        questionsCorrect: newSession.questionsCorrect,
+                    });
+                } catch(e) {
+                    console.error('Error updating schedule on toggle realizado:', study.id, e);
+                }
             }
             setSessions(prev => [...prev, ...newSessions]);
-            
+
             // Sync planned reviews immediately
             const updatedSessions = [...sessions, ...newSessions];
             const updatedSchedule = scheduledStudies.map(s => ids.includes(s.id) ? { ...s, status: targetStatus } : s);

@@ -71,7 +71,18 @@ export const api = {
         list: async () => {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return [];
-            const data = await handleRequest<any[]>(supabase.from('study_sessions').select('*').eq('user_id', user.id).order('date', { ascending: false }));
+            // Try selecting with activity_type; fall back without it if column doesn't exist
+            let result = await supabase.from('study_sessions').select('*').eq('user_id', user.id).order('date', { ascending: false });
+            if (result.error && result.error.code === '42703') {
+                result = await supabase.from('study_sessions')
+                    .select('id,user_id,subject_id,topic_id,duration_minutes,date,questions_done,questions_correct,is_simulado')
+                    .eq('user_id', user.id).order('date', { ascending: false });
+            }
+            const data = result.error ? null : result.data;
+            if (result.error && result.error.code !== '42703') {
+                console.error('Supabase API Error:', JSON.stringify(result.error, null, 2));
+                throw result.error;
+            }
             return (data || []).map((s: any) => ({
                 id: s.id,
                 subjectId: s.subject_id,
@@ -80,7 +91,8 @@ export const api = {
                 date: s.date,
                 questionsDone: s.questions_done,
                 questionsCorrect: s.questions_correct,
-                isSimulado: s.is_simulado
+                isSimulado: s.is_simulado,
+                activityType: s.activity_type
             }));
         },
         create: async (session: Omit<StudySession, 'id' | 'user_id' | 'created_at'> & { id?: string }) => {
@@ -96,10 +108,18 @@ export const api = {
                 date: session.date,
                 questions_done: session.questionsDone,
                 questions_correct: session.questionsCorrect,
-                is_simulado: session.isSimulado
+                is_simulado: session.isSimulado,
+                activity_type: session.activityType || null
             };
 
-            return handleRequest<StudySession>(supabase.from('study_sessions').insert(dbPayload).select().single());
+            // Try with activity_type first; if column doesn't exist, retry without it
+            let result = await supabase.from('study_sessions').insert(dbPayload).select().single();
+            if (result.error && result.error.code === '42703') {
+                // Column activity_type doesn't exist yet — retry without it
+                const { activity_type, ...payloadWithout } = dbPayload as any;
+                result = await supabase.from('study_sessions').insert(payloadWithout).select().single();
+            }
+            return handleRequest(Promise.resolve(result));
         },
         update: async (id: string, updates: Partial<StudySession>) => {
             const dbPayload: any = {};
@@ -110,8 +130,17 @@ export const api = {
             if (updates.questionsDone !== undefined) dbPayload.questions_done = updates.questionsDone;
             if (updates.questionsCorrect !== undefined) dbPayload.questions_correct = updates.questionsCorrect;
             if (updates.isSimulado !== undefined) dbPayload.is_simulado = updates.isSimulado;
+            if (updates.activityType !== undefined) {
+                dbPayload.activity_type = updates.activityType;
+            }
 
-            return handleRequest(supabase.from('study_sessions').update(dbPayload).eq('id', id));
+            let updateResult = await supabase.from('study_sessions').update(dbPayload).eq('id', id);
+            if (updateResult.error && updateResult.error.code === '42703') {
+                // activity_type column doesn't exist yet — retry without it
+                const { activity_type, ...payloadWithout } = dbPayload;
+                updateResult = await supabase.from('study_sessions').update(payloadWithout).eq('id', id);
+            }
+            return handleRequest(Promise.resolve(updateResult));
         },
         delete: async (id: string) => handleRequest(supabase.from('study_sessions').delete().eq('id', id)),
         deleteBySubject: async (subjectId: string) => handleRequest(supabase.from('study_sessions').delete().eq('subject_id', subjectId)),

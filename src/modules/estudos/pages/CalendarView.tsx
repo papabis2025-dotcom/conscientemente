@@ -375,7 +375,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
 
     setFormData({
       subjectId: task.subjectId,
-      topicId: task.topicId || '',
+      topicIds: task.topicIds || (task.topicId ? [task.topicId] : []),
       activityTypes: types,
       duration: task.durationInMinutes?.toString() || '',
       questionsDone: task.questionsDone?.toString() || '',

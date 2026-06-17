@@ -282,11 +282,18 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                 const topicsList = [{ id: 'geral', title: 'Geral / Outros' }, ...(subject.topics || [])];
                 topicsList.forEach(topic => {
                     const isSimuladoSession = (s: StudySession) => s.isSimulado || s.activityType === 'Simulado';
-                    const topicSessions = allSess.filter(s => 
-                        s.subjectId === subject.id && 
+                    // Also exclude sessions that are themselves reviews — marking a review as done
+                    // must not trigger creation of a new review (avoids duplicate/loop).
+                    const isRevisaoSession = (s: StudySession) =>
+                        !!(s.activityType && s.activityType.includes('Revisão'));
+
+                    const topicSessions = allSess.filter(s =>
+                        s.subjectId === subject.id &&
                         (topic.id === 'geral' ? !s.topicId : s.topicId === topic.id) &&
-                        !isSimuladoSession(s)
+                        !isSimuladoSession(s) &&
+                        !isRevisaoSession(s)
                     );
+
 
                     if (topicSessions.length > 0) {
                         const sorted = [...topicSessions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());

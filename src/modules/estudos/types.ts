@@ -44,7 +44,9 @@ export interface Topic {
   title: string;
   isCompleted: boolean;
   priority: 'Baixa' | 'Média' | 'Alta';
+  order?: number;
 }
+
 
 export interface StudySession {
   id: string;

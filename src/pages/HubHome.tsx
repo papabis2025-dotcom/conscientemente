@@ -252,7 +252,13 @@ const ModuleCard: React.FC<ModuleCardProps> = ({
       )}
 
       <div className="p-3 relative z-10 flex flex-col justify-between h-full w-full">
-        <div className="flex items-start justify-end">
+        {/* Top row: icon badge + action button */}
+        <div className="flex items-start justify-between">
+          {/* Small themed icon badge */}
+          <div className={`flex items-center justify-center w-8 h-8 rounded-xl ${colors.icon} transition-all duration-300 group-hover:scale-110`}>
+            {iconMap[module.id] && React.cloneElement(iconMap[module.id] as any, { size: 16, strokeWidth: 2 })}
+          </div>
+
           {!module.available ? (
             <span className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-zinc-400 dark:text-zinc-500 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded-full">
               <Lock size={9} />
@@ -274,6 +280,16 @@ const ModuleCard: React.FC<ModuleCardProps> = ({
               <ArrowUpRight size={12} />
             </span>
           )}
+        </div>
+
+        {/* Bottom row: module name + description */}
+        <div className="flex flex-col gap-0.5 mt-auto">
+          <p className="text-sm font-semibold text-zinc-700 dark:text-zinc-200 leading-tight tracking-tight">
+            {module.label}
+          </p>
+          <p className="text-[10px] text-zinc-400 dark:text-zinc-500 font-medium leading-snug line-clamp-2 max-h-0 overflow-hidden opacity-0 group-hover:max-h-10 group-hover:opacity-100 transition-all duration-300 ease-out">
+            {module.description}
+          </p>
         </div>
       </div>
     </div>

@@ -17,7 +17,8 @@ interface CalendarViewProps {
   onSyncReviews?: (forceRecalculate?: boolean) => Promise<void>;
 }
 
-type ViewMode = 'semanal' | 'mensal' | 'anual';
+type ViewMode = 'semanal' | 'mensal' | 'anual' | 'lista';
+type ListGroupBy = 'dia' | 'semana' | 'mes' | 'ano';
 
 const parseNotesGroup = (notes: string) => {
   const match = notes?.match(/^\[groupId:([^\]]+)\](.*)/s);
@@ -46,6 +47,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   const [showModal, setShowModal] = useState(false);
   const [editingTask, setEditingTask] = useState<ScheduledStudy | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [listGroupBy, setListGroupBy] = useState<ListGroupBy>('dia');
+  const [listStatusFilter, setListStatusFilter] = useState<'todos' | 'planejado' | 'realizado'>('todos');
 
   // Use allSubjects for lookup if available, otherwise fallback to subjects
   const lookupSubjects = allSubjects || subjects;
@@ -632,6 +635,179 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     }
   };
 
+  // ── Lista View ───────────────────────────────────────────────────
+  const renderListView = () => {
+    // Collect all visible tasks, sorted by date
+    const allTasks = visibleScheduledStudies
+      .filter(t => listStatusFilter === 'todos' || t.status === listStatusFilter)
+      .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+
+    // Group key functions
+    const getGroupKey = (dateStr: string): string => {
+      const d = new Date(dateStr + 'T12:00:00');
+      if (listGroupBy === 'dia') return dateStr;
+      if (listGroupBy === 'semana') {
+        const monday = new Date(d);
+        monday.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+        return `${monday.getFullYear()}-W${String(Math.ceil(monday.getDate() / 7)).padStart(2, '0')}-${monday.toISOString().split('T')[0]}`;
+      }
+      if (listGroupBy === 'mes') return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      if (listGroupBy === 'ano') return `${d.getFullYear()}`;
+      return dateStr;
+    };
+
+    const getGroupLabel = (key: string, firstDate: string): string => {
+      const d = new Date(firstDate + 'T12:00:00');
+      if (listGroupBy === 'dia') {
+        return d.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
+      }
+      if (listGroupBy === 'semana') {
+        const monday = new Date(d);
+        monday.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+        const sunday = new Date(monday);
+        sunday.setDate(monday.getDate() + 6);
+        return `Semana de ${monday.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })} a ${sunday.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}`;
+      }
+      if (listGroupBy === 'mes') return d.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+      if (listGroupBy === 'ano') return `${d.getFullYear()}`;
+      return key;
+    };
+
+    // Build groups preserving order
+    const groupsMap = new Map<string, { label: string; firstDate: string; tasks: typeof allTasks }>();
+    allTasks.forEach(task => {
+      const k = getGroupKey(task.date);
+      if (!groupsMap.has(k)) {
+        groupsMap.set(k, { label: '', firstDate: task.date, tasks: [] });
+      }
+      groupsMap.get(k)!.tasks.push(task);
+    });
+    groupsMap.forEach((v, k) => {
+      v.label = getGroupLabel(k, v.firstDate);
+    });
+
+    const groups = Array.from(groupsMap.values());
+
+    const today = new Date().toISOString().split('T')[0];
+
+    if (groups.length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center py-24 opacity-40">
+          <p className="text-sm font-bold text-zinc-400 uppercase tracking-widest">Nenhuma atividade encontrada</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-8">
+        {groups.map((group) => (
+          <div key={group.firstDate} className="space-y-2">
+            {/* Group header */}
+            <div className="flex items-center gap-3">
+              <h3 className="text-[11px] font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400 capitalize">
+                {group.label}
+              </h3>
+              <div className="flex-1 h-px bg-zinc-100 dark:bg-zinc-800" />
+              <span className="text-[10px] font-bold text-zinc-400">
+                {group.tasks.filter(t => t.status === 'planejado').length} pendente{group.tasks.filter(t => t.status === 'planejado').length !== 1 ? 's' : ''}
+              </span>
+            </div>
+
+            {/* Tasks */}
+            <div className="space-y-2">
+              {group.tasks.map(task => {
+                const sub = lookupSubjects.find(s => s.id === task.subjectId);
+                const { style, className: badgeClass } = sub ? getBadgeStyle(sub.color) : { style: {}, className: 'bg-zinc-400 text-white' };
+                const isPast = task.date < today && task.status === 'planejado';
+                const taskDate = new Date(task.date + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short' });
+
+                return (
+                  <div
+                    key={task.id}
+                    className={`flex items-center gap-3 p-3 rounded-2xl border transition-all hover:shadow-sm ${
+                      task.status === 'realizado'
+                        ? 'bg-zinc-50/80 dark:bg-zinc-800/30 border-zinc-100 dark:border-zinc-800/50 opacity-60'
+                        : isPast
+                          ? 'bg-rose-50/60 dark:bg-rose-950/10 border-rose-200/60 dark:border-rose-900/30'
+                          : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800'
+                    }`}
+                  >
+                    {/* Toggle button */}
+                    <button
+                      onClick={() => onToggleStatus && onToggleStatus(task.id)}
+                      title={task.status === 'realizado' ? 'Marcar como planejado' : 'Marcar como realizado'}
+                      className={`flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
+                        task.status === 'realizado'
+                          ? 'border-emerald-500 bg-emerald-500'
+                          : 'border-zinc-300 dark:border-zinc-600 hover:border-emerald-400'
+                      }`}
+                    >
+                      {task.status === 'realizado' && (
+                        <svg viewBox="0 0 10 10" className="w-3 h-3 text-white" fill="none" stroke="currentColor" strokeWidth="2">
+                          <polyline points="1.5,5 4,7.5 8.5,2.5" />
+                        </svg>
+                      )}
+                    </button>
+
+                    {/* Color pill */}
+                    <div
+                      style={style}
+                      className={`flex-shrink-0 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wide ${badgeClass}`}
+                    >
+                      {sub?.name ? sub.name.substring(0, 12) : 'Disciplina'}
+                    </div>
+
+                    {/* Activity & topic */}
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-xs font-bold ${task.status === 'realizado' ? 'text-zinc-400 dark:text-zinc-500 line-through' : 'text-zinc-700 dark:text-zinc-200'}`}>
+                        {task.activityType || 'Estudo'}
+                        {task.topicId && sub && (
+                          <span className="font-normal text-zinc-400 dark:text-zinc-500 ml-1">
+                            — {sub.topics.find(t => t.id === task.topicId)?.title}
+                          </span>
+                        )}
+                      </p>
+                      {task.durationInMinutes && task.durationInMinutes > 0 && (
+                        <p className="text-[10px] text-zinc-400 font-medium">{task.durationInMinutes} min</p>
+                      )}
+                    </div>
+
+                    {/* Date badge (only shown when grouping by week/month/year) */}
+                    {listGroupBy !== 'dia' && (
+                      <span className="flex-shrink-0 text-[10px] text-zinc-400 font-bold whitespace-nowrap">{taskDate}</span>
+                    )}
+
+                    {/* Status badge */}
+                    <span className={`flex-shrink-0 text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wide ${
+                      task.status === 'realizado'
+                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                        : isPast
+                          ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400'
+                          : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                    }`}>
+                      {task.status === 'realizado' ? 'Realizado' : isPast ? 'Atrasado' : 'Planejado'}
+                    </span>
+
+                    {/* Edit button */}
+                    <button
+                      onClick={() => handleTaskClick({ stopPropagation: () => {} } as any, task)}
+                      className="flex-shrink-0 text-zinc-300 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
+                      title="Editar"
+                    >
+                      <svg viewBox="0 0 16 16" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M11.5 2.5l2 2L5 13H3v-2L11.5 2.5z" />
+                      </svg>
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   const getTitle = () => {
     if (viewMode === 'mensal') return `${monthNames[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
     if (viewMode === 'semanal') return `Semana de ${weekDays[0].getDate()} a ${weekDays[6].getDate()} de ${monthNames[weekDays[6].getMonth()]}`;
@@ -671,7 +847,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
           )}
 
           <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-1 shadow-sm flex">
-            {(['semanal', 'mensal', 'anual'] as ViewMode[]).map((mode) => (
+            {(['semanal', 'mensal', 'anual', 'lista'] as ViewMode[]).map((mode) => (
               <button
                 key={mode}
                 onClick={() => setViewMode(mode)}
@@ -681,16 +857,50 @@ const CalendarView: React.FC<CalendarViewProps> = ({
               </button>
             ))}
           </div>
-          
+
+          {/* List view controls: only when lista is active */}
+          {viewMode === 'lista' && (
+            <>
+              <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-1 shadow-sm flex gap-0.5">
+                {(['dia', 'semana', 'mes', 'ano'] as ListGroupBy[]).map(g => (
+                  <button
+                    key={g}
+                    onClick={() => setListGroupBy(g)}
+                    className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                      listGroupBy === g ? 'bg-zinc-800 dark:bg-zinc-600 text-white shadow-sm' : 'text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200'
+                    }`}
+                  >
+                    {g === 'mes' ? 'mês' : g}
+                  </button>
+                ))}
+              </div>
+              <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-1 shadow-sm flex gap-0.5">
+                {(['todos', 'planejado', 'realizado'] as const).map(f => (
+                  <button
+                    key={f}
+                    onClick={() => setListStatusFilter(f)}
+                    className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                      listStatusFilter === f ? 'bg-zinc-800 dark:bg-zinc-600 text-white shadow-sm' : 'text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200'
+                    }`}
+                  >
+                    {f}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+
+          {viewMode !== 'lista' && (
           <div className="flex items-center gap-3 bg-white dark:bg-zinc-900 px-4 py-2 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
             <button onClick={() => handleNavigate(-1)} className="text-zinc-400 hover:text-zinc-900 dark:hover:text-white font-bold transition-colors">◀</button>
             <span className="font-black text-[10px] uppercase tracking-widest min-w-[120px] text-center dark:text-white">{getTitle()}</span>
             <button onClick={() => handleNavigate(1)} className="text-zinc-400 hover:text-zinc-900 dark:hover:text-white font-bold transition-colors">▶</button>
           </div>
+          )}
         </div>
       </header>
 
-      <div className="flex-1 min-h-0">{renderView()}</div>
+      <div className="flex-1 min-h-0">{viewMode === 'lista' ? renderListView() : renderView()}</div>
 
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/80 backdrop-blur-sm p-4">
@@ -849,7 +1059,15 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                         <span className="text-zinc-500 dark:text-zinc-400">Geral / Outros</span>
                       </label>
                       <div className="h-px bg-zinc-200 dark:bg-zinc-700 my-1 w-full" />
-                      {(subjects.find(s => s.id === formData.subjectId)?.topics || []).map((t: Topic) => {
+                      {(subjects.find(s => s.id === formData.subjectId)?.topics || [])
+                        .slice()
+                        .sort((a, b) => {
+                          const orderA = a.order ?? 999;
+                          const orderB = b.order ?? 999;
+                          if (orderA !== orderB) return orderA - orderB;
+                          return a.title.localeCompare(b.title, undefined, { numeric: true });
+                        })
+                        .map((t: Topic) => {
                         const isChecked = formData.topicIds.includes(t.id);
                         return (
                           <label key={t.id} className="flex items-center gap-2.5 text-xs font-bold dark:text-white cursor-pointer select-none hover:opacity-85 py-0.5">
@@ -865,7 +1083,12 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                               }}
                               className="rounded border-zinc-300 dark:border-zinc-700 text-zinc-900 focus:ring-zinc-500"
                             />
-                            <span>{t.title}</span>
+                            <span>
+                              {t.order !== undefined && (
+                                <span className="text-[10px] text-zinc-400 mr-1 font-black">{t.order}.</span>
+                              )}
+                              {t.title}
+                            </span>
                           </label>
                         );
                       })}

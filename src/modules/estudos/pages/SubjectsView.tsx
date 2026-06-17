@@ -70,6 +70,8 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
   // Topic editing state
   const [editingTopicId, setEditingTopicId] = useState<string | null>(null);
   const [editTopicTitle, setEditTopicTitle] = useState('');
+  const [editingTopicOrderId, setEditingTopicOrderId] = useState<string | null>(null);
+  const [editTopicOrder, setEditTopicOrder] = useState<number>(1);
 
   const colorPickerRef = useRef<HTMLDivElement>(null);
 
@@ -266,14 +268,26 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
 
   const handleAddTopic = (subjectId: string) => {
     if (!newTopicTitle.trim()) return;
+    const subject = subjects.find(s => s.id === subjectId);
+    const existingOrders = (subject?.topics || []).map(t => t.order ?? 0);
+    const nextOrder = existingOrders.length > 0 ? Math.max(...existingOrders) + 1 : 1;
     const newTopic: Topic = {
       id: crypto.randomUUID(),
       title: newTopicTitle,
       isCompleted: false,
-      priority: newTopicPriority
+      priority: newTopicPriority,
+      order: nextOrder
     };
     onUpdateSubjects(subjects.map(s => s.id === subjectId ? { ...s, topics: [...s.topics, newTopic] } : s));
     setNewTopicTitle('');
+  };
+
+  const updateTopicOrder = (subjectId: string, topicId: string, newOrder: number) => {
+    onUpdateSubjects(subjects.map(s => s.id === subjectId ? {
+      ...s,
+      topics: s.topics.map(t => t.id === topicId ? { ...t, order: newOrder } : t)
+    } : s));
+    setEditingTopicOrderId(null);
   };
 
   const toggleTopic = (subjectId: string, topicId: string) => {
@@ -591,7 +605,8 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                             <table className="w-full text-left text-sm">
                               <thead>
                                 <tr className="text-zinc-400 border-b border-zinc-100 dark:border-zinc-800">
-                                  <th className="py-1.5 pl-3 text-[10px] uppercase font-bold cursor-pointer hover:text-zinc-900 dark:text-zinc-300 flex items-center gap-3" onClick={() => { setTopicSortBy('name'); setTopicSortOrder(o => o === 'asc' ? 'desc' : 'asc'); }}>
+                                  <th className="w-12 py-1.5 pl-3 pr-1 text-[10px] uppercase font-bold text-zinc-400 text-center">#</th>
+                                  <th className="py-1.5 pl-2 text-[10px] uppercase font-bold cursor-pointer hover:text-zinc-900 dark:text-zinc-300 flex items-center gap-3" onClick={() => { setTopicSortBy('name'); setTopicSortOrder(o => o === 'asc' ? 'desc' : 'asc'); }}>
                                     <span>Assunto {topicSortBy === 'name' && (topicSortOrder === 'asc' ? '↑' : '↓')}</span>
                                     <span className="flex-1" />
                                     {addingTopicToId === subject.id ? (
@@ -636,12 +651,12 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                                 </tr>
                               </thead>
                               <tbody>
-                                {/* Tópico Geral / Fixo */}
                                 {(() => {
                                   const stats = getTopicStats(subject.id, null);
                                   return (
                                     <tr className="border-b border-zinc-50 dark:border-zinc-800/30">
-                                      <td className="py-1.5 font-semibold pl-3 text-xs" style={{ color: getColorHex(subject.color) }}>
+                                      <td className="py-1.5 pl-3 pr-1" />
+                                      <td className="py-1.5 font-semibold pl-2 text-xs" style={{ color: getColorHex(subject.color) }}>
                                         Geral / Outros <span className="text-[10px] font-normal opacity-60 ml-1 text-zinc-500">revisão geral</span>
                                       </td>
                                       <td className="py-1.5 text-zinc-400 text-xs">{stats.lastStudyDate || '—'}</td>
@@ -657,7 +672,10 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                                 {[...(subject.topics || [])].map(topic => ({ topic, stats: getTopicStats(subject.id, topic.id) }))
                                   .sort((a, b) => {
                                     if (topicSortBy === 'default') {
-                                      // Default: completion then title
+                                      // Default: by order number (asc), then completion, then title
+                                      const orderA = a.topic.order ?? 999;
+                                      const orderB = b.topic.order ?? 999;
+                                      if (orderA !== orderB) return orderA - orderB;
                                       if (a.topic.isCompleted === b.topic.isCompleted) return a.topic.title.localeCompare(b.topic.title, undefined, { numeric: true });
                                       return a.topic.isCompleted ? 1 : -1;
                                     }
@@ -691,10 +709,37 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
 
                                     return 0;
                                   })
-                                  .map(({ topic, stats: tStats }) => {
+                                  .map(({ topic, stats: tStats }, topicRenderIndex) => {
+                                    const topicOrder = topic.order ?? (topicRenderIndex + 1);
                                     return (
                                       <tr key={topic.id} className="group/row hover:bg-zinc-100/80 dark:hover:bg-zinc-700/40 transition-colors border-b border-zinc-50 dark:border-zinc-800/20 last:border-0">
-                                        <td className={`py-1.5 pl-3 text-xs font-semibold ${topic.isCompleted ? 'text-zinc-300 dark:text-zinc-600 line-through' : 'text-zinc-700 dark:text-zinc-300'}`}>
+                                        {/* Order number cell — editable inline */}
+                                        <td className="py-1.5 pl-3 pr-1 text-center" onClick={e => e.stopPropagation()}>
+                                          {editingTopicOrderId === topic.id ? (
+                                            <input
+                                              type="number"
+                                              min="1"
+                                              value={editTopicOrder}
+                                              onChange={e => setEditTopicOrder(parseInt(e.target.value) || 1)}
+                                              onBlur={() => updateTopicOrder(subject.id, topic.id, editTopicOrder)}
+                                              onKeyDown={(e) => {
+                                                if (e.key === 'Enter') updateTopicOrder(subject.id, topic.id, editTopicOrder);
+                                                if (e.key === 'Escape') setEditingTopicOrderId(null);
+                                              }}
+                                              className="w-10 text-center px-1 py-0.5 bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-600 rounded text-xs font-bold text-zinc-700 dark:text-zinc-200 outline-none focus:ring-1 focus:ring-zinc-400"
+                                              autoFocus
+                                            />
+                                          ) : (
+                                            <span
+                                              title="Clique para alterar o número"
+                                              onClick={() => { setEditingTopicOrderId(topic.id); setEditTopicOrder(topicOrder); }}
+                                              className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-zinc-100 dark:bg-zinc-800 text-[10px] font-black text-zinc-500 dark:text-zinc-400 cursor-pointer hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors select-none"
+                                            >
+                                              {topicOrder}
+                                            </span>
+                                          )}
+                                        </td>
+                                        <td className={`py-1.5 pl-2 text-xs font-semibold ${topic.isCompleted ? 'text-zinc-300 dark:text-zinc-600 line-through' : 'text-zinc-700 dark:text-zinc-300'}`}>
                                           {editingTopicId === topic.id ? (
                                             <div className="flex items-center gap-2">
                                               <input

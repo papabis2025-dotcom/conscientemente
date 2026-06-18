@@ -235,6 +235,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         {menuItems.map((item, index) => (
           <button
             key={item.id}
+            data-showroom={`estudos-sidebar-${item.id}`}
             draggable={isReorderMode && !isCollapsed}
             onDragStart={() => handleDragStart(index)}
             onDragOver={(e) => handleDragOver(e, index)}

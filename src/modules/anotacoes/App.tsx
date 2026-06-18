@@ -93,6 +93,19 @@ const AnotacoesApp: React.FC = () => {
     localStorage.setItem('isSidebarCollapsed_anotacoes', String(isSidebarCollapsed));
   }, [isSidebarCollapsed]);
 
+  useEffect(() => {
+    const handleShowroomSetRoute = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      if (customEvent.detail && customEvent.detail.route === 'anotacoes' && customEvent.detail.tab) {
+        setActiveTab(customEvent.detail.tab as any);
+      }
+    };
+    window.addEventListener('showroom-set-route', handleShowroomSetRoute);
+    return () => {
+      window.removeEventListener('showroom-set-route', handleShowroomSetRoute);
+    };
+  }, []);
+
   // Set active tab to match quick note category clicked if passed in sessionStorage
   useEffect(() => {
     const requestedTab = sessionStorage.getItem('anotacoesActiveTab');

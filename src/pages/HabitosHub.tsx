@@ -69,6 +69,19 @@ export default function HabitosHub({ onBack, theme, toggleTheme, userName }: Hab
     sessionStorage.setItem('habitosActiveTab', activeTab);
   }, [activeTab]);
 
+  useEffect(() => {
+    const handleShowroomSetRoute = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      if (customEvent.detail && customEvent.detail.route === 'habitos' && customEvent.detail.tab) {
+        setActiveTab(customEvent.detail.tab as any);
+      }
+    };
+    window.addEventListener('showroom-set-route', handleShowroomSetRoute);
+    return () => {
+      window.removeEventListener('showroom-set-route', handleShowroomSetRoute);
+    };
+  }, []);
+
   // Keep time updated
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);

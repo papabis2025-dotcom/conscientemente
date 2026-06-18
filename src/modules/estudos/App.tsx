@@ -67,6 +67,19 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
     }
   }, []);
 
+  React.useEffect(() => {
+    const handleShowroomSetRoute = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      if (customEvent.detail && customEvent.detail.route === 'estudos' && customEvent.detail.tab) {
+        setActiveTab(customEvent.detail.tab);
+      }
+    };
+    window.addEventListener('showroom-set-route', handleShowroomSetRoute);
+    return () => {
+      window.removeEventListener('showroom-set-route', handleShowroomSetRoute);
+    };
+  }, []);
+
   const [activityFormData, setActivityFormData] = useState({
     subjectId: '',
     topicIds: [] as string[],

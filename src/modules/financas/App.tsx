@@ -73,6 +73,19 @@ const FinancasApp: React.FC = () => {
     localStorage.setItem('isSidebarCollapsed_financas', String(isSidebarCollapsed));
   }, [isSidebarCollapsed]);
 
+  useEffect(() => {
+    const handleShowroomSetRoute = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      if (customEvent.detail && customEvent.detail.route === 'financas' && customEvent.detail.tab) {
+        setActiveTab(customEvent.detail.tab);
+      }
+    };
+    window.addEventListener('showroom-set-route', handleShowroomSetRoute);
+    return () => {
+      window.removeEventListener('showroom-set-route', handleShowroomSetRoute);
+    };
+  }, []);
+
   const [inCategories, setInCategories] = useState<FinCategoria[]>(DEFAULT_ENTRADA_CATEGORIES);
   const [outCategories, setOutCategories] = useState<FinCategoria[]>(DEFAULT_SAIDA_CATEGORIES);
   const [paymentMethods, setPaymentMethods] = useState<FinCategoria[]>(DEFAULT_PAYMENT_METHODS);
@@ -530,6 +543,7 @@ const FinancasApp: React.FC = () => {
             <div className="flex flex-col gap-1 mb-4">
               <button 
                 onClick={() => setActiveTab('dashboard')} 
+                data-showroom="financas-sidebar-dashboard"
                 className={`rounded-xl flex items-center transition-all text-xs font-bold uppercase tracking-wider ${isSidebarCollapsed ? 'justify-center p-3' : 'p-3 gap-3'} ${activeTab === 'dashboard' ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/20' : 'text-zinc-500 hover:bg-white dark:hover:bg-zinc-800'}`}
                 title={isSidebarCollapsed ? 'Dashboard' : ''}
               >
@@ -538,6 +552,7 @@ const FinancasApp: React.FC = () => {
               </button>
               <button 
                 onClick={() => setActiveTab('anual')} 
+                data-showroom="financas-sidebar-anual"
                 className={`rounded-xl flex items-center transition-all text-xs font-bold uppercase tracking-wider ${isSidebarCollapsed ? 'justify-center p-3' : 'p-3 gap-3'} ${activeTab === 'anual' ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/20' : 'text-zinc-500 hover:bg-white dark:hover:bg-zinc-800'}`}
                 title={isSidebarCollapsed ? 'Resumo Anual' : ''}
               >

@@ -850,8 +850,12 @@ const CalendarView: React.FC<CalendarViewProps> = ({
             {(['semanal', 'mensal', 'anual', 'lista'] as ViewMode[]).map((mode) => (
               <button
                 key={mode}
-                data-showroom={mode === 'lista' ? 'planner-list-view-btn' : undefined}
-                onClick={() => setViewMode(mode)}
+                onClick={() => {
+                  setViewMode(mode);
+                  if (mode === 'lista') {
+                    setCurrentDate(new Date());
+                  }
+                }}
                 className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === mode ? 'bg-zinc-950 dark:bg-zinc-700 text-white shadow-md' : 'text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200'}`}
               >
                 {mode}

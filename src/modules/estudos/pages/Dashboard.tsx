@@ -100,7 +100,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   const [isEditMode, setIsEditMode] = useState(false);
   const [fullscreenWidgetId, setFullscreenWidgetId] = useState<string | null>(null);
   const [activeWeeklyPeriod, setActiveWeeklyPeriod] = useState<'weekly' | 'monthly' | 'annual'>('weekly');
-  const [activeWeeklyTab, setActiveWeeklyTab] = useState<'hours' | 'questions'>('hours');
+  const [activeWeeklyTab, setActiveWeeklyTab] = useState<'hours' | 'questions' | 'desempenho'>('hours');
   const [activeAnalysisTab, setActiveAnalysisTab] = useState<'questions' | 'time' | 'performance'>('questions');
 
   const isDarkMode = theme === 'dark';
@@ -302,14 +302,14 @@ const Dashboard: React.FC<DashboardProps> = ({
     return { total: done, goal: globalDailyGoal || 20 };
   }, [sessions, globalDailyGoal]);
 
-  const { weeklyData, weeklyQuestionsData } = useMemo(() => {
+  const { weeklyData, weeklyQuestionsData, weeklyAccuracyData } = useMemo(() => {
     const today = new Date();
 
     if (activeWeeklyPeriod === 'weekly') {
       // Weekly view: Rolling last 7 days
       const days = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
-      const dataMap: { n: string; h: number; q: number; dateStr: string }[] = [];
+      const dataMap: { n: string; h: number; q: number; correct: number; done: number; dateStr: string }[] = [];
       for (let i = 6; i >= 0; i--) {
         const d = new Date(today);
         d.setDate(today.getDate() - i);
@@ -318,6 +318,8 @@ const Dashboard: React.FC<DashboardProps> = ({
           n: days[d.getDay()],
           h: 0,
           q: 0,
+          correct: 0,
+          done: 0,
           dateStr: dStr
         });
       }
@@ -329,11 +331,17 @@ const Dashboard: React.FC<DashboardProps> = ({
         if (match) {
           match.h += (Number(s.durationInMinutes) || 0) / 60;
           match.q += (Number(s.questionsDone) || 0);
+          match.correct += (Number(s.questionsCorrect) || 0);
+          match.done += (Number(s.questionsDone) || 0);
         }
       });
 
-      const finalData = dataMap.map(d => ({ ...d, h: parseFloat(d.h.toFixed(2)) }));
-      return { weeklyData: finalData, weeklyQuestionsData: finalData };
+      const finalData = dataMap.map(d => ({ 
+        ...d, 
+        h: parseFloat(d.h.toFixed(2)), 
+        acc: d.done > 0 ? Math.round((d.correct / d.done) * 100) : 0 
+      }));
+      return { weeklyData: finalData, weeklyQuestionsData: finalData, weeklyAccuracyData: finalData };
     }
 
     else if (activeWeeklyPeriod === 'monthly') {
@@ -349,7 +357,9 @@ const Dashboard: React.FC<DashboardProps> = ({
       const dataMap = Array.from({ length: weeksInMonth }, (_, i) => ({
         n: `Sem ${i + 1}`,
         h: 0,
-        q: 0
+        q: 0,
+        correct: 0,
+        done: 0
       }));
 
       relevantSessions.forEach(s => {
@@ -362,18 +372,24 @@ const Dashboard: React.FC<DashboardProps> = ({
           if (weekIndex < weeksInMonth) {
             dataMap[weekIndex].h += (Number(s.durationInMinutes) || 0) / 60;
             dataMap[weekIndex].q += (Number(s.questionsDone) || 0);
+            dataMap[weekIndex].correct += (Number(s.questionsCorrect) || 0);
+            dataMap[weekIndex].done += (Number(s.questionsDone) || 0);
           }
         }
       });
 
-      const finalData = dataMap.map(d => ({ ...d, h: parseFloat(d.h.toFixed(2)) }));
-      return { weeklyData: finalData, weeklyQuestionsData: finalData };
+      const finalData = dataMap.map(d => ({ 
+        ...d, 
+        h: parseFloat(d.h.toFixed(2)), 
+        acc: d.done > 0 ? Math.round((d.correct / d.done) * 100) : 0 
+      }));
+      return { weeklyData: finalData, weeklyQuestionsData: finalData, weeklyAccuracyData: finalData };
     }
 
     else {
       // Annual view: Months of current year
       const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-      const dataMap = months.map(month => ({ n: month, h: 0, q: 0 }));
+      const dataMap = months.map(month => ({ n: month, h: 0, q: 0, correct: 0, done: 0 }));
       const currentYear = today.getFullYear();
 
       relevantSessions.forEach(s => {
@@ -385,11 +401,17 @@ const Dashboard: React.FC<DashboardProps> = ({
           const monthIdx = sMonth - 1;
           dataMap[monthIdx].h += (Number(s.durationInMinutes) || 0) / 60;
           dataMap[monthIdx].q += (Number(s.questionsDone) || 0);
+          dataMap[monthIdx].correct += (Number(s.questionsCorrect) || 0);
+          dataMap[monthIdx].done += (Number(s.questionsDone) || 0);
         }
       });
 
-      const finalData = dataMap.map(d => ({ ...d, h: parseFloat(d.h.toFixed(2)) }));
-      return { weeklyData: finalData, weeklyQuestionsData: finalData };
+      const finalData = dataMap.map(d => ({ 
+        ...d, 
+        h: parseFloat(d.h.toFixed(2)), 
+        acc: d.done > 0 ? Math.round((d.correct / d.done) * 100) : 0 
+      }));
+      return { weeklyData: finalData, weeklyQuestionsData: finalData, weeklyAccuracyData: finalData };
     }
   }, [relevantSessions, activeWeeklyPeriod]);
 
@@ -698,6 +720,12 @@ const Dashboard: React.FC<DashboardProps> = ({
                 >
                   Questões
                 </button>
+                <button
+                  onClick={() => setActiveWeeklyTab('desempenho')}
+                  className={`py-0.5 px-2 rounded-md text-[9px] font-bold uppercase tracking-wide transition-all ${activeWeeklyTab === 'desempenho' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-sm' : 'text-zinc-400 hover:bg-zinc-100/50'}`}
+                >
+                  Desempenho
+                </button>
               </div>
 
               <div className="flex items-center gap-0.5 bg-zinc-50 dark:bg-zinc-800/50 p-0.5 rounded-lg">
@@ -741,7 +769,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                     </AreaChart>
                   </ResponsiveContainer>
                 ) : <div className="h-full flex items-center justify-center text-xs text-zinc-400">Sem dados de tempo</div>
-              ) : (
+              ) : activeWeeklyTab === 'questions' ? (
                 weeklyQuestionsData.some(d => d.q > 0) ? (
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={weeklyQuestionsData} margin={{ top: 20, right: 0, bottom: 10, left: 0 }}>
@@ -761,6 +789,24 @@ const Dashboard: React.FC<DashboardProps> = ({
                     </BarChart>
                   </ResponsiveContainer>
                 ) : <div className="h-full flex items-center justify-center text-xs text-zinc-400">Sem questões feitas</div>
+              ) : (
+                weeklyAccuracyData.some(d => d.acc > 0) ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={weeklyAccuracyData} margin={{ top: 5, right: 0, bottom: 10, left: 0 }}>
+                      <defs>
+                        <linearGradient id="colorAcc" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                          <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
+                      <XAxis dataKey="n" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 600, fill: chartTextColor }} />
+                      <YAxis width={30} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: chartTextColor }} domain={[0, 100]} />
+                      <Tooltip contentStyle={{ fontSize: '11px', borderRadius: '12px', border: 'none', backgroundColor: isDarkMode ? '#0f172a' : '#fff', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }} formatter={(val: any) => `${val}%`} />
+                      <Area type="monotone" dataKey="acc" stroke="#10b981" fill="url(#colorAcc)" strokeWidth={3} />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                ) : <div className="h-full flex items-center justify-center text-xs text-zinc-400">Sem dados de desempenho</div>
               )}
             </div>
           </div>

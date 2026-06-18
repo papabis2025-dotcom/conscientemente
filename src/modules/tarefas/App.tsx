@@ -15,18 +15,6 @@ const TarefasApp: React.FC = () => {
     localStorage.setItem('isSidebarCollapsed_tarefas', String(isSidebarCollapsed));
   }, [isSidebarCollapsed]);
 
-  useEffect(() => {
-    const handleShowroomSetRoute = (e: Event) => {
-      const customEvent = e as CustomEvent;
-      if (customEvent.detail && customEvent.detail.route === 'tarefas' && customEvent.detail.tab) {
-        setActiveTab(customEvent.detail.tab);
-      }
-    };
-    window.addEventListener('showroom-set-route', handleShowroomSetRoute);
-    return () => {
-      window.removeEventListener('showroom-set-route', handleShowroomSetRoute);
-    };
-  }, []);
   
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);

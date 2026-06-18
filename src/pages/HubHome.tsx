@@ -181,7 +181,6 @@ const ModuleCard: React.FC<ModuleCardProps> = ({
 
   return (
     <div
-      data-showroom={`card-${module.id}`}
       onClick={handleClick}
       draggable={isEditMode}
       onDragStart={onDragStart}

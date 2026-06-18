@@ -12,7 +12,6 @@ import type { Session } from '@supabase/supabase-js';
 import { playSound } from './utils/audio';
 import { Brain } from 'lucide-react';
 import GlobalSidebar from './components/GlobalSidebar';
-import ShowroomWidget from './components/ShowroomWidget';
 
 interface SyncedPayload {
   updatedAt: number;
@@ -868,7 +867,6 @@ const App: React.FC = () => {
       <div className="flex-1 min-h-screen overflow-x-hidden relative">
         {pageContent}
       </div>
-      <ShowroomWidget />
     </div>
   );
 };

@@ -57,18 +57,6 @@ const SaudeApp: React.FC = () => {
     localStorage.setItem('isSidebarCollapsed_saude', String(isSidebarCollapsed));
   }, [isSidebarCollapsed]);
 
-  useEffect(() => {
-    const handleShowroomSetRoute = (e: Event) => {
-      const customEvent = e as CustomEvent;
-      if (customEvent.detail && customEvent.detail.route === 'saude' && customEvent.detail.tab) {
-        setActiveTab(customEvent.detail.tab);
-      }
-    };
-    window.addEventListener('showroom-set-route', handleShowroomSetRoute);
-    return () => {
-      window.removeEventListener('showroom-set-route', handleShowroomSetRoute);
-    };
-  }, []);
 
   // Handle navigation from hub calendar (opens specific tab)
   useEffect(() => {

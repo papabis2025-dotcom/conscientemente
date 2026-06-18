@@ -26,7 +26,7 @@ function getAccuracyText(accuracy: number, hasData: boolean): string {
 }
 
 const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions }) => {
-  const [sortBy, setSortBy] = useState<'name' | 'questions' | 'time' | 'accuracy' | 'weight' | 'priority'>('priority');
+  const [sortBy, setSortBy] = useState<'name' | 'questions' | 'questionsGoal' | 'time' | 'accuracy' | 'weight' | 'priority'>('priority');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
   // Dynamic weights loaded from localStorage with default sum of 100
@@ -121,6 +121,7 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions }) =
       let diff = 0;
       if (sortBy === 'name') diff = a.sub.name.localeCompare(b.sub.name);
       else if (sortBy === 'questions') diff = a.questions - b.questions;
+      else if (sortBy === 'questionsGoal') diff = a.questionsGoal - b.questionsGoal;
       else if (sortBy === 'time') diff = a.minutes - b.minutes;
       else if (sortBy === 'accuracy') diff = a.accuracy - b.accuracy;
       else if (sortBy === 'weight') diff = a.weight - b.weight;
@@ -182,7 +183,8 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions }) =
           <thead>
             <tr>
               {th('name', 'Disciplina')}
-              {th('questions', 'Questões', 'text-right')}
+              {th('questions', 'Resolvidas', 'text-right')}
+              {th('questionsGoal', 'Previstas', 'text-right')}
               {th('time', 'Tempo', 'text-right')}
               {th('accuracy', 'Aproveitamento', 'text-right')}
               {th('weight', 'Peso', 'text-right')}
@@ -201,12 +203,12 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions }) =
                 >
                   <td className="px-4 py-3">
                     <span className="font-bold text-zinc-800 dark:text-white">{sub.name}</span>
-                    {questionsGoal > 0 && (
-                      <span className="ml-2 text-[10px] text-zinc-400">Prev. {questionsGoal} Qs</span>
-                    )}
                   </td>
                   <td className={`px-4 py-3 text-right font-mono tabular-nums font-bold ${questions > 0 ? 'text-zinc-700 dark:text-zinc-200' : 'text-zinc-300 dark:text-zinc-600'}`}>
                     {questions > 0 ? questions : '—'}
+                  </td>
+                  <td className={`px-4 py-3 text-right font-mono tabular-nums ${questionsGoal > 0 ? 'text-zinc-700 dark:text-zinc-200' : 'text-zinc-300 dark:text-zinc-600'}`}>
+                    {questionsGoal > 0 ? questionsGoal : '—'}
                   </td>
                   <td className={`px-4 py-3 text-right font-mono tabular-nums ${minutes > 0 ? 'text-zinc-700 dark:text-zinc-200' : 'text-zinc-300 dark:text-zinc-600'}`}>
                     {minutes > 0 ? `${parseFloat((minutes / 60).toFixed(1))}h` : '—'}
@@ -232,7 +234,7 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions }) =
 
             {subjects.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-5 py-16 text-center text-zinc-400 text-sm">
+                <td colSpan={7} className="px-5 py-16 text-center text-zinc-400 text-sm">
                   Nenhuma disciplina encontrada. Adicione disciplinas e registre sessões de estudo para ver a análise.
                 </td>
               </tr>

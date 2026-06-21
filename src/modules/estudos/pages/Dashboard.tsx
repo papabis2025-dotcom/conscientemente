@@ -5,7 +5,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
   LabelList
 } from 'recharts';
-import { Eye, EyeOff, X, Trophy, Maximize2, Clock, Target, BookOpen, Check } from 'lucide-react';
+import { Eye, EyeOff, X, Trophy, Maximize2, Clock, Target, BookOpen, Check, AlertTriangle, AlertCircle } from 'lucide-react';
 
 import { Subject, StudySession, Concurso, Simulado, ScheduledStudy } from '../types';
 import { getColorHex } from '../utils/colors';
@@ -677,25 +677,63 @@ const Dashboard: React.FC<DashboardProps> = ({
           <div className="flex flex-col h-full gap-2">
             {upcomingReviews.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full opacity-60 space-y-2">
-                <div className="w-9 h-9 rounded-full bg-zinc-50 dark:bg-zinc-800 flex items-center justify-center text-zinc-500 shadow-sm"><Check className="w-5 h-5" /></div>
+                <div className="w-9 h-9 rounded-full bg-zinc-50 dark:bg-zinc-800 flex items-center justify-center text-zinc-500 shadow-sm">
+                  <Check className="w-5 h-5" />
+                </div>
                 <p className="text-[10px] font-bold text-zinc-600 dark:text-zinc-300">Nenhuma atividade pendente!</p>
               </div>
             ) : (
               <div className="space-y-2 overflow-y-auto max-h-full pr-1">
-                {upcomingReviews.slice(0, 3).map((rev, i) => (
-                  <div key={i} className="flex items-center gap-2.5 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl p-3">
-                    <div className={`w-8 h-8 rounded-full shrink-0 flex items-center justify-center text-[9px] font-black ${
-                      rev.daysUntil === 0 ? 'bg-rose-500 text-white' : rev.daysUntil <= 2 ? 'bg-amber-400 text-white' : 'bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300'
-                    }`}>
-                      {rev.daysUntil === 0 ? 'Hoje' : `${rev.daysUntil}d`}
+                {upcomingReviews.slice(0, 3).map((rev, i) => {
+                  const isToday = rev.daysUntil === 0;
+                  const isDelayed1d = rev.daysUntil === 1;
+                  const isDelayed2dPlus = rev.daysUntil >= 2;
+
+                  let cardClass = "flex items-center gap-2.5 rounded-xl p-3 border transition-all duration-300 ";
+                  if (isToday) {
+                    cardClass += "bg-zinc-50 dark:bg-zinc-800/30 border-zinc-100 dark:border-zinc-800 hover:border-zinc-200 dark:hover:border-zinc-700";
+                  } else if (isDelayed1d) {
+                    cardClass += "bg-amber-50/40 dark:bg-amber-955/15 border-amber-200/60 dark:border-amber-900/30 hover:border-amber-300 dark:hover:border-amber-850 shadow-sm shadow-amber-500/[0.02]";
+                  } else {
+                    cardClass += "bg-rose-50/40 dark:bg-rose-955/15 border-rose-200/60 dark:border-rose-900/40 hover:border-rose-300 dark:hover:border-rose-850 shadow-sm shadow-rose-500/[0.03]";
+                  }
+
+                  let badgeColorClass = "";
+                  if (isToday) {
+                    badgeColorClass = "bg-blue-500 text-white font-black";
+                  } else if (isDelayed1d) {
+                    badgeColorClass = "bg-amber-500 text-white font-black shadow-sm shadow-amber-500/20";
+                  } else {
+                    badgeColorClass = "bg-rose-600 text-white font-black shadow-sm shadow-rose-600/30 animate-pulse";
+                  }
+
+                  return (
+                    <div key={i} className={cardClass}>
+                      <div className={`w-8 h-8 rounded-full shrink-0 flex items-center justify-center text-[9px] ${badgeColorClass}`}>
+                        {isToday ? 'Hoje' : `${rev.daysUntil}d`}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[11px] font-bold text-zinc-700 dark:text-zinc-200 truncate">{rev.subjectName}</p>
+                        <p className="text-[9px] text-zinc-400 dark:text-zinc-550 truncate mt-0.5">{rev.topicName}</p>
+                      </div>
+                      {isToday ? (
+                        <span className="shrink-0 text-[8px] font-black uppercase text-zinc-400 bg-zinc-100 dark:bg-zinc-700 px-2 py-0.5 rounded-full">
+                          {rev.reviewType}
+                        </span>
+                      ) : isDelayed1d ? (
+                        <span className="shrink-0 flex items-center gap-0.5 text-[8px] font-black uppercase text-amber-700 bg-amber-100 dark:text-amber-300 dark:bg-amber-900/50 px-2 py-0.5 rounded-full border border-amber-200/50 dark:border-amber-800/40">
+                          <AlertCircle size={9} />
+                          Atrasada
+                        </span>
+                      ) : (
+                        <span className="shrink-0 flex items-center gap-0.5 text-[8px] font-black uppercase text-rose-700 bg-rose-100 dark:text-rose-300 dark:bg-rose-900/55 px-2 py-0.5 rounded-full border border-rose-200/50 dark:border-rose-800/40 animate-pulse">
+                          <AlertTriangle size={9} className="animate-bounce text-rose-500" />
+                          Atrasada
+                        </span>
+                      )}
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[11px] font-bold text-zinc-700 dark:text-zinc-200 truncate">{rev.subjectName}</p>
-                      <p className="text-[9px] text-zinc-400 truncate mt-0.5">{rev.topicName}</p>
-                    </div>
-                    <span className="shrink-0 text-[8px] font-black uppercase text-zinc-400 bg-zinc-100 dark:bg-zinc-700 px-2 py-0.5 rounded-full">{rev.reviewType}</span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

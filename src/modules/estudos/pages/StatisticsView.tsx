@@ -1,11 +1,14 @@
 
 import React, { useMemo, useState } from 'react';
-import { Subject, StudySession } from '../types';
+import { Subject, StudySession, Concurso } from '../types';
 import { ChevronDown, ChevronRight, Trophy } from 'lucide-react';
 
 interface StatisticsViewProps {
   subjects: Subject[];
   sessions: StudySession[];
+  concursos?: Concurso[];
+  selectedConcursoId?: string | 'all';
+  onSelectConcursoId?: (id: string | 'all') => void;
 }
 
 function getAccuracyBg(accuracy: number, hasData: boolean): string {
@@ -25,7 +28,7 @@ function getAccuracyText(accuracy: number, hasData: boolean): string {
   return 'text-emerald-700 dark:text-emerald-300 font-bold';
 }
 
-const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions }) => {
+const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, concursos, selectedConcursoId, onSelectConcursoId }) => {
   const [sortBy, setSortBy] = useState<'name' | 'questions' | 'questionsGoal' | 'time' | 'accuracy' | 'weight' | 'priority'>('priority');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
@@ -147,9 +150,24 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions }) =
     <div className="space-y-6 animate-in fade-in duration-500 pb-10">
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 px-1">
         <div>
-          <h2 className="text-2xl font-black text-zinc-800 dark:text-white tracking-tight uppercase">
-            Análise Estatística
-          </h2>
+          <div className="flex flex-wrap items-center gap-3">
+            <h2 className="text-2xl font-black text-zinc-800 dark:text-white tracking-tight uppercase">
+              Análise Estatística
+            </h2>
+            {concursos && onSelectConcursoId && (
+              <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-1.5 flex items-center gap-2 shadow-sm">
+                <Trophy size={14} className="text-amber-500" />
+                <select
+                  value={selectedConcursoId}
+                  onChange={(e) => onSelectConcursoId(e.target.value as string | 'all')}
+                  className="bg-transparent border-none outline-none text-xs font-bold text-zinc-800 dark:text-white cursor-pointer w-32 uppercase tracking-wide"
+                >
+                  <option value="all">Visão Global</option>
+                  {concursos.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </div>
+            )}
+          </div>
           <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">Prioridade é um cálculo balanceado para focar no que mais precisa de atenção.</p>
         </div>
 

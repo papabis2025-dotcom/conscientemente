@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Subject, ScheduledStudy, ActivityType, Topic, StudySession, Simulado } from '../types';
 import { getBadgeStyle } from '../utils/colors';
-import { FileText, Layers, Video, BookOpen, Clipboard, Book, Clock, RefreshCw } from 'lucide-react';
+import { FileText, Layers, Video, BookOpen, Clipboard, Book, Clock, RefreshCw, Sparkles } from 'lucide-react';
 
 interface CalendarViewProps {
   subjects: Subject[]; // For dropdown (filtered)
@@ -70,6 +70,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
 
   const [formData, setFormData] = useState({
     subjectId: '',
+    subjectIds: [] as string[],
     topicIds: [] as string[],
     activityTypes: ['Leitura'] as string[],
     duration: '',
@@ -98,6 +99,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     setEditingTask(null);
     setFormData({
       subjectId: '',
+      subjectIds: [],
       topicIds: [],
       activityTypes: ['Leitura'],
       duration: '',
@@ -110,7 +112,9 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   };
 
   const handleSave = async () => {
-    if (!formData.subjectId || selectedDayKey === null) return;
+    const isAulao = formData.activityTypes.includes('Aulão de Revisão');
+    const selectedSubjects = isAulao ? formData.subjectIds : (formData.subjectId ? [formData.subjectId] : []);
+    if (selectedSubjects.length === 0 || selectedDayKey === null) return;
 
     const durationVal = parseInt(formData.duration) || 0;
     const selectedTypes = formData.activityTypes;
@@ -119,77 +123,99 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     const questionsCorrectVal = hasQuestions ? (parseInt(formData.questionsCorrect) || undefined) : undefined;
     const activityTypesStr = selectedTypes.join(', ');
 
-    const selectedTopicIds = formData.topicIds;
+    const selectedTopicIds = isAulao ? [] : formData.topicIds;
     const topicIdsToSave = selectedTopicIds.length > 0 ? selectedTopicIds : [undefined];
-    const count = topicIdsToSave.length;
 
-    // 1. Clean up old entries if editing
+    // 1. In-place update for simple single-topic tasks (to prevent duplication)
+    if (editingTask && !isAulao && selectedSubjects.length === 1 && topicIdsToSave.length === 1 && !(editingTask as any).isGroupedVirtual) {
+      const subId = selectedSubjects[0];
+      const topicId = topicIdsToSave[0];
+      const updates: Partial<ScheduledStudy> = {
+        date: selectedDayKey,
+        subjectId: subId,
+        topicId: topicId,
+        activityType: activityTypesStr,
+        notes: formData.notes,
+        durationInMinutes: durationVal || undefined,
+        questionsDone: questionsDoneVal,
+        questionsCorrect: questionsCorrectVal,
+        status: formData.status
+      };
+      
+      await onUpdateScheduledStudy(editingTask.id, updates);
+      setShowModal(false);
+      setEditingTask(null);
+      return;
+    }
+
+    // 2. Clean up old entries if editing
     if (editingTask) {
       if (editingTask.notes) {
         const { groupId } = parseNotesGroup(editingTask.notes);
         if (groupId) {
           const groupTasks = scheduledStudies.filter(t => t.notes && parseNotesGroup(t.notes).groupId === groupId);
           for (const t of groupTasks) {
-            const res = onDelete(t.id);
-            if (res instanceof Promise) await res;
+            await onDelete(t.id);
           }
         } else {
-          const res = onDelete(editingTask.id);
-          if (res instanceof Promise) await res;
+          await onDelete(editingTask.id);
         }
       } else {
-        const res = onDelete(editingTask.id);
-        if (res instanceof Promise) await res;
+        await onDelete(editingTask.id);
       }
     }
 
-    // 2. Insert new entries
-    const newGroupId = count > 1 ? crypto.randomUUID() : null;
+    // 3. Insert new entries
+    const newGroupId = (selectedSubjects.length > 1 || topicIdsToSave.length > 1) ? crypto.randomUUID() : null;
     const notesToSave = newGroupId ? `[groupId:${newGroupId}] ${formData.notes}`.trim() : formData.notes;
 
-    const baseDuration = Math.floor(durationVal / count);
-    const remDuration = durationVal % count;
+    const totalCount = selectedSubjects.length * topicIdsToSave.length;
+    const baseDuration = Math.floor(durationVal / totalCount);
+    const remDuration = durationVal % totalCount;
 
-    const baseDone = questionsDoneVal !== undefined ? Math.floor(questionsDoneVal / count) : undefined;
-    const remDone = questionsDoneVal !== undefined ? questionsDoneVal % count : 0;
+    const baseDone = questionsDoneVal !== undefined ? Math.floor(questionsDoneVal / totalCount) : undefined;
+    const remDone = questionsDoneVal !== undefined ? questionsDoneVal % totalCount : 0;
 
-    const baseCorrect = questionsCorrectVal !== undefined ? Math.floor(questionsCorrectVal / count) : undefined;
-    const remCorrect = questionsCorrectVal !== undefined ? questionsCorrectVal % count : 0;
+    const baseCorrect = questionsCorrectVal !== undefined ? Math.floor(questionsCorrectVal / totalCount) : undefined;
+    const remCorrect = questionsCorrectVal !== undefined ? questionsCorrectVal % totalCount : 0;
 
     const newEntries: ScheduledStudy[] = [];
     const sessionsList: StudySession[] = [];
+    let itemIndex = 0;
 
-    for (let i = 0; i < count; i++) {
-      const itemDuration = i === 0 ? baseDuration + remDuration : baseDuration;
-      const itemDone = questionsDoneVal !== undefined ? (i === 0 ? baseDone! + remDone : baseDone) : undefined;
-      const itemCorrect = questionsCorrectVal !== undefined ? (i === 0 ? baseCorrect! + remCorrect : baseCorrect) : undefined;
-      const topicId = topicIdsToSave[i];
+    for (const subId of selectedSubjects) {
+      for (const topicId of topicIdsToSave) {
+        const itemDuration = itemIndex === 0 ? baseDuration + remDuration : baseDuration;
+        const itemDone = questionsDoneVal !== undefined ? (itemIndex === 0 ? baseDone! + remDone : baseDone) : undefined;
+        const itemCorrect = questionsCorrectVal !== undefined ? (itemIndex === 0 ? baseCorrect! + remCorrect : baseCorrect) : undefined;
+        itemIndex++;
 
-      if (formData.status === 'realizado') {
-        sessionsList.push({
-          id: count > 1 ? crypto.randomUUID() : (editingTask ? editingTask.id : crypto.randomUUID()),
-          subjectId: formData.subjectId,
-          topicId: topicId,
-          durationInMinutes: itemDuration,
-          date: new Date(`${selectedDayKey}T12:00:00`).toISOString(),
-          questionsDone: itemDone,
-          questionsCorrect: itemCorrect,
-          activityType: activityTypesStr,
-          notes: notesToSave
-        } as any);
-      } else {
-        newEntries.push({
-          id: crypto.randomUUID(),
-          date: selectedDayKey,
-          subjectId: formData.subjectId,
-          topicId: topicId,
-          activityType: activityTypesStr,
-          notes: notesToSave,
-          durationInMinutes: itemDuration || undefined,
-          questionsDone: itemDone,
-          questionsCorrect: itemCorrect,
-          status: formData.status
-        });
+        if (formData.status === 'realizado') {
+          sessionsList.push({
+            id: totalCount === 1 && editingTask ? editingTask.id : crypto.randomUUID(),
+            subjectId: subId,
+            topicId: topicId,
+            durationInMinutes: itemDuration,
+            date: new Date(`${selectedDayKey}T12:00:00`).toISOString(),
+            questionsDone: itemDone,
+            questionsCorrect: itemCorrect,
+            activityType: activityTypesStr,
+            notes: notesToSave
+          } as any);
+        } else {
+          newEntries.push({
+            id: crypto.randomUUID(),
+            date: selectedDayKey,
+            subjectId: subId,
+            topicId: topicId,
+            activityType: activityTypesStr,
+            notes: notesToSave,
+            durationInMinutes: itemDuration || undefined,
+            questionsDone: itemDone,
+            questionsCorrect: itemCorrect,
+            status: formData.status
+          });
+        }
       }
     }
 
@@ -204,26 +230,14 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     }
 
     if (newEntries.length > 0) {
-      let remainingStudies = [...scheduledStudies];
-      if (editingTask) {
-        if (editingTask.notes) {
-          const { groupId } = parseNotesGroup(editingTask.notes);
-          if (groupId) {
-            remainingStudies = remainingStudies.filter(t => !t.notes || parseNotesGroup(t.notes).groupId !== groupId);
-          } else {
-            remainingStudies = remainingStudies.filter(t => t.id !== editingTask.id);
-          }
-        } else {
-          remainingStudies = remainingStudies.filter(t => t.id !== editingTask.id);
-        }
-      }
-      onUpdateSchedule([...remainingStudies, ...newEntries]);
+      onUpdateSchedule([...scheduledStudies, ...newEntries]);
     }
 
-    setEditingTask(null);
     setShowModal(false);
+    setEditingTask(null);
     setFormData({
       subjectId: '',
+      subjectIds: [],
       topicIds: [],
       activityTypes: ['Leitura'],
       duration: '',
@@ -241,14 +255,12 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       if (groupId) {
         const groupTasks = scheduledStudies.filter(t => t.notes && parseNotesGroup(t.notes).groupId === groupId);
         for (const t of groupTasks) {
-          const res = onDelete(t.id);
-          if (res instanceof Promise) await res;
+          await onDelete(t.id);
         }
         return;
       }
     }
-    const res = onDelete(id);
-    if (res instanceof Promise) await res;
+    await onDelete(id);
   };
 
   const handleNavigate = (direction: number) => {
@@ -360,6 +372,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       case 'Leitura': return <BookOpen size={size} />;
       case 'Simulado': return <Clipboard size={size} />;
       case 'Revisão': return <RefreshCw size={size} />;
+      case 'Aulão de Revisão': return <Sparkles size={size} className="text-amber-500" />;
       default: return <Book size={size} />;
     }
   };
@@ -378,6 +391,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
 
     setFormData({
       subjectId: task.subjectId,
+      subjectIds: task.subjectId ? [task.subjectId] : [],
       topicIds: task.topicIds || (task.topicId ? [task.topicId] : []),
       activityTypes: types,
       duration: task.durationInMinutes?.toString() || '',
@@ -927,6 +941,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                         : ['Leitura'];
                       setFormData({
                         subjectId: task.subjectId,
+                        subjectIds: task.subjectId ? [task.subjectId] : [],
                         topicIds: task.topicIds || (task.topicId ? [task.topicId] : []),
                         activityTypes: types,
                         duration: task.durationInMinutes?.toString() || '',
@@ -997,6 +1012,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                     setEditingTask(null);
                     setFormData({
                       subjectId: '',
+                      subjectIds: [],
                       topicIds: [],
                       activityTypes: ['Leitura'],
                       duration: '',
@@ -1016,7 +1032,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                 <div>
                   <label className="text-[10px] font-black text-zinc-400 uppercase mb-2 block">Tipo de Atividade (Selecione uma ou mais)</label>
                   <div className="flex flex-wrap gap-2">
-                    {['Leitura', 'Questões', 'Flashcards', 'Aula', 'Simulado', 'Revisão'].map(type => {
+                    {['Leitura', 'Questões', 'Flashcards', 'Aula', 'Simulado', 'Revisão', 'Aulão de Revisão'].map(type => {
                       const isSelected = formData.activityTypes.includes(type);
                       return (
                         <button
@@ -1043,14 +1059,42 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                     })}
                   </div>
                 </div>
-                <div>
-                  <label className="text-[10px] font-black text-zinc-400 uppercase mb-1 block">Disciplina</label>
-                  <select value={formData.subjectId} onChange={(e) => setFormData({ ...formData, subjectId: e.target.value, topicIds: [] })} className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 border rounded-2xl outline-none text-sm dark:text-white">
-                    <option value="">Selecione...</option>
-                    {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                  </select>
-                </div>
-                {formData.subjectId && (
+                {formData.activityTypes.includes('Aulão de Revisão') ? (
+                  <div>
+                    <label className="text-[10px] font-black text-zinc-400 uppercase mb-1.5 block">Disciplinas (Selecione uma ou mais)</label>
+                    <div className="max-h-40 overflow-y-auto space-y-2 p-3 bg-zinc-50 dark:bg-zinc-800 border rounded-2xl outline-none custom-scrollbar">
+                      {subjects.map(s => {
+                        const isChecked = (formData.subjectIds || []).includes(s.id);
+                        return (
+                          <label key={s.id} className="flex items-center gap-2.5 text-xs font-bold dark:text-white cursor-pointer select-none hover:opacity-85 py-0.5">
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => {
+                                const current = formData.subjectIds || [];
+                                const next = isChecked
+                                  ? current.filter(id => id !== s.id)
+                                  : [...current, s.id];
+                                setFormData({ ...formData, subjectIds: next });
+                              }}
+                              className="rounded border-zinc-300 dark:border-zinc-700 text-zinc-900 focus:ring-zinc-500"
+                            />
+                            <span>{s.name}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <label className="text-[10px] font-black text-zinc-400 uppercase mb-1 block">Disciplina</label>
+                    <select value={formData.subjectId} onChange={(e) => setFormData({ ...formData, subjectId: e.target.value, subjectIds: e.target.value ? [e.target.value] : [], topicIds: [] })} className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 border rounded-2xl outline-none text-sm dark:text-white">
+                      <option value="">Selecione...</option>
+                      {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                    </select>
+                  </div>
+                )}
+                {!formData.activityTypes.includes('Aulão de Revisão') && formData.subjectId && (
                   <div className="animate-in fade-in slide-in-from-top-2">
                     <label className="text-[10px] font-bold text-zinc-400 uppercase mb-1.5 block font-mono">Assunto / Tópico (Selecione vários)</label>
                     <div className="max-h-40 overflow-y-auto space-y-2 p-3 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200/50 dark:border-zinc-800/80 rounded-2xl outline-none focus:ring-zinc-500 custom-scrollbar">
@@ -1133,7 +1177,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                   <textarea placeholder="Observações sobre o estudo..." value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 border rounded-2xl outline-none text-sm dark:text-white h-20 resize-none" />
                 </div>
 
-                <button onClick={handleSave} disabled={!formData.subjectId} className="w-full py-4 bg-zinc-900 dark:bg-zinc-700 text-white rounded-2xl text-[10px] font-black uppercase shadow-lg disabled:opacity-30 active:scale-95 transition-all mt-4">
+                <button onClick={handleSave} disabled={formData.activityTypes.includes('Aulão de Revisão') ? (formData.subjectIds || []).length === 0 : !formData.subjectId} className="w-full py-4 bg-zinc-900 dark:bg-zinc-700 text-white rounded-2xl text-[10px] font-black uppercase shadow-lg disabled:opacity-30 active:scale-95 transition-all mt-4">
                   {editingTask ? 'Salvar Alterações' : 'Salvar no Planner'}
                 </button>
               </div>

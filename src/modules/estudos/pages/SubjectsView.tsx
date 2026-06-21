@@ -15,7 +15,8 @@ import {
   CheckCircle,
   AlertTriangle,
   Trophy,
-  Bot
+  Bot,
+  GripVertical
 } from 'lucide-react';
 
 interface SubjectsViewProps {
@@ -72,6 +73,10 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
   const [editTopicTitle, setEditTopicTitle] = useState('');
   const [editingTopicOrderId, setEditingTopicOrderId] = useState<string | null>(null);
   const [editTopicOrder, setEditTopicOrder] = useState<number>(1);
+
+  // Drag & Drop state for subject reordering
+  const [draggedSubjectId, setDraggedSubjectId] = useState<string | null>(null);
+  const [dragOverSubjectId, setDragOverSubjectId] = useState<string | null>(null);
 
   const colorPickerRef = useRef<HTMLDivElement>(null);
 
@@ -194,7 +199,11 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
   };
 
   const sortedSubjects = [...subjects].sort((a, b) => {
-    if (sortBy === 'default') return 0;
+    if (sortBy === 'default') {
+      const orderA = a.order ?? 9999;
+      const orderB = b.order ?? 9999;
+      return orderA - orderB;
+    }
     if (sortBy === 'name') {
       const compare = a.name.localeCompare(b.name, undefined, { numeric: true });
       return sortOrder === 'asc' ? compare : -compare;
@@ -223,16 +232,61 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
 
   const addSubject = () => {
     if (!newSubjectName.trim()) return;
+    const maxOrder = subjects.reduce((max, s) => Math.max(max, s.order ?? 0), 0);
     const newSub: Subject = {
       id: crypto.randomUUID(),
       name: newSubjectName,
       color: selectedColor,
+      order: maxOrder + 1,
       topics: []
     };
     onUpdateSubjects([...subjects, newSub]);
     setNewSubjectName('');
     const currentIndex = COLORS.indexOf(selectedColor);
     setSelectedColor(COLORS[(currentIndex + 1) % COLORS.length]);
+  };
+
+  // DnD handlers for subject row reordering
+  const handleSubjectDragStart = (e: React.DragEvent, id: string) => {
+    setDraggedSubjectId(id);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('subject-id', id);
+  };
+
+  const handleSubjectDragOver = (e: React.DragEvent, id: string) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (id !== draggedSubjectId) setDragOverSubjectId(id);
+  };
+
+  const handleSubjectDrop = (e: React.DragEvent, targetId: string) => {
+    e.preventDefault();
+    const sourceId = e.dataTransfer.getData('subject-id') || draggedSubjectId;
+    if (!sourceId || sourceId === targetId) {
+      setDraggedSubjectId(null);
+      setDragOverSubjectId(null);
+      return;
+    }
+    // Re-order: insert source before target in the sorted array
+    const sorted = [...subjects].sort((a, b) => (a.order ?? 9999) - (b.order ?? 9999));
+    const sourceIdx = sorted.findIndex(s => s.id === sourceId);
+    const targetIdx = sorted.findIndex(s => s.id === targetId);
+    if (sourceIdx === -1 || targetIdx === -1) return;
+    const reordered = [...sorted];
+    const [moved] = reordered.splice(sourceIdx, 1);
+    reordered.splice(targetIdx, 0, moved);
+    const updated = subjects.map(s => {
+      const newIdx = reordered.findIndex(r => r.id === s.id);
+      return { ...s, order: newIdx + 1 };
+    });
+    onUpdateSubjects(updated);
+    setDraggedSubjectId(null);
+    setDragOverSubjectId(null);
+  };
+
+  const handleSubjectDragEnd = () => {
+    setDraggedSubjectId(null);
+    setDragOverSubjectId(null);
   };
 
   const deleteSubject = (id: string, e: React.MouseEvent) => {
@@ -473,7 +527,9 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
           <table className="w-full text-left border-collapse table-fixed">
             <thead>
               <tr className="border-b border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-800/50">
-                <th className="w-8 px-4 py-4 text-[10px] font-bold uppercase text-zinc-400 tracking-wider"></th>
+                <th className="w-8 px-2 py-4 text-[10px] font-bold uppercase text-zinc-400 tracking-wider">
+                  {sortBy === 'default' && <GripVertical size={13} className="text-zinc-300 mx-auto" />}
+                </th>
                 <th className="px-4 py-4 text-[10px] font-bold uppercase text-zinc-400 tracking-wider cursor-pointer hover:text-zinc-900 dark:text-zinc-300" onClick={() => { setSortBy('name'); setSortOrder(o => o === 'asc' ? 'desc' : 'asc'); }}>
                   Disciplina {sortBy === 'name' && (sortOrder === 'asc' ? '↓' : '↑')}
                 </th>
@@ -498,11 +554,28 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                 return (
                   <React.Fragment key={subject.id}>
                     <tr
-                      className={`hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer group ${isExpanded ? 'bg-zinc-50 dark:bg-zinc-800/30' : ''}`}
+                      className={`hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer group ${
+                        isExpanded ? 'bg-zinc-50 dark:bg-zinc-800/30' : ''
+                      } ${
+                        dragOverSubjectId === subject.id && sortBy === 'default' ? 'border-t-2 border-blue-400' : ''
+                      } ${
+                        draggedSubjectId === subject.id ? 'opacity-40' : ''
+                      }`}
                       onClick={() => toggleExpand(subject.id)}
+                      draggable={sortBy === 'default'}
+                      onDragStart={sortBy === 'default' ? (e) => handleSubjectDragStart(e, subject.id) : undefined}
+                      onDragOver={sortBy === 'default' ? (e) => handleSubjectDragOver(e, subject.id) : undefined}
+                      onDrop={sortBy === 'default' ? (e) => handleSubjectDrop(e, subject.id) : undefined}
+                      onDragEnd={sortBy === 'default' ? handleSubjectDragEnd : undefined}
                     >
-                      <td className="px-4 py-3 w-10">
-                        {isExpanded ? <ChevronDown size={15} className="text-zinc-400" /> : <ChevronRight size={15} className="text-zinc-400" />}
+                      <td className="px-2 py-3 w-10">
+                        {sortBy === 'default' ? (
+                          <div className="flex items-center gap-1">
+                            <GripVertical size={14} className="text-zinc-300 dark:text-zinc-600 cursor-grab active:cursor-grabbing shrink-0" />
+                          </div>
+                        ) : (
+                          isExpanded ? <ChevronDown size={15} className="text-zinc-400" /> : <ChevronRight size={15} className="text-zinc-400" />
+                        )}
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">

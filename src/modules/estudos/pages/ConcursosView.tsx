@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { AlertTriangle, Target, Edit2, Trash2, BookOpen } from 'lucide-react';
+import { AlertTriangle, Target, Edit2, Trash2, BookOpen, Image as ImageIcon, X } from 'lucide-react';
 import { Concurso } from '../types';
 
 interface ConcursosViewProps {
@@ -15,6 +15,7 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
   const [banca, setBanca] = useState('');
   const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
   const [targetDate, setTargetDate] = useState('');
+  const [newImageUrl, setNewImageUrl] = useState('');
 
   // New Subject State
   const [newSubjects, setNewSubjects] = useState<{ name: string, goal: number, weight: number }[]>([]);
@@ -64,10 +65,11 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
       banca: banca,
       startDate: new Date(`${startDate}T12:00:00`).toISOString(),
       subjects: subjectsList,
-      targetDate: targetDate ? new Date(`${targetDate}T12:00:00`).toISOString() : undefined
+      targetDate: targetDate ? new Date(`${targetDate}T12:00:00`).toISOString() : undefined,
+      imageUrl: newImageUrl.trim() || undefined
     };
     onUpdateConcursos([...concursos, newConc]);
-    setNewConcName(''); setBanca(''); setStartDate(new Date().toISOString().split('T')[0]); setTargetDate(''); setIsAdding(false);
+    setNewConcName(''); setBanca(''); setStartDate(new Date().toISOString().split('T')[0]); setTargetDate(''); setIsAdding(false); setNewImageUrl('');
     setNewSubjects([]);
   };
 
@@ -77,7 +79,8 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
       name: conc.name,
       banca: conc.banca,
       startDate: conc.startDate.split('T')[0], // Extract YYYY-MM-DD
-      targetDate: conc.targetDate ? conc.targetDate.split('T')[0] : ''
+      targetDate: conc.targetDate ? conc.targetDate.split('T')[0] : '',
+      imageUrl: conc.imageUrl || ''
     });
   };
 
@@ -91,7 +94,8 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
           name: editFormData.name || c.name,
           banca: editFormData.banca || c.banca,
           startDate: editFormData.startDate ? new Date(`${editFormData.startDate}T12:00:00`).toISOString() : c.startDate,
-          targetDate: editFormData.targetDate ? new Date(`${editFormData.targetDate}T12:00:00`).toISOString() : undefined
+          targetDate: editFormData.targetDate ? new Date(`${editFormData.targetDate}T12:00:00`).toISOString() : undefined,
+          imageUrl: (editFormData.imageUrl !== undefined ? editFormData.imageUrl : c.imageUrl) || undefined
         };
       }
       return c;
@@ -143,6 +147,13 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
             <div>
               <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1.5 block">Data da Prova (Alvo)</label>
               <input type="date" value={targetDate} onChange={(e) => setTargetDate(e.target.value)} className="w-full px-4 py-3 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-2xl outline-none focus:ring-2 focus:ring-zinc-500 text-zinc-800 dark:text-white" />
+            </div>
+            <div className="md:col-span-2 lg:col-span-4">
+              <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1.5 block flex items-center gap-1.5"><ImageIcon size={12} /> Imagem do Concurso (URL opcional)</label>
+              <div className="flex gap-2 items-center">
+                <input type="text" placeholder="Cole a URL de uma imagem (ex: https://site.gov.br/logo.png)" value={newImageUrl} onChange={(e) => setNewImageUrl(e.target.value)} className="flex-1 px-4 py-3 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-2xl outline-none focus:ring-2 focus:ring-zinc-500 text-zinc-800 dark:text-white text-sm" />
+                {newImageUrl && <img src={newImageUrl} alt="preview" className="w-12 h-12 rounded-xl object-cover border border-zinc-200" onError={(e) => (e.currentTarget.style.display = 'none')} />}
+              </div>
             </div>
           </div>
 
@@ -217,12 +228,20 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
               <div className="flex justify-between items-start mb-6">
                 <div className="flex-1 mr-4">
                   {isEditing ? (
-                    <div className="space-y-4 bg-zinc-50 dark:bg-zinc-800/50 p-4 rounded-2xl">
-                      <input type="text" value={editFormData.name} onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })} className="w-full p-2 rounded-lg text-sm font-bold border border-zinc-200 dark:border-zinc-700" placeholder="Nome" />
-                      <input type="text" value={editFormData.banca} onChange={(e) => setEditFormData({ ...editFormData, banca: e.target.value })} className="w-full p-2 rounded-lg text-sm font-bold border border-zinc-200 dark:border-zinc-700" placeholder="Banca" />
+                    <div className="space-y-3 bg-zinc-50 dark:bg-zinc-800/50 p-4 rounded-2xl">
+                      <input type="text" value={editFormData.name} onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })} className="w-full p-2 rounded-lg text-sm font-bold border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 dark:text-white" placeholder="Nome" />
+                      <input type="text" value={editFormData.banca} onChange={(e) => setEditFormData({ ...editFormData, banca: e.target.value })} className="w-full p-2 rounded-lg text-sm font-bold border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 dark:text-white" placeholder="Banca" />
                       <div className="grid grid-cols-2 gap-2">
-                        <input type="date" value={editFormData.startDate} onChange={(e) => setEditFormData({ ...editFormData, startDate: e.target.value })} className="w-full p-2 rounded-lg text-xs font-bold border border-zinc-200 dark:border-zinc-700" />
-                        <input type="date" value={editFormData.targetDate} onChange={(e) => setEditFormData({ ...editFormData, targetDate: e.target.value })} className="w-full p-2 rounded-lg text-xs font-bold border border-zinc-200 dark:border-zinc-700" />
+                        <input type="date" value={editFormData.startDate} onChange={(e) => setEditFormData({ ...editFormData, startDate: e.target.value })} className="w-full p-2 rounded-lg text-xs font-bold border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 dark:text-white" />
+                        <input type="date" value={editFormData.targetDate} onChange={(e) => setEditFormData({ ...editFormData, targetDate: e.target.value })} className="w-full p-2 rounded-lg text-xs font-bold border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 dark:text-white" />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-black text-zinc-400 uppercase mb-1 block flex items-center gap-1"><ImageIcon size={10} /> URL da Imagem</label>
+                        <div className="flex gap-2 items-center">
+                          <input type="text" placeholder="URL da imagem..." value={editFormData.imageUrl || ''} onChange={(e) => setEditFormData({ ...editFormData, imageUrl: e.target.value })} className="flex-1 p-2 rounded-lg text-xs border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 dark:text-white" />
+                          {editFormData.imageUrl && <img src={editFormData.imageUrl} alt="preview" className="w-8 h-8 rounded-lg object-cover border border-zinc-200" onError={(e) => (e.currentTarget.style.display = 'none')} />}
+                          {editFormData.imageUrl && <button onClick={() => setEditFormData({ ...editFormData, imageUrl: '' })} className="text-zinc-400 hover:text-rose-500"><X size={14} /></button>}
+                        </div>
                       </div>
                       <div className="flex gap-2 justify-end">
                         <button onClick={() => setEditingId(null)} className="text-xs text-zinc-400 font-bold hover:text-zinc-600">Cancelar</button>
@@ -231,6 +250,11 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
                     </div>
                   ) : (
                     <>
+                      {conc.imageUrl && (
+                        <div className="mb-4 -mx-2">
+                          <img src={conc.imageUrl} alt={conc.name} className="w-full h-24 object-cover rounded-2xl" onError={(e) => (e.currentTarget.style.display = 'none')} />
+                        </div>
+                      )}
                       <div className="flex gap-2 mb-3">
                         <span className="text-[9px] font-black uppercase px-3 py-1 rounded-full bg-zinc-900 dark:bg-zinc-700 text-white tracking-widest">
                           Banca: {conc.banca}

@@ -1082,6 +1082,8 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
             return updated;
         });
 
+        let updatedSessionsForSync = sessions;
+
         if (merged.status === 'realizado') {
             const existingSession = sessions.find(s => s.id === id);
             const newSessionPayload: StudySession = {
@@ -1097,6 +1099,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
 
             if (existingSession) {
                 setSessions(prev => prev.map(s => s.id === id ? newSessionPayload : s));
+                updatedSessionsForSync = sessions.map(s => s.id === id ? newSessionPayload : s);
                 try {
                     await api.sessions.update(id, newSessionPayload);
                 } catch (e) {
@@ -1104,6 +1107,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                 }
             } else {
                 setSessions(prev => [...prev, newSessionPayload]);
+                updatedSessionsForSync = [...sessions, newSessionPayload];
                 try {
                     await api.sessions.create(newSessionPayload);
                 } catch (e) {
@@ -1114,6 +1118,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
             const existingSession = sessions.find(s => s.id === id);
             if (existingSession) {
                 setSessions(prev => prev.filter(s => s.id !== id));
+                updatedSessionsForSync = sessions.filter(s => s.id !== id);
                 try {
                     await api.sessions.delete(id);
                 } catch (e) {
@@ -1121,6 +1126,9 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                 }
             }
         }
+
+        const updatedScheduleForSync = scheduledStudies.map(s => s.id === id ? merged : s);
+        await syncPlannedReviewsDb(updatedSessionsForSync, updatedScheduleForSync, concursos);
 
         try {
             await api.schedule.update(id, updates);

@@ -28,6 +28,7 @@ export interface Concurso {
   targetDate?: string; // ISO date string
   subjects: Subject[];
   categoryId?: string;
+  imageUrl?: string; // Profile image URL or data URL
 }
 
 export interface Subject {
@@ -36,6 +37,7 @@ export interface Subject {
   color: string;
   questionsGoal?: number;  // Previsto no Edital
   weight?: number;          // Peso Total
+  order?: number;           // Display order (drag & drop)
   topics: Topic[];
 }
 

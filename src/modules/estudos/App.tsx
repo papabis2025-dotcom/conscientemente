@@ -70,6 +70,7 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
 
   const [activityFormData, setActivityFormData] = useState({
     subjectId: '',
+    subjectIds: [] as string[],
     topicIds: [] as string[],
     activityTypes: ['Questões'] as string[],
     duration: '',
@@ -79,30 +80,22 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
   });
 
   const handleSaveActivity = async () => {
-    if (!activityFormData.subjectId) return;
+    const isAulao = activityFormData.activityTypes.includes('Aulão de Revisão');
+    const selectedSubjects = isAulao ? activityFormData.subjectIds : (activityFormData.subjectId ? [activityFormData.subjectId] : []);
+    if (selectedSubjects.length === 0) return;
 
     const selectedTypes = activityFormData.activityTypes;
     const hasQuestions = selectedTypes.includes('Questões') || selectedTypes.includes('Flashcards') || selectedTypes.includes('Revisão');
     const qDone = hasQuestions ? (parseInt(activityFormData.questionsDone) || undefined) : undefined;
     const qCorrect = hasQuestions ? (parseInt(activityFormData.questionsCorrect) || undefined) : undefined;
 
-    const selectedTopicIds = activityFormData.topicIds;
+    const selectedTopicIds = isAulao ? [] : activityFormData.topicIds;
     const durationVal = parseInt(activityFormData.duration) || 0;
 
     try {
-      if (selectedTopicIds.length <= 1) {
-        await addSession({
-          id: crypto.randomUUID(),
-          subjectId: activityFormData.subjectId,
-          topicId: selectedTopicIds[0] || undefined,
-          durationInMinutes: durationVal,
-          date: new Date(`${activityFormData.date}T12:00:00`).toISOString(),
-          questionsDone: qDone,
-          questionsCorrect: qCorrect,
-          activityType: selectedTypes.join(', ')
-        });
-      } else {
-        const count = selectedTopicIds.length;
+      if (selectedSubjects.length > 1) {
+        // Multi-subject Aulão: split duration/questions across subjects
+        const count = selectedSubjects.length;
         const baseDuration = Math.floor(durationVal / count);
         const remDuration = durationVal % count;
 
@@ -121,8 +114,7 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
 
           sessionsList.push({
             id: crypto.randomUUID(),
-            subjectId: activityFormData.subjectId,
-            topicId: selectedTopicIds[i],
+            subjectId: selectedSubjects[i],
             durationInMinutes: itemDuration,
             date: new Date(`${activityFormData.date}T12:00:00`).toISOString(),
             questionsDone: itemDone,
@@ -130,13 +122,59 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
             activityType: selectedTypes.join(', ')
           });
         }
-
         await addSessionsBatch(sessionsList);
+      } else {
+        // Single subject (either single-subject Aulão or regular activity)
+        const subId = selectedSubjects[0];
+        if (selectedTopicIds.length <= 1) {
+          await addSession({
+            id: crypto.randomUUID(),
+            subjectId: subId,
+            topicId: selectedTopicIds[0] || undefined,
+            durationInMinutes: durationVal,
+            date: new Date(`${activityFormData.date}T12:00:00`).toISOString(),
+            questionsDone: qDone,
+            questionsCorrect: qCorrect,
+            activityType: selectedTypes.join(', ')
+          });
+        } else {
+          // Split across multiple topics
+          const count = selectedTopicIds.length;
+          const baseDuration = Math.floor(durationVal / count);
+          const remDuration = durationVal % count;
+
+          const baseDone = qDone !== undefined ? Math.floor(qDone / count) : undefined;
+          const remDone = qDone !== undefined ? qDone % count : 0;
+
+          const baseCorrect = qCorrect !== undefined ? Math.floor(qCorrect / count) : undefined;
+          const remCorrect = qCorrect !== undefined ? qCorrect % count : 0;
+
+          const sessionsList: StudySession[] = [];
+
+          for (let i = 0; i < count; i++) {
+            const itemDuration = i === 0 ? baseDuration + remDuration : baseDuration;
+            const itemDone = qDone !== undefined ? (i === 0 ? baseDone! + remDone : baseDone) : undefined;
+            const itemCorrect = qCorrect !== undefined ? (i === 0 ? baseCorrect! + remCorrect : baseCorrect) : undefined;
+
+            sessionsList.push({
+              id: crypto.randomUUID(),
+              subjectId: subId,
+              topicId: selectedTopicIds[i],
+              durationInMinutes: itemDuration,
+              date: new Date(`${activityFormData.date}T12:00:00`).toISOString(),
+              questionsDone: itemDone,
+              questionsCorrect: itemCorrect,
+              activityType: selectedTypes.join(', ')
+            });
+          }
+          await addSessionsBatch(sessionsList);
+        }
       }
 
       setShowAddModal(false);
       setActivityFormData({
         subjectId: '',
+        subjectIds: [],
         topicIds: [],
         activityTypes: ['Questões'],
         duration: '',
@@ -188,7 +226,7 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
           onUpdateTasks={setStudyTasks}
         />;
       case 'statistics':
-        return <StatisticsView subjects={filteredSubjects} sessions={sessions} />;
+        return <StatisticsView subjects={filteredSubjects} sessions={sessions} concursos={concursos} selectedConcursoId={selectedConcursoId} onSelectConcursoId={setSelectedConcursoId} />;
       case 'settings':
         return <SettingsView currentUserEmail={currentUser?.email || ''} />;
       default: return null;
@@ -240,7 +278,7 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
                 <div>
                   <label className="text-[10px] font-bold text-zinc-400 uppercase mb-2 block">Tipo de Atividade (Selecione uma ou mais)</label>
                   <div className="flex flex-wrap gap-2">
-                    {['Leitura', 'Questões', 'Flashcards', 'Aula', 'Simulado', 'Revisão'].map(type => {
+                    {['Leitura', 'Questões', 'Flashcards', 'Aula', 'Simulado', 'Revisão', 'Aulão de Revisão'].map(type => {
                       const isSelected = activityFormData.activityTypes.includes(type);
                       return (
                         <button
@@ -273,15 +311,43 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
                   <input type="date" value={activityFormData.date} onChange={(e) => setActivityFormData({ ...activityFormData, date: e.target.value })} className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 border-none rounded-2xl outline-none text-sm font-bold dark:text-white ring-1 ring-zinc-100 dark:ring-zinc-800 focus:ring-zinc-500" />
                 </div>
 
-                <div>
-                  <label className="text-[10px] font-bold text-zinc-400 uppercase mb-1.5 block">Disciplina</label>
-                  <select value={activityFormData.subjectId} onChange={(e) => setActivityFormData({ ...activityFormData, subjectId: e.target.value, topicIds: [] })} className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 border-none rounded-2xl outline-none text-sm font-bold dark:text-white ring-1 ring-zinc-100 dark:ring-zinc-800 focus:ring-zinc-500">
-                    <option value="">Selecione a matéria...</option>
-                    {filteredSubjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                  </select>
-                </div>
+                {activityFormData.activityTypes.includes('Aulão de Revisão') ? (
+                  <div>
+                    <label className="text-[10px] font-bold text-zinc-400 uppercase mb-1.5 block">Disciplinas (Selecione uma ou mais)</label>
+                    <div className="max-h-40 overflow-y-auto space-y-2 p-3 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200/50 dark:border-zinc-800/80 rounded-2xl ring-1 ring-zinc-100 dark:ring-zinc-800 custom-scrollbar">
+                      {filteredSubjects.map(s => {
+                        const isChecked = (activityFormData.subjectIds || []).includes(s.id);
+                        return (
+                          <label key={s.id} className="flex items-center gap-2.5 text-xs font-bold dark:text-white cursor-pointer select-none hover:opacity-85 py-0.5">
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => {
+                                const current = activityFormData.subjectIds || [];
+                                const next = isChecked
+                                  ? current.filter(id => id !== s.id)
+                                  : [...current, s.id];
+                                setActivityFormData({ ...activityFormData, subjectIds: next });
+                              }}
+                              className="rounded border-zinc-300 dark:border-zinc-700 text-zinc-900 focus:ring-zinc-500"
+                            />
+                            <span>{s.name}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <label className="text-[10px] font-bold text-zinc-400 uppercase mb-1.5 block">Disciplina</label>
+                    <select value={activityFormData.subjectId} onChange={(e) => setActivityFormData({ ...activityFormData, subjectId: e.target.value, subjectIds: e.target.value ? [e.target.value] : [], topicIds: [] })} className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 border-none rounded-2xl outline-none text-sm font-bold dark:text-white ring-1 ring-zinc-100 dark:ring-zinc-800 focus:ring-zinc-500">
+                      <option value="">Selecione a matéria...</option>
+                      {filteredSubjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                    </select>
+                  </div>
+                )}
 
-                {activityFormData.subjectId && (
+                {!activityFormData.activityTypes.includes('Aulão de Revisão') && activityFormData.subjectId && (
                   <div className="animate-in fade-in slide-in-from-top-2">
                     <label className="text-[10px] font-bold text-zinc-400 uppercase mb-1.5 block font-mono">Assunto / Tópico (Selecione vários)</label>
                     <div className="max-h-40 overflow-y-auto space-y-2 p-3 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200/50 dark:border-zinc-800/80 rounded-2xl ring-1 ring-zinc-100 dark:ring-zinc-800 focus:ring-zinc-500 custom-scrollbar">
@@ -339,7 +405,7 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
 
               <button
                 onClick={handleSaveActivity}
-                disabled={!activityFormData.subjectId}
+                disabled={activityFormData.activityTypes.includes('Aulão de Revisão') ? (activityFormData.subjectIds || []).length === 0 : !activityFormData.subjectId}
                 className="w-full py-4 bg-zinc-900 dark:bg-zinc-700 hover:bg-zinc-800 dark:hover:bg-zinc-600 text-white rounded-2xl text-[10px] font-bold uppercase shadow-lg shadow-zinc-900/10 dark:shadow-zinc-900/50 disabled:opacity-50 disabled:shadow-none active:scale-95 transition-all mt-4 flex items-center justify-center gap-2"
               >
                 <Save size={16} /> Salvar Registro

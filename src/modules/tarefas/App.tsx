@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { CheckSquare, ListTodo, Archive, LayoutTemplate, Plus, Calendar as CalendarIcon, Clock, Tag, ArrowDownAZ, CalendarDays, Trash2, Check, Repeat, ChevronLeft, ChevronRight, Menu } from 'lucide-react';
+import { CheckSquare, ListTodo, Archive, LayoutTemplate, Plus, Calendar as CalendarIcon, Clock, Tag, ArrowDownAZ, CalendarDays, Trash2, Check, Repeat, ChevronLeft, ChevronRight, Menu, Edit2 } from 'lucide-react';
 
 import { tarefasApi, Task } from './api';
 import { playSound } from '../../utils/audio';
@@ -42,6 +42,7 @@ const TarefasApp: React.FC = () => {
   const [editingTaskCategory, setEditingTaskCategory] = useState('Tarefa');
   const [editingTaskRecurrence, setEditingTaskRecurrence] = useState<'none' | 'days' | 'monthly'>('none');
   const [editingTaskRecurrenceValue, setEditingTaskRecurrenceValue] = useState<number>(1);
+  const [showRecurrenceConfirm, setShowRecurrenceConfirm] = useState(false);
 
   const handlePrevMonth = () => {
     setCalendarDate(new Date(calendarDate.getFullYear(), calendarDate.getMonth() - 1, 1));
@@ -164,6 +165,17 @@ const TarefasApp: React.FC = () => {
     e.preventDefault();
     if (!editingTask || !editingTaskText.trim()) return;
 
+    const isRecurring = editingTask.recurrenceType && editingTask.recurrenceType !== 'none';
+    if (isRecurring) {
+      setShowRecurrenceConfirm(true);
+    } else {
+      saveTaskEdit(false);
+    }
+  };
+
+  const saveTaskEdit = (updateAllFuture: boolean) => {
+    if (!editingTask) return;
+
     let dueTime = editingTaskTime;
     if (isEditingTaskRange && editingTaskEndDate) {
       dueTime = `range:${editingTaskEndDate}`;
@@ -178,16 +190,56 @@ const TarefasApp: React.FC = () => {
       recurrenceValue: editingTaskRecurrenceValue
     };
 
-    tarefasApi.update(editingTask.id, { ...updatedFields, dueTime }).catch(err => console.error('Error updating task:', err));
-    
     const updatedTask = {
       ...editingTask,
       ...updatedFields,
       endDate: isEditingTaskRange ? editingTaskEndDate : undefined
     };
-    
-    setTasks(prev => prev.map(t => t.id === editingTask.id ? updatedTask : t));
+
+    if (updateAllFuture) {
+      const oldText = editingTask.text;
+      const oldRecurrence = editingTask.recurrenceType;
+      const oldDueDate = editingTask.dueDate;
+
+      const futureTasksToUpdate = tasks.filter(t => 
+        t.text === oldText && 
+        t.recurrenceType === oldRecurrence && 
+        t.dueDate >= oldDueDate &&
+        t.id !== editingTask.id
+      );
+
+      // Update current
+      tarefasApi.update(editingTask.id, { ...updatedFields, dueTime }).catch(err => console.error('Error updating task:', err));
+
+      // Update future
+      const updatedFutureTasks = futureTasksToUpdate.map(t => {
+        const tUpdates = {
+          text: editingTaskText.trim(),
+          dueTime: isEditingTaskRange ? '' : editingTaskTime,
+          category: editingTaskCategory,
+          recurrenceType: editingTaskRecurrence,
+          recurrenceValue: editingTaskRecurrenceValue,
+          endDate: isEditingTaskRange ? editingTaskEndDate : undefined
+        };
+        tarefasApi.update(t.id, tUpdates).catch(err => console.error('Error updating future recurring task:', err));
+        return { ...t, ...tUpdates };
+      });
+
+      const futureIds = new Set(futureTasksToUpdate.map(t => t.id));
+      setTasks(prev => prev.map(t => {
+        if (t.id === editingTask.id) return updatedTask;
+        if (futureIds.has(t.id)) {
+          return updatedFutureTasks.find(ft => ft.id === t.id) || t;
+        }
+        return t;
+      }));
+    } else {
+      tarefasApi.update(editingTask.id, { ...updatedFields, dueTime }).catch(err => console.error('Error updating task:', err));
+      setTasks(prev => prev.map(t => t.id === editingTask.id ? updatedTask : t));
+    }
+
     setEditingTask(null);
+    setShowRecurrenceConfirm(false);
   };
 
   const handleDeleteEditingTask = () => {
@@ -309,8 +361,26 @@ const TarefasApp: React.FC = () => {
       >
         <Check size={14} strokeWidth={3} className={task.completed ? 'opacity-100' : 'opacity-0'} />
       </button>
-
-      <div className="flex-1 min-w-0">
+      <div 
+        className="flex-1 min-w-0 cursor-pointer"
+        onClick={() => {
+          setEditingTask(task);
+          setEditingTaskText(task.text);
+          setEditingTaskDate(task.dueDate);
+          if (task.endDate) {
+            setIsEditingTaskRange(true);
+            setEditingTaskEndDate(task.endDate);
+            setEditingTaskTime('');
+          } else {
+            setIsEditingTaskRange(false);
+            setEditingTaskEndDate('');
+            setEditingTaskTime(task.dueTime || '');
+          }
+          setEditingTaskCategory(task.category);
+          setEditingTaskRecurrence(task.recurrenceType || 'none');
+          setEditingTaskRecurrenceValue(task.recurrenceValue || 1);
+        }}
+      >
         <p className={`text-sm font-semibold truncate transition-all ${task.completed ? 'text-zinc-400 line-through' : 'text-zinc-800 dark:text-zinc-200'}`}>
           {task.text}
         </p>
@@ -351,13 +421,38 @@ const TarefasApp: React.FC = () => {
         </div>
       </div>
 
-      <button 
-        onClick={() => deleteTask(task.id)}
-        className="opacity-0 group-hover:opacity-100 flex-shrink-0 p-1.5 text-zinc-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950 rounded transition-all"
-        title="Excluir tarefa"
-      >
-        <Trash2 size={16} />
-      </button>
+      <div className="opacity-0 group-hover:opacity-100 flex-shrink-0 flex items-center gap-1">
+        <button 
+          onClick={() => {
+            setEditingTask(task);
+            setEditingTaskText(task.text);
+            setEditingTaskDate(task.dueDate);
+            if (task.endDate) {
+              setIsEditingTaskRange(true);
+              setEditingTaskEndDate(task.endDate);
+              setEditingTaskTime('');
+            } else {
+              setIsEditingTaskRange(false);
+              setEditingTaskEndDate('');
+              setEditingTaskTime(task.dueTime || '');
+            }
+            setEditingTaskCategory(task.category);
+            setEditingTaskRecurrence(task.recurrenceType || 'none');
+            setEditingTaskRecurrenceValue(task.recurrenceValue || 1);
+          }}
+          className="p-1.5 text-zinc-400 hover:text-blue-500 hover:bg-blue-55 dark:hover:bg-blue-950 rounded transition-all"
+          title="Editar tarefa"
+        >
+          <Edit2 size={16} />
+        </button>
+        <button 
+          onClick={() => deleteTask(task.id)}
+          className="p-1.5 text-zinc-400 hover:text-rose-500 hover:bg-rose-55 dark:hover:bg-rose-955 rounded transition-all"
+          title="Excluir tarefa"
+        >
+          <Trash2 size={16} />
+        </button>
+      </div>
     </li>
   );
 
@@ -1066,6 +1161,46 @@ const TarefasApp: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Confirmação de Recorrência */}
+      {showRecurrenceConfirm && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-zinc-950/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-zinc-900 w-full max-w-sm rounded-[2rem] p-6 shadow-2xl relative animate-in zoom-in-95 duration-200 text-center">
+            <div className="w-12 h-12 rounded-full bg-rose-100 dark:bg-rose-500/20 text-rose-600 flex items-center justify-center mx-auto mb-4">
+              <Repeat size={20} />
+            </div>
+            <h4 className="text-base font-black text-zinc-900 dark:text-white mb-2 uppercase tracking-wide">
+              Série Recorrente
+            </h4>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-6">
+              Esta é uma tarefa recorrente. Deseja atualizar todas as demais tarefas geradas a partir desta série ou apenas a atual?
+            </p>
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={() => saveTaskEdit(true)}
+                className="w-full py-3 bg-rose-500 hover:bg-rose-600 text-white rounded-xl font-bold uppercase tracking-wider text-[10px] transition-all shadow-md shadow-rose-500/20"
+              >
+                Atualizar todas as tarefas futuras
+              </button>
+              <button
+                type="button"
+                onClick={() => saveTaskEdit(false)}
+                className="w-full py-3 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-850 dark:text-zinc-200 rounded-xl font-bold uppercase tracking-wider text-[10px] transition-all border border-zinc-200 dark:border-zinc-700"
+              >
+                Atualizar apenas esta tarefa
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowRecurrenceConfirm(false)}
+                className="w-full py-3 bg-transparent text-zinc-400 hover:text-zinc-650 dark:hover:text-zinc-300 font-bold uppercase tracking-wider text-[9px] transition-all"
+              >
+                Cancelar
+              </button>
+            </div>
           </div>
         </div>
       )}

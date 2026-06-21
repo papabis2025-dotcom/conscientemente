@@ -284,8 +284,11 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                     const isSimuladoSession = (s: StudySession) => s.isSimulado || s.activityType === 'Simulado';
                     // Also exclude sessions that are themselves reviews — marking a review as done
                     // must not trigger creation of a new review (avoids duplicate/loop).
-                    const isRevisaoSession = (s: StudySession) =>
-                        !!(s.activityType && s.activityType.includes('Revisão'));
+                    const isRevisaoSession = (s: StudySession) => {
+                        if (!s.activityType) return false;
+                        const lower = s.activityType.toLowerCase();
+                        return lower.includes('revisão') || lower.includes('revisao');
+                    };
 
                     const topicSessions = allSess.filter(s =>
                         s.subjectId === subject.id &&
@@ -401,7 +404,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
 
         if (reviewsToDelete.length > 0 || reviewsToCreate.length > 0 || reviewsToUpdate.length > 0) {
             setScheduledStudies(prev => {
-                let filtered = prev.filter(s => !reviewsToDelete.some(rd => rd.id === s.id));
+                let filtered = allSchedule.filter(s => !reviewsToDelete.some(rd => rd.id === s.id));
                 filtered = filtered.map(s => {
                     const updated = reviewsToUpdate.find(ru => ru.id === s.id);
                     return updated ? { ...s, notes: updated.notes, date: updated.date } : s;
@@ -434,7 +437,13 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                 api.logs.list()
             ]);
 
-            if (concursosData) setConcursos(concursosData);
+            if (concursosData) {
+                const loadedConcursos = concursosData.map(c => {
+                    const localImg = localStorage.getItem(`gp_concurso_img_${c.id}`);
+                    return localImg ? { ...c, imageUrl: localImg } : c;
+                });
+                setConcursos(loadedConcursos);
+            }
             if (sessionsData) setSessions(sessionsData);
             if (simuladosData) setSimulados(simuladosData);
             let finalSchedule: ScheduledStudy[] = [];
@@ -981,7 +990,10 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         try {
             // Find deleted concursos
             const deletedIds = concursos.filter(c => !newConcursos.find(nc => nc.id === c.id)).map(c => c.id);
-            for (const id of deletedIds) await api.concursos.delete(id);
+            for (const id of deletedIds) {
+                await api.concursos.delete(id);
+                localStorage.removeItem(`gp_concurso_img_${id}`);
+            }
 
             // Find removed subjects (Cascading Delete)
             const oldSubjects = concursos.flatMap(c => c.subjects || []);
@@ -1003,24 +1015,34 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                 for (const subId of removedSubjectIds) {
                     await api.sessions.deleteBySubject(subId);
                     await api.schedule.deleteBySubject(subId);
-                    // For simulados, we'd need to update each simulado's JSON.
-                    // Since specific API for "delete result from simulado" doesn't exist, we rely on the simulado object update later if needed?
-                    // Or we just accept they might have stale data in JSON until updated. 
-                    // Given the prompt, cleaning sessions/schedule is the priority.
                 }
             }
 
             // Find changed/new concursos by comparing with previous state
             for (const newConc of newConcursos) {
+                // Sync image to localStorage
+                if (newConc.imageUrl) {
+                    localStorage.setItem(`gp_concurso_img_${newConc.id}`, newConc.imageUrl);
+                } else {
+                    localStorage.removeItem(`gp_concurso_img_${newConc.id}`);
+                }
+
                 const oldConc = concursos.find(c => c.id === newConc.id);
 
-                // If it's new or if subjects changed, upsert it
-                if (!oldConc || JSON.stringify(oldConc.subjects) !== JSON.stringify(newConc.subjects) ||
-                    oldConc.name !== newConc.name || oldConc.banca !== newConc.banca) {
+                // If it's new or if subjects/name/banca/imageUrl changed, upsert it
+                if (!oldConc || 
+                    JSON.stringify(oldConc.subjects) !== JSON.stringify(newConc.subjects) ||
+                    oldConc.name !== newConc.name || 
+                    oldConc.banca !== newConc.banca ||
+                    oldConc.imageUrl !== newConc.imageUrl) {
                     console.log('Upserting concurso:', newConc.id, newConc.name);
                     const upserted = await api.concursos.upsert(newConc);
                     if (upserted && upserted.id !== newConc.id) {
                         // Update local ID if it changed (e.g. from ai-... to uuid)
+                        if (newConc.imageUrl) {
+                            localStorage.setItem(`gp_concurso_img_${upserted.id}`, newConc.imageUrl);
+                            localStorage.removeItem(`gp_concurso_img_${newConc.id}`);
+                        }
                         setConcursos(prev => prev.map(c => c.id === newConc.id ? { ...c, id: upserted.id } : c));
                     }
                 }

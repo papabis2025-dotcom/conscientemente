@@ -77,6 +77,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
   // Drag & Drop state for subject reordering
   const [draggedSubjectId, setDraggedSubjectId] = useState<string | null>(null);
   const [dragOverSubjectId, setDragOverSubjectId] = useState<string | null>(null);
+  const [canDrag, setCanDrag] = useState<string | null>(null);
 
   const colorPickerRef = useRef<HTMLDivElement>(null);
 
@@ -562,19 +563,26 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                         draggedSubjectId === subject.id ? 'opacity-40' : ''
                       }`}
                       onClick={() => toggleExpand(subject.id)}
-                      draggable={sortBy === 'default'}
+                      draggable={sortBy === 'default' && canDrag === subject.id}
                       onDragStart={sortBy === 'default' ? (e) => handleSubjectDragStart(e, subject.id) : undefined}
                       onDragOver={sortBy === 'default' ? (e) => handleSubjectDragOver(e, subject.id) : undefined}
                       onDrop={sortBy === 'default' ? (e) => handleSubjectDrop(e, subject.id) : undefined}
-                      onDragEnd={sortBy === 'default' ? handleSubjectDragEnd : undefined}
+                      onDragEnd={sortBy === 'default' ? () => { handleSubjectDragEnd(); setCanDrag(null); } : undefined}
                     >
-                      <td className="px-2 py-3 w-10">
+                      <td className="px-2 py-3 w-10" onClick={(e) => e.stopPropagation()}>
                         {sortBy === 'default' ? (
                           <div className="flex items-center gap-1">
-                            <GripVertical size={14} className="text-zinc-300 dark:text-zinc-600 cursor-grab active:cursor-grabbing shrink-0" />
+                            <GripVertical
+                              size={14}
+                              className="text-zinc-300 dark:text-zinc-600 cursor-grab active:cursor-grabbing shrink-0"
+                              onMouseDown={() => setCanDrag(subject.id)}
+                              onMouseUp={() => setCanDrag(null)}
+                            />
                           </div>
                         ) : (
-                          isExpanded ? <ChevronDown size={15} className="text-zinc-400" /> : <ChevronRight size={15} className="text-zinc-400" />
+                          <div className="flex items-center justify-center cursor-pointer" onClick={() => toggleExpand(subject.id)}>
+                            {isExpanded ? <ChevronDown size={15} className="text-zinc-400" /> : <ChevronRight size={15} className="text-zinc-400" />}
+                          </div>
                         )}
                       </td>
                       <td className="px-4 py-3">

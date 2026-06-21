@@ -31,6 +31,7 @@ function getAccuracyText(accuracy: number, hasData: boolean): string {
 const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, concursos, selectedConcursoId, onSelectConcursoId }) => {
   const [sortBy, setSortBy] = useState<'name' | 'questions' | 'questionsGoal' | 'time' | 'accuracy' | 'weight' | 'priority'>('priority');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [showTopics, setShowTopics] = useState(false);
 
   // Dynamic weights loaded from localStorage with default sum of 100
   const [weightAcc, setWeightAcc] = useState(() => {
@@ -167,6 +168,16 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, con
                 </select>
               </div>
             )}
+            <button
+              onClick={() => setShowTopics(!showTopics)}
+              className={`px-3 py-1.5 rounded-xl border text-xs font-black uppercase tracking-wider transition-all shadow-sm ${
+                showTopics
+                  ? 'bg-zinc-900 border-zinc-900 text-white dark:bg-zinc-700 dark:border-zinc-700 hover:opacity-90'
+                  : 'bg-white border-zinc-200 text-zinc-700 hover:bg-zinc-50 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-350 dark:hover:bg-zinc-800/50'
+              }`}
+            >
+              {showTopics ? 'Ocultar Assuntos' : 'Mostrar Assuntos'}
+            </button>
           </div>
           <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">Prioridade é um cálculo balanceado para focar no que mais precisa de atenção.</p>
         </div>
@@ -215,38 +226,81 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, con
               const priorityPct = Math.round(priority * 100);
 
               return (
-                <tr
-                  key={sub.id}
-                  className="border-b border-zinc-100 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors"
-                >
-                  <td className="px-4 py-3">
-                    <span className="font-bold text-zinc-800 dark:text-white">{sub.name}</span>
-                  </td>
-                  <td className={`px-4 py-3 text-right font-mono tabular-nums font-bold ${questions > 0 ? 'text-zinc-700 dark:text-zinc-200' : 'text-zinc-300 dark:text-zinc-600'}`}>
-                    {questions > 0 ? questions : '—'}
-                  </td>
-                  <td className={`px-4 py-3 text-right font-mono tabular-nums ${questionsGoal > 0 ? 'text-zinc-700 dark:text-zinc-200' : 'text-zinc-300 dark:text-zinc-600'}`}>
-                    {questionsGoal > 0 ? questionsGoal : '—'}
-                  </td>
-                  <td className={`px-4 py-3 text-right font-mono tabular-nums ${minutes > 0 ? 'text-zinc-700 dark:text-zinc-200' : 'text-zinc-300 dark:text-zinc-600'}`}>
-                    {minutes > 0 ? `${parseFloat((minutes / 60).toFixed(1))}h` : '—'}
-                  </td>
-                  <td className={`px-4 py-3 text-right font-mono tabular-nums ${getAccuracyText(accuracy, questions > 0)}`}>
-                    {questions > 0 ? `${accuracy}%` : '—'}
-                  </td>
-                  <td className="px-4 py-3 text-right text-zinc-500 dark:text-zinc-400 font-bold">
-                    {weight}x
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <span className={`inline-block px-2 py-0.5 rounded text-[11px] font-black tabular-nums ${
-                      priorityPct >= 65 ? 'bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300'
-                      : priorityPct >= 40 ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
-                      : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400'
-                    }`}>
-                      {priorityPct}%
-                    </span>
-                  </td>
-                </tr>
+                <React.Fragment key={sub.id}>
+                  <tr
+                    className="border-b border-zinc-100 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors"
+                  >
+                    <td className="px-4 py-3">
+                      <span className="font-bold text-zinc-800 dark:text-white">{sub.name}</span>
+                    </td>
+                    <td className={`px-4 py-3 text-right font-mono tabular-nums font-bold ${questions > 0 ? 'text-zinc-700 dark:text-zinc-200' : 'text-zinc-300 dark:text-zinc-600'}`}>
+                      {questions > 0 ? questions : '—'}
+                    </td>
+                    <td className={`px-4 py-3 text-right font-mono tabular-nums ${questionsGoal > 0 ? 'text-zinc-700 dark:text-zinc-200' : 'text-zinc-300 dark:text-zinc-600'}`}>
+                      {questionsGoal > 0 ? questionsGoal : '—'}
+                    </td>
+                    <td className={`px-4 py-3 text-right font-mono tabular-nums ${minutes > 0 ? 'text-zinc-700 dark:text-zinc-200' : 'text-zinc-300 dark:text-zinc-600'}`}>
+                      {minutes > 0 ? `${parseFloat((minutes / 60).toFixed(1))}h` : '—'}
+                    </td>
+                    <td className={`px-4 py-3 text-right font-mono tabular-nums ${getAccuracyText(accuracy, questions > 0)}`}>
+                      {questions > 0 ? `${accuracy}%` : '—'}
+                    </td>
+                    <td className="px-4 py-3 text-right text-zinc-500 dark:text-zinc-400 font-bold">
+                      {weight}x
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <span className={`inline-block px-2 py-0.5 rounded text-[11px] font-black tabular-nums ${
+                        priorityPct >= 65 ? 'bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300'
+                        : priorityPct >= 40 ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
+                        : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400'
+                      }`}>
+                        {priorityPct}%
+                      </span>
+                    </td>
+                  </tr>
+                  {showTopics && sub.topics && sub.topics.length > 0 && (
+                    <>
+                      {sub.topics.map(topic => {
+                        const topicSessions = sessions.filter(s => s.subjectId === sub.id && s.topicId === topic.id);
+                        const tQuestions = topicSessions.reduce((acc, s) => acc + (s.questionsDone || 0), 0);
+                        const tCorrect = topicSessions.reduce((acc, s) => acc + (s.questionsCorrect || 0), 0);
+                        const tAccuracy = tQuestions > 0 ? Math.round((tCorrect / tQuestions) * 100) : 0;
+                        const tMinutes = topicSessions.reduce((acc, s) => acc + (s.durationInMinutes || 0), 0);
+
+                        return (
+                          <tr key={topic.id} className="bg-zinc-50/50 dark:bg-zinc-800/10 border-b border-zinc-100/50 dark:border-zinc-800/50 text-xs">
+                            <td className="pl-10 pr-4 py-2 text-zinc-650 dark:text-zinc-400">
+                              <span className="flex items-center gap-2">
+                                <span className="w-1.5 h-1.5 rounded-full bg-zinc-300 dark:bg-zinc-700 shrink-0" />
+                                <span className="truncate">{topic.title}</span>
+                              </span>
+                            </td>
+                            <td className={`px-4 py-2 text-right font-mono tabular-nums ${tQuestions > 0 ? 'text-zinc-600 dark:text-zinc-300 font-bold' : 'text-zinc-350 dark:text-zinc-650'}`}>
+                              {tQuestions > 0 ? tQuestions : '—'}
+                            </td>
+                            <td className="px-4 py-2 text-right text-zinc-300 dark:text-zinc-700">—</td>
+                            <td className={`px-4 py-2 text-right font-mono tabular-nums ${tMinutes > 0 ? 'text-zinc-650 dark:text-zinc-300' : 'text-zinc-350 dark:text-zinc-650'}`}>
+                              {tMinutes > 0 ? `${parseFloat((tMinutes / 60).toFixed(1))}h` : '—'}
+                            </td>
+                            <td className={`px-4 py-2 text-right font-mono tabular-nums ${getAccuracyText(tAccuracy, tQuestions > 0)}`}>
+                              {tQuestions > 0 ? `${tAccuracy}%` : '—'}
+                            </td>
+                            <td className="px-4 py-2 text-right text-zinc-300 dark:text-zinc-700">—</td>
+                            <td className="px-4 py-2 text-right">
+                              <span className={`inline-block px-1.5 py-0.5 rounded text-[9px] font-black uppercase ${
+                                topic.priority === 'Alta' ? 'bg-rose-50 text-rose-600 border border-rose-100 dark:bg-rose-950/20 dark:text-rose-450 dark:border-rose-900/30'
+                                : topic.priority === 'Média' ? 'bg-amber-50 text-amber-600 border border-amber-100 dark:bg-amber-950/20 dark:text-amber-450 dark:border-amber-900/30'
+                                : 'bg-zinc-150/50 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400'
+                              }`}>
+                                {topic.priority}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </>
+                  )}
+                </React.Fragment>
               );
             })}
 

@@ -32,6 +32,27 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
     name: ''
   });
 
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, isEdit: boolean = false) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 1024 * 1024) {
+      alert("A imagem selecionada é muito grande! Por favor, escolha uma imagem de até 1MB.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64String = reader.result as string;
+      if (isEdit) {
+        setEditFormData(prev => ({ ...prev, imageUrl: base64String }));
+      } else {
+        setNewImageUrl(base64String);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleAddTempSubject = () => {
     if (!tempSubName.trim()) return;
     setNewSubjects([...newSubjects, { name: tempSubName, goal: parseInt(tempSubGoal) || 0, weight: parseFloat(tempSubWeight) || 1 }]);
@@ -149,10 +170,25 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
               <input type="date" value={targetDate} onChange={(e) => setTargetDate(e.target.value)} className="w-full px-4 py-3 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-2xl outline-none focus:ring-2 focus:ring-zinc-500 text-zinc-800 dark:text-white" />
             </div>
             <div className="md:col-span-2 lg:col-span-4">
-              <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1.5 block flex items-center gap-1.5"><ImageIcon size={12} /> Imagem do Concurso (URL opcional)</label>
-              <div className="flex gap-2 items-center">
-                <input type="text" placeholder="Cole a URL de uma imagem (ex: https://site.gov.br/logo.png)" value={newImageUrl} onChange={(e) => setNewImageUrl(e.target.value)} className="flex-1 px-4 py-3 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-2xl outline-none focus:ring-2 focus:ring-zinc-500 text-zinc-800 dark:text-white text-sm" />
-                {newImageUrl && <img src={newImageUrl} alt="preview" className="w-12 h-12 rounded-xl object-cover border border-zinc-200" onError={(e) => (e.currentTarget.style.display = 'none')} />}
+              <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1.5 block flex items-center gap-1.5"><ImageIcon size={12} /> Imagem de Perfil do Concurso (Upload local)</label>
+              <div className="flex items-center gap-4">
+                <label className="cursor-pointer bg-zinc-50 hover:bg-zinc-100 dark:bg-zinc-800 dark:hover:bg-zinc-700 border-2 border-dashed border-zinc-200 dark:border-zinc-700 px-5 py-3 rounded-2xl flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-300 font-bold transition-all hover:border-zinc-400">
+                  <ImageIcon size={16} />
+                  <span>Escolher Imagem (Máx 1MB)</span>
+                  <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(e, false)} />
+                </label>
+                {newImageUrl && (
+                  <div className="relative">
+                    <img src={newImageUrl} alt="preview" className="w-12 h-12 rounded-full object-cover border-2 border-zinc-800 dark:border-zinc-600" onError={(e) => (e.currentTarget.style.display = 'none')} />
+                    <button
+                      type="button"
+                      onClick={() => setNewImageUrl('')}
+                      className="absolute -top-1 -right-1 bg-rose-500 text-white rounded-full p-0.5 hover:bg-rose-600 shadow transition-colors"
+                    >
+                      <X size={10} />
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -236,11 +272,25 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
                         <input type="date" value={editFormData.targetDate} onChange={(e) => setEditFormData({ ...editFormData, targetDate: e.target.value })} className="w-full p-2 rounded-lg text-xs font-bold border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 dark:text-white" />
                       </div>
                       <div>
-                        <label className="text-[10px] font-black text-zinc-400 uppercase mb-1 block flex items-center gap-1"><ImageIcon size={10} /> URL da Imagem</label>
-                        <div className="flex gap-2 items-center">
-                          <input type="text" placeholder="URL da imagem..." value={editFormData.imageUrl || ''} onChange={(e) => setEditFormData({ ...editFormData, imageUrl: e.target.value })} className="flex-1 p-2 rounded-lg text-xs border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 dark:text-white" />
-                          {editFormData.imageUrl && <img src={editFormData.imageUrl} alt="preview" className="w-8 h-8 rounded-lg object-cover border border-zinc-200" onError={(e) => (e.currentTarget.style.display = 'none')} />}
-                          {editFormData.imageUrl && <button onClick={() => setEditFormData({ ...editFormData, imageUrl: '' })} className="text-zinc-400 hover:text-rose-500"><X size={14} /></button>}
+                        <label className="text-[10px] font-black text-zinc-400 uppercase mb-1 block flex items-center gap-1"><ImageIcon size={10} /> Imagem de Perfil</label>
+                        <div className="flex items-center gap-3">
+                          <label className="cursor-pointer bg-white hover:bg-zinc-100 dark:bg-zinc-900 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-xs text-zinc-600 dark:text-zinc-300 transition-colors font-bold">
+                            <ImageIcon size={12} />
+                            <span>Upload (Máx 1MB)</span>
+                            <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(e, true)} />
+                          </label>
+                          {editFormData.imageUrl && (
+                            <div className="relative">
+                              <img src={editFormData.imageUrl} alt="preview" className="w-8 h-8 rounded-full object-cover border border-zinc-200" onError={(e) => (e.currentTarget.style.display = 'none')} />
+                              <button
+                                type="button"
+                                onClick={() => setEditFormData({ ...editFormData, imageUrl: '' })}
+                                className="absolute -top-1 -right-1 bg-rose-500 text-white rounded-full p-0.5 hover:bg-rose-600 shadow transition-colors"
+                              >
+                                <X size={8} />
+                              </button>
+                            </div>
+                          )}
                         </div>
                       </div>
                       <div className="flex gap-2 justify-end">
@@ -250,11 +300,6 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
                     </div>
                   ) : (
                     <>
-                      {conc.imageUrl && (
-                        <div className="mb-4 -mx-2">
-                          <img src={conc.imageUrl} alt={conc.name} className="w-full h-24 object-cover rounded-2xl" onError={(e) => (e.currentTarget.style.display = 'none')} />
-                        </div>
-                      )}
                       <div className="flex gap-2 mb-3">
                         <span className="text-[9px] font-black uppercase px-3 py-1 rounded-full bg-zinc-900 dark:bg-zinc-700 text-white tracking-widest">
                           Banca: {conc.banca}
@@ -263,7 +308,16 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
                           Em estudo: {daysActive} dias
                         </span>
                       </div>
-                      <h3 className="text-2xl font-black text-zinc-800 dark:text-white leading-tight">{conc.name}</h3>
+                      <div className="flex items-center gap-3">
+                        {conc.imageUrl ? (
+                          <img src={conc.imageUrl} alt="Perfil" className="w-12 h-12 rounded-full object-cover border border-zinc-200 dark:border-zinc-700 shrink-0" onError={(e) => (e.currentTarget.style.display = 'none')} />
+                        ) : (
+                          <div className="w-12 h-12 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center border border-zinc-200 dark:border-zinc-700 shrink-0">
+                            <BookOpen size={20} className="text-zinc-400" />
+                          </div>
+                        )}
+                        <h3 className="text-2xl font-black text-zinc-800 dark:text-white leading-tight">{conc.name}</h3>
+                      </div>
                     </>
                   )}
                 </div>

@@ -150,15 +150,11 @@ const CalendarView: React.FC<CalendarViewProps> = ({
 
     // 2. Clean up old entries if editing
     if (editingTask) {
-      if (editingTask.notes) {
-        const { groupId } = parseNotesGroup(editingTask.notes);
-        if (groupId) {
-          const groupTasks = scheduledStudies.filter(t => t.notes && parseNotesGroup(t.notes).groupId === groupId);
-          for (const t of groupTasks) {
-            await onDelete(t.id);
-          }
-        } else {
-          await onDelete(editingTask.id);
+      const gId = (editingTask as any).groupId || (editingTask.notes ? parseNotesGroup(editingTask.notes).groupId : null);
+      if (gId) {
+        const groupTasks = scheduledStudies.filter(t => t.notes && parseNotesGroup(t.notes).groupId === gId);
+        for (const t of groupTasks) {
+          await onDelete(t.id);
         }
       } else {
         await onDelete(editingTask.id);
@@ -305,6 +301,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       const firstTask = tasks[0];
       const { cleanNotes } = parseNotesGroup(firstTask.notes || '');
       const topicIds = tasks.map(t => t.topicId).filter(Boolean) as string[];
+      const subjectIds = Array.from(new Set(tasks.map(t => t.subjectId).filter(Boolean)));
       
       const totalDuration = tasks.reduce((acc, t) => acc + (t.durationInMinutes || 0), 0);
       const totalDone = tasks.some(t => t.questionsDone !== undefined)
@@ -318,6 +315,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
         id: firstTask.id,
         date: firstTask.date,
         subjectId: firstTask.subjectId,
+        subjectIds: subjectIds,
         topicIds: topicIds,
         topicId: firstTask.topicId, 
         activityType: firstTask.activityType,
@@ -389,15 +387,33 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       ? task.activityType.split(',').map((t: string) => t.trim())
       : ['Leitura'];
 
+    let groupSubjectIds: string[] = task.subjectIds || (task.subjectId ? [task.subjectId] : []);
+    let totalDuration = task.durationInMinutes || 0;
+    let totalQuestionsDone = task.questionsDone || 0;
+    let totalQuestionsCorrect = task.questionsCorrect || 0;
+    let notesText = task.notes || '';
+
+    if (task.notes && !task.isGroupedVirtual) {
+      const { groupId, cleanNotes } = parseNotesGroup(task.notes);
+      if (groupId) {
+        const groupTasks = scheduledStudies.filter(t => t.notes && parseNotesGroup(t.notes).groupId === groupId);
+        groupSubjectIds = Array.from(new Set(groupTasks.map(t => t.subjectId).filter(Boolean)));
+        totalDuration = groupTasks.reduce((acc, t) => acc + (t.durationInMinutes || 0), 0);
+        totalQuestionsDone = groupTasks.reduce((acc, t) => acc + (t.questionsDone || 0), 0);
+        totalQuestionsCorrect = groupTasks.reduce((acc, t) => acc + (t.questionsCorrect || 0), 0);
+        notesText = cleanNotes;
+      }
+    }
+
     setFormData({
       subjectId: task.subjectId,
-      subjectIds: task.subjectId ? [task.subjectId] : [],
+      subjectIds: groupSubjectIds,
       topicIds: task.topicIds || (task.topicId ? [task.topicId] : []),
       activityTypes: types,
-      duration: task.durationInMinutes?.toString() || '',
-      questionsDone: task.questionsDone?.toString() || '',
-      questionsCorrect: task.questionsCorrect?.toString() || '',
-      notes: task.notes || '',
+      duration: totalDuration?.toString() || '',
+      questionsDone: totalQuestionsDone > 0 ? totalQuestionsDone.toString() : '',
+      questionsCorrect: totalQuestionsCorrect > 0 ? totalQuestionsCorrect.toString() : '',
+      notes: notesText,
       status: task.status || 'planejado'
     });
     setShowModal(true);
@@ -452,6 +468,49 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                         );
                       }
                       const sub = lookupSubjects.find(s => s.id === task.subjectId);
+                      const isAulao = task.activityType?.includes('Aulão de Revisão');
+                      if (isAulao) {
+                        return (
+                          <div 
+                            key={task.id} 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (onToggleStatus) onToggleStatus(task.isGroupedVirtual ? task.taskIds : task.id);
+                            }}
+                            style={{ opacity: task.status === 'realizado' ? 0.45 : 1 }}
+                            draggable={true}
+                            onDragStart={(e) => handleDragStart(e, task.isGroupedVirtual ? task.taskIds.join(',') : task.id)}
+                            className="p-3.5 rounded-2xl text-xs font-bold border-2 border-fuchsia-500 bg-gradient-to-r from-violet-500/10 to-fuchsia-500/10 text-fuchsia-950 dark:text-fuchsia-200 cursor-pointer transition-all hover:scale-[1.02] active:scale-95 shadow-sm"
+                          >
+                            <span className="flex items-center gap-1 font-black text-fuchsia-600 dark:text-fuchsia-400">
+                              <Sparkles size={11} className="text-fuchsia-500 shrink-0" /> AULÃO DE REVISÃO
+                            </span>
+                            {task.isGroupedVirtual && task.subjectIds ? (
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {task.subjectIds.map((subId: string, idx: number) => {
+                                  const subObj = lookupSubjects.find(s => s.id === subId);
+                                  const badgeStyle = subObj ? getBadgeStyle(subObj.color) : { style: {}, className: 'bg-zinc-200 text-zinc-700' };
+                                  return (
+                                    <span key={idx} className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${badgeStyle.className}`} style={badgeStyle.style}>
+                                      {subObj?.name || 'Matéria'}
+                                    </span>
+                                  );
+                                })}
+                              </div>
+                            ) : (
+                              <p className="font-black truncate mt-1 text-sm">{sub ? sub.name : 'Disciplina'}</p>
+                            )}
+                            <p className="text-[10px] opacity-90 mt-1 font-bold flex items-center gap-1">
+                              <Clock size={10} /> {task.durationInMinutes} min
+                              {task.questionsDone !== undefined && task.questionsDone > 0 && (
+                                <> | <FileText size={10} /> {task.questionsCorrect}/{task.questionsDone} Qs</>
+                              )}
+                            </p>
+                            {task.notes && <p className="text-[10px] opacity-75 font-normal mt-1 truncate">{task.notes}</p>}
+                          </div>
+                        );
+                      }
+
                       const { style, className } = sub ? getBadgeStyle(sub.color) : { style: {}, className: 'bg-zinc-400 text-white' };
                       return (
                         <div 
@@ -535,6 +594,32 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                             </div>
                           );
                         }
+                        const isAulao = t.activityType?.includes('Aulão de Revisão');
+                        if (isAulao) {
+                          return (
+                            <div 
+                              key={t.id} 
+                              style={{ opacity: t.status === 'realizado' ? 0.45 : 1 }} 
+                              draggable={true}
+                              onDragStart={(e) => handleDragStart(e, t.isGroupedVirtual ? t.taskIds.join(',') : t.id)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (onToggleStatus) onToggleStatus(t.isGroupedVirtual ? t.taskIds : t.id);
+                              }}
+                              className="px-2 py-1.5 rounded-lg text-[10px] leading-tight font-black border-2 border-fuchsia-500 bg-fuchsia-500/10 text-fuchsia-900 dark:text-fuchsia-200 cursor-pointer transition-all hover:scale-[1.02] active:scale-95 shadow-sm line-clamp-2"
+                            >
+                              <div className="flex flex-col gap-0.5">
+                                <span className="truncate">🌟 Aulão de Revisão</span>
+                                {t.isGroupedVirtual && t.subjectIds && (
+                                  <span className="text-[8px] opacity-80 font-bold truncate">
+                                    {t.subjectIds.map((subId: string) => lookupSubjects.find(s => s.id === subId)?.name).filter(Boolean).join(', ')}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        }
+
                         const sub = lookupSubjects.find(s => s.id === t.subjectId);
                         const { style, className } = sub ? getBadgeStyle(sub.color) : { style: {}, className: 'bg-zinc-400 text-white' };
                         return (
@@ -939,15 +1024,33 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                       const types = task.activityType
                         ? task.activityType.split(',').map((t: string) => t.trim())
                         : ['Leitura'];
+                      let groupSubjectIds: string[] = task.subjectIds || (task.subjectId ? [task.subjectId] : []);
+                      let totalDuration = task.durationInMinutes || 0;
+                      let totalQuestionsDone = task.questionsDone || 0;
+                      let totalQuestionsCorrect = task.questionsCorrect || 0;
+                      let notesText = task.notes || '';
+
+                      if (task.notes && !task.isGroupedVirtual) {
+                        const { groupId, cleanNotes } = parseNotesGroup(task.notes);
+                        if (groupId) {
+                          const groupTasks = scheduledStudies.filter(t => t.notes && parseNotesGroup(t.notes).groupId === groupId);
+                          groupSubjectIds = Array.from(new Set(groupTasks.map(t => t.subjectId).filter(Boolean)));
+                          totalDuration = groupTasks.reduce((acc, t) => acc + (t.durationInMinutes || 0), 0);
+                          totalQuestionsDone = groupTasks.reduce((acc, t) => acc + (t.questionsDone || 0), 0);
+                          totalQuestionsCorrect = groupTasks.reduce((acc, t) => acc + (t.questionsCorrect || 0), 0);
+                          notesText = cleanNotes;
+                        }
+                      }
+
                       setFormData({
                         subjectId: task.subjectId,
-                        subjectIds: task.subjectId ? [task.subjectId] : [],
+                        subjectIds: groupSubjectIds,
                         topicIds: task.topicIds || (task.topicId ? [task.topicId] : []),
                         activityTypes: types,
-                        duration: task.durationInMinutes?.toString() || '',
-                        questionsDone: task.questionsDone?.toString() || '',
-                        questionsCorrect: task.questionsCorrect?.toString() || '',
-                        notes: task.notes || '',
+                        duration: totalDuration?.toString() || '',
+                        questionsDone: totalQuestionsDone > 0 ? totalQuestionsDone.toString() : '',
+                        questionsCorrect: totalQuestionsCorrect > 0 ? totalQuestionsCorrect.toString() : '',
+                        notes: notesText,
                         status: task.status || 'planejado'
                       });
                     }}

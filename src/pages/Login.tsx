@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../services/supabase';
-import logoImg from '../modules/estudos/assets/logo.png';
+import FaviconIcon from '../components/FaviconIcon';
 import {
   Sparkles,
   Calendar,
@@ -19,7 +19,12 @@ import {
   Award,
   Layers,
   HelpCircle,
-  ChevronDown
+  ChevronDown,
+  DollarSign,
+  HeartPulse,
+  ListTodo,
+  StickyNote,
+  UserCheck
 } from 'lucide-react';
 
 interface LoginProps {
@@ -36,7 +41,20 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
   // Landing page states
   const [showAuth, setShowAuth] = useState(false);
-  const [activePreviewTab, setActivePreviewTab] = useState<'planner' | 'stats' | 'concursos'>('planner');
+  const [activePreviewTab, setActivePreviewTab] = useState<'planner' | 'stats' | 'concursos' | 'ecossistema'>('planner');
+
+  // "Demonstrações em movimento" - Auto-rotate tabs to simulate activity
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setActivePreviewTab((prev) => {
+        if (prev === 'planner') return 'stats';
+        if (prev === 'stats') return 'concursos';
+        if (prev === 'concursos') return 'ecossistema';
+        return 'planner';
+      });
+    }, 5000); // Cycles every 5 seconds
+    return () => clearInterval(timer);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,7 +78,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         if (signInError) throw signInError;
 
         if (data.session) {
-          setSuccessMsg('Login bem-sucedido! Redirecionando...');
+          setSuccessMsg('Login bem-sucedido! Entrando...');
           setTimeout(() => {
             onLogin();
           }, 500);
@@ -115,8 +133,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       {/* 1. Header/Navbar */}
       <header className="fixed top-0 left-0 right-0 z-40 backdrop-blur-md bg-white/70 dark:bg-zinc-950/70 border-b border-zinc-200/50 dark:border-zinc-800/50 transition-colors">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <img src={logoImg} alt="Conscientemente Logo" className="w-8 h-8 object-contain" />
+          <div className="flex items-center gap-3">
+            <FaviconIcon size={28} />
             <span className="font-sans font-black text-xl uppercase tracking-tighter text-zinc-900 dark:text-white">Conscientemente</span>
           </div>
 
@@ -150,7 +168,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         <div className="flex-1 space-y-6 text-left relative z-10">
           <div className="inline-flex items-center gap-1.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full border border-blue-200/30 dark:border-blue-800/30">
             <Sparkles size={10} className="animate-spin duration-10000" />
-            O Planejador Inteligente para Concursos
+            O Planejador Inteligente para Concursos & Rotina
           </div>
           
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-zinc-900 dark:text-white leading-tight uppercase tracking-tighter">
@@ -158,7 +176,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           </h1>
           
           <p className="text-sm md:text-base text-zinc-500 dark:text-zinc-400 font-medium max-w-lg leading-relaxed">
-            Organize seu cronograma diário, automatize suas revisões espaçadas, acompanhe seu aproveitamento de questões e gerencie o progresso dos seus editais em um ecossistema minimalista e focado.
+            Organize seu cronograma diário, automatize suas revisões espaçadas, acompanhe seu aproveitamento de questões e integre toda a sua rotina (hábitos, finanças, saúde, anotações e calendário geral) em um ecossistema minimalista e focado.
           </p>
 
           <div className="flex flex-wrap gap-4 pt-2">
@@ -183,13 +201,13 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             </div>
             <div className="w-px h-8 bg-zinc-200 dark:bg-zinc-800"></div>
             <div>
-              <div className="text-2xl font-black text-zinc-900 dark:text-white">Aulões</div>
-              <div className="text-[9px] font-black text-zinc-400 uppercase tracking-wider">Multi-Disciplinas</div>
+              <div className="text-2xl font-black text-zinc-900 dark:text-white">Unificado</div>
+              <div className="text-[9px] font-black text-zinc-400 uppercase tracking-wider">Calendário Geral</div>
             </div>
             <div className="w-px h-8 bg-zinc-200 dark:bg-zinc-800"></div>
             <div>
-              <div className="text-2xl font-black text-zinc-900 dark:text-white">Spaced</div>
-              <div className="text-[9px] font-black text-zinc-400 uppercase tracking-wider">Revisão Padrão</div>
+              <div className="text-2xl font-black text-zinc-900 dark:text-white">Ecosystem</div>
+              <div className="text-[9px] font-black text-zinc-400 uppercase tracking-wider">6 Apps em 1</div>
             </div>
           </div>
         </div>
@@ -206,7 +224,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             <div className="flex items-center justify-between mb-6 pb-4 border-b border-zinc-100 dark:border-zinc-800">
               <div>
                 <h4 className="text-[9px] font-black text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">Painel de Controle</h4>
-                <h3 className="text-sm font-black text-zinc-850 dark:text-white uppercase tracking-tight">Estudos de Hoje</h3>
+                <h3 className="text-sm font-black text-zinc-855 dark:text-white uppercase tracking-tight">Estudos de Hoje</h3>
               </div>
               <div className="flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/30 px-2.5 py-1 rounded-full">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
@@ -219,7 +237,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
               <div className="bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200/40 dark:border-zinc-800/40 rounded-2xl p-4 flex flex-col justify-between">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-[9px] font-black text-zinc-400 uppercase tracking-wider">Cronômetro</span>
-                  <Clock size={12} className="text-blue-500" />
+                  <Clock size={12} className="text-blue-500 animate-pulse" />
                 </div>
                 <div>
                   <div className="text-xl font-black text-zinc-800 dark:text-white tracking-tight tabular-nums">01:45:00</div>
@@ -227,15 +245,15 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 </div>
               </div>
 
-              <div className="bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200/40 dark:border-zinc-800/40 rounded-2xl p-4 flex flex-col justify-between">
+              <div className="bg-zinc-50 dark:bg-zinc-955/60 border border-zinc-200/40 dark:border-zinc-800/40 rounded-2xl p-4 flex flex-col justify-between">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-[9px] font-black text-zinc-400 uppercase tracking-wider">Meta Diária</span>
                   <Target size={12} className="text-emerald-500" />
                 </div>
                 <div>
-                  <div className="text-xl font-black text-zinc-800 dark:text-white tracking-tight">75%</div>
+                  <div className="text-xl font-black text-zinc-800 dark:text-white tracking-tight animate-bounce">75%</div>
                   <div className="w-full bg-zinc-200 dark:bg-zinc-800 h-1.5 rounded-full overflow-hidden mt-2">
-                    <div className="bg-emerald-500 h-full rounded-full" style={{ width: '75%' }}></div>
+                    <div className="bg-emerald-500 h-full rounded-full transition-all duration-1000" style={{ width: '75%' }}></div>
                   </div>
                 </div>
               </div>
@@ -246,14 +264,15 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
               <h4 className="text-[9px] font-black text-zinc-400 uppercase tracking-wider">Atividades Planejadas</h4>
               
               {/* Overdue highlight */}
-              <div className="flex items-start gap-3 p-3 bg-rose-50/50 dark:bg-rose-950/10 border border-rose-200/30 dark:border-rose-900/20 rounded-2xl">
-                <div className="mt-0.5 w-4 h-4 rounded-full bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center text-rose-600 dark:text-rose-400 shrink-0">
+              <div className="flex items-start gap-3 p-3 bg-rose-50/50 dark:bg-rose-955/10 border border-rose-200/30 dark:border-rose-900/20 rounded-2xl relative overflow-hidden group">
+                <div className="absolute inset-0 bg-rose-500/5 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
+                <div className="mt-0.5 w-4 h-4 rounded-full bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center text-rose-600 dark:text-rose-450 shrink-0">
                   <Clock size={10} className="stroke-[3px]" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-center">
                     <h5 className="text-[11px] font-black text-rose-600 dark:text-rose-455 uppercase tracking-tight truncate">Revisão de Atos Administrativos</h5>
-                    <span className="text-[8px] font-black text-rose-600 bg-rose-100 dark:bg-rose-900/40 px-1.5 py-0.5 rounded uppercase">Atrasado</span>
+                    <span className="text-[8px] font-black text-rose-600 bg-rose-100 dark:bg-rose-900/40 px-1.5 py-0.5 rounded uppercase animate-pulse">Atrasado</span>
                   </div>
                   <p className="text-[9px] font-bold text-rose-500/80 mt-0.5">Venceu ontem • Direito Administrativo</p>
                 </div>
@@ -262,7 +281,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
               {/* Special Activity: Aulão */}
               <div className="flex items-start gap-3 p-3 bg-gradient-to-r from-violet-500/5 to-fuchsia-500/5 border border-fuchsia-200/40 dark:border-fuchsia-900/25 rounded-2xl">
                 <div className="mt-0.5 w-4 h-4 rounded-full bg-fuchsia-100 dark:bg-fuchsia-900/30 flex items-center justify-center text-fuchsia-600 dark:text-fuchsia-400 shrink-0">
-                  <Sparkles size={10} className="stroke-[3px]" />
+                  <Sparkles size={10} className="stroke-[3px] text-fuchsia-500 animate-bounce" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-center">
@@ -277,17 +296,6 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                   </div>
                 </div>
               </div>
-
-              {/* Normal completed activity */}
-              <div className="flex items-start gap-3 p-3 bg-zinc-50 dark:bg-zinc-950/40 border border-zinc-255/20 dark:border-zinc-800/40 rounded-2xl opacity-60">
-                <div className="mt-0.5 w-4 h-4 rounded-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center text-zinc-500 shrink-0">
-                  <Check size={10} className="stroke-[3px]" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h5 className="text-[11px] font-black text-zinc-550 dark:text-zinc-400 uppercase tracking-tight truncate line-through">Teoria de Direitos Fundamentais</h5>
-                  <p className="text-[9px] font-medium text-zinc-500 mt-0.5">Concluído às 10:15</p>
-                </div>
-              </div>
             </div>
           </div>
         </div>
@@ -297,8 +305,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       <section id="recursos" className="py-20 border-t border-zinc-200/50 dark:border-zinc-855/50 max-w-7xl mx-auto px-6 relative">
         <div className="text-center max-w-3xl mx-auto mb-16 space-y-3">
           <h4 className="text-xs font-black uppercase tracking-widest text-zinc-400">Funcionalidades e Recursos</h4>
-          <h2 className="text-3xl md:text-4xl font-black text-zinc-800 dark:text-white uppercase tracking-tighter">O que torna o sistema ideal?</h2>
-          <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Tudo o que você precisa para uma organização impecável, desenhado sob uma interface limpa e intuitiva.</p>
+          <h2 className="text-3xl md:text-4xl font-black text-zinc-805 dark:text-white uppercase tracking-tighter">O Ecossistema Completo</h2>
+          <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Muito mais que um planner de estudos. Um painel centralizado para dominar toda a sua rotina de vida.</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -306,11 +314,11 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           {/* Card 1: Planner */}
           <div className="bg-white dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800/80 rounded-3xl p-6 hover:shadow-xl dark:hover:border-zinc-700/80 transition-all group flex flex-col justify-between min-h-[220px]">
             <div className="space-y-4">
-              <div className="w-10 h-10 rounded-2xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-2xl bg-blue-50 dark:bg-blue-955/40 text-blue-600 dark:text-blue-400 flex items-center justify-center">
                 <Calendar size={18} />
               </div>
               <div>
-                <h3 className="text-sm font-black uppercase tracking-wider text-zinc-800 dark:text-white mb-2">Planner Semanal</h3>
+                <h3 className="text-sm font-black uppercase tracking-wider text-zinc-800 dark:text-white mb-2">Planner Inteligente</h3>
                 <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed font-medium">
                   Organize seus ciclos de teoria, sessões de questões, simulados e atividades especiais. Tudo integrado em um calendário dinâmico e flexível.
                 </p>
@@ -318,16 +326,18 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             </div>
           </div>
 
-          {/* Card 2: Spaced Repetition */}
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800/80 rounded-3xl p-6 hover:shadow-xl dark:hover:border-zinc-700/80 transition-all group flex flex-col justify-between min-h-[220px]">
+          {/* Card 2: Calendário Geral Unificado */}
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800/80 rounded-3xl p-6 hover:shadow-xl dark:hover:border-zinc-700/80 transition-all group flex flex-col justify-between min-h-[220px] ring-2 ring-indigo-500/20 dark:ring-indigo-500/10">
             <div className="space-y-4">
-              <div className="w-10 h-10 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-                <Clock size={18} />
+              <div className="w-10 h-10 rounded-2xl bg-indigo-50 dark:bg-indigo-955/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+                <Layers size={18} className="text-indigo-500 animate-pulse" />
               </div>
               <div>
-                <h3 className="text-sm font-black uppercase tracking-wider text-zinc-855 dark:text-white mb-2">Revisão Espaçada Automática</h3>
+                <h3 className="text-sm font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400 mb-2 flex items-center gap-1.5">
+                  Calendário Geral Unificado <Sparkles size={11} className="text-indigo-500" />
+                </h3>
                 <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed font-medium">
-                  O sistema agenda automaticamente sessões de revisão no seu Planner baseando-se no histórico das sessões de estudo realizadas, mitigando a curva do esquecimento.
+                  O coração do sistema. Reúne em uma única tela integrada suas revisões de estudo, hábitos saudáveis, compromissos financeiros e treinos físicos diários.
                 </p>
               </div>
             </div>
@@ -336,7 +346,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           {/* Card 3: Editais Progress */}
           <div className="bg-white dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800/80 rounded-3xl p-6 hover:shadow-xl dark:hover:border-zinc-700/80 transition-all group flex flex-col justify-between min-h-[220px]">
             <div className="space-y-4">
-              <div className="w-10 h-10 rounded-2xl bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-2xl bg-purple-50 dark:bg-purple-955/40 text-purple-600 dark:text-purple-400 flex items-center justify-center">
                 <Award size={18} />
               </div>
               <div>
@@ -348,46 +358,46 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             </div>
           </div>
 
-          {/* Card 4: Drag & Drop order */}
+          {/* Card 4: Hábitos & Streaks */}
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800/80 rounded-3xl p-6 hover:shadow-xl dark:hover:border-zinc-700/80 transition-all group flex flex-col justify-between min-h-[220px]">
+            <div className="space-y-4">
+              <div className="w-10 h-10 rounded-2xl bg-emerald-50 dark:bg-emerald-955/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                <CheckCircle2 size={18} />
+              </div>
+              <div>
+                <h3 className="text-sm font-black uppercase tracking-wider text-zinc-805 dark:text-white mb-2">Monitor de Hábitos</h3>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed font-medium">
+                  Monitore suas rotinas diárias e crie sequências (streaks) para firmar hábitos saudáveis de leitura, sono, água ou foco, diretamente conectados à sua agenda.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Card 5: Finance Ledger */}
           <div className="bg-white dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800/80 rounded-3xl p-6 hover:shadow-xl dark:hover:border-zinc-700/80 transition-all group flex flex-col justify-between min-h-[220px]">
             <div className="space-y-4">
               <div className="w-10 h-10 rounded-2xl bg-amber-50 dark:bg-amber-955/40 text-amber-600 dark:text-amber-400 flex items-center justify-center">
-                <GripVertical size={18} />
+                <DollarSign size={18} />
               </div>
               <div>
-                <h3 className="text-sm font-black uppercase tracking-wider text-zinc-805 dark:text-white mb-2">Arrastar e Reordenar Matérias</h3>
+                <h3 className="text-sm font-black uppercase tracking-wider text-zinc-800 dark:text-white mb-2">Controle Financeiro</h3>
                 <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed font-medium">
-                  Ordene suas disciplinas verticalmente com facilidade. Use o ícone de Grip na lista de matérias para definir a prioridade sequencial por Drag & Drop.
+                  Lance receitas e despesas com simplicidade. Acompanhe o balanço financeiro do seu mês, gráficos de categorias e mantenha seu orçamento em dia.
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Card 5: Simulados */}
+          {/* Card 6: Health & workouts */}
           <div className="bg-white dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800/80 rounded-3xl p-6 hover:shadow-xl dark:hover:border-zinc-700/80 transition-all group flex flex-col justify-between min-h-[220px]">
             <div className="space-y-4">
               <div className="w-10 h-10 rounded-2xl bg-rose-50 dark:bg-rose-955/40 text-rose-600 dark:text-rose-455 flex items-center justify-center">
-                <Target size={18} />
+                <HeartPulse size={18} />
               </div>
               <div>
-                <h3 className="text-sm font-black uppercase tracking-wider text-zinc-800 dark:text-white mb-2">Histórico de Simulados</h3>
+                <h3 className="text-sm font-black uppercase tracking-wider text-zinc-800 dark:text-white mb-2">Painel de Saúde</h3>
                 <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed font-medium">
-                  Registre as notas de suas provas simuladas de forma estruturada. Monitore a sua curva de evolução e identifique as disciplinas limitantes.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Card 6: Statistics breakdown */}
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800/80 rounded-3xl p-6 hover:shadow-xl dark:hover:border-zinc-700/80 transition-all group flex flex-col justify-between min-h-[220px]">
-            <div className="space-y-4">
-              <div className="w-10 h-10 rounded-2xl bg-indigo-50 dark:bg-indigo-955/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
-                <BarChart3 size={18} />
-              </div>
-              <div>
-                <h3 className="text-sm font-black uppercase tracking-wider text-zinc-800 dark:text-white mb-2">Estatísticas e Priorização</h3>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed font-medium">
-                  Analise métricas avançadas com detalhamento opcional de tópicos (assuntos). Identifique prioridades de estudo recomendadas de acordo com seus erros.
+                  Registre sua rotina de musculação, grupos musculares treinados, evolução de peso e mantenha a consistência nos cuidados com o corpo.
                 </p>
               </div>
             </div>
@@ -401,13 +411,13 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         <div className="max-w-7xl mx-auto px-6">
           
           <div className="text-center max-w-2xl mx-auto mb-12 space-y-3">
-            <h4 className="text-xs font-black uppercase tracking-widest text-zinc-450 dark:text-zinc-500">Demonstração Interativa</h4>
-            <h2 className="text-3xl font-black text-zinc-855 dark:text-white uppercase tracking-tighter">Conheça por dentro</h2>
-            <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Alterne entre as abas para experimentar as telas de gerenciamento do sistema.</p>
+            <h4 className="text-xs font-black uppercase tracking-widest text-zinc-450 dark:text-zinc-500">Demonstração em Movimento</h4>
+            <h2 className="text-3xl font-black text-zinc-855 dark:text-white uppercase tracking-tighter">O Ecossistema Integrado</h2>
+            <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">As seções abaixo alternam automaticamente simulando o uso ativo do sistema.</p>
           </div>
 
           {/* Abas */}
-          <div className="flex justify-center gap-2 mb-8 bg-zinc-200/40 dark:bg-zinc-900 p-1.5 rounded-2xl w-fit mx-auto border border-zinc-200/30 dark:border-zinc-800/40">
+          <div className="flex justify-center flex-wrap gap-2 mb-8 bg-zinc-200/40 dark:bg-zinc-900 p-1.5 rounded-2xl w-fit mx-auto border border-zinc-200/30 dark:border-zinc-800/40">
             <button
               onClick={() => setActivePreviewTab('planner')}
               className={`px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${activePreviewTab === 'planner' ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-850 dark:hover:text-zinc-300'}`}
@@ -424,12 +434,18 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
               onClick={() => setActivePreviewTab('concursos')}
               className={`px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${activePreviewTab === 'concursos' ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-850 dark:hover:text-zinc-300'}`}
             >
-              🏆 Editais cadastrados
+              🏆 Editais
+            </button>
+            <button
+              onClick={() => setActivePreviewTab('ecossistema')}
+              className={`px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${activePreviewTab === 'ecossistema' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20' : 'text-zinc-500 hover:text-zinc-855 dark:hover:text-zinc-300'}`}
+            >
+              🔄 Calendário Geral & Apps
             </button>
           </div>
 
           {/* Conteúdo da aba ativa */}
-          <div className="bg-white dark:bg-zinc-950 border border-zinc-250/70 dark:border-zinc-800/60 rounded-3xl p-6 md:p-8 shadow-xl max-w-4xl mx-auto min-h-[380px] flex flex-col justify-between transition-all">
+          <div className="bg-white dark:bg-zinc-950 border border-zinc-250/70 dark:border-zinc-800/60 rounded-3xl p-6 md:p-8 shadow-xl max-w-4xl mx-auto min-h-[380px] flex flex-col justify-between transition-all relative overflow-hidden">
             
             {/* Aba 1: Planner */}
             {activePreviewTab === 'planner' && (
@@ -443,7 +459,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="bg-zinc-50 dark:bg-zinc-900/35 border border-zinc-200/40 dark:border-zinc-800/40 rounded-2xl p-4 space-y-3">
+                  <div className="bg-zinc-50 dark:bg-zinc-900/35 border border-zinc-200/40 dark:border-zinc-800/40 rounded-2xl p-4 space-y-3 hover:scale-[1.02] transition-transform duration-300">
                     <h4 className="text-[10px] font-black text-zinc-455 dark:text-zinc-500 uppercase tracking-widest border-b border-zinc-200/55 dark:border-zinc-800/60 pb-2">Segunda-feira</h4>
                     
                     <div className="p-3 bg-blue-50/50 dark:bg-blue-950/10 border border-blue-200/25 dark:border-blue-900/20 rounded-xl space-y-1.5">
@@ -459,13 +475,13 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                     </div>
                   </div>
 
-                  <div className="bg-zinc-50 dark:bg-zinc-900/35 border border-zinc-200/40 dark:border-zinc-800/40 rounded-2xl p-4 space-y-3">
+                  <div className="bg-zinc-50 dark:bg-zinc-900/35 border border-zinc-200/40 dark:border-zinc-800/40 rounded-2xl p-4 space-y-3 hover:scale-[1.02] transition-transform duration-300">
                     <h4 className="text-[10px] font-black text-zinc-455 dark:text-zinc-500 uppercase tracking-widest border-b border-zinc-200/55 dark:border-zinc-800/60 pb-2">Terça-feira</h4>
                     
-                    <div className="p-3 bg-gradient-to-r from-violet-500/5 to-fuchsia-500/5 border border-fuchsia-200/35 dark:border-fuchsia-900/20 rounded-xl space-y-1.5">
+                    <div className="p-3 bg-gradient-to-r from-violet-500/5 to-fuchsia-500/5 border border-fuchsia-200/35 dark:border-fuchsia-900/20 rounded-xl space-y-1.5 shadow-sm">
                       <div className="flex items-center justify-between">
                         <span className="text-[8px] font-black text-fuchsia-600 dark:text-fuchsia-400 bg-fuchsia-100 dark:bg-fuchsia-900/40 px-1.5 py-0.5 rounded uppercase">Aulão de Revisão</span>
-                        <Sparkles size={10} className="text-fuchsia-500" />
+                        <Sparkles size={10} className="text-fuchsia-500 animate-pulse" />
                       </div>
                       <h5 className="text-[11px] font-black text-zinc-800 dark:text-white">RLM + Língua Portuguesa</h5>
                       <p className="text-[9px] font-bold text-zinc-450 dark:text-zinc-500">2h00 • Divisão Proporcional</p>
@@ -478,11 +494,11 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                     </div>
                   </div>
 
-                  <div className="bg-zinc-50 dark:bg-zinc-900/35 border border-zinc-200/40 dark:border-zinc-800/40 rounded-2xl p-4 space-y-3">
+                  <div className="bg-zinc-50 dark:bg-zinc-900/35 border border-zinc-200/40 dark:border-zinc-800/40 rounded-2xl p-4 space-y-3 hover:scale-[1.02] transition-transform duration-300">
                     <h4 className="text-[10px] font-black text-zinc-455 dark:text-zinc-500 uppercase tracking-widest border-b border-zinc-200/55 dark:border-zinc-800/60 pb-2">Quarta-feira</h4>
                     
                     <div className="p-3 bg-rose-50/50 dark:bg-rose-955/10 border border-rose-200/25 dark:border-rose-900/20 rounded-xl space-y-1.5">
-                      <span className="text-[8px] font-black text-rose-600 dark:text-rose-400 bg-rose-100 dark:bg-rose-900/40 px-1.5 py-0.5 rounded uppercase">Simulado</span>
+                      <span className="text-[8px] font-black text-rose-600 dark:text-rose-455 bg-rose-100 dark:bg-rose-900/40 px-1.5 py-0.5 rounded uppercase">Simulado</span>
                       <h5 className="text-[11px] font-black text-zinc-800 dark:text-white">Simulado Nacional RFB</h5>
                       <p className="text-[9px] font-bold text-zinc-450 dark:text-zinc-500">4h00 • 80 Questões</p>
                     </div>
@@ -508,7 +524,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 </div>
 
                 <div className="space-y-3">
-                  <div className="border border-zinc-200/50 dark:border-zinc-800 rounded-2xl overflow-hidden">
+                  <div className="border border-zinc-200/50 dark:border-zinc-800 rounded-2xl overflow-hidden shadow-sm">
                     <div className="flex items-center justify-between p-3.5 bg-zinc-50 dark:bg-zinc-900/40 border-b border-zinc-200/40 dark:border-zinc-855/40">
                       <div className="flex items-center gap-2">
                         <span className="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
@@ -527,10 +543,10 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                     </div>
 
                     <div className="divide-y divide-zinc-100 dark:divide-zinc-850">
-                      <div className="flex items-center justify-between p-3.5 pl-6">
+                      <div className="flex items-center justify-between p-3.5 pl-6 bg-rose-500/5 dark:bg-rose-500/2">
                         <div className="flex items-center gap-2">
-                          <span className="text-xs font-bold text-zinc-600 dark:text-zinc-300">1. Atos Administrativos</span>
-                          <span className="text-[8px] font-black text-rose-500 bg-rose-50 dark:bg-rose-955/40 border border-rose-200/30 dark:border-rose-900/20 px-1.5 py-0.5 rounded uppercase">Prioridade Alta</span>
+                          <span className="text-xs font-bold text-zinc-650 dark:text-zinc-300">1. Atos Administrativos</span>
+                          <span className="text-[8px] font-black text-rose-500 bg-rose-50 dark:bg-rose-955/40 border border-rose-200/30 dark:border-rose-900/20 px-1.5 py-0.5 rounded uppercase animate-pulse">Prioridade Alta</span>
                         </div>
                         <span className="text-xs font-black text-rose-500">54% de acerto</span>
                       </div>
@@ -559,7 +575,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="bg-zinc-50 dark:bg-zinc-900/30 border border-zinc-200/40 dark:border-zinc-800/40 rounded-2xl p-4.5 space-y-4">
+                  <div className="bg-zinc-50 dark:bg-zinc-900/30 border border-zinc-200/40 dark:border-zinc-800/40 rounded-2xl p-4.5 space-y-4 hover:scale-[1.02] transition-transform duration-300">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-955 border border-blue-200/30 dark:border-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 font-black text-xs shrink-0">
                         RFB
@@ -575,7 +591,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                         <span className="text-zinc-700 dark:text-zinc-300">72%</span>
                       </div>
                       <div className="w-full bg-zinc-200 dark:bg-zinc-800 h-1.5 rounded-full overflow-hidden">
-                        <div className="bg-blue-500 h-full rounded-full" style={{ width: '72%' }}></div>
+                        <div className="bg-blue-500 h-full rounded-full transition-all duration-1000" style={{ width: '72%' }}></div>
                       </div>
                     </div>
                     <div className="flex items-center justify-between text-[9px] pt-1.5 border-t border-zinc-200/30 dark:border-zinc-800/40 font-bold text-zinc-400">
@@ -584,7 +600,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                     </div>
                   </div>
 
-                  <div className="bg-zinc-50 dark:bg-zinc-900/30 border border-zinc-200/40 dark:border-zinc-800/40 rounded-2xl p-4.5 space-y-4">
+                  <div className="bg-zinc-50 dark:bg-zinc-900/30 border border-zinc-200/40 dark:border-zinc-800/40 rounded-2xl p-4.5 space-y-4 hover:scale-[1.02] transition-transform duration-300">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-955 border border-purple-200/30 dark:border-purple-900/30 flex items-center justify-center text-purple-600 dark:text-purple-400 font-black text-xs shrink-0">
                         TRT
@@ -600,12 +616,98 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                         <span className="text-zinc-700 dark:text-zinc-300">45%</span>
                       </div>
                       <div className="w-full bg-zinc-200 dark:bg-zinc-800 h-1.5 rounded-full overflow-hidden">
-                        <div className="bg-purple-500 h-full rounded-full" style={{ width: '45%' }}></div>
+                        <div className="bg-purple-500 h-full rounded-full transition-all duration-1000" style={{ width: '45%' }}></div>
                       </div>
                     </div>
                     <div className="flex items-center justify-between text-[9px] pt-1.5 border-t border-zinc-200/30 dark:border-zinc-800/40 font-bold text-zinc-400">
                       <span>8 Matérias</span>
                       <span>Peso Geral: 2.0</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Aba 4: Ecossistema / Calendário Geral */}
+            {activePreviewTab === 'ecossistema' && (
+              <div className="space-y-6 animate-in fade-in duration-300">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-4 border-b border-zinc-100 dark:border-zinc-800 gap-2">
+                  <div>
+                    <h3 className="text-sm font-black uppercase tracking-wider text-zinc-855 dark:text-white flex items-center gap-1.5">
+                      Calendário Geral & Ecossistema <span className="bg-indigo-100 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-lg text-[8px] font-black uppercase tracking-widest">Integração Total</span>
+                    </h3>
+                    <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider mt-0.5">Sua rotina pessoal, física, financeira e de estudos unificada</p>
+                  </div>
+                  <span className="text-[9px] font-bold text-zinc-400 uppercase">5 Módulos Integrados</span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {/* Calendar view */}
+                  <div className="md:col-span-2 bg-zinc-50 dark:bg-zinc-900/35 border border-zinc-200/45 dark:border-zinc-800/45 rounded-2xl p-4 space-y-2.5">
+                    <h4 className="text-[10px] font-black text-indigo-500 uppercase tracking-widest border-b border-zinc-200/50 dark:border-zinc-800/50 pb-2 flex items-center gap-1">
+                      <Calendar size={11} /> Agenda do Dia
+                    </h4>
+                    
+                    <div className="space-y-2 max-h-40 overflow-y-auto">
+                      {/* Studies */}
+                      <div className="flex items-center justify-between p-2 bg-blue-50/50 dark:bg-blue-950/10 border border-blue-200/20 dark:border-blue-900/20 rounded-xl">
+                        <div className="flex items-center gap-2">
+                          <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>
+                          <span className="text-[10px] font-bold text-zinc-700 dark:text-zinc-300">Estudar Atos Admin. (Estudos)</span>
+                        </div>
+                        <span className="text-[8px] font-black text-blue-500 bg-blue-100 dark:bg-blue-950/40 px-1.5 py-0.5 rounded uppercase">09:00</span>
+                      </div>
+
+                      {/* Habits */}
+                      <div className="flex items-center justify-between p-2 bg-emerald-50/50 dark:bg-emerald-950/10 border border-emerald-200/20 dark:border-emerald-900/20 rounded-xl">
+                        <div className="flex items-center gap-2">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                          <span className="text-[10px] font-bold text-zinc-700 dark:text-zinc-300">Ler 15 páginas (Hábitos)</span>
+                        </div>
+                        <span className="text-[8px] font-black text-emerald-500 bg-emerald-100 dark:bg-emerald-950/40 px-1.5 py-0.5 rounded uppercase">13:30</span>
+                      </div>
+
+                      {/* Health */}
+                      <div className="flex items-center justify-between p-2 bg-rose-50/50 dark:bg-rose-955/10 border border-rose-200/20 dark:border-rose-900/20 rounded-xl">
+                        <div className="flex items-center gap-2">
+                          <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                          <span className="text-[10px] font-bold text-zinc-700 dark:text-zinc-300">Treino A - Peito & Tríceps (Saúde)</span>
+                        </div>
+                        <span className="text-[8px] font-black text-rose-500 bg-rose-100 dark:bg-rose-950/40 px-1.5 py-0.5 rounded uppercase">18:00</span>
+                      </div>
+
+                      {/* Finance */}
+                      <div className="flex items-center justify-between p-2 bg-amber-50/50 dark:bg-amber-955/10 border border-amber-200/20 dark:border-amber-900/20 rounded-xl">
+                        <div className="flex items-center gap-2">
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                          <span className="text-[10px] font-bold text-zinc-700 dark:text-zinc-300">Pagar fatura internet (Finanças)</span>
+                        </div>
+                        <span className="text-[8px] font-black text-amber-500 bg-amber-100 dark:bg-amber-950/40 px-1.5 py-0.5 rounded uppercase">Vence Hoje</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Modules grid */}
+                  <div className="space-y-3">
+                    <h4 className="text-[10px] font-black text-zinc-455 dark:text-zinc-500 uppercase tracking-widest">Ferramentas de Apoio</h4>
+                    
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="p-2.5 bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200/60 dark:border-zinc-800 rounded-xl flex flex-col justify-between h-[4.5rem] hover:scale-[1.03] transition-transform duration-300">
+                        <span className="text-[8px] font-black text-emerald-500 uppercase">Hábitos</span>
+                        <span className="text-[10px] font-black text-zinc-800 dark:text-zinc-200 leading-tight">Metas diárias & Streaks</span>
+                      </div>
+                      <div className="p-2.5 bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200/60 dark:border-zinc-800 rounded-xl flex flex-col justify-between h-[4.5rem] hover:scale-[1.03] transition-transform duration-300">
+                        <span className="text-[8px] font-black text-amber-500 uppercase">Finanças</span>
+                        <span className="text-[10px] font-black text-zinc-800 dark:text-zinc-200 leading-tight">Receitas, despesas & caixa</span>
+                      </div>
+                      <div className="p-2.5 bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200/60 dark:border-zinc-800 rounded-xl flex flex-col justify-between h-[4.5rem] hover:scale-[1.03] transition-transform duration-300">
+                        <span className="text-[8px] font-black text-rose-500 uppercase">Saúde</span>
+                        <span className="text-[10px] font-black text-zinc-800 dark:text-zinc-200 leading-tight">Treinos físicos & pesagens</span>
+                      </div>
+                      <div className="p-2.5 bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200/60 dark:border-zinc-800 rounded-xl flex flex-col justify-between h-[4.5rem] hover:scale-[1.03] transition-transform duration-300">
+                        <span className="text-[8px] font-black text-purple-500 uppercase">Anotações</span>
+                        <span className="text-[10px] font-black text-zinc-800 dark:text-zinc-200 leading-tight">Pastas & blocos de notas</span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -690,7 +792,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
       {/* 6. CTA Final Banner */}
       <section className="py-20 max-w-7xl mx-auto px-6">
-        <div className="bg-zinc-900 dark:bg-zinc-900/60 border border-zinc-850 dark:border-zinc-800 rounded-3xl p-8 md:p-12 text-center space-y-6 relative overflow-hidden">
+        <div className="bg-zinc-900 dark:bg-zinc-900/60 border border-zinc-855 dark:border-zinc-800 rounded-3xl p-8 md:p-12 text-center space-y-6 relative overflow-hidden">
           <div className="absolute -top-24 -left-24 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
           <div className="absolute -bottom-24 -right-24 w-80 h-80 bg-fuchsia-500/10 rounded-full blur-3xl pointer-events-none"></div>
           
@@ -714,8 +816,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
       {/* 7. Footer */}
       <footer className="py-12 border-t border-zinc-200/50 dark:border-zinc-850/50 max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6 text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
-        <div className="flex items-center gap-2">
-          <img src={logoImg} alt="Conscientemente Logo" className="w-5 h-5 object-contain" />
+        <div className="flex items-center gap-3">
+          <FaviconIcon size={20} />
           <span>© {new Date().getFullYear()} Conscientemente. Todos os direitos reservados.</span>
         </div>
         <div className="flex items-center gap-6">
@@ -742,7 +844,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
             {/* Header do Form */}
             <div className="flex flex-col items-center mb-8 mt-2">
-              <img src={logoImg} alt="Conscientemente Logo" className="w-14 h-14 object-contain mb-3 drop-shadow-xl" />
+              <FaviconIcon size={56} className="mb-3 drop-shadow-xl" />
               <h2 className="text-xl font-sans font-black text-zinc-900 dark:text-white uppercase tracking-tighter">Conscientemente</h2>
               <p className="text-[9px] text-zinc-400 dark:text-zinc-505 font-black uppercase tracking-wider mt-1 text-center">
                 {isRegistering ? 'Crie sua conta gratuita e comece já' : 'Acesse seu painel estratégico'}
@@ -802,7 +904,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-blue-650 dark:hover:bg-blue-50 transition-all shadow-xl active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-blue-655 dark:hover:bg-blue-50 transition-all shadow-xl active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? 'Processando...' : (isRegistering ? 'Criar minha conta' : 'Entrar')}
               </button>

@@ -300,6 +300,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
 
   // DnD handlers for topic row reordering
   const handleTopicDragStart = (e: React.DragEvent, topicId: string) => {
+    e.stopPropagation();
     const target = e.target as HTMLElement;
     if (!target.closest('.drag-handle-topic')) {
       e.preventDefault();
@@ -312,12 +313,14 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
 
   const handleTopicDragOver = (e: React.DragEvent, topicId: string) => {
     e.preventDefault();
+    e.stopPropagation();
     e.dataTransfer.dropEffect = 'move';
     if (topicId !== draggedTopicId) setDragOverTopicId(topicId);
   };
 
   const handleTopicDrop = (e: React.DragEvent, subjectId: string, targetTopicId: string) => {
     e.preventDefault();
+    e.stopPropagation();
     const sourceTopicId = e.dataTransfer.getData('topic-id') || draggedTopicId;
     if (!sourceTopicId || sourceTopicId === targetTopicId) {
       setDraggedTopicId(null);
@@ -344,7 +347,8 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
     setDragOverTopicId(null);
   };
 
-  const handleTopicDragEnd = () => {
+  const handleTopicDragEnd = (e: React.DragEvent) => {
+    e.stopPropagation();
     setDraggedTopicId(null);
     setDragOverTopicId(null);
   };

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { User } from '../types';
 import { supabase } from '../services/supabase';
-import logoImg from '../assets/logo.png';
+import FaviconIcon from '../../../components/FaviconIcon';
 import {
   Sparkles,
   Calendar,
@@ -140,7 +140,7 @@ const LoginView: React.FC<LoginViewProps> = () => {
       <header className="fixed top-0 left-0 right-0 z-40 backdrop-blur-md bg-white/70 dark:bg-zinc-950/70 border-b border-zinc-200/50 dark:border-zinc-800/50 transition-colors">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <img src={logoImg} alt="Conscientemente Logo" className="w-8 h-8 object-contain" />
+            <FaviconIcon size={32} />
             <span className="font-sans font-black text-xl uppercase tracking-tighter text-zinc-900 dark:text-white">Conscientemente</span>
           </div>
 
@@ -739,7 +739,7 @@ const LoginView: React.FC<LoginViewProps> = () => {
       {/* 7. Footer */}
       <footer className="py-12 border-t border-zinc-200/50 dark:border-zinc-850/50 max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6 text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
         <div className="flex items-center gap-2">
-          <img src={logoImg} alt="Conscientemente Logo" className="w-5 h-5 object-contain" />
+          <FaviconIcon size={20} />
           <span>© {new Date().getFullYear()} Conscientemente. Todos os direitos reservados.</span>
         </div>
         <div className="flex items-center gap-6">
@@ -766,7 +766,7 @@ const LoginView: React.FC<LoginViewProps> = () => {
 
             {/* Header do Form */}
             <div className="flex flex-col items-center mb-8 mt-2">
-              <img src={logoImg} alt="Conscientemente Logo" className="w-14 h-14 object-contain mb-3 drop-shadow-xl" />
+              <FaviconIcon size={56} className="mb-3 drop-shadow-xl" />
               <h2 className="text-xl font-sans font-black text-zinc-900 dark:text-white uppercase tracking-tighter">Conscientemente</h2>
               <p className="text-[9px] text-zinc-400 dark:text-zinc-505 font-black uppercase tracking-wider mt-1 text-center">
                 {isRegistering ? 'Crie sua conta gratuita e comece já' : 'Acesse seu painel estratégico'}

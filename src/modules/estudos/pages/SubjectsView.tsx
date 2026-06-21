@@ -78,6 +78,10 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
   const [draggedSubjectId, setDraggedSubjectId] = useState<string | null>(null);
   const [dragOverSubjectId, setDragOverSubjectId] = useState<string | null>(null);
 
+  // Drag & Drop state for topic reordering
+  const [draggedTopicId, setDraggedTopicId] = useState<string | null>(null);
+  const [dragOverTopicId, setDragOverTopicId] = useState<string | null>(null);
+
   const colorPickerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -292,6 +296,57 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
   const handleSubjectDragEnd = () => {
     setDraggedSubjectId(null);
     setDragOverSubjectId(null);
+  };
+
+  // DnD handlers for topic row reordering
+  const handleTopicDragStart = (e: React.DragEvent, topicId: string) => {
+    const target = e.target as HTMLElement;
+    if (!target.closest('.drag-handle-topic')) {
+      e.preventDefault();
+      return;
+    }
+    setDraggedTopicId(topicId);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('topic-id', topicId);
+  };
+
+  const handleTopicDragOver = (e: React.DragEvent, topicId: string) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (topicId !== draggedTopicId) setDragOverTopicId(topicId);
+  };
+
+  const handleTopicDrop = (e: React.DragEvent, subjectId: string, targetTopicId: string) => {
+    e.preventDefault();
+    const sourceTopicId = e.dataTransfer.getData('topic-id') || draggedTopicId;
+    if (!sourceTopicId || sourceTopicId === targetTopicId) {
+      setDraggedTopicId(null);
+      setDragOverTopicId(null);
+      return;
+    }
+
+    const subject = subjects.find(s => s.id === subjectId);
+    if (!subject) return;
+
+    const sortedTopics = [...subject.topics].sort((a, b) => (a.order ?? 9999) - (b.order ?? 9999));
+    const sourceIdx = sortedTopics.findIndex(t => t.id === sourceTopicId);
+    const targetIdx = sortedTopics.findIndex(t => t.id === targetTopicId);
+    if (sourceIdx === -1 || targetIdx === -1) return;
+
+    const reordered = [...sortedTopics];
+    const [moved] = reordered.splice(sourceIdx, 1);
+    reordered.splice(targetIdx, 0, moved);
+
+    const updatedTopics = reordered.map((t, idx) => ({ ...t, order: idx + 1 }));
+
+    onUpdateSubjects(subjects.map(s => s.id === subjectId ? { ...s, topics: updatedTopics } : s));
+    setDraggedTopicId(null);
+    setDragOverTopicId(null);
+  };
+
+  const handleTopicDragEnd = () => {
+    setDraggedTopicId(null);
+    setDragOverTopicId(null);
   };
 
   const deleteSubject = (id: string, e: React.MouseEvent) => {
@@ -688,7 +743,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                             <table className="w-full text-left text-sm">
                               <thead>
                                 <tr className="text-zinc-400 border-b border-zinc-100 dark:border-zinc-800">
-                                  <th className="w-12 py-1.5 pl-3 pr-1 text-[10px] uppercase font-bold text-zinc-400 text-center">#</th>
+                                  <th className="w-16 py-1.5 pl-3 pr-1 text-[10px] uppercase font-bold text-zinc-400 text-center">#</th>
                                   <th className="py-1.5 pl-2 text-[10px] uppercase font-bold cursor-pointer hover:text-zinc-900 dark:text-zinc-300 flex items-center gap-3" onClick={() => { setTopicSortBy('name'); setTopicSortOrder(o => o === 'asc' ? 'desc' : 'asc'); }}>
                                     <span>Assunto {topicSortBy === 'name' && (topicSortOrder === 'asc' ? '↑' : '↓')}</span>
                                     <span className="flex-1" />
@@ -795,9 +850,23 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                                   .map(({ topic, stats: tStats }, topicRenderIndex) => {
                                     const topicOrder = topic.order ?? (topicRenderIndex + 1);
                                     return (
-                                      <tr key={topic.id} className="group/row hover:bg-zinc-100/80 dark:hover:bg-zinc-700/40 transition-colors border-b border-zinc-50 dark:border-zinc-800/20 last:border-0">
+                                      <tr
+                                        key={topic.id}
+                                        className={`group/row hover:bg-zinc-100/80 dark:hover:bg-zinc-700/40 transition-colors border-b border-zinc-50 dark:border-zinc-800/20 last:border-0 ${dragOverTopicId === topic.id && topicSortBy === 'default' ? 'border-t-2 border-blue-400' : ''} ${draggedTopicId === topic.id ? 'opacity-40' : ''}`}
+                                        draggable={topicSortBy === 'default' && editingTopicId !== topic.id}
+                                        onDragStart={topicSortBy === 'default' ? (e) => handleTopicDragStart(e, topic.id) : undefined}
+                                        onDragOver={topicSortBy === 'default' ? (e) => handleTopicDragOver(e, topic.id) : undefined}
+                                        onDrop={topicSortBy === 'default' ? (e) => handleTopicDrop(e, subject.id, topic.id) : undefined}
+                                        onDragEnd={topicSortBy === 'default' ? handleTopicDragEnd : undefined}
+                                      >
                                         {/* Order number cell — editable inline */}
-                                        <td className="py-1.5 pl-3 pr-1 text-center" onClick={e => e.stopPropagation()}>
+                                        <td className="py-1.5 pl-3 pr-1 text-center flex items-center justify-center gap-1.5" onClick={e => e.stopPropagation()}>
+                                          {topicSortBy === 'default' && (
+                                            <GripVertical
+                                              size={13}
+                                              className="text-zinc-300 dark:text-zinc-650 cursor-grab active:cursor-grabbing shrink-0 drag-handle-topic"
+                                            />
+                                          )}
                                           {editingTopicOrderId === topic.id ? (
                                             <input
                                               type="number"
@@ -816,7 +885,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                                             <span
                                               title="Clique para alterar o número"
                                               onClick={() => { setEditingTopicOrderId(topic.id); setEditTopicOrder(topicOrder); }}
-                                              className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-zinc-100 dark:bg-zinc-800 text-[10px] font-black text-zinc-500 dark:text-zinc-400 cursor-pointer hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors select-none"
+                                              className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-zinc-100 dark:bg-zinc-800 text-[10px] font-black text-zinc-500 dark:text-zinc-400 cursor-pointer hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors select-none shrink-0"
                                             >
                                               {topicOrder}
                                             </span>

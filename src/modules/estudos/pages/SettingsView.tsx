@@ -300,6 +300,20 @@ const SettingsView: React.FC<SettingsViewProps> = ({ currentUserEmail }) => {
         </div>
       </div>
 
+      {/* Opções de Conta */}
+      <div className="bg-white dark:bg-zinc-900 p-8 rounded-[2.5rem] border border-zinc-200 dark:border-zinc-800 shadow-sm space-y-4">
+        <h3 className="font-bold text-lg text-rose-500 flex items-center gap-2">Sair da Conta</h3>
+        <p className="text-xs text-zinc-500 dark:text-zinc-400">Desconectar-se deste dispositivo.</p>
+        <button
+          onClick={async () => {
+            await supabase.auth.signOut();
+            window.location.reload();
+          }}
+          className="bg-rose-500 hover:bg-rose-600 text-white px-6 py-3 rounded-2xl font-black uppercase text-xs transition-all active:scale-95 shadow-lg shadow-rose-500/10"
+        >
+          Desconectar
+        </button>
+      </div>
 
     </div>
   );

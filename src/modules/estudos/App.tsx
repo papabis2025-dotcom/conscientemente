@@ -189,6 +189,7 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
 
   const handleLogout = () => {
     resetTimer();
+    logout();
     window.location.hash = '';
   };
 

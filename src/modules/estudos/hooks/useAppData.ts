@@ -23,6 +23,14 @@ const getDeterministicReviewId = (subId: string, topicId: string | undefined, la
     return `${part1}-${part2}-${part3}-${part4}-${part5}`;
 };
 
+const parseNotesGroup = (notes: string) => {
+    const match = notes?.match(/^\[groupId:([^\]]+)\](.*)/s);
+    if (match) {
+        return { groupId: match[1], cleanNotes: match[2].trim() };
+    }
+    return { groupId: null, cleanNotes: notes || '' };
+};
+
 export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme?: () => void) => {
     const [currentUser, setCurrentUser] = useState<User | null>(null);
     const [users, setUsers] = useState<User[]>([]); // Keeping for legacy/compatibility
@@ -1056,37 +1064,52 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         }
     };
 
-    const deleteScheduledStudy = async (id: string) => {
+    const deleteScheduledStudy = async (idOrIds: string | string[]) => {
+        const ids = Array.isArray(idOrIds) ? idOrIds : [idOrIds];
+        if (ids.length === 0) return;
         setSaveError(null);
 
-        // If it's a review, track it as deleted so it's not auto-recreated
-        const taskToDelete = scheduledStudies.find(s => s.id === id);
-        if (taskToDelete && taskToDelete.activityType === 'Revisão') {
+        // If any of them are reviews, track them as deleted so they are not auto-recreated
+        const reviewsToDelete = scheduledStudies.filter(s => ids.includes(s.id) && s.activityType === 'Revisão');
+        if (reviewsToDelete.length > 0) {
             try {
                 const deletedRaw = localStorage.getItem('estudos_deleted_review_ids') || '[]';
                 const deletedList = JSON.parse(deletedRaw);
-                if (!deletedList.includes(id)) {
-                    deletedList.push(id);
+                let changed = false;
+                reviewsToDelete.forEach(r => {
+                    if (!deletedList.includes(r.id)) {
+                        deletedList.push(r.id);
+                        changed = true;
+                    }
+                });
+                if (changed) {
                     localStorage.setItem('estudos_deleted_review_ids', JSON.stringify(deletedList));
                 }
             } catch (e) {
-                console.error('Error saving deleted review ID:', e);
+                console.error('Error saving deleted review IDs:', e);
             }
         }
 
-        // Cascade: Remove from schedule AND sessions
-        setScheduledStudies(prev => {
-            const updated = prev.filter(s => s.id !== id);
-            localStorage.setItem('cp_scheduled_studies', JSON.stringify(updated));
-            return updated;
-        });
-        setSessions(prev => prev.filter(s => s.id !== id)); // Assumes shared ID
+        const updatedSchedule = scheduledStudies.filter(s => !ids.includes(s.id));
+        const updatedSessions = sessions.filter(s => !ids.includes(s.id));
+
+        // Cascade: Remove from schedule AND sessions in local state
+        setScheduledStudies(updatedSchedule);
+        localStorage.setItem('cp_scheduled_studies', JSON.stringify(updatedSchedule));
+        setSessions(updatedSessions);
+
         try {
-            await api.schedule.delete(id);
-            await api.sessions.delete(id); // Cascade
+            await Promise.all(ids.map(async id => {
+                await api.schedule.delete(id);
+                await api.sessions.delete(id);
+            }));
+
+            // Sync planned reviews with the correct arrays
+            await syncPlannedReviewsDb(updatedSessions, updatedSchedule, concursos);
+
             setLastSaved(new Date().toLocaleTimeString());
         } catch (e) {
-            console.error('Error deleting schedule item:', e);
+            console.error('Error deleting scheduled studies:', e);
             setSaveError('Erro ao excluir item da agenda.');
         }
     };
@@ -1159,6 +1182,208 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
             console.error('Error updating scheduled study:', e);
             setSaveError('Erro ao atualizar item na agenda.');
         }
+    };
+
+    const saveCalendarActivity = async (
+        editingTaskId: string | null,
+        formData: {
+            subjectId: string;
+            subjectIds: string[];
+            topicIds: string[];
+            activityTypes: string[];
+            duration: string;
+            questionsDone: string;
+            questionsCorrect: string;
+            notes: string;
+            status: 'planejado' | 'realizado';
+        },
+        selectedDayKey: string
+    ) => {
+        setSaveError(null);
+
+        const isAulao = formData.activityTypes.includes('Aulão de Revisão');
+        const selectedSubjects = isAulao ? formData.subjectIds : (formData.subjectId ? [formData.subjectId] : []);
+        if (selectedSubjects.length === 0 || !selectedDayKey) return;
+
+        const durationVal = parseInt(formData.duration) || 0;
+        const selectedTypes = formData.activityTypes;
+        const hasQuestions = selectedTypes.includes('Questões') || selectedTypes.includes('Flashcards') || selectedTypes.includes('Revisão');
+        const questionsDoneVal = hasQuestions ? (parseInt(formData.questionsDone) || undefined) : undefined;
+        const questionsCorrectVal = hasQuestions ? (parseInt(formData.questionsCorrect) || undefined) : undefined;
+        const activityTypesStr = selectedTypes.join(', ');
+
+        const selectedTopicIds = isAulao ? [] : formData.topicIds;
+        const topicIdsToSave = selectedTopicIds.length > 0 ? selectedTopicIds : [undefined];
+
+        // 1. In-place update for simple single-topic tasks (to prevent duplication)
+        const editingTask = editingTaskId ? scheduledStudies.find(s => s.id === editingTaskId) : null;
+        if (editingTask && !isAulao && selectedSubjects.length === 1 && topicIdsToSave.length === 1 && !(editingTask as any).isGroupedVirtual) {
+            const subId = selectedSubjects[0];
+            const topicId = topicIdsToSave[0];
+            const updates: Partial<ScheduledStudy> = {
+                date: selectedDayKey,
+                subjectId: subId,
+                topicId: topicId,
+                activityType: activityTypesStr,
+                notes: formData.notes,
+                durationInMinutes: durationVal || undefined,
+                questionsDone: questionsDoneVal,
+                questionsCorrect: questionsCorrectVal,
+                status: formData.status
+            };
+            await updateScheduledStudy(editingTask.id, updates);
+            return;
+        }
+
+        // 2. Determine which old tasks to delete
+        const tasksToDeleteIds: string[] = [];
+        if (editingTask) {
+            const gId = (editingTask as any).groupId || (editingTask.notes ? parseNotesGroup(editingTask.notes).groupId : null);
+            if (gId) {
+                const groupTasks = scheduledStudies.filter(t => t.notes && parseNotesGroup(t.notes).groupId === gId);
+                tasksToDeleteIds.push(...groupTasks.map(t => t.id));
+            } else {
+                tasksToDeleteIds.push(editingTask.id);
+            }
+        }
+
+        // 3. Build new entries
+        const newGroupId = (selectedSubjects.length > 1 || topicIdsToSave.length > 1) ? crypto.randomUUID() : null;
+        const notesToSave = newGroupId ? `[groupId:${newGroupId}] ${formData.notes}`.trim() : formData.notes;
+
+        const totalCount = selectedSubjects.length * topicIdsToSave.length;
+        const baseDuration = Math.floor(durationVal / totalCount);
+        const remDuration = durationVal % totalCount;
+
+        const baseDone = questionsDoneVal !== undefined ? Math.floor(questionsDoneVal / totalCount) : undefined;
+        const remDone = questionsDoneVal !== undefined ? questionsDoneVal % totalCount : 0;
+
+        const baseCorrect = questionsCorrectVal !== undefined ? Math.floor(questionsCorrectVal / totalCount) : undefined;
+        const remCorrect = questionsCorrectVal !== undefined ? questionsCorrectVal % totalCount : 0;
+
+        const newEntries: ScheduledStudy[] = [];
+        const sessionsList: StudySession[] = [];
+        let itemIndex = 0;
+
+        for (const subId of selectedSubjects) {
+            for (const topicId of topicIdsToSave) {
+                const itemDuration = itemIndex === 0 ? baseDuration + remDuration : baseDuration;
+                const itemDone = questionsDoneVal !== undefined ? (itemIndex === 0 ? baseDone! + remDone : baseDone) : undefined;
+                const itemCorrect = questionsCorrectVal !== undefined ? (itemIndex === 0 ? baseCorrect! + remCorrect : baseCorrect) : undefined;
+                itemIndex++;
+
+                if (formData.status === 'realizado') {
+                    sessionsList.push({
+                        id: totalCount === 1 && editingTask ? editingTask.id : crypto.randomUUID(),
+                        subjectId: subId,
+                        topicId: topicId,
+                        durationInMinutes: itemDuration,
+                        date: new Date(`${selectedDayKey}T12:00:00`).toISOString(),
+                        questionsDone: itemDone,
+                        questionsCorrect: itemCorrect,
+                        activityType: activityTypesStr,
+                        notes: notesToSave
+                    } as any);
+                } else {
+                    newEntries.push({
+                        id: crypto.randomUUID(),
+                        date: selectedDayKey,
+                        subjectId: subId,
+                        topicId: topicId,
+                        activityType: activityTypesStr,
+                        notes: notesToSave,
+                        durationInMinutes: itemDuration || undefined,
+                        questionsDone: itemDone,
+                        questionsCorrect: itemCorrect,
+                        status: formData.status
+                    });
+                }
+            }
+        }
+
+        // --- Execute Deletion and Insertion atomically for State & DB ---
+
+        let updatedSchedule = scheduledStudies.filter(s => !tasksToDeleteIds.includes(s.id));
+        let updatedSessions = sessions.filter(s => !tasksToDeleteIds.includes(s.id));
+
+        if (formData.status === 'realizado') {
+            const sessionsToCreateSchedule: ScheduledStudy[] = sessionsList.map(session => {
+                const sessionDate = session.date.split('T')[0];
+                return {
+                    id: session.id,
+                    date: sessionDate,
+                    subjectId: session.subjectId,
+                    topicId: session.topicId,
+                    activityType: session.activityType as ActivityType,
+                    durationInMinutes: session.durationInMinutes,
+                    questionsDone: session.questionsDone,
+                    questionsCorrect: session.questionsCorrect,
+                    status: 'realizado',
+                    notes: (session as any).notes
+                };
+            });
+
+            updatedSchedule = [...updatedSchedule, ...sessionsToCreateSchedule];
+            updatedSessions = [...updatedSessions, ...sessionsList];
+        } else {
+            updatedSchedule = [...updatedSchedule, ...newEntries];
+        }
+
+        // 1. Update React local states and LocalStorage
+        setScheduledStudies(updatedSchedule);
+        localStorage.setItem('cp_scheduled_studies', JSON.stringify(updatedSchedule));
+        setSessions(updatedSessions);
+
+        // 2. Perform DB operations
+        try {
+            // Deletes
+            if (tasksToDeleteIds.length > 0) {
+                await Promise.all(tasksToDeleteIds.map(async id => {
+                    await api.schedule.delete(id);
+                    await api.sessions.delete(id);
+                }));
+            }
+
+            // Insertions / Updates
+            if (formData.status === 'realizado') {
+                for (const session of sessionsList) {
+                    await api.sessions.create(session);
+
+                    const matchingSchedule: ScheduledStudy = {
+                        id: session.id,
+                        date: session.date.split('T')[0],
+                        subjectId: session.subjectId,
+                        topicId: session.topicId,
+                        activityType: session.activityType as ActivityType,
+                        durationInMinutes: session.durationInMinutes,
+                        questionsDone: session.questionsDone,
+                        questionsCorrect: session.questionsCorrect,
+                        status: 'realizado',
+                        notes: (session as any).notes
+                    };
+                    await api.schedule.create(matchingSchedule);
+                }
+            } else {
+                for (const entry of newEntries) {
+                    await api.schedule.create(entry);
+                }
+            }
+
+            addLog({
+                message: editingTaskId 
+                    ? `Atividade do Planner atualizada` 
+                    : `Nova atividade adicionada ao Planner`,
+                type: 'success'
+            });
+
+            setLastSaved(new Date().toLocaleTimeString());
+        } catch (err) {
+            console.error('Error saving activity to database:', err);
+            setSaveError('Erro ao salvar alterações no banco de dados.');
+        }
+
+        // 3. Sync reviews with the EXACT final updated states
+        await syncPlannedReviewsDb(updatedSessions, updatedSchedule, concursos);
     };
 
     const updateScheduledStudies = async (newSchedule: ScheduledStudy[]) => {
@@ -1298,7 +1523,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         selectedConcursoId, setSelectedConcursoId,
         sessions: filteredSessions, setSessions: (s: any) => s, // Disabled direct set
         simulados: filteredSimulados, setSimulados: (s: any) => s, // Disabled direct set
-        scheduledStudies: filteredScheduledStudies, setScheduledStudies: updateScheduledStudies, deleteScheduledStudy, updateScheduledStudy,
+        scheduledStudies: filteredScheduledStudies, setScheduledStudies: updateScheduledStudies, deleteScheduledStudy, updateScheduledStudy, saveCalendarActivity,
         dailyGoals, setDailyGoals: updateDailyGoals,
         logs, setLogs: (s: any) => s, // Disabled direct set
         theme, toggleTheme,

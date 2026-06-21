@@ -8,10 +8,8 @@ interface CalendarViewProps {
   allSubjects?: Subject[]; // For lookup (global)
   scheduledStudies: ScheduledStudy[];
   simulados: Simulado[];
-  onUpdateSchedule: (studies: ScheduledStudy[]) => void;
-  onDelete: (id: string) => void;
-  onAddSession?: (session: StudySession) => void;
-  onAddSessionsBatch?: (sessions: StudySession[]) => void;
+  onSaveActivity: (editingTaskId: string | null, formData: any, selectedDayKey: string) => Promise<void>;
+  onDelete: (idOrIds: string | string[]) => Promise<void>;
   onToggleStatus?: (idOrIds: string | string[]) => void;
   onUpdateScheduledStudy: (id: string, updates: Partial<ScheduledStudy>) => void;
   onSyncReviews?: (forceRecalculate?: boolean) => Promise<void>;
@@ -33,10 +31,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   allSubjects, 
   scheduledStudies, 
   simulados,
-  onUpdateSchedule, 
+  onSaveActivity, 
   onDelete, 
-  onAddSession, 
-  onAddSessionsBatch,
   onToggleStatus,
   onUpdateScheduledStudy,
   onSyncReviews
@@ -112,136 +108,25 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   };
 
   const handleSave = async () => {
-    const isAulao = formData.activityTypes.includes('Aulão de Revisão');
-    const selectedSubjects = isAulao ? formData.subjectIds : (formData.subjectId ? [formData.subjectId] : []);
-    if (selectedSubjects.length === 0 || selectedDayKey === null) return;
-
-    const durationVal = parseInt(formData.duration) || 0;
-    const selectedTypes = formData.activityTypes;
-    const hasQuestions = selectedTypes.includes('Questões') || selectedTypes.includes('Flashcards') || selectedTypes.includes('Revisão');
-    const questionsDoneVal = hasQuestions ? (parseInt(formData.questionsDone) || undefined) : undefined;
-    const questionsCorrectVal = hasQuestions ? (parseInt(formData.questionsCorrect) || undefined) : undefined;
-    const activityTypesStr = selectedTypes.join(', ');
-
-    const selectedTopicIds = isAulao ? [] : formData.topicIds;
-    const topicIdsToSave = selectedTopicIds.length > 0 ? selectedTopicIds : [undefined];
-
-    // 1. In-place update for simple single-topic tasks (to prevent duplication)
-    if (editingTask && !isAulao && selectedSubjects.length === 1 && topicIdsToSave.length === 1 && !(editingTask as any).isGroupedVirtual) {
-      const subId = selectedSubjects[0];
-      const topicId = topicIdsToSave[0];
-      const updates: Partial<ScheduledStudy> = {
-        date: selectedDayKey,
-        subjectId: subId,
-        topicId: topicId,
-        activityType: activityTypesStr,
-        notes: formData.notes,
-        durationInMinutes: durationVal || undefined,
-        questionsDone: questionsDoneVal,
-        questionsCorrect: questionsCorrectVal,
-        status: formData.status
-      };
-      
-      await onUpdateScheduledStudy(editingTask.id, updates);
+    if (selectedDayKey === null) return;
+    try {
+      await onSaveActivity(editingTask ? editingTask.id : null, formData, selectedDayKey);
       setShowModal(false);
       setEditingTask(null);
-      return;
+      setFormData({
+        subjectId: '',
+        subjectIds: [],
+        topicIds: [],
+        activityTypes: ['Leitura'],
+        duration: '',
+        questionsDone: '',
+        questionsCorrect: '',
+        notes: '',
+        status: 'planejado'
+      });
+    } catch (e) {
+      console.error('Error saving activity:', e);
     }
-
-    // 2. Clean up old entries if editing
-    if (editingTask) {
-      const gId = (editingTask as any).groupId || (editingTask.notes ? parseNotesGroup(editingTask.notes).groupId : null);
-      if (gId) {
-        const groupTasks = scheduledStudies.filter(t => t.notes && parseNotesGroup(t.notes).groupId === gId);
-        for (const t of groupTasks) {
-          await onDelete(t.id);
-        }
-      } else {
-        await onDelete(editingTask.id);
-      }
-    }
-
-    // 3. Insert new entries
-    const newGroupId = (selectedSubjects.length > 1 || topicIdsToSave.length > 1) ? crypto.randomUUID() : null;
-    const notesToSave = newGroupId ? `[groupId:${newGroupId}] ${formData.notes}`.trim() : formData.notes;
-
-    const totalCount = selectedSubjects.length * topicIdsToSave.length;
-    const baseDuration = Math.floor(durationVal / totalCount);
-    const remDuration = durationVal % totalCount;
-
-    const baseDone = questionsDoneVal !== undefined ? Math.floor(questionsDoneVal / totalCount) : undefined;
-    const remDone = questionsDoneVal !== undefined ? questionsDoneVal % totalCount : 0;
-
-    const baseCorrect = questionsCorrectVal !== undefined ? Math.floor(questionsCorrectVal / totalCount) : undefined;
-    const remCorrect = questionsCorrectVal !== undefined ? questionsCorrectVal % totalCount : 0;
-
-    const newEntries: ScheduledStudy[] = [];
-    const sessionsList: StudySession[] = [];
-    let itemIndex = 0;
-
-    for (const subId of selectedSubjects) {
-      for (const topicId of topicIdsToSave) {
-        const itemDuration = itemIndex === 0 ? baseDuration + remDuration : baseDuration;
-        const itemDone = questionsDoneVal !== undefined ? (itemIndex === 0 ? baseDone! + remDone : baseDone) : undefined;
-        const itemCorrect = questionsCorrectVal !== undefined ? (itemIndex === 0 ? baseCorrect! + remCorrect : baseCorrect) : undefined;
-        itemIndex++;
-
-        if (formData.status === 'realizado') {
-          sessionsList.push({
-            id: totalCount === 1 && editingTask ? editingTask.id : crypto.randomUUID(),
-            subjectId: subId,
-            topicId: topicId,
-            durationInMinutes: itemDuration,
-            date: new Date(`${selectedDayKey}T12:00:00`).toISOString(),
-            questionsDone: itemDone,
-            questionsCorrect: itemCorrect,
-            activityType: activityTypesStr,
-            notes: notesToSave
-          } as any);
-        } else {
-          newEntries.push({
-            id: crypto.randomUUID(),
-            date: selectedDayKey,
-            subjectId: subId,
-            topicId: topicId,
-            activityType: activityTypesStr,
-            notes: notesToSave,
-            durationInMinutes: itemDuration || undefined,
-            questionsDone: itemDone,
-            questionsCorrect: itemCorrect,
-            status: formData.status
-          });
-        }
-      }
-    }
-
-    if (formData.status === 'realizado' && sessionsList.length > 0) {
-      if (onAddSessionsBatch) {
-        await onAddSessionsBatch(sessionsList);
-      } else if (onAddSession) {
-        for (const s of sessionsList) {
-          await onAddSession(s);
-        }
-      }
-    }
-
-    if (newEntries.length > 0) {
-      onUpdateSchedule([...scheduledStudies, ...newEntries]);
-    }
-
-    setShowModal(false);
-    setEditingTask(null);
-    setFormData({
-      subjectId: '',
-      subjectIds: [],
-      topicIds: [],
-      activityTypes: ['Leitura'],
-      duration: '',
-      questionsDone: '',
-      questionsCorrect: '',
-      notes: '',
-      status: 'planejado'
-    });
   };
 
   const handleDelete = async (id: string) => {
@@ -250,13 +135,12 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       const { groupId } = parseNotesGroup(task.notes);
       if (groupId) {
         const groupTasks = scheduledStudies.filter(t => t.notes && parseNotesGroup(t.notes).groupId === groupId);
-        for (const t of groupTasks) {
-          await onDelete(t.id);
-        }
+        const ids = groupTasks.map(t => t.id);
+        await onDelete(ids);
         return;
       }
     }
-    await onDelete(id);
+    await onDelete([id]);
   };
 
   const handleNavigate = (direction: number) => {

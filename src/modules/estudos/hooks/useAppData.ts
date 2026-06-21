@@ -307,7 +307,8 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                             (sched.activityType.toLowerCase().includes('revisão') || 
                              sched.activityType.toLowerCase().includes('revisao'))
                         );
-                        return !!(isRevType || isRevNotes || isRevId);
+                        const isDeterministic = s.id && s.id.split('-')[3]?.startsWith('400');
+                        return !!(isRevType || isRevNotes || isRevId || isDeterministic);
                     };
 
                     const topicSessions = allSess.filter(s =>

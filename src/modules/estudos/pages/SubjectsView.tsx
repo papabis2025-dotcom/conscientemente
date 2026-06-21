@@ -301,11 +301,6 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
   // DnD handlers for topic row reordering
   const handleTopicDragStart = (e: React.DragEvent, topicId: string) => {
     e.stopPropagation();
-    const target = e.target as HTMLElement;
-    if (!target.closest('.drag-handle-topic')) {
-      e.preventDefault();
-      return;
-    }
     setDraggedTopicId(topicId);
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('topic-id', topicId);
@@ -857,19 +852,24 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                                       <tr
                                         key={topic.id}
                                         className={`group/row hover:bg-zinc-100/80 dark:hover:bg-zinc-700/40 transition-colors border-b border-zinc-50 dark:border-zinc-800/20 last:border-0 ${dragOverTopicId === topic.id && topicSortBy === 'default' ? 'border-t-2 border-blue-400' : ''} ${draggedTopicId === topic.id ? 'opacity-40' : ''}`}
-                                        draggable={topicSortBy === 'default' && editingTopicId !== topic.id}
-                                        onDragStart={topicSortBy === 'default' ? (e) => handleTopicDragStart(e, topic.id) : undefined}
                                         onDragOver={topicSortBy === 'default' ? (e) => handleTopicDragOver(e, topic.id) : undefined}
                                         onDrop={topicSortBy === 'default' ? (e) => handleTopicDrop(e, subject.id, topic.id) : undefined}
-                                        onDragEnd={topicSortBy === 'default' ? handleTopicDragEnd : undefined}
                                       >
                                         {/* Order number cell — editable inline */}
                                         <td className="py-1.5 pl-3 pr-1 text-center flex items-center justify-center gap-1.5" onClick={e => e.stopPropagation()}>
-                                          {topicSortBy === 'default' && (
-                                            <GripVertical
-                                              size={13}
-                                              className="text-zinc-300 dark:text-zinc-650 cursor-grab active:cursor-grabbing shrink-0 drag-handle-topic"
-                                            />
+                                          {topicSortBy === 'default' && editingTopicId !== topic.id && (
+                                            <div
+                                              draggable
+                                              onDragStart={(e) => handleTopicDragStart(e, topic.id)}
+                                              onDragEnd={handleTopicDragEnd}
+                                              className="cursor-grab active:cursor-grabbing shrink-0 flex items-center"
+                                              title="Arraste para reordenar"
+                                            >
+                                              <GripVertical
+                                                size={13}
+                                                className="text-zinc-300 dark:text-zinc-600 pointer-events-none"
+                                              />
+                                            </div>
                                           )}
                                           {editingTopicOrderId === topic.id ? (
                                             <input

@@ -77,7 +77,6 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
   // Drag & Drop state for subject reordering
   const [draggedSubjectId, setDraggedSubjectId] = useState<string | null>(null);
   const [dragOverSubjectId, setDragOverSubjectId] = useState<string | null>(null);
-  const [canDrag, setCanDrag] = useState<string | null>(null);
 
   const colorPickerRef = useRef<HTMLDivElement>(null);
 
@@ -249,6 +248,11 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
 
   // DnD handlers for subject row reordering
   const handleSubjectDragStart = (e: React.DragEvent, id: string) => {
+    const target = e.target as HTMLElement;
+    if (!target.closest('.drag-handle')) {
+      e.preventDefault();
+      return;
+    }
     setDraggedSubjectId(id);
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('subject-id', id);
@@ -563,20 +567,18 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                         draggedSubjectId === subject.id ? 'opacity-40' : ''
                       }`}
                       onClick={() => toggleExpand(subject.id)}
-                      draggable={sortBy === 'default' && canDrag === subject.id}
+                      draggable={sortBy === 'default' && editingSubjectId !== subject.id}
                       onDragStart={sortBy === 'default' ? (e) => handleSubjectDragStart(e, subject.id) : undefined}
                       onDragOver={sortBy === 'default' ? (e) => handleSubjectDragOver(e, subject.id) : undefined}
                       onDrop={sortBy === 'default' ? (e) => handleSubjectDrop(e, subject.id) : undefined}
-                      onDragEnd={sortBy === 'default' ? () => { handleSubjectDragEnd(); setCanDrag(null); } : undefined}
+                      onDragEnd={sortBy === 'default' ? handleSubjectDragEnd : undefined}
                     >
                       <td className="px-2 py-3 w-10" onClick={(e) => e.stopPropagation()}>
                         {sortBy === 'default' ? (
-                          <div className="flex items-center gap-1">
+                          <div className="flex items-center gap-1 drag-handle">
                             <GripVertical
                               size={14}
                               className="text-zinc-300 dark:text-zinc-600 cursor-grab active:cursor-grabbing shrink-0"
-                              onMouseDown={() => setCanDrag(subject.id)}
-                              onMouseUp={() => setCanDrag(null)}
                             />
                           </div>
                         ) : (

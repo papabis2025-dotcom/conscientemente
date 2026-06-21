@@ -293,9 +293,21 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                     // Also exclude sessions that are themselves reviews — marking a review as done
                     // must not trigger creation of a new review (avoids duplicate/loop).
                     const isRevisaoSession = (s: StudySession) => {
-                        if (!s.activityType) return false;
-                        const lower = s.activityType.toLowerCase();
-                        return lower.includes('revisão') || lower.includes('revisao');
+                        const isRevType = s.activityType && (
+                            s.activityType.toLowerCase().includes('revisão') || 
+                            s.activityType.toLowerCase().includes('revisao')
+                        );
+                        const isRevNotes = (s as any).notes && (
+                            (s as any).notes.toLowerCase().includes('revisão') || 
+                            (s as any).notes.toLowerCase().includes('revisao')
+                        );
+                        const isRevId = allSchedule.some(sched => 
+                            sched.id === s.id && 
+                            sched.activityType && 
+                            (sched.activityType.toLowerCase().includes('revisão') || 
+                             sched.activityType.toLowerCase().includes('revisao'))
+                        );
+                        return !!(isRevType || isRevNotes || isRevId);
                     };
 
                     const topicSessions = allSess.filter(s =>

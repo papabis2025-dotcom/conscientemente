@@ -98,16 +98,33 @@ const SaudeApp: React.FC = () => {
     const defaultWidgets: SaudeWidgetState[] = [
       { id: 'activities_distribution', title: 'Distribuição de Atividades', isVisible: true, size: 'normal' },
       { id: 'monthly_calendar', title: 'Calendário Mensal', isVisible: true, size: 'normal' },
-      { id: 'exercise_volume', title: 'Volume de Exercícios (Min)', isVisible: true, size: 'normal' },
-      { id: 'sleep_performance', title: 'Desempenho do Sono', isVisible: true, size: 'normal' },
-      { id: 'cardio_levels', title: 'Atividades por Nível / Ritmo', isVisible: true, size: 'normal' }
+      { id: 'cardio_levels', title: 'Atividades por Nível / Ritmo', isVisible: true, size: 'normal' },
+      { id: 'exercise_volume', title: 'Volume de Exercícios (Min)', isVisible: true, size: 'wide' },
+      { id: 'sleep_performance', title: 'Desempenho do Sono', isVisible: true, size: 'normal' }
     ];
     if (saved) {
-      const parsed = JSON.parse(saved);
-      if (!parsed.some((w: any) => w.id === 'sleep_performance')) {
-        parsed.splice(3, 0, { id: 'sleep_performance', title: 'Desempenho do Sono', isVisible: true, size: 'normal' });
+      try {
+        let parsed = JSON.parse(saved) as SaudeWidgetState[];
+        // Ensure exercise_volume is 'wide'
+        parsed = parsed.map(w => w.id === 'exercise_volume' ? { ...w, size: 'wide' } : w);
+        
+        // If sleep_performance is not present, insert it right after exercise_volume
+        if (!parsed.some((w: any) => w.id === 'sleep_performance')) {
+          const volIndex = parsed.findIndex((w: any) => w.id === 'exercise_volume');
+          const newWidget: SaudeWidgetState = { id: 'sleep_performance', title: 'Desempenho do Sono', isVisible: true, size: 'normal' };
+          if (volIndex !== -1) {
+            parsed.splice(volIndex + 1, 0, newWidget);
+          } else {
+            parsed.push(newWidget);
+          }
+        } else {
+          // Ensure sleep_performance is 'normal'
+          parsed = parsed.map(w => w.id === 'sleep_performance' ? { ...w, size: 'normal' } : w);
+        }
+        return parsed;
+      } catch (e) {
+        console.error('Error parsing saved layout:', e);
       }
-      return parsed;
     }
     return defaultWidgets;
   });

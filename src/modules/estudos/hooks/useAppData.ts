@@ -45,6 +45,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
     const setSelectedConcursoId = (id: string | 'all') => {
         setSelectedConcursoIdState(id);
         localStorage.setItem('cp_selected_concurso_id', id);
+        window.dispatchEvent(new Event('local-settings-changed'));
     };
     const [sessions, setSessions] = useState<StudySession[]>([]);
     const [simulados, setSimulados] = useState<Simulado[]>([]);
@@ -69,6 +70,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
     const setGlobalDailyGoal = (goal: number) => {
         setGlobalDailyGoalState(goal);
         localStorage.setItem('cp_global_daily_goal', goal.toString());
+        window.dispatchEvent(new Event('local-settings-changed'));
     };
 
     // Study Plan Tasks State
@@ -105,6 +107,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
             const preserved = prev.filter(t => !subIds.has(t.subjectId));
             const updated = [...preserved, ...newTasks];
             localStorage.setItem('cp_study_tasks', JSON.stringify(updated));
+            window.dispatchEvent(new Event('local-settings-changed'));
             return updated;
         });
     };
@@ -269,6 +272,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                 }));
                 const combined = [...filtered, ...newScheduledItems];
                 localStorage.setItem('cp_scheduled_studies', JSON.stringify(combined));
+                window.dispatchEvent(new Event('local-settings-changed'));
                 return combined;
             });
         }
@@ -432,6 +436,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                 });
                 const combined = [...filtered, ...reviewsToCreate];
                 localStorage.setItem('cp_scheduled_studies', JSON.stringify(combined));
+                window.dispatchEvent(new Event('local-settings-changed'));
                 return combined;
             });
         }
@@ -1478,6 +1483,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         setScheduledStudies(prev => {
             const updated = prev.map(s => ids.includes(s.id) ? { ...s, status: targetStatus } : s);
             localStorage.setItem('cp_scheduled_studies', JSON.stringify(updated));
+            window.dispatchEvent(new Event('local-settings-changed'));
             return updated;
         });
 

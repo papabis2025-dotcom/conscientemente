@@ -27,9 +27,22 @@ interface SubjectsViewProps {
   onSelectConcursoId?: (id: string | 'all') => void;
   scheduledStudies: any[];
   concursos?: Concurso[];
+  onToggleScheduledStudyStatus?: (idOrIds: string | string[]) => void;
 }
 
-const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdateSubjects, selectedConcursoId, onSelectConcursoId, concursos, scheduledStudies }) => {
+const isTopicCompletedHelper = (subjectId: string, topicId: string, isCompletedFlag: boolean, scheduledStudies: any[]) => {
+  const reviews = (scheduledStudies || []).filter(sched =>
+    sched.subjectId === subjectId &&
+    sched.topicId === topicId &&
+    sched.activityType === 'Revisão'
+  );
+  if (reviews.length === 0) {
+    return isCompletedFlag;
+  }
+  return reviews.every(r => r.status === 'realizado');
+};
+
+const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdateSubjects, selectedConcursoId, onSelectConcursoId, concursos, scheduledStudies, onToggleScheduledStudyStatus }) => {
   const [newSubjectName, setNewSubjectName] = useState('');
   const [selectedColor, setSelectedColor] = useState(COLORS[0]);
   const [editingSubjectId, setEditingSubjectId] = useState<string | null>(null);
@@ -147,7 +160,13 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
     let review7dDate = '';
     let review30dDate = '';
     let review90dDate = '';
-    const customReviewDates: string[] = ['', '', '', '', ''];
+    const customReviewDates: { dateStr: string; status: 'planejado' | 'realizado' | 'none' }[] = [
+      { dateStr: '', status: 'none' },
+      { dateStr: '', status: 'none' },
+      { dateStr: '', status: 'none' },
+      { dateStr: '', status: 'none' },
+      { dateStr: '', status: 'none' }
+    ];
 
     if (topicSessions.length > 0) {
       const sortedSessions = [...topicSessions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -193,9 +212,22 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
         const dCustom = new Date(lastDate);
         dCustom.setDate(dCustom.getDate() + customReviewDays[i]);
         const { date: cappedDate, capped } = capToExam(dCustom);
-        customReviewDates[i] = capped
+        const formattedDate = capped
           ? `\u26a0\ufe0f ${formatDate(cappedDate)}`
           : formatDate(cappedDate);
+
+        // Look up status in scheduledStudies
+        const review = (scheduledStudies || []).find(s => 
+          s.subjectId === subjectId &&
+          s.topicId === (topicId === null ? undefined : topicId) &&
+          s.activityType === 'Revisão' &&
+          s.id && s.id.split('-')[3] === `400${i}`
+        );
+
+        customReviewDates[i] = {
+          dateStr: formattedDate,
+          status: review ? review.status : 'none'
+        };
       }
     }
 
@@ -404,19 +436,36 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
   };
 
   const toggleTopic = (subjectId: string, topicId: string) => {
+    const subject = subjects.find(s => s.id === subjectId);
+    const topic = subject?.topics.find(t => t.id === topicId);
+    if (!topic) return;
+
+    const isCompleted = isTopicCompletedHelper(subjectId, topicId, topic.isCompleted, scheduledStudies);
+    const nextVal = !isCompleted;
+    if (nextVal) {
+      playSound.success();
+    }
+
     onUpdateSubjects(subjects.map(s => s.id === subjectId ? {
       ...s,
-      topics: s.topics.map(t => {
-        if (t.id === topicId) {
-          const nextVal = !t.isCompleted;
-          if (nextVal) {
-            playSound.success();
-          }
-          return { ...t, isCompleted: nextVal };
-        }
-        return t;
-      })
+      topics: s.topics.map(t => t.id === topicId ? { ...t, isCompleted: nextVal } : t)
     } : s));
+
+    const topicReviews = (scheduledStudies || []).filter(sched =>
+      sched.subjectId === subjectId &&
+      sched.topicId === topicId &&
+      sched.activityType === 'Revisão'
+    );
+
+    if (topicReviews.length > 0 && onToggleScheduledStudyStatus) {
+      const targetReviews = nextVal
+        ? topicReviews.filter(r => r.status === 'planejado').map(r => r.id)
+        : topicReviews.filter(r => r.status === 'realizado').map(r => r.id);
+
+      if (targetReviews.length > 0) {
+        onToggleScheduledStudyStatus(targetReviews);
+      }
+    }
   };
 
   const deleteTopic = (subjectId: string, topicId: string) => {
@@ -797,9 +846,23 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                                         Geral / Outros <span className="text-[10px] font-normal opacity-60 ml-1 text-zinc-500">revisão geral</span>
                                       </td>
                                       <td className="py-1.5 text-zinc-400 text-xs">{stats.lastStudyDate || '—'}</td>
-                                      {stats.customReviewDates.map((date, idx) => (
-                                        <td key={idx} className="py-1.5 text-xs text-zinc-400">{date || '—'}</td>
-                                      ))}
+                                      {stats.customReviewDates.map((item, idx) => {
+                                        const dateVal = typeof item === 'string' ? item : item.dateStr;
+                                        const statusVal = typeof item === 'string' ? 'none' : item.status;
+                                        let className = "py-1.5 text-xs font-medium ";
+                                        if (statusVal === 'realizado') {
+                                          className += "text-blue-500 dark:text-blue-400";
+                                        } else if (statusVal === 'planejado') {
+                                          className += "text-rose-650 dark:text-rose-450 font-bold";
+                                        } else {
+                                          className += "text-zinc-400";
+                                        }
+                                        return (
+                                          <td key={idx} className={className}>
+                                            {dateVal || '—'}
+                                          </td>
+                                        );
+                                      })}
 
                                       <td className="py-1.5" />
                                     </tr>
@@ -813,8 +876,10 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                                       const orderA = a.topic.order ?? 999;
                                       const orderB = b.topic.order ?? 999;
                                       if (orderA !== orderB) return orderA - orderB;
-                                      if (a.topic.isCompleted === b.topic.isCompleted) return a.topic.title.localeCompare(b.topic.title, undefined, { numeric: true });
-                                      return a.topic.isCompleted ? 1 : -1;
+                                      const isCompA = isTopicCompletedHelper(subject.id, a.topic.id, a.topic.isCompleted, scheduledStudies);
+                                      const isCompB = isTopicCompletedHelper(subject.id, b.topic.id, b.topic.isCompleted, scheduledStudies);
+                                      if (isCompA === isCompB) return a.topic.title.localeCompare(b.topic.title, undefined, { numeric: true });
+                                      return isCompA ? 1 : -1;
                                     }
 
                                     const multiplier = topicSortOrder === 'asc' ? 1 : -1;
@@ -832,9 +897,11 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                                     }
                                     if (topicSortBy.startsWith('review')) {
                                       const idx = parseInt(topicSortBy.replace('review', '')) - 1;
-                                      const parseDate = (dStr: string) => {
+                                      const parseDate = (item: any) => {
+                                        const dStr = typeof item === 'string' ? item : item?.dateStr;
                                         if (!dStr) return 0;
-                                        const [d, m, y] = dStr.split('/').map(Number);
+                                        const cleanStr = dStr.replace(/[^\d/]/g, '');
+                                        const [d, m, y] = cleanStr.split('/').map(Number);
                                         return new Date(2000 + y, m - 1, d).getTime();
                                       };
                                       const aDate = parseDate(a.stats.customReviewDates[idx]);
@@ -848,6 +915,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                                   })
                                   .map(({ topic, stats: tStats }, topicRenderIndex) => {
                                     const topicOrder = topic.order ?? (topicRenderIndex + 1);
+                                    const isCompleted = isTopicCompletedHelper(subject.id, topic.id, topic.isCompleted, scheduledStudies);
                                     return (
                                       <tr
                                         key={topic.id}
@@ -895,7 +963,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                                             </span>
                                           )}
                                         </td>
-                                        <td className={`py-1.5 pl-2 text-xs font-semibold ${topic.isCompleted ? 'text-zinc-300 dark:text-zinc-600 line-through' : 'text-zinc-700 dark:text-zinc-300'}`}>
+                                        <td className={`py-1.5 pl-2 text-xs font-semibold ${isCompleted ? 'text-zinc-300 dark:text-zinc-650 line-through' : 'text-zinc-700 dark:text-zinc-300'}`}>
                                           {editingTopicId === topic.id ? (
                                             <div className="flex items-center gap-2">
                                               <input
@@ -917,7 +985,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                                             <span
                                               className="cursor-pointer hover:text-zinc-900 dark:hover:text-white transition-colors select-none"
                                               onClick={() => toggleTopic(subject.id, topic.id)}
-                                              title={topic.isCompleted ? 'Marcar como pendente' : 'Marcar como concluído'}
+                                              title={isCompleted ? 'Marcar como pendente' : 'Marcar como concluído'}
                                             >
                                               {topic.title}
                                             </span>
@@ -926,11 +994,23 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                                         <td className="py-1.5 text-zinc-400 text-xs">
                                           {tStats.lastStudyDate || '-'}
                                         </td>
-                                        {tStats.customReviewDates.map((date, idx) => (
-                                          <td key={idx} className="py-1.5 text-xs font-medium text-zinc-400">
-                                            {date || '-'}
-                                          </td>
-                                        ))}
+                                        {tStats.customReviewDates.map((item, idx) => {
+                                          const dateVal = typeof item === 'string' ? item : item.dateStr;
+                                          const statusVal = typeof item === 'string' ? 'none' : item.status;
+                                          let className = "py-1.5 text-xs font-medium ";
+                                          if (statusVal === 'realizado') {
+                                            className += "text-blue-500 dark:text-blue-400";
+                                          } else if (statusVal === 'planejado') {
+                                            className += "text-rose-655 dark:text-rose-455 font-bold";
+                                          } else {
+                                            className += "text-zinc-400";
+                                          }
+                                          return (
+                                            <td key={idx} className={className}>
+                                              {dateVal || '—'}
+                                            </td>
+                                          );
+                                        })}
                                         <td className="py-1.5 text-right">
                                           <div className="flex items-center justify-end gap-2 opacity-0 group-hover/row:opacity-100 transition-opacity">
                                             <button onClick={() => startEditingTopic(topic)} className="text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors">

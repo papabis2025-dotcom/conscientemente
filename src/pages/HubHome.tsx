@@ -422,30 +422,9 @@ const HubHome: React.FC<HubHomeProps> = ({
         };
       });
 
-      const activeConcursoId = localStorage.getItem('cp_selected_concurso_id') || 'all';
-      let activeSubjectIds = new Set<string>();
-      if (activeConcursoId !== 'all' && dbConcursos) {
-        const activeConc = dbConcursos.find((c: any) => c.id === activeConcursoId);
-        if (activeConc) {
-          const subjectsList = activeConc.subjects || [];
-          subjectsList.forEach((s: any) => activeSubjectIds.add(s.id));
-        }
-      }
-
-      const studyTasksRaw = JSON.parse(localStorage.getItem('cp_study_tasks') || '[]');
-      const scheduledStudiesRaw = JSON.parse(localStorage.getItem('cp_scheduled_studies') || '[]');
-
-      let studyTasksFiltered = studyTasksRaw;
-      let scheduledStudiesFiltered = scheduledStudiesRaw;
-      let simuladosFiltered = normalizedSimulados;
-
-      if (activeConcursoId !== 'all') {
-        studyTasksFiltered = studyTasksRaw.filter((t: any) => activeSubjectIds.has(t.subjectId));
-        scheduledStudiesFiltered = scheduledStudiesRaw.filter((s: any) => activeSubjectIds.has(s.subjectId));
-        simuladosFiltered = normalizedSimulados.filter((sim: any) => 
-          sim.results && Array.isArray(sim.results) && sim.results.some((r: any) => activeSubjectIds.has(r.subjectId))
-        );
-      }
+      const studyTasksFiltered = JSON.parse(localStorage.getItem('cp_study_tasks') || '[]');
+      const scheduledStudiesFiltered = JSON.parse(localStorage.getItem('cp_scheduled_studies') || '[]');
+      const simuladosFiltered = normalizedSimulados;
 
       // Filter out individual simulado study sessions from scheduled studies
       const nonSimuladoScheduledStudies = scheduledStudiesFiltered.filter((s: any) => s.activityType !== 'Simulado');

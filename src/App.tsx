@@ -663,6 +663,47 @@ const App: React.FC = () => {
     };
   }, [session, isPrefsLoaded, lastSyncTime, bgType, bgColor]);
 
+  // Listen for local settings changes to save immediately to Supabase
+  useEffect(() => {
+    if (!session || !isPrefsLoaded) return;
+
+    const triggerImmediateSync = async () => {
+      const localSettings: Record<string, string | null> = {};
+      SYNC_KEYS.forEach(key => {
+        localSettings[key] = localStorage.getItem(key);
+      });
+
+      const currentSerialized = JSON.stringify(localSettings);
+      if (currentSerialized !== lastKnownSettings) {
+        const updatedTime = Date.now();
+        const payload: SyncedPayload = {
+          updatedAt: updatedTime,
+          settings: localSettings
+        };
+
+        const payloadJson = JSON.stringify(payload);
+        if (payloadJson.length > 500_000) return;
+
+        try {
+          await supabase.from('user_preferences').upsert({
+            user_id: session.user.id,
+            hub_bg_type: bgType,
+            hub_bg_color: bgColor,
+            hub_bg_image_url: payloadJson
+          }, { onConflict: 'user_id' });
+
+          setLastKnownSettings(currentSerialized);
+          setLastSyncTime(updatedTime);
+        } catch (err) {
+          console.error('Failed to immediately sync settings:', err);
+        }
+      }
+    };
+
+    window.addEventListener('local-settings-changed', triggerImmediateSync);
+    return () => window.removeEventListener('local-settings-changed', triggerImmediateSync);
+  }, [session, isPrefsLoaded, lastKnownSettings, bgType, bgColor, lastSyncTime]);
+
   // Apply theme to <html>
   useEffect(() => {
     const root = document.documentElement;

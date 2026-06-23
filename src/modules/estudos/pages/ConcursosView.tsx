@@ -7,9 +7,22 @@ interface ConcursosViewProps {
   concursos: Concurso[];
   onUpdateConcursos: (concursos: Concurso[]) => void;
   onSelectConcurso: (concurso: Concurso) => void;
+  scheduledStudies: any[];
 }
 
-const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcursos, onSelectConcurso }) => {
+const isTopicCompletedHelper = (subjectId: string, topicId: string, isCompletedFlag: boolean, scheduledStudies: any[]) => {
+  const reviews = (scheduledStudies || []).filter(sched =>
+    sched.subjectId === subjectId &&
+    sched.topicId === topicId &&
+    sched.activityType === 'Revisão'
+  );
+  if (reviews.length === 0) {
+    return isCompletedFlag;
+  }
+  return reviews.every(r => r.status === 'realizado');
+};
+
+const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcursos, onSelectConcurso, scheduledStudies }) => {
   const [isAdding, setIsAdding] = useState(false);
   const [newConcName, setNewConcName] = useState('');
   const [banca, setBanca] = useState('');
@@ -248,9 +261,11 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {concursos.map(conc => {
-          const completedCount = conc.subjects.reduce((acc, s) => acc + s.topics.filter(t => t.isCompleted).length, 0);
+          const completedCount = conc.subjects.reduce((acc, s) => {
+            return acc + s.topics.filter(t => isTopicCompletedHelper(s.id, t.id, t.isCompleted, scheduledStudies)).length;
+          }, 0);
           const totalCount = conc.subjects.reduce((acc, s) => acc + s.topics.length, 0);
           const progress = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
           const daysActive = calculateDaysSince(conc.startDate);
@@ -258,91 +273,72 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
           const isEditing = editingId === conc.id;
 
           return (
-            <div key={conc.id} className="bg-white dark:bg-zinc-900 rounded-[3rem] border border-zinc-200 dark:border-zinc-800 p-8 shadow-sm hover:border-blue-300 dark:hover:border-zinc-700 hover:shadow-xl transition-all group relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-zinc-500/5 -mr-16 -mt-16 rounded-full group-hover:bg-zinc-500/10 transition-colors"></div>
-
-              <div className="flex justify-between items-start mb-6">
-                <div className="flex-1 mr-4">
-                  {isEditing ? (
-                    <div className="space-y-3 bg-zinc-50 dark:bg-zinc-800/50 p-4 rounded-2xl">
-                      <input type="text" value={editFormData.name} onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })} className="w-full p-2 rounded-lg text-sm font-bold border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 dark:text-white" placeholder="Nome" />
-                      <input type="text" value={editFormData.banca} onChange={(e) => setEditFormData({ ...editFormData, banca: e.target.value })} className="w-full p-2 rounded-lg text-sm font-bold border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 dark:text-white" placeholder="Banca" />
-                      <div className="grid grid-cols-2 gap-2">
-                        <input type="date" value={editFormData.startDate} onChange={(e) => setEditFormData({ ...editFormData, startDate: e.target.value })} className="w-full p-2 rounded-lg text-xs font-bold border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 dark:text-white" />
-                        <input type="date" value={editFormData.targetDate} onChange={(e) => setEditFormData({ ...editFormData, targetDate: e.target.value })} className="w-full p-2 rounded-lg text-xs font-bold border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 dark:text-white" />
-                      </div>
-                      <div>
-                        <label className="text-[10px] font-black text-zinc-400 uppercase mb-1 block flex items-center gap-1"><ImageIcon size={10} /> Imagem de Perfil</label>
-                        <div className="flex items-center gap-3">
-                          <label className="cursor-pointer bg-white hover:bg-zinc-100 dark:bg-zinc-900 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-xs text-zinc-600 dark:text-zinc-300 transition-colors font-bold">
-                            <ImageIcon size={12} />
-                            <span>Upload (Máx 1MB)</span>
-                            <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(e, true)} />
-                          </label>
-                          {editFormData.imageUrl && (
-                            <div className="relative">
-                              <img src={editFormData.imageUrl} alt="preview" className="w-8 h-8 rounded-full object-cover border border-zinc-200" onError={(e) => (e.currentTarget.style.display = 'none')} />
-                              <button
-                                type="button"
-                                onClick={() => setEditFormData({ ...editFormData, imageUrl: '' })}
-                                className="absolute -top-1 -right-1 bg-rose-500 text-white rounded-full p-0.5 hover:bg-rose-600 shadow transition-colors"
-                              >
-                                <X size={8} />
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex gap-2 justify-end">
-                        <button onClick={() => setEditingId(null)} className="text-xs text-zinc-400 font-bold hover:text-zinc-600">Cancelar</button>
-                        <button onClick={saveEdit} className="text-xs bg-emerald-500 text-white px-3 py-1 rounded-lg font-bold">Salvar</button>
-                      </div>
+            <div key={conc.id} className="bg-white dark:bg-zinc-900 rounded-[2rem] border border-zinc-200 dark:border-zinc-800 p-4 shadow-sm hover:border-blue-400 dark:hover:border-zinc-700 hover:shadow-md transition-all group relative overflow-hidden flex flex-col justify-between h-[210px]">
+              {isEditing ? (
+                <div className="space-y-2 h-full flex flex-col justify-between">
+                  <input type="text" value={editFormData.name} onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })} className="w-full px-2 py-1 rounded-lg text-xs font-bold border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 dark:text-white" placeholder="Nome" />
+                  <input type="text" value={editFormData.banca} onChange={(e) => setEditFormData({ ...editFormData, banca: e.target.value })} className="w-full px-2 py-1 rounded-lg text-xs font-bold border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 dark:text-white" placeholder="Banca" />
+                  <div className="grid grid-cols-2 gap-1">
+                    <input type="date" value={editFormData.startDate} onChange={(e) => setEditFormData({ ...editFormData, startDate: e.target.value })} className="w-full p-1 rounded-lg text-[10px] font-bold border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 dark:text-white" />
+                    <input type="date" value={editFormData.targetDate} onChange={(e) => setEditFormData({ ...editFormData, targetDate: e.target.value })} className="w-full p-1 rounded-lg text-[10px] font-bold border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 dark:text-white" />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <label className="cursor-pointer bg-zinc-50 dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700 px-2 py-1 rounded-lg flex items-center gap-1 text-[10px] text-zinc-650 dark:text-zinc-300 font-bold transition-colors">
+                      <ImageIcon size={10} />
+                      <span>Upload</span>
+                      <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(e, true)} />
+                    </label>
+                    {editFormData.imageUrl && (
+                      <img src={editFormData.imageUrl} alt="preview" className="w-6 h-6 rounded-full object-cover border border-zinc-200" onError={(e) => (e.currentTarget.style.display = 'none')} />
+                    )}
+                    <div className="flex gap-2">
+                      <button onClick={() => setEditingId(null)} className="text-[10px] text-zinc-400 font-bold hover:text-zinc-600">Cancelar</button>
+                      <button onClick={saveEdit} className="text-[10px] bg-emerald-500 text-white px-2.5 py-1 rounded-lg font-bold">Salvar</button>
                     </div>
-                  ) : (
-                    <>
-                      <div className="flex gap-2 mb-3">
-                        <span className="text-[9px] font-black uppercase px-3 py-1 rounded-full bg-zinc-900 dark:bg-zinc-700 text-white tracking-widest">
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="absolute top-2 right-2 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={() => startEditing(conc)}
+                      className="text-zinc-400 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-white transition-colors p-1"
+                      title="Editar Concurso"
+                    ><Edit2 size={12} /></button>
+                    <button
+                      onClick={() => setDeleteConfirmation({ isOpen: true, id: conc.id, name: conc.name })}
+                      className="text-zinc-400 hover:text-rose-500 transition-colors p-1"
+                      title="Excluir Concurso"
+                    ><Trash2 size={12} /></button>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    {conc.imageUrl ? (
+                      <img src={conc.imageUrl} alt="Perfil" className="w-14 h-14 rounded-full object-cover border-2 border-zinc-800 dark:border-zinc-650 shrink-0 shadow-sm group-hover:scale-105 transition-transform duration-300" onError={(e) => (e.currentTarget.style.display = 'none')} />
+                    ) : (
+                      <div className="w-14 h-14 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center border-2 border-zinc-200 dark:border-zinc-700 shrink-0 shadow-sm group-hover:scale-105 transition-transform duration-300">
+                        <BookOpen size={22} className="text-zinc-400" />
+                      </div>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap gap-1 mb-1">
+                        <span className="text-[8px] font-black uppercase px-2 py-0.5 rounded bg-zinc-900 dark:bg-zinc-700 text-white tracking-wider">
                           Banca: {conc.banca}
                         </span>
-                        <span className="text-[9px] font-black uppercase px-3 py-1 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700 tracking-widest">
-                          Em estudo: {daysActive} dias
+                        <span className="text-[8px] font-black uppercase px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700 tracking-wider">
+                          {daysActive}d
                         </span>
                       </div>
-                      <div className="flex items-center gap-3">
-                        {conc.imageUrl ? (
-                          <img src={conc.imageUrl} alt="Perfil" className="w-12 h-12 rounded-full object-cover border border-zinc-200 dark:border-zinc-700 shrink-0" onError={(e) => (e.currentTarget.style.display = 'none')} />
-                        ) : (
-                          <div className="w-12 h-12 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center border border-zinc-200 dark:border-zinc-700 shrink-0">
-                            <BookOpen size={20} className="text-zinc-400" />
-                          </div>
-                        )}
-                        <h3 className="text-2xl font-black text-zinc-800 dark:text-white leading-tight">{conc.name}</h3>
-                      </div>
-                    </>
-                  )}
-                </div>
-                <div className="flex flex-col gap-2">
-                  <button
-                    onClick={() => startEditing(conc)}
-                    className="text-zinc-300 hover:text-zinc-900 dark:text-zinc-300 transition-colors p-2"
-                    title="Editar Concurso"
-                  ><Edit2 size={14} /></button>
-                  <button
-                    onClick={() => setDeleteConfirmation({ isOpen: true, id: conc.id, name: conc.name })}
-                    className="text-zinc-200 hover:text-rose-500 transition-colors p-2"
-                    title="Excluir Concurso"
-                  ><Trash2 size={14} /></button>
-                </div>
-              </div>
-
-              {!isEditing && (
-                <div className="space-y-6">
-                  <div>
-                    <div className="flex justify-between text-[10px] font-black uppercase text-zinc-400 mb-2 tracking-widest">
-                      <span>Progresso do Edital</span>
-                      <span className="text-zinc-900 dark:text-zinc-100">{progress}%</span>
+                      <h3 className="text-sm font-black text-zinc-800 dark:text-white leading-tight line-clamp-2" title={conc.name}>{conc.name}</h3>
                     </div>
-                    <div className="w-full h-3 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+                  </div>
+
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-[8px] font-black uppercase text-zinc-400 tracking-wider">
+                      <span>Progresso do Edital</span>
+                      <span className="text-zinc-950 dark:text-zinc-50">{progress}%</span>
+                    </div>
+                    <div className="w-full h-2 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
                       <div
                         className="h-full bg-zinc-900 dark:bg-zinc-700 rounded-full transition-all duration-1000"
                         style={{ width: `${progress}%` }}
@@ -350,26 +346,18 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-zinc-50 dark:bg-zinc-800/50 p-4 rounded-2xl border border-zinc-100 dark:border-zinc-800">
-                      <p className="text-[8px] font-black text-zinc-400 uppercase tracking-widest mb-1">Disciplinas</p>
-                      <p className="text-lg font-black text-zinc-800 dark:text-white">{conc.subjects.length}</p>
-                    </div>
-                    <div className="bg-zinc-50 dark:bg-zinc-800/50 p-4 rounded-2xl border border-zinc-100 dark:border-zinc-800">
-                      <p className="text-[8px] font-black text-zinc-400 uppercase tracking-widest mb-1">Início em</p>
-                      <p className="text-sm font-black text-zinc-800 dark:text-white">
-                        {new Date(conc.startDate).toLocaleDateString('pt-BR')}
-                      </p>
-                    </div>
+                  <div className="flex justify-between items-center text-[10px] font-bold text-zinc-500 dark:text-zinc-450 px-1">
+                    <span>{conc.subjects.length} disciplinas</span>
+                    <span>Início: {new Date(conc.startDate).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })}</span>
                   </div>
 
                   <button
                     onClick={() => onSelectConcurso(conc)}
-                    className="w-full bg-zinc-100 dark:bg-zinc-800/50 hover:bg-zinc-900 dark:hover:bg-zinc-700 hover:text-white text-zinc-900 dark:text-zinc-100 py-4 rounded-[1.5rem] text-xs font-black uppercase tracking-widest transition-all border border-zinc-200 dark:border-blue-900/30 active:scale-95"
+                    className="w-full bg-zinc-50 dark:bg-zinc-800 hover:bg-zinc-950 dark:hover:bg-zinc-100 hover:text-white dark:hover:text-zinc-950 text-zinc-700 dark:text-zinc-350 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border border-zinc-200 dark:border-zinc-750 active:scale-[0.98] shadow-xs"
                   >
                     Focar neste concurso →
                   </button>
-                </div>
+                </>
               )}
             </div>
           );

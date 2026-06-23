@@ -473,28 +473,36 @@ const HubHome: React.FC<HubHomeProps> = ({
       const consolidatedStudies = [...nonGroupedStudies, ...groupedStudies];
 
       const subjectMap = new Map<string, any>();
+      const subjectToConcursoMap = new Map<string, any>();
       if (dbConcursos) {
         dbConcursos.forEach((c: any) => {
           const subjectsList = c.subjects || [];
           subjectsList.forEach((sub: any) => {
             subjectMap.set(sub.id, sub);
+            subjectToConcursoMap.set(sub.id, c);
           });
         });
       }
 
       const studiesList = [
-        ...studyTasksFiltered.map((t: any) => ({ 
-          id: t.id, 
-          text: t.subjectName + ' - ' + (t.topicName || 'Geral'), 
-          date: t.date, 
-          completed: t.done 
-        })),
+        ...studyTasksFiltered.map((t: any) => {
+          const conc = subjectToConcursoMap.get(t.subjectId);
+          const prefix = conc ? `[${conc.name}] ` : '';
+          return { 
+            id: t.id, 
+            text: prefix + t.subjectName + ' - ' + (t.topicName || 'Geral'), 
+            date: t.date, 
+            completed: t.done 
+          };
+        }),
         ...consolidatedStudies.map((s: any) => {
           const sub = subjectMap.get(s.subjectId);
+          const conc = subjectToConcursoMap.get(s.subjectId);
+          const prefix = conc ? `[${conc.name}] ` : '';
           const subjectName = sub ? sub.name : 'Disciplina';
           const isCompleted = s.status === 'realizado';
           const text = !isCompleted
-            ? `${subjectName} - ${s.activityType} (${s.durationInMinutes || 0} min)`
+            ? `${prefix}${subjectName} - ${s.activityType} (${s.durationInMinutes || 0} min)`
             : `${s.activityType} (${s.durationInMinutes || 0} min)`;
           return {
             id: s.id,

@@ -248,10 +248,14 @@ const SaudeApp: React.FC = () => {
   useEffect(() => {
     if (sessionStorage.getItem('openAddSaudeModal') === 'true') {
       sessionStorage.removeItem('openAddSaudeModal');
-      setActiveTab('atividades');
+      setActiveTab('dashboard');
       setShowAddForm(true);
     }
   }, []);
+
+  useEffect(() => {
+    setShowAddForm(false);
+  }, [activeTab]);
 
   const [formType, setFormType] = useState<ActivityType>('');
   const [formDate, setFormDate] = useState(() => new Date().toISOString().split('T')[0]);
@@ -466,6 +470,7 @@ const SaudeApp: React.FC = () => {
   }, [realizedActivities, currentYear, currentMonth, daysInMonth]);
 
   const volumeChartData = useMemo(() => {
+    let rawData = [];
     if (volumeChartPeriod === 'semanal') {
       const data = [];
       const today = new Date();
@@ -478,13 +483,30 @@ const SaudeApp: React.FC = () => {
         const label = `${d.getDate()}/${d.getMonth() + 1}`;
         data.push({ label, minutos: totalMin });
       }
-      return data;
+      rawData = data;
     } else {
-      return calendarDays.map(d => ({
+      rawData = calendarDays.map(d => ({
         label: String(d.day),
         minutos: d.activities.reduce((acc, a) => acc + (a.timeInMinutes || 0), 0)
       }));
     }
+
+    // Apply a 3-period moving average to smooth the line
+    return rawData.map((item, idx) => {
+      let sum = 0;
+      let count = 0;
+      for (let k = 0; k < 3; k++) {
+        const targetIdx = idx - k;
+        if (targetIdx >= 0) {
+          sum += rawData[targetIdx].minutos;
+          count++;
+        }
+      }
+      return {
+        ...item,
+        minutos: count > 0 ? Number((sum / count).toFixed(1)) : 0
+      };
+    });
   }, [realizedActivities, volumeChartPeriod, calendarDays]);
 
   const handleAddActivityType = (e: React.FormEvent) => {
@@ -665,6 +687,7 @@ const SaudeApp: React.FC = () => {
 
       case 'sleep_performance':
         const sleepChartData = (() => {
+          let rawData = [];
           if (volumeChartPeriod === 'semanal') {
             const data = [];
             const today = new Date();
@@ -693,9 +716,9 @@ const SaudeApp: React.FC = () => {
               const label = `${d.getDate()}/${d.getMonth() + 1}`;
               data.push({ label, horas: totalHours, score });
             }
-            return data;
+            rawData = data;
           } else {
-            return calendarDays.map(d => {
+            rawData = calendarDays.map(d => {
               const log = sleepLogs.find(l => l.date === d.dateStr);
               const totalMin = log ? (log.deepMinutes + log.lightMinutes + log.remMinutes + log.awakeMinutes) : 0;
               const totalHours = Number((totalMin / 60).toFixed(1));
@@ -721,6 +744,26 @@ const SaudeApp: React.FC = () => {
               };
             });
           }
+
+          // Apply a 3-period moving average to smooth the line
+          return rawData.map((item, idx) => {
+            let sumHours = 0;
+            let sumScore = 0;
+            let count = 0;
+            for (let k = 0; k < 3; k++) {
+              const targetIdx = idx - k;
+              if (targetIdx >= 0) {
+                sumHours += rawData[targetIdx].horas;
+                sumScore += rawData[targetIdx].score;
+                count++;
+              }
+            }
+            return {
+              ...item,
+              horas: count > 0 ? Number((sumHours / count).toFixed(1)) : 0,
+              score: count > 0 ? Math.round(sumScore / count) : 0
+            };
+          });
         })();
 
         const hasSleepData = sleepChartData.some(d => d.horas > 0);
@@ -942,7 +985,7 @@ const SaudeApp: React.FC = () => {
                   {isEditMode ? 'Salvar Painel' : 'Ajustar Layout'}
                 </button>
               )}
-              {activeTab !== 'planner' && activeTab !== 'gerenciador' && (
+              {activeTab === 'dashboard' && (
                 <button 
                   onClick={() => setShowAddForm(!showAddForm)}
                   className="bg-cyan-500 hover:bg-cyan-600 text-white px-5 py-3 rounded-xl font-bold uppercase tracking-wider text-xs transition-transform active:scale-95 shadow-lg shadow-cyan-500/20 flex items-center gap-2"
@@ -953,7 +996,7 @@ const SaudeApp: React.FC = () => {
             </div>
           </header>
 
-          {showAddForm && (
+          {showAddForm && activeTab === 'dashboard' && (
             <div className="bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 animate-in slide-in-from-top-4">
               <form onSubmit={handleAddActivity} className="flex flex-col gap-5">
                 <div className="flex gap-4">

@@ -432,7 +432,7 @@ const FinancasApp: React.FC = () => {
     if (!tx) return;
 
     const isPixOrDinheiro = tx.paymentMethod?.toLowerCase().includes('pix') || tx.paymentMethod?.toLowerCase().includes('dinheiro');
-    const installmentMatch = tx.name.match(/(.+) \((\d+)\/(\d+)\)$/);
+    const installmentMatch = tx.name.match(/(.+?)\s*\(?(\d+)\/(\d+)\)?$/);
     const isRecurring = isPixOrDinheiro && transactions.some(t => t.id !== id && t.name === tx.name && t.amount === tx.amount && t.category === tx.category && t.type === tx.type);
 
     if (installmentMatch) {
@@ -473,11 +473,11 @@ const FinancasApp: React.FC = () => {
 
     let toDelete: Transaction[] = [];
 
-    const installmentMatch = tx.name.match(/(.+) \((\d+)\/(\d+)\)$/);
+    const installmentMatch = tx.name.match(/(.+?)\s*\(?(\d+)\/(\d+)\)?$/);
     if (installmentMatch) {
       const [_, baseName, __, totalInst] = installmentMatch;
       toDelete = transactions.filter(t => {
-        const m = t.name.match(/(.+) \((\d+)\/(\d+)\)$/);
+        const m = t.name.match(/(.+?)\s*\(?(\d+)\/(\d+)\)?$/);
         return m && m[1] === baseName && m[3] === totalInst && t.amount === tx.amount && t.category === tx.category && t.type === tx.type;
       });
     } else {
@@ -1114,8 +1114,8 @@ const FinancasApp: React.FC = () => {
               ) : (
                 <ul className="space-y-1.5">
                       {saidas.map(t => {
-                    // Detect last installment: name matches "(X/Y)" pattern where X === Y
-                    const installMatch = t.name.match(/(.+) \((\d+)\/(\d+)\)$/);
+                    // Detect last installment: name matches "X/Y" pattern where X === Y
+                    const installMatch = t.name.match(/(.+?)\s*\(?(\d+)\/(\d+)\)?$/);
                     const isLastInstallment = installMatch ? installMatch[2] === installMatch[3] : false;
                     // Detect last recurrence: same name/amount/category, no future occurrences
                     const isPixOrDinheiro = t.paymentMethod?.toLowerCase().includes('pix') || t.paymentMethod?.toLowerCase().includes('dinheiro');

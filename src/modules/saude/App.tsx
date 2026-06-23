@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Activity, Dumbbell, Footprints, HeartPulse, LayoutTemplate, Plus, Trash2, TrendingUp, CalendarDays, ChevronLeft, ChevronRight, Settings, Eye, EyeOff, Maximize2, Menu } from 'lucide-react';
+import { Activity, Dumbbell, Footprints, HeartPulse, LayoutTemplate, Plus, Trash2, TrendingUp, CalendarDays, ChevronLeft, ChevronRight, Settings, Eye, EyeOff, Maximize2, Menu, Moon } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, AreaChart, Area } from 'recharts';
 import SaudePlannerView from './pages/SaudePlannerView';
+import { MonitoramentoSono } from './pages/MonitoramentoSono';
 import { saudeApi } from './api';
 import { playSound } from '../../utils/audio';
 
@@ -48,7 +49,7 @@ const hexToRgba = (hex: string, alpha: number) => {
 };
 
 const SaudeApp: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'atividades' | 'planner' | 'gerenciador'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'atividades' | 'sono' | 'planner' | 'gerenciador'>('dashboard');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
     return localStorage.getItem('isSidebarCollapsed_saude') !== 'false';
   });
@@ -94,17 +95,41 @@ const SaudeApp: React.FC = () => {
 
   const [widgets, setWidgets] = useState<SaudeWidgetState[]>(() => {
     const saved = localStorage.getItem('cn_saude_dashboard_layout');
-    return saved ? JSON.parse(saved) : [
+    const defaultWidgets: SaudeWidgetState[] = [
       { id: 'activities_distribution', title: 'Distribuição de Atividades', isVisible: true, size: 'normal' },
       { id: 'monthly_calendar', title: 'Calendário Mensal', isVisible: true, size: 'normal' },
       { id: 'exercise_volume', title: 'Volume de Exercícios (Min)', isVisible: true, size: 'normal' },
+      { id: 'sleep_performance', title: 'Desempenho do Sono', isVisible: true, size: 'normal' },
       { id: 'cardio_levels', title: 'Atividades por Nível / Ritmo', isVisible: true, size: 'normal' }
     ];
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (!parsed.some((w: any) => w.id === 'sleep_performance')) {
+        parsed.splice(3, 0, { id: 'sleep_performance', title: 'Desempenho do Sono', isVisible: true, size: 'normal' });
+      }
+      return parsed;
+    }
+    return defaultWidgets;
   });
 
   useEffect(() => {
     localStorage.setItem('cn_saude_dashboard_layout', JSON.stringify(widgets));
   }, [widgets]);
+
+  const [sleepLogs, setSleepLogs] = useState<any[]>([]);
+
+  const loadSleepLogs = () => {
+    const saved = localStorage.getItem('cn_saude_sleep_logs');
+    if (saved) {
+      setSleepLogs(JSON.parse(saved));
+    } else {
+      setSleepLogs([]);
+    }
+  };
+
+  useEffect(() => {
+    loadSleepLogs();
+  }, []);
 
   useEffect(() => {
     const handleSync = () => {
@@ -125,6 +150,12 @@ const SaudeApp: React.FC = () => {
         if (savedLayout) {
           const parsed = JSON.parse(savedLayout);
           setWidgets(prev => JSON.stringify(prev) === savedLayout ? prev : parsed);
+        }
+
+        const savedSleep = localStorage.getItem('cn_saude_sleep_logs');
+        if (savedSleep) {
+          const parsed = JSON.parse(savedSleep);
+          setSleepLogs(prev => JSON.stringify(prev) === savedSleep ? prev : parsed);
         }
       } catch (e) {
         console.error('Error syncing saude storage:', e);
@@ -615,6 +646,96 @@ const SaudeApp: React.FC = () => {
           </div>
         );
 
+      case 'sleep_performance':
+        const sleepChartData = (() => {
+          if (volumeChartPeriod === 'semanal') {
+            const data = [];
+            const today = new Date();
+            for (let i = 6; i >= 0; i--) {
+              const d = new Date(today);
+              d.setDate(today.getDate() - i);
+              const dStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+              const log = sleepLogs.find(l => l.date === dStr);
+              const totalMin = log ? (log.deepMinutes + log.lightMinutes + log.remMinutes + log.awakeMinutes) : 0;
+              const totalHours = Number((totalMin / 60).toFixed(1));
+              const score = log ? (() => {
+                const total = log.deepMinutes + log.lightMinutes + log.remMinutes + log.awakeMinutes;
+                if (total === 0) return 0;
+                const deepPct = log.deepMinutes / total;
+                const remPct = log.remMinutes / total;
+                const awakePct = log.awakeMinutes / total;
+                let sc = 100;
+                if (awakePct > 0.1) sc -= (awakePct - 0.1) * 150;
+                if (deepPct < 0.18) sc -= (0.18 - deepPct) * 120;
+                if (remPct < 0.18) sc -= (0.18 - remPct) * 100;
+                const totalHours = total / 60;
+                if (totalHours < 7) sc -= (7 - totalHours) * 15;
+                else if (totalHours > 9.5) sc -= (totalHours - 9.5) * 8;
+                return Math.max(0, Math.min(100, Math.round(sc)));
+              })() : 0;
+              const label = `${d.getDate()}/${d.getMonth() + 1}`;
+              data.push({ label, horas: totalHours, score });
+            }
+            return data;
+          } else {
+            return calendarDays.map(d => {
+              const log = sleepLogs.find(l => l.date === d.dateStr);
+              const totalMin = log ? (log.deepMinutes + log.lightMinutes + log.remMinutes + log.awakeMinutes) : 0;
+              const totalHours = Number((totalMin / 60).toFixed(1));
+              const score = log ? (() => {
+                const total = log.deepMinutes + log.lightMinutes + log.remMinutes + log.awakeMinutes;
+                if (total === 0) return 0;
+                const deepPct = log.deepMinutes / total;
+                const remPct = log.remMinutes / total;
+                const awakePct = log.awakeMinutes / total;
+                let sc = 100;
+                if (awakePct > 0.1) sc -= (awakePct - 0.1) * 150;
+                if (deepPct < 0.18) sc -= (0.18 - deepPct) * 120;
+                if (remPct < 0.18) sc -= (0.18 - remPct) * 100;
+                const totalHours = total / 60;
+                if (totalHours < 7) sc -= (7 - totalHours) * 15;
+                else if (totalHours > 9.5) sc -= (totalHours - 9.5) * 8;
+                return Math.max(0, Math.min(100, Math.round(sc)));
+              })() : 0;
+              return {
+                label: String(d.day),
+                horas: totalHours,
+                score
+              };
+            });
+          }
+        })();
+
+        const hasSleepData = sleepChartData.some(d => d.horas > 0);
+
+        return (
+          <div className="h-full flex flex-col">
+            <div className="flex-1 w-full min-h-0">
+              {hasSleepData ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={sleepChartData} margin={{ top: 5, right: -5, left: -25, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="colorHoras" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
+                    <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#888' }} />
+                    <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#888' }} label={{ value: 'Horas', angle: -90, position: 'insideLeft', style: { fontSize: 8, fill: '#888', fontWeight: 'bold' } }} />
+                    <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#888' }} label={{ value: 'Score', angle: 90, position: 'insideRight', style: { fontSize: 8, fill: '#888', fontWeight: 'bold' } }} />
+                    <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '10px', fontWeight: 'bold' }} />
+                    <Area yAxisId="left" type="monotone" dataKey="horas" stroke="#8b5cf6" strokeWidth={3} fillOpacity={1} fill="url(#colorHoras)" name="Tempo (h)" />
+                    <Area yAxisId="right" type="monotone" dataKey="score" stroke="#0ea5e9" strokeWidth={2} fillOpacity={0} name="Score (%)" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-full flex items-center justify-center text-zinc-400 text-xs font-medium">Nenhum registro de sono no período.</div>
+              )}
+            </div>
+          </div>
+        );
+
       case 'cardio_levels':
         return (
           <div className="h-full flex flex-col">
@@ -735,6 +856,16 @@ const SaudeApp: React.FC = () => {
                   {realizedActivities.length}
                 </span>
               )}
+            </button>
+            <button 
+              onClick={() => setActiveTab('sono')} 
+              className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center p-3' : 'justify-between px-4 py-3'} rounded-xl transition-all font-semibold ${activeTab === 'sono' ? 'bg-cyan-500 text-white shadow-md shadow-cyan-500/20' : 'text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800/50'}`}
+              title={isSidebarCollapsed ? 'Monitoramento do Sono' : ''}
+            >
+              <div className="flex items-center gap-3">
+                <Moon size={20} className="shrink-0" />
+                {!isSidebarCollapsed && <span>Sono</span>}
+              </div>
             </button>
             <button 
               onClick={() => setActiveTab('planner')} 
@@ -934,6 +1065,13 @@ const SaudeApp: React.FC = () => {
                   );
                 })}
               </div>
+            </div>
+          )}
+
+          {/* SONO TAB */}
+          {activeTab === 'sono' && (
+            <div className="flex-1 overflow-y-auto custom-scrollbar">
+              <MonitoramentoSono onUpdateSleepLogs={loadSleepLogs} />
             </div>
           )}
 

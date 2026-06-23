@@ -470,7 +470,6 @@ const SaudeApp: React.FC = () => {
   }, [realizedActivities, currentYear, currentMonth, daysInMonth]);
 
   const volumeChartData = useMemo(() => {
-    let rawData = [];
     if (volumeChartPeriod === 'semanal') {
       const data = [];
       const today = new Date();
@@ -483,30 +482,13 @@ const SaudeApp: React.FC = () => {
         const label = `${d.getDate()}/${d.getMonth() + 1}`;
         data.push({ label, minutos: totalMin });
       }
-      rawData = data;
+      return data;
     } else {
-      rawData = calendarDays.map(d => ({
+      return calendarDays.map(d => ({
         label: String(d.day),
         minutos: d.activities.reduce((acc, a) => acc + (a.timeInMinutes || 0), 0)
       }));
     }
-
-    // Apply a 3-period moving average to smooth the line
-    return rawData.map((item, idx) => {
-      let sum = 0;
-      let count = 0;
-      for (let k = 0; k < 3; k++) {
-        const targetIdx = idx - k;
-        if (targetIdx >= 0) {
-          sum += rawData[targetIdx].minutos;
-          count++;
-        }
-      }
-      return {
-        ...item,
-        minutos: count > 0 ? Number((sum / count).toFixed(1)) : 0
-      };
-    });
   }, [realizedActivities, volumeChartPeriod, calendarDays]);
 
   const handleAddActivityType = (e: React.FormEvent) => {
@@ -687,7 +669,6 @@ const SaudeApp: React.FC = () => {
 
       case 'sleep_performance':
         const sleepChartData = (() => {
-          let rawData = [];
           if (volumeChartPeriod === 'semanal') {
             const data = [];
             const today = new Date();
@@ -716,9 +697,9 @@ const SaudeApp: React.FC = () => {
               const label = `${d.getDate()}/${d.getMonth() + 1}`;
               data.push({ label, horas: totalHours, score });
             }
-            rawData = data;
+            return data;
           } else {
-            rawData = calendarDays.map(d => {
+            return calendarDays.map(d => {
               const log = sleepLogs.find(l => l.date === d.dateStr);
               const totalMin = log ? (log.deepMinutes + log.lightMinutes + log.remMinutes + log.awakeMinutes) : 0;
               const totalHours = Number((totalMin / 60).toFixed(1));
@@ -744,26 +725,6 @@ const SaudeApp: React.FC = () => {
               };
             });
           }
-
-          // Apply a 3-period moving average to smooth the line
-          return rawData.map((item, idx) => {
-            let sumHours = 0;
-            let sumScore = 0;
-            let count = 0;
-            for (let k = 0; k < 3; k++) {
-              const targetIdx = idx - k;
-              if (targetIdx >= 0) {
-                sumHours += rawData[targetIdx].horas;
-                sumScore += rawData[targetIdx].score;
-                count++;
-              }
-            }
-            return {
-              ...item,
-              horas: count > 0 ? Number((sumHours / count).toFixed(1)) : 0,
-              score: count > 0 ? Math.round(sumScore / count) : 0
-            };
-          });
         })();
 
         const hasSleepData = sleepChartData.some(d => d.horas > 0);

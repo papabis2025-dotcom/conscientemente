@@ -388,7 +388,7 @@ const FinancasApp: React.FC = () => {
             amount: amountNum,
             category: txCategory,
             date: futureDate,
-            pending: true, // future installments are always pending
+            pending: txPending, // follow base transaction pending status
             dayOnly,
             ...(txType === 'saida' ? { paymentMethod: txMethod } : {})
           };
@@ -408,7 +408,7 @@ const FinancasApp: React.FC = () => {
             amount: amountNum,
             category: txCategory,
             date: futureDate,
-            pending: true,
+            pending: txPending, // follow base transaction pending status
             dayOnly,
             ...(txType === 'saida' ? { paymentMethod: txMethod } : {})
           };
@@ -428,7 +428,7 @@ const FinancasApp: React.FC = () => {
             amount: amountNum,
             category: txCategory,
             date: futureDate,
-            pending: true, // future ones are always pending
+            pending: txPending, // follow base transaction pending status
             dayOnly,
             ...(txType === 'saida' ? { paymentMethod: txMethod } : {})
           };

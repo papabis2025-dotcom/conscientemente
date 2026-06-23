@@ -338,9 +338,19 @@ const FinancasApp: React.FC = () => {
       const currentParcela = parseInt(txInstallmentNum) || 0;
       const isParcelado = txType === 'saida' && totalParcelas > 1 && currentParcela >= 1 && currentParcela <= totalParcelas;
 
+      const isPixOrDinheiro = txMethod?.toLowerCase().includes('pix') || txMethod?.toLowerCase().includes('dinheiro');
+      const totalRecurrencias = txRecurrent && isPixOrDinheiro ? (parseInt(txRecurrences) || 0) : 0;
+      const isRecorrente = txType === 'saida' && totalRecurrencias > 1;
+
       const baseTxName = txIsIR ? (txName.startsWith('[IR]') ? txName : `[IR] ${txName}`) : txName;
-      // Build base name: append parcel label if parcelado
-      const baseName = isParcelado ? `${baseTxName} (${currentParcela}/${totalParcelas})` : baseTxName;
+      
+      // Build base name: append parcel label if parcelado or recurrent
+      let baseName = baseTxName;
+      if (isParcelado) {
+        baseName = `${baseTxName} (${currentParcela}/${totalParcelas})`;
+      } else if (isRecorrente) {
+        baseName = `${baseTxName} (1/${totalRecurrencias})`;
+      }
 
       const t: Transaction = {
         id: crypto.randomUUID(),
@@ -380,17 +390,13 @@ const FinancasApp: React.FC = () => {
       }
 
       // Generate future recurring transactions for Pix/Dinheiro
-      const isPixOrDinheiro = txMethod?.toLowerCase().includes('pix') || txMethod?.toLowerCase().includes('dinheiro');
-      const totalRecurrencias = txRecurrent && isPixOrDinheiro ? (parseInt(txRecurrences) || 0) : 0;
-      const isRecorrente = txType === 'saida' && totalRecurrencias > 1;
-
       if (isRecorrente) {
         for (let i = 1; i < totalRecurrencias; i++) {
           const futureDate = addMonthsToDate(finalDate, i);
           const futureTx: Transaction = {
             id: crypto.randomUUID(),
             type: txType,
-            name: baseTxName,
+            name: `${baseTxName} (${i + 1}/${totalRecurrencias})`,
             amount: amountNum,
             category: txCategory,
             date: futureDate,

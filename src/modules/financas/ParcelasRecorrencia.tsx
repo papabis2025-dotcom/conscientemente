@@ -82,14 +82,41 @@ export const ParcelasRecorrencia: React.FC<ParcelasRecorrenciaProps> = ({ transa
   // Grouping logic with flexible regex pattern for optional parentheses
   const installmentRegex = /(.*?)\s*\(?(\d+)\/(\d+)\)?$/;
 
-  const nameCounts: { [name: string]: number } = {};
+  const grouped: { [key: string]: GroupedExpense } = {};
+
+  // Find non-installment recurring candidates
+  // A candidate is a set of transactions with the same name, amount, category, type, and paymentMethod
+  // where paymentMethod is Pix/Dinheiro, and they occur in different months.
+  const candidates: { [key: string]: Transaction[] } = {};
   transactions.forEach(t => {
-    if (t.type === 'saida' && !t.name.match(installmentRegex)) {
-      nameCounts[t.name] = (nameCounts[t.name] || 0) + 1;
+    if (t.type !== 'saida') return;
+    if (t.name.match(installmentRegex)) return;
+
+    const isPixOrDinheiro = t.paymentMethod?.toLowerCase().includes('pix') || t.paymentMethod?.toLowerCase().includes('dinheiro');
+    if (!isPixOrDinheiro) return;
+
+    // Use a composite key of name and amount to cluster duplicates
+    const key = `${t.name}_${t.amount}_${t.category}_${t.paymentMethod}`;
+    if (!candidates[key]) {
+      candidates[key] = [];
     }
+    candidates[key].push(t);
   });
 
-  const grouped: { [key: string]: GroupedExpense } = {};
+  const validRecurrenceIds = new Set<string>();
+  Object.entries(candidates).forEach(([_, items]) => {
+    if (items.length < 2) return;
+
+    const months = new Set(items.map(item => item.date.substring(0, 7))); // YYYY-MM
+    if (months.size < 2) return; // Must occur in at least 2 different months
+
+    // Check density: exclude random duplicates in the same month (like multiple purchases of the same store)
+    const occurrencesPerMonth = items.length / months.size;
+    if (occurrencesPerMonth > 1.2) return;
+
+    // Mark these as valid recurrence items
+    items.forEach(item => validRecurrenceIds.add(item.id));
+  });
 
   transactions.forEach(t => {
     if (t.type !== 'saida') return;
@@ -98,11 +125,14 @@ export const ParcelasRecorrencia: React.FC<ParcelasRecorrenciaProps> = ({ transa
     if (installmentMatch) {
       const baseName = installmentMatch[1].trim();
       const key = `parcel_${baseName}_${installmentMatch[3]}`;
+      const isPixOrDinheiro = t.paymentMethod?.toLowerCase().includes('pix') || t.paymentMethod?.toLowerCase().includes('dinheiro');
+      const type = isPixOrDinheiro ? 'recorrencia' : 'parcelamento';
+
       if (!grouped[key]) {
         grouped[key] = {
           key,
           baseName,
-          type: 'parcelamento',
+          type,
           startDate: t.date,
           endDate: t.date,
           totalAmount: 0,
@@ -114,7 +144,7 @@ export const ParcelasRecorrencia: React.FC<ParcelasRecorrenciaProps> = ({ transa
         };
       }
       grouped[key].items.push(t);
-    } else if (nameCounts[t.name] > 1) {
+    } else if (validRecurrenceIds.has(t.id)) {
       const key = `recorr_${t.name}`;
       if (!grouped[key]) {
         grouped[key] = {

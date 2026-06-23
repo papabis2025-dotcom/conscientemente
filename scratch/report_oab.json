@@ -1,0 +1,2171 @@
+[
+  {
+    "date": "2026-06-07",
+    "activityType": "Simulado",
+    "subjectName": "Direito Constitucional",
+    "topicName": "Geral",
+    "notes": "—",
+    "origin": "Manual (Adicionada pelo usuário)",
+    "createdAt": "2026-06-08T16:26:36.832358+00:00"
+  },
+  {
+    "date": "2026-06-07",
+    "activityType": "Simulado",
+    "subjectName": "Ética Profissional",
+    "topicName": "Geral",
+    "notes": "—",
+    "origin": "Manual (Adicionada pelo usuário)",
+    "createdAt": "2026-06-08T16:26:37.161504+00:00"
+  },
+  {
+    "date": "2026-06-07",
+    "activityType": "Simulado",
+    "subjectName": "Direito Civil",
+    "topicName": "Geral",
+    "notes": "—",
+    "origin": "Manual (Adicionada pelo usuário)",
+    "createdAt": "2026-06-08T16:26:37.507901+00:00"
+  },
+  {
+    "date": "2026-06-07",
+    "activityType": "Simulado",
+    "subjectName": "Processo Civil",
+    "topicName": "Geral",
+    "notes": "—",
+    "origin": "Manual (Adicionada pelo usuário)",
+    "createdAt": "2026-06-08T16:26:37.969672+00:00"
+  },
+  {
+    "date": "2026-06-07",
+    "activityType": "Simulado",
+    "subjectName": "Direito Penal",
+    "topicName": "Geral",
+    "notes": "—",
+    "origin": "Manual (Adicionada pelo usuário)",
+    "createdAt": "2026-06-08T16:26:38.371187+00:00"
+  },
+  {
+    "date": "2026-06-07",
+    "activityType": "Simulado",
+    "subjectName": "Processo Penal",
+    "topicName": "Geral",
+    "notes": "—",
+    "origin": "Manual (Adicionada pelo usuário)",
+    "createdAt": "2026-06-08T16:26:38.928746+00:00"
+  },
+  {
+    "date": "2026-06-07",
+    "activityType": "Simulado",
+    "subjectName": "Direito do Trabalho",
+    "topicName": "Geral",
+    "notes": "—",
+    "origin": "Manual (Adicionada pelo usuário)",
+    "createdAt": "2026-06-08T16:26:39.320515+00:00"
+  },
+  {
+    "date": "2026-06-07",
+    "activityType": "Simulado",
+    "subjectName": "Processo do Trabalho",
+    "topicName": "Geral",
+    "notes": "—",
+    "origin": "Manual (Adicionada pelo usuário)",
+    "createdAt": "2026-06-08T16:26:39.634728+00:00"
+  },
+  {
+    "date": "2026-06-07",
+    "activityType": "Simulado",
+    "subjectName": "Direito Tributário",
+    "topicName": "Geral",
+    "notes": "—",
+    "origin": "Manual (Adicionada pelo usuário)",
+    "createdAt": "2026-06-08T16:26:39.929828+00:00"
+  },
+  {
+    "date": "2026-06-07",
+    "activityType": "Simulado",
+    "subjectName": "Direito Administrativo",
+    "topicName": "Geral",
+    "notes": "—",
+    "origin": "Manual (Adicionada pelo usuário)",
+    "createdAt": "2026-06-08T16:26:40.225535+00:00"
+  },
+  {
+    "date": "2026-06-07",
+    "activityType": "Simulado",
+    "subjectName": "Filosofia do Direito",
+    "topicName": "Geral",
+    "notes": "—",
+    "origin": "Manual (Adicionada pelo usuário)",
+    "createdAt": "2026-06-08T16:26:40.584699+00:00"
+  },
+  {
+    "date": "2026-06-07",
+    "activityType": "Simulado",
+    "subjectName": "Direitos Humanos",
+    "topicName": "Geral",
+    "notes": "—",
+    "origin": "Manual (Adicionada pelo usuário)",
+    "createdAt": "2026-06-08T16:26:40.846151+00:00"
+  },
+  {
+    "date": "2026-06-07",
+    "activityType": "Simulado",
+    "subjectName": "Direito Eleitoral",
+    "topicName": "Geral",
+    "notes": "—",
+    "origin": "Manual (Adicionada pelo usuário)",
+    "createdAt": "2026-06-08T16:26:41.139438+00:00"
+  },
+  {
+    "date": "2026-06-07",
+    "activityType": "Simulado",
+    "subjectName": "Direito Internacional",
+    "topicName": "Geral",
+    "notes": "—",
+    "origin": "Manual (Adicionada pelo usuário)",
+    "createdAt": "2026-06-08T16:26:41.436265+00:00"
+  },
+  {
+    "date": "2026-06-07",
+    "activityType": "Simulado",
+    "subjectName": "Direito Financeiro",
+    "topicName": "Geral",
+    "notes": "—",
+    "origin": "Manual (Adicionada pelo usuário)",
+    "createdAt": "2026-06-08T16:26:41.74608+00:00"
+  },
+  {
+    "date": "2026-06-07",
+    "activityType": "Simulado",
+    "subjectName": "Direito Ambiental",
+    "topicName": "Geral",
+    "notes": "—",
+    "origin": "Manual (Adicionada pelo usuário)",
+    "createdAt": "2026-06-08T16:26:42.059768+00:00"
+  },
+  {
+    "date": "2026-06-07",
+    "activityType": "Simulado",
+    "subjectName": "ECA",
+    "topicName": "Geral",
+    "notes": "—",
+    "origin": "Manual (Adicionada pelo usuário)",
+    "createdAt": "2026-06-08T16:26:42.354069+00:00"
+  },
+  {
+    "date": "2026-06-07",
+    "activityType": "Simulado",
+    "subjectName": "Direito do Consumidor",
+    "topicName": "Geral",
+    "notes": "—",
+    "origin": "Manual (Adicionada pelo usuário)",
+    "createdAt": "2026-06-08T16:26:42.652492+00:00"
+  },
+  {
+    "date": "2026-06-07",
+    "activityType": "Simulado",
+    "subjectName": "Direito Empresarial",
+    "topicName": "Geral",
+    "notes": "—",
+    "origin": "Manual (Adicionada pelo usuário)",
+    "createdAt": "2026-06-08T16:26:42.966867+00:00"
+  },
+  {
+    "date": "2026-06-07",
+    "activityType": "Simulado",
+    "subjectName": "Direito Previdenciário",
+    "topicName": "Geral",
+    "notes": "—",
+    "origin": "Manual (Adicionada pelo usuário)",
+    "createdAt": "2026-06-08T16:26:43.249224+00:00"
+  },
+  {
+    "date": "2026-06-08",
+    "activityType": "Leitura, Questões, Aula",
+    "subjectName": "Direito Penal",
+    "topicName": "Aplicação da Lei Penal",
+    "notes": "[groupId:73b7faa0-0932-449a-b3bb-5cf45349d5ec]",
+    "origin": "Manual (Adicionada pelo usuário)",
+    "createdAt": "2026-06-13T23:37:23.983923+00:00"
+  },
+  {
+    "date": "2026-06-08",
+    "activityType": "Leitura, Questões, Aula",
+    "subjectName": "Direito Penal",
+    "topicName": "Teoria Geral do Crime",
+    "notes": "[groupId:73b7faa0-0932-449a-b3bb-5cf45349d5ec]",
+    "origin": "Manual (Adicionada pelo usuário)",
+    "createdAt": "2026-06-13T23:37:24.186921+00:00"
+  },
+  {
+    "date": "2026-06-09",
+    "activityType": "Leitura, Questões, Aula",
+    "subjectName": "Direito Constitucional",
+    "topicName": "Direitos e Liberdades Fundamentais",
+    "notes": "[groupId:c5accde8-b717-4fc8-8c6b-1ab24a7aa76c]",
+    "origin": "Manual (Adicionada pelo usuário)",
+    "createdAt": "2026-06-14T00:43:36.618986+00:00"
+  },
+  {
+    "date": "2026-06-09",
+    "activityType": "Leitura, Questões, Aula",
+    "subjectName": "Direito Constitucional",
+    "topicName": "Direitos Políticos e Partidos Polítocs",
+    "notes": "[groupId:c5accde8-b717-4fc8-8c6b-1ab24a7aa76c]",
+    "origin": "Manual (Adicionada pelo usuário)",
+    "createdAt": "2026-06-14T00:43:36.398253+00:00"
+  },
+  {
+    "date": "2026-06-10",
+    "activityType": "Leitura, Questões, Aula",
+    "subjectName": "Ética Profissional",
+    "topicName": "Eleições e Mandados",
+    "notes": "[groupId:288f6867-24ad-4dea-b336-44c440dc29e6]",
+    "origin": "Manual (Adicionada pelo usuário)",
+    "createdAt": "2026-06-13T23:38:59.040337+00:00"
+  },
+  {
+    "date": "2026-06-10",
+    "activityType": "Leitura, Questões, Aula",
+    "subjectName": "Ética Profissional",
+    "topicName": "Legislação da Ordem dos Advogados",
+    "notes": "[groupId:288f6867-24ad-4dea-b336-44c440dc29e6]",
+    "origin": "Manual (Adicionada pelo usuário)",
+    "createdAt": "2026-06-13T23:38:58.687026+00:00"
+  },
+  {
+    "date": "2026-06-10",
+    "activityType": "Leitura, Questões, Aula",
+    "subjectName": "Ética Profissional",
+    "topicName": "Órgãos de Gestão da OAB",
+    "notes": "[groupId:288f6867-24ad-4dea-b336-44c440dc29e6]",
+    "origin": "Manual (Adicionada pelo usuário)",
+    "createdAt": "2026-06-13T23:38:58.846287+00:00"
+  },
+  {
+    "date": "2026-06-11",
+    "activityType": "Leitura, Questões, Aula",
+    "subjectName": "Direito do Trabalho",
+    "topicName": "Prescrição Trabalhista",
+    "notes": "[groupId:c62621d4-0a11-422c-a15b-30f3b0e79843]",
+    "origin": "Manual (Adicionada pelo usuário)",
+    "createdAt": "2026-06-13T23:40:03.576203+00:00"
+  },
+  {
+    "date": "2026-06-11",
+    "activityType": "Leitura, Questões, Aula",
+    "subjectName": "Direito do Trabalho",
+    "topicName": "Relação de Emprego",
+    "notes": "[groupId:c62621d4-0a11-422c-a15b-30f3b0e79843]",
+    "origin": "Manual (Adicionada pelo usuário)",
+    "createdAt": "2026-06-13T23:40:03.721218+00:00"
+  },
+  {
+    "date": "2026-06-11",
+    "activityType": "Leitura, Questões, Aula",
+    "subjectName": "Direito do Trabalho",
+    "topicName": "Relação de Trabalho",
+    "notes": "[groupId:c62621d4-0a11-422c-a15b-30f3b0e79843]",
+    "origin": "Manual (Adicionada pelo usuário)",
+    "createdAt": "2026-06-13T23:40:03.89278+00:00"
+  },
+  {
+    "date": "2026-06-11",
+    "activityType": "Leitura, Questões, Aula",
+    "subjectName": "Direito do Trabalho",
+    "topicName": "Contrato de Trabalho",
+    "notes": "[groupId:c62621d4-0a11-422c-a15b-30f3b0e79843]",
+    "origin": "Manual (Adicionada pelo usuário)",
+    "createdAt": "2026-06-13T23:40:04.049552+00:00"
+  },
+  {
+    "date": "2026-06-12",
+    "activityType": "Leitura, Questões, Aula",
+    "subjectName": "Processo Penal",
+    "topicName": "Princípios Fundamentais do Direito Processual Penal",
+    "notes": "[groupId:d19f9534-9aae-4fc5-86fa-e8ba4a406d72]",
+    "origin": "Manual (Adicionada pelo usuário)",
+    "createdAt": "2026-06-14T01:07:49.798655+00:00"
+  },
+  {
+    "date": "2026-06-12",
+    "activityType": "Leitura, Questões, Aula",
+    "subjectName": "Processo Penal",
+    "topicName": "Competência e Jurisdição",
+    "notes": "[groupId:d19f9534-9aae-4fc5-86fa-e8ba4a406d72]",
+    "origin": "Manual (Adicionada pelo usuário)",
+    "createdAt": "2026-06-14T01:07:50.510566+00:00"
+  },
+  {
+    "date": "2026-06-12",
+    "activityType": "Leitura, Questões, Aula",
+    "subjectName": "Processo Penal",
+    "topicName": "Aplicação da Lei Processual Penal",
+    "notes": "[groupId:d19f9534-9aae-4fc5-86fa-e8ba4a406d72]",
+    "origin": "Manual (Adicionada pelo usuário)",
+    "createdAt": "2026-06-14T01:07:49.955225+00:00"
+  },
+  {
+    "date": "2026-06-12",
+    "activityType": "Leitura, Questões, Aula",
+    "subjectName": "Processo Penal",
+    "topicName": "Ação Penal",
+    "notes": "[groupId:d19f9534-9aae-4fc5-86fa-e8ba4a406d72]",
+    "origin": "Manual (Adicionada pelo usuário)",
+    "createdAt": "2026-06-14T01:07:50.139168+00:00"
+  },
+  {
+    "date": "2026-06-12",
+    "activityType": "Leitura, Questões, Aula",
+    "subjectName": "Processo Penal",
+    "topicName": "Acordo de Não Persecução Penal",
+    "notes": "[groupId:d19f9534-9aae-4fc5-86fa-e8ba4a406d72]",
+    "origin": "Manual (Adicionada pelo usuário)",
+    "createdAt": "2026-06-14T01:07:50.343965+00:00"
+  },
+  {
+    "date": "2026-06-13",
+    "activityType": "Revisão",
+    "subjectName": "Ética Profissional",
+    "topicName": "Geral",
+    "notes": "—",
+    "origin": "Manual (Adicionada pelo usuário)",
+    "createdAt": "2026-06-13T23:43:22.238892+00:00"
+  },
+  {
+    "date": "2026-06-15",
+    "activityType": "Leitura, Questões, Aula",
+    "subjectName": "Ética Profissional",
+    "topicName": "Advogado Empregado",
+    "notes": "[groupId:3ec45779-85d3-4ee6-a7c0-8f9180737899]",
+    "origin": "Manual (Adicionada pelo usuário)",
+    "createdAt": "2026-06-16T02:33:52.659886+00:00"
+  },
+  {
+    "date": "2026-06-15",
+    "activityType": "Leitura, Questões, Aula",
+    "subjectName": "Ética Profissional",
+    "topicName": "Procuração e Mandato",
+    "notes": "[groupId:3ec45779-85d3-4ee6-a7c0-8f9180737899]",
+    "origin": "Manual (Adicionada pelo usuário)",
+    "createdAt": "2026-06-16T02:33:53.044548+00:00"
+  },
+  {
+    "date": "2026-06-15",
+    "activityType": "Leitura, Questões, Aula",
+    "subjectName": "Ética Profissional",
+    "topicName": "Estagiário",
+    "notes": "[groupId:3ec45779-85d3-4ee6-a7c0-8f9180737899]",
+    "origin": "Manual (Adicionada pelo usuário)",
+    "createdAt": "2026-06-16T02:33:52.784621+00:00"
+  },
+  {
+    "date": "2026-06-15",
+    "activityType": "Leitura, Questões, Aula",
+    "subjectName": "Ética Profissional",
+    "topicName": "Licenciamento e Cancelamento da Inscrição",
+    "notes": "[groupId:3ec45779-85d3-4ee6-a7c0-8f9180737899]",
+    "origin": "Manual (Adicionada pelo usuário)",
+    "createdAt": "2026-06-16T02:33:53.176761+00:00"
+  },
+  {
+    "date": "2026-06-15",
+    "activityType": "Leitura, Questões, Aula",
+    "subjectName": "Ética Profissional",
+    "topicName": "Atividades Privativas do Advogado",
+    "notes": "[groupId:3ec45779-85d3-4ee6-a7c0-8f9180737899]",
+    "origin": "Manual (Adicionada pelo usuário)",
+    "createdAt": "2026-06-16T02:33:52.913984+00:00"
+  },
+  {
+    "date": "2026-06-15",
+    "activityType": "Leitura, Revisão",
+    "subjectName": "Direito Penal",
+    "topicName": "Aplicação da Lei Penal",
+    "notes": "[groupId:a51a260f-113e-42f2-882b-a813d49b90da]",
+    "origin": "Manual (Adicionada pelo usuário)",
+    "createdAt": "2026-06-22T12:34:22.80472+00:00"
+  },
+  {
+    "date": "2026-06-15",
+    "activityType": "Leitura, Revisão",
+    "subjectName": "Direito Penal",
+    "topicName": "Teoria Geral do Crime",
+    "notes": "[groupId:a51a260f-113e-42f2-882b-a813d49b90da]",
+    "origin": "Manual (Adicionada pelo usuário)",
+    "createdAt": "2026-06-22T12:34:23.085924+00:00"
+  },
+  {
+    "date": "2026-06-15",
+    "activityType": "Revisão",
+    "subjectName": "Direito Penal",
+    "topicName": "Aplicação da Lei Penal",
+    "notes": "[groupId:rev_bb356fe3-5563-48b2-a701-47c5bf1da5b0_2026-06-15] Revisão automática (7d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-23T01:24:02.016414+00:00"
+  },
+  {
+    "date": "2026-06-16",
+    "activityType": "Leitura, Questões, Aula",
+    "subjectName": "Direito Constitucional",
+    "topicName": "Organização do Estado",
+    "notes": "[groupId:400c9f68-075d-40af-b3ef-1e08f2e772d3]",
+    "origin": "Manual (Adicionada pelo usuário)",
+    "createdAt": "2026-06-17T03:37:30.198249+00:00"
+  },
+  {
+    "date": "2026-06-16",
+    "activityType": "Leitura, Questões, Aula",
+    "subjectName": "Direito Constitucional",
+    "topicName": "Intervenção Federal e Estadual",
+    "notes": "[groupId:400c9f68-075d-40af-b3ef-1e08f2e772d3]",
+    "origin": "Manual (Adicionada pelo usuário)",
+    "createdAt": "2026-06-17T03:37:30.37382+00:00"
+  },
+  {
+    "date": "2026-06-16",
+    "activityType": "Revisão",
+    "subjectName": "Direito Constitucional",
+    "topicName": "Direitos e Liberdades Fundamentais",
+    "notes": "[groupId:rev_ec31add4-6d1c-41cb-b6a3-031c2adc57dd_2026-06-16] Revisão automática (7d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-23T01:24:00.649792+00:00"
+  },
+  {
+    "date": "2026-06-16",
+    "activityType": "Leitura, Questões, Aula",
+    "subjectName": "Direito Constitucional",
+    "topicName": "Poder Legislativo",
+    "notes": "[groupId:400c9f68-075d-40af-b3ef-1e08f2e772d3]",
+    "origin": "Manual (Adicionada pelo usuário)",
+    "createdAt": "2026-06-17T03:37:30.525277+00:00"
+  },
+  {
+    "date": "2026-06-16",
+    "activityType": "Revisão",
+    "subjectName": "Direito Constitucional",
+    "topicName": "Direitos Políticos e Partidos Polítocs",
+    "notes": "[groupId:rev_ec31add4-6d1c-41cb-b6a3-031c2adc57dd_2026-06-16] Revisão automática (7d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-23T01:24:00.825973+00:00"
+  },
+  {
+    "date": "2026-06-16",
+    "activityType": "Revisão",
+    "subjectName": "Direito Constitucional",
+    "topicName": "Direitos Políticos e Partidos Polítocs",
+    "notes": "[groupId:7400fad4-751d-4769-8c28-e58afc10b0ef] Revisão automática (7d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-21T20:45:43.772304+00:00"
+  },
+  {
+    "date": "2026-06-16",
+    "activityType": "Revisão",
+    "subjectName": "Direito Constitucional",
+    "topicName": "Direitos e Liberdades Fundamentais",
+    "notes": "[groupId:7400fad4-751d-4769-8c28-e58afc10b0ef] Revisão automática (7d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-21T20:45:44.132542+00:00"
+  },
+  {
+    "date": "2026-06-17",
+    "activityType": "Revisão",
+    "subjectName": "Ética Profissional",
+    "topicName": "Órgãos de Gestão da OAB",
+    "notes": "[groupId:rev_1bb05ff7-e2c9-49fe-a6b9-5ddec736054c_2026-06-17] Revisão automática (7d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-23T01:24:01.116514+00:00"
+  },
+  {
+    "date": "2026-06-17",
+    "activityType": "Revisão",
+    "subjectName": "Ética Profissional",
+    "topicName": "Eleições e Mandados",
+    "notes": "[groupId:rev_1bb05ff7-e2c9-49fe-a6b9-5ddec736054c_2026-06-17] Revisão automática (7d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-23T01:24:01.243836+00:00"
+  },
+  {
+    "date": "2026-06-17",
+    "activityType": "Revisão",
+    "subjectName": "Ética Profissional",
+    "topicName": "Legislação da Ordem dos Advogados",
+    "notes": "[groupId:965fe241-8d0b-491a-93a9-b5a41e8f9389] Revisão automática (7d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-21T20:28:38.20807+00:00"
+  },
+  {
+    "date": "2026-06-17",
+    "activityType": "Revisão",
+    "subjectName": "Ética Profissional",
+    "topicName": "Órgãos de Gestão da OAB",
+    "notes": "[groupId:965fe241-8d0b-491a-93a9-b5a41e8f9389] Revisão automática (7d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-21T20:28:38.444853+00:00"
+  },
+  {
+    "date": "2026-06-17",
+    "activityType": "Revisão",
+    "subjectName": "Ética Profissional",
+    "topicName": "Eleições e Mandados",
+    "notes": "[groupId:965fe241-8d0b-491a-93a9-b5a41e8f9389] Revisão automática (7d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-21T20:28:38.681209+00:00"
+  },
+  {
+    "date": "2026-06-17",
+    "activityType": "Leitura, Questões, Aula",
+    "subjectName": "Direito Penal",
+    "topicName": "Imputabilidade Penal",
+    "notes": "[groupId:70613c32-b9bd-4752-90db-2ba23a71a852]",
+    "origin": "Manual (Adicionada pelo usuário)",
+    "createdAt": "2026-06-17T15:13:54.272538+00:00"
+  },
+  {
+    "date": "2026-06-17",
+    "activityType": "Revisão",
+    "subjectName": "Ética Profissional",
+    "topicName": "Legislação da Ordem dos Advogados",
+    "notes": "[groupId:rev_1bb05ff7-e2c9-49fe-a6b9-5ddec736054c_2026-06-17] Revisão automática (7d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-23T01:24:00.986739+00:00"
+  },
+  {
+    "date": "2026-06-17",
+    "activityType": "Leitura, Questões, Aula",
+    "subjectName": "Direito Penal",
+    "topicName": "Teoria Geral do Crime",
+    "notes": "[groupId:70613c32-b9bd-4752-90db-2ba23a71a852]",
+    "origin": "Manual (Adicionada pelo usuário)",
+    "createdAt": "2026-06-17T15:13:54.428622+00:00"
+  },
+  {
+    "date": "2026-06-17",
+    "activityType": "Leitura, Questões, Aula",
+    "subjectName": "Direito Penal",
+    "topicName": "Concurso de Pessoas",
+    "notes": "[groupId:70613c32-b9bd-4752-90db-2ba23a71a852]",
+    "origin": "Manual (Adicionada pelo usuário)",
+    "createdAt": "2026-06-17T15:13:54.590562+00:00"
+  },
+  {
+    "date": "2026-06-18",
+    "activityType": "Leitura, Questões, Aula",
+    "subjectName": "Processo do Trabalho",
+    "topicName": "Petição Inicial e Resposta do Réu",
+    "notes": "[groupId:0673bdbe-6325-4be0-8b33-cbb8cf5f2d5f]",
+    "origin": "Manual (Adicionada pelo usuário)",
+    "createdAt": "2026-06-19T15:11:13.325409+00:00"
+  },
+  {
+    "date": "2026-06-18",
+    "activityType": "Leitura, Questões, Aula",
+    "subjectName": "Processo do Trabalho",
+    "topicName": "Atos, Termos, Prazos e Vícios dos Atos Processuais",
+    "notes": "[groupId:0673bdbe-6325-4be0-8b33-cbb8cf5f2d5f]",
+    "origin": "Manual (Adicionada pelo usuário)",
+    "createdAt": "2026-06-19T15:11:13.463409+00:00"
+  },
+  {
+    "date": "2026-06-18",
+    "activityType": "Leitura, Questões, Aula",
+    "subjectName": "Processo do Trabalho",
+    "topicName": "Organização e Competência da Justiça do Trabalho",
+    "notes": "[groupId:0673bdbe-6325-4be0-8b33-cbb8cf5f2d5f]",
+    "origin": "Manual (Adicionada pelo usuário)",
+    "createdAt": "2026-06-19T15:11:13.596987+00:00"
+  },
+  {
+    "date": "2026-06-18",
+    "activityType": "Leitura, Questões, Aula",
+    "subjectName": "Processo do Trabalho",
+    "topicName": "Procedimentos Trabalhistas",
+    "notes": "[groupId:0673bdbe-6325-4be0-8b33-cbb8cf5f2d5f]",
+    "origin": "Manual (Adicionada pelo usuário)",
+    "createdAt": "2026-06-19T15:11:13.719464+00:00"
+  },
+  {
+    "date": "2026-06-18",
+    "activityType": "Revisão",
+    "subjectName": "Direito do Trabalho",
+    "topicName": "Prescrição Trabalhista",
+    "notes": "[groupId:rev_51e28115-af21-44f9-8bf7-0d2f6a4d7a51_2026-06-18] Revisão automática (7d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-23T01:24:02.912118+00:00"
+  },
+  {
+    "date": "2026-06-18",
+    "activityType": "Revisão",
+    "subjectName": "Direito do Trabalho",
+    "topicName": "Contrato de Trabalho",
+    "notes": "[groupId:rev_51e28115-af21-44f9-8bf7-0d2f6a4d7a51_2026-06-18] Revisão automática (7d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-23T01:24:03.278663+00:00"
+  },
+  {
+    "date": "2026-06-18",
+    "activityType": "Revisão",
+    "subjectName": "Direito do Trabalho",
+    "topicName": "Relação de Emprego",
+    "notes": "[groupId:rev_51e28115-af21-44f9-8bf7-0d2f6a4d7a51_2026-06-18] Revisão automática (7d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-23T01:24:03.036254+00:00"
+  },
+  {
+    "date": "2026-06-18",
+    "activityType": "Revisão",
+    "subjectName": "Direito do Trabalho",
+    "topicName": "Contrato de Trabalho",
+    "notes": "[groupId:54f99d80-39b7-4564-b719-414c554870bd] Revisão automática (7d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-21T21:12:12.340873+00:00"
+  },
+  {
+    "date": "2026-06-18",
+    "activityType": "Revisão",
+    "subjectName": "Direito do Trabalho",
+    "topicName": "Relação de Emprego",
+    "notes": "[groupId:54f99d80-39b7-4564-b719-414c554870bd] Revisão automática (7d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-21T21:12:12.595414+00:00"
+  },
+  {
+    "date": "2026-06-18",
+    "activityType": "Revisão",
+    "subjectName": "Direito do Trabalho",
+    "topicName": "Prescrição Trabalhista",
+    "notes": "[groupId:54f99d80-39b7-4564-b719-414c554870bd] Revisão automática (7d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-21T21:12:12.877953+00:00"
+  },
+  {
+    "date": "2026-06-18",
+    "activityType": "Revisão",
+    "subjectName": "Direito do Trabalho",
+    "topicName": "Relação de Trabalho",
+    "notes": "[groupId:54f99d80-39b7-4564-b719-414c554870bd] Revisão automática (7d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-21T21:12:13.126281+00:00"
+  },
+  {
+    "date": "2026-06-18",
+    "activityType": "Revisão",
+    "subjectName": "Direito do Trabalho",
+    "topicName": "Relação de Trabalho",
+    "notes": "[groupId:rev_51e28115-af21-44f9-8bf7-0d2f6a4d7a51_2026-06-18] Revisão automática (7d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-23T01:24:03.158271+00:00"
+  },
+  {
+    "date": "2026-06-19",
+    "activityType": "Leitura, Questões, Aula",
+    "subjectName": "Direito Tributário",
+    "topicName": "Competência Tributária",
+    "notes": "[groupId:b9ca87d9-41d5-4343-95f3-a3e8a903adc6]",
+    "origin": "Manual (Adicionada pelo usuário)",
+    "createdAt": "2026-06-20T04:35:08.452046+00:00"
+  },
+  {
+    "date": "2026-06-19",
+    "activityType": "Leitura, Questões, Aula",
+    "subjectName": "Direito Tributário",
+    "topicName": "Tributos em Espécie: Impostos",
+    "notes": "[groupId:b9ca87d9-41d5-4343-95f3-a3e8a903adc6]",
+    "origin": "Manual (Adicionada pelo usuário)",
+    "createdAt": "2026-06-20T04:35:08.569769+00:00"
+  },
+  {
+    "date": "2026-06-19",
+    "activityType": "Leitura, Questões, Aula",
+    "subjectName": "Direito Tributário",
+    "topicName": "Imunidades Tributárias",
+    "notes": "[groupId:b9ca87d9-41d5-4343-95f3-a3e8a903adc6]",
+    "origin": "Manual (Adicionada pelo usuário)",
+    "createdAt": "2026-06-20T04:35:08.698134+00:00"
+  },
+  {
+    "date": "2026-06-19",
+    "activityType": "Leitura, Questões, Aula",
+    "subjectName": "Direito Tributário",
+    "topicName": "Limitações ao Poder de Tributar: Princípios",
+    "notes": "[groupId:b9ca87d9-41d5-4343-95f3-a3e8a903adc6]",
+    "origin": "Manual (Adicionada pelo usuário)",
+    "createdAt": "2026-06-20T04:35:08.833534+00:00"
+  },
+  {
+    "date": "2026-06-19",
+    "activityType": "Revisão",
+    "subjectName": "Processo Penal",
+    "topicName": "Aplicação da Lei Processual Penal",
+    "notes": "[groupId:rev_99940adf-d8de-47d5-8ee1-0256afe20893_2026-06-19] Revisão automática (7d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-23T01:24:02.399882+00:00"
+  },
+  {
+    "date": "2026-06-19",
+    "activityType": "Revisão",
+    "subjectName": "Processo Penal",
+    "topicName": "Acordo de Não Persecução Penal",
+    "notes": "[groupId:rev_99940adf-d8de-47d5-8ee1-0256afe20893_2026-06-19] Revisão automática (7d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-23T01:24:02.528014+00:00"
+  },
+  {
+    "date": "2026-06-19",
+    "activityType": "Revisão",
+    "subjectName": "Processo Penal",
+    "topicName": "Princípios Fundamentais do Direito Processual Penal",
+    "notes": "[groupId:rev_99940adf-d8de-47d5-8ee1-0256afe20893_2026-06-19] Revisão automática (7d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-23T01:24:02.276544+00:00"
+  },
+  {
+    "date": "2026-06-19",
+    "activityType": "Revisão",
+    "subjectName": "Processo Penal",
+    "topicName": "Ação Penal",
+    "notes": "[groupId:rev_99940adf-d8de-47d5-8ee1-0256afe20893_2026-06-19] Revisão automática (7d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-23T01:24:02.654367+00:00"
+  },
+  {
+    "date": "2026-06-19",
+    "activityType": "Revisão",
+    "subjectName": "Processo Penal",
+    "topicName": "Competência e Jurisdição",
+    "notes": "[groupId:rev_99940adf-d8de-47d5-8ee1-0256afe20893_2026-06-19] Revisão automática (7d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-23T01:24:02.784376+00:00"
+  },
+  {
+    "date": "2026-06-19",
+    "activityType": "Revisão",
+    "subjectName": "Processo Penal",
+    "topicName": "Aplicação da Lei Processual Penal",
+    "notes": "[groupId:78023695-954c-41bf-bae4-ed7f4a205df7] Revisão automática (7d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-22T00:21:51.459827+00:00"
+  },
+  {
+    "date": "2026-06-19",
+    "activityType": "Revisão",
+    "subjectName": "Processo Penal",
+    "topicName": "Princípios Fundamentais do Direito Processual Penal",
+    "notes": "[groupId:78023695-954c-41bf-bae4-ed7f4a205df7] Revisão automática (7d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-22T00:21:51.746382+00:00"
+  },
+  {
+    "date": "2026-06-19",
+    "activityType": "Revisão",
+    "subjectName": "Processo Penal",
+    "topicName": "Ação Penal",
+    "notes": "[groupId:78023695-954c-41bf-bae4-ed7f4a205df7] Revisão automática (7d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-22T00:21:52.009728+00:00"
+  },
+  {
+    "date": "2026-06-19",
+    "activityType": "Revisão",
+    "subjectName": "Processo Penal",
+    "topicName": "Competência e Jurisdição",
+    "notes": "[groupId:78023695-954c-41bf-bae4-ed7f4a205df7] Revisão automática (7d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-22T00:21:52.280734+00:00"
+  },
+  {
+    "date": "2026-06-19",
+    "activityType": "Revisão",
+    "subjectName": "Processo Penal",
+    "topicName": "Acordo de Não Persecução Penal",
+    "notes": "[groupId:78023695-954c-41bf-bae4-ed7f4a205df7] Revisão automática (7d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-22T00:21:52.563481+00:00"
+  },
+  {
+    "date": "2026-06-20",
+    "activityType": "Aulão de Revisão",
+    "subjectName": "Processo do Trabalho",
+    "topicName": "Geral",
+    "notes": "[groupId:c74049a9-b4d8-4819-9112-fe687f73413a]",
+    "origin": "Manual (Adicionada pelo usuário)",
+    "createdAt": "2026-06-21T17:22:57.862415+00:00"
+  },
+  {
+    "date": "2026-06-20",
+    "activityType": "Aulão de Revisão",
+    "subjectName": "Direito Constitucional",
+    "topicName": "Geral",
+    "notes": "[groupId:c74049a9-b4d8-4819-9112-fe687f73413a]",
+    "origin": "Manual (Adicionada pelo usuário)",
+    "createdAt": "2026-06-21T17:22:57.510366+00:00"
+  },
+  {
+    "date": "2026-06-20",
+    "activityType": "Aulão de Revisão",
+    "subjectName": "Direito do Trabalho",
+    "topicName": "Geral",
+    "notes": "[groupId:c74049a9-b4d8-4819-9112-fe687f73413a]",
+    "origin": "Manual (Adicionada pelo usuário)",
+    "createdAt": "2026-06-21T17:22:57.692559+00:00"
+  },
+  {
+    "date": "2026-06-22",
+    "activityType": "Revisão",
+    "subjectName": "Ética Profissional",
+    "topicName": "Licenciamento e Cancelamento da Inscrição",
+    "notes": "[groupId:fd90996d-94e7-4000-a78e-73abc2010dbd] Revisão automática (7d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-22T14:14:07.613787+00:00"
+  },
+  {
+    "date": "2026-06-22",
+    "activityType": "Revisão",
+    "subjectName": "Ética Profissional",
+    "topicName": "Advogado Empregado",
+    "notes": "[groupId:fd90996d-94e7-4000-a78e-73abc2010dbd] Revisão automática (7d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-22T14:14:08.513074+00:00"
+  },
+  {
+    "date": "2026-06-22",
+    "activityType": "Revisão",
+    "subjectName": "Ética Profissional",
+    "topicName": "Estagiário",
+    "notes": "[groupId:fd90996d-94e7-4000-a78e-73abc2010dbd] Revisão automática (7d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-22T14:14:07.920436+00:00"
+  },
+  {
+    "date": "2026-06-22",
+    "activityType": "Leitura, Questões, Aula",
+    "subjectName": "Ética Profissional",
+    "topicName": "Advocacia Pro Bono",
+    "notes": "[groupId:474dd036-f5c8-47f0-a8f5-92556dd4c757]",
+    "origin": "Manual (Adicionada pelo usuário)",
+    "createdAt": "2026-06-22T20:10:54.125211+00:00"
+  },
+  {
+    "date": "2026-06-22",
+    "activityType": "Revisão",
+    "subjectName": "Ética Profissional",
+    "topicName": "Licenciamento e Cancelamento da Inscrição",
+    "notes": "[groupId:rev_1bb05ff7-e2c9-49fe-a6b9-5ddec736054c_2026-06-22] Revisão automática (7d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-23T01:24:01.370226+00:00"
+  },
+  {
+    "date": "2026-06-22",
+    "activityType": "Revisão",
+    "subjectName": "Ética Profissional",
+    "topicName": "Estagiário",
+    "notes": "[groupId:rev_1bb05ff7-e2c9-49fe-a6b9-5ddec736054c_2026-06-22] Revisão automática (7d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-23T01:24:01.503264+00:00"
+  },
+  {
+    "date": "2026-06-22",
+    "activityType": "Revisão",
+    "subjectName": "Ética Profissional",
+    "topicName": "Procuração e Mandato",
+    "notes": "[groupId:rev_1bb05ff7-e2c9-49fe-a6b9-5ddec736054c_2026-06-22] Revisão automática (7d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-23T01:24:01.891765+00:00"
+  },
+  {
+    "date": "2026-06-22",
+    "activityType": "Revisão",
+    "subjectName": "Ética Profissional",
+    "topicName": "Advogado Empregado",
+    "notes": "[groupId:rev_1bb05ff7-e2c9-49fe-a6b9-5ddec736054c_2026-06-22] Revisão automática (7d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-23T01:24:01.643705+00:00"
+  },
+  {
+    "date": "2026-06-22",
+    "activityType": "Revisão",
+    "subjectName": "Direito Penal",
+    "topicName": "Aplicação da Lei Penal",
+    "notes": "[groupId:rev_bb356fe3-5563-48b2-a701-47c5bf1da5b0_2026-06-22] Revisão automática (14d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-23T01:24:02.145825+00:00"
+  },
+  {
+    "date": "2026-06-22",
+    "activityType": "Leitura, Questões, Aula",
+    "subjectName": "Ética Profissional",
+    "topicName": "Honorários Advocatícios",
+    "notes": "[groupId:474dd036-f5c8-47f0-a8f5-92556dd4c757]",
+    "origin": "Manual (Adicionada pelo usuário)",
+    "createdAt": "2026-06-22T20:10:54.508373+00:00"
+  },
+  {
+    "date": "2026-06-22",
+    "activityType": "Revisão",
+    "subjectName": "Ética Profissional",
+    "topicName": "Atividades Privativas do Advogado",
+    "notes": "[groupId:rev_1bb05ff7-e2c9-49fe-a6b9-5ddec736054c_2026-06-22] Revisão automática (7d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-23T01:24:01.769131+00:00"
+  },
+  {
+    "date": "2026-06-22",
+    "activityType": "Revisão",
+    "subjectName": "Ética Profissional",
+    "topicName": "Procuração e Mandato",
+    "notes": "[groupId:fd90996d-94e7-4000-a78e-73abc2010dbd] Revisão automática (7d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-22T14:14:07.239484+00:00"
+  },
+  {
+    "date": "2026-06-22",
+    "activityType": "Revisão",
+    "subjectName": "Ética Profissional",
+    "topicName": "Atividades Privativas do Advogado",
+    "notes": "[groupId:fd90996d-94e7-4000-a78e-73abc2010dbd] Revisão automática (7d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-22T14:14:08.233193+00:00"
+  },
+  {
+    "date": "2026-06-22",
+    "activityType": "Leitura, Questões, Aula",
+    "subjectName": "Ética Profissional",
+    "topicName": "Sociedade de Advogados",
+    "notes": "[groupId:474dd036-f5c8-47f0-a8f5-92556dd4c757]",
+    "origin": "Manual (Adicionada pelo usuário)",
+    "createdAt": "2026-06-22T20:10:53.637447+00:00"
+  },
+  {
+    "date": "2026-06-23",
+    "activityType": "Leitura, Questões, Aula",
+    "subjectName": "Direito Constitucional",
+    "topicName": "Processo Legislativo",
+    "notes": "[groupId:14cdb5e1-f632-4311-a41e-1a37acf29038]",
+    "origin": "Manual (Adicionada pelo usuário)",
+    "createdAt": "2026-06-22T20:19:26.272438+00:00"
+  },
+  {
+    "date": "2026-06-23",
+    "activityType": "Leitura, Questões, Aula",
+    "subjectName": "Direito Constitucional",
+    "topicName": "Poder Judiciário",
+    "notes": "[groupId:14cdb5e1-f632-4311-a41e-1a37acf29038]",
+    "origin": "Manual (Adicionada pelo usuário)",
+    "createdAt": "2026-06-22T20:19:26.783238+00:00"
+  },
+  {
+    "date": "2026-06-23",
+    "activityType": "Revisão",
+    "subjectName": "Direito Constitucional",
+    "topicName": "Organização do Estado",
+    "notes": "[groupId:rev_ec31add4-6d1c-41cb-b6a3-031c2adc57dd_2026-06-23] Revisão automática (7d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-22T00:22:44.346411+00:00"
+  },
+  {
+    "date": "2026-06-23",
+    "activityType": "Revisão",
+    "subjectName": "Direito Constitucional",
+    "topicName": "Direitos Políticos e Partidos Polítocs",
+    "notes": "[groupId:rev_ec31add4-6d1c-41cb-b6a3-031c2adc57dd_2026-06-23] Revisão automática (14d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-22T00:22:44.515405+00:00"
+  },
+  {
+    "date": "2026-06-23",
+    "activityType": "Revisão",
+    "subjectName": "Direito Constitucional",
+    "topicName": "Intervenção Federal e Estadual",
+    "notes": "[groupId:rev_ec31add4-6d1c-41cb-b6a3-031c2adc57dd_2026-06-23] Revisão automática (7d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-22T00:22:44.662907+00:00"
+  },
+  {
+    "date": "2026-06-23",
+    "activityType": "Revisão",
+    "subjectName": "Direito Constitucional",
+    "topicName": "Poder Legislativo",
+    "notes": "[groupId:rev_ec31add4-6d1c-41cb-b6a3-031c2adc57dd_2026-06-23] Revisão automática (7d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-22T00:22:44.802898+00:00"
+  },
+  {
+    "date": "2026-06-23",
+    "activityType": "Revisão",
+    "subjectName": "Direito Constitucional",
+    "topicName": "Direitos e Liberdades Fundamentais",
+    "notes": "[groupId:rev_ec31add4-6d1c-41cb-b6a3-031c2adc57dd_2026-06-23] Revisão automática (14d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-22T00:22:44.171731+00:00"
+  },
+  {
+    "date": "2026-06-24",
+    "activityType": "Revisão",
+    "subjectName": "Ética Profissional",
+    "topicName": "Órgãos de Gestão da OAB",
+    "notes": "[groupId:rev_1bb05ff7-e2c9-49fe-a6b9-5ddec736054c_2026-06-24] Revisão automática (14d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-13T23:39:00.15731+00:00"
+  },
+  {
+    "date": "2026-06-24",
+    "activityType": "Revisão",
+    "subjectName": "Direito Penal",
+    "topicName": "Teoria Geral do Crime",
+    "notes": "[groupId:rev_bb356fe3-5563-48b2-a701-47c5bf1da5b0_2026-06-24] Revisão automática (7d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-17T15:13:55.306675+00:00"
+  },
+  {
+    "date": "2026-06-24",
+    "activityType": "Leitura, Questões, Aula",
+    "subjectName": "Direito Penal",
+    "topicName": "Aplicação da Pena",
+    "notes": "—",
+    "origin": "Manual (Adicionada pelo usuário)",
+    "createdAt": "2026-06-22T20:20:48.415951+00:00"
+  },
+  {
+    "date": "2026-06-24",
+    "activityType": "Revisão",
+    "subjectName": "Ética Profissional",
+    "topicName": "Legislação da Ordem dos Advogados",
+    "notes": "[groupId:rev_1bb05ff7-e2c9-49fe-a6b9-5ddec736054c_2026-06-24] Revisão automática (14d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-13T23:38:59.472245+00:00"
+  },
+  {
+    "date": "2026-06-24",
+    "activityType": "Revisão",
+    "subjectName": "Ética Profissional",
+    "topicName": "Eleições e Mandados",
+    "notes": "[groupId:rev_1bb05ff7-e2c9-49fe-a6b9-5ddec736054c_2026-06-24] Revisão automática (14d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-13T23:39:00.874095+00:00"
+  },
+  {
+    "date": "2026-06-24",
+    "activityType": "Revisão",
+    "subjectName": "Direito Penal",
+    "topicName": "Concurso de Pessoas",
+    "notes": "[groupId:rev_bb356fe3-5563-48b2-a701-47c5bf1da5b0_2026-06-24] Revisão automática (7d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-17T15:13:56.775249+00:00"
+  },
+  {
+    "date": "2026-06-24",
+    "activityType": "Revisão",
+    "subjectName": "Direito Penal",
+    "topicName": "Imputabilidade Penal",
+    "notes": "[groupId:rev_bb356fe3-5563-48b2-a701-47c5bf1da5b0_2026-06-24] Revisão automática (7d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-17T15:13:56.15557+00:00"
+  },
+  {
+    "date": "2026-06-25",
+    "activityType": "Revisão",
+    "subjectName": "Direito do Trabalho",
+    "topicName": "Relação de Trabalho",
+    "notes": "[groupId:rev_51e28115-af21-44f9-8bf7-0d2f6a4d7a51_2026-06-25] Revisão automática (14d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-13T23:40:06.215367+00:00"
+  },
+  {
+    "date": "2026-06-25",
+    "activityType": "Revisão",
+    "subjectName": "Processo do Trabalho",
+    "topicName": "Petição Inicial e Resposta do Réu",
+    "notes": "[groupId:rev_29d349b7-befd-4cc6-8bb1-3104c46821bc_2026-06-25] Revisão automática (7d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-19T15:11:15.843601+00:00"
+  },
+  {
+    "date": "2026-06-25",
+    "activityType": "Leitura, Aula, Questões",
+    "subjectName": "Direito do Trabalho",
+    "topicName": "Contrato de Trabalho",
+    "notes": "[groupId:eb1957cd-58c4-4422-a880-a0ad15a232d7]",
+    "origin": "Manual (Adicionada pelo usuário)",
+    "createdAt": "2026-06-22T20:21:37.837988+00:00"
+  },
+  {
+    "date": "2026-06-25",
+    "activityType": "Revisão",
+    "subjectName": "Processo do Trabalho",
+    "topicName": "Procedimentos Trabalhistas",
+    "notes": "[groupId:rev_29d349b7-befd-4cc6-8bb1-3104c46821bc_2026-06-25] Revisão automática (7d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-19T15:11:15.203165+00:00"
+  },
+  {
+    "date": "2026-06-25",
+    "activityType": "Leitura, Aula, Questões",
+    "subjectName": "Direito do Trabalho",
+    "topicName": "Jornada de Trabalho",
+    "notes": "[groupId:eb1957cd-58c4-4422-a880-a0ad15a232d7]",
+    "origin": "Manual (Adicionada pelo usuário)",
+    "createdAt": "2026-06-22T20:21:38.553158+00:00"
+  },
+  {
+    "date": "2026-06-25",
+    "activityType": "Revisão",
+    "subjectName": "Direito do Trabalho",
+    "topicName": "Prescrição Trabalhista",
+    "notes": "[groupId:rev_51e28115-af21-44f9-8bf7-0d2f6a4d7a51_2026-06-25] Revisão automática (14d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-13T23:40:04.499944+00:00"
+  },
+  {
+    "date": "2026-06-25",
+    "activityType": "Revisão",
+    "subjectName": "Processo do Trabalho",
+    "topicName": "Organização e Competência da Justiça do Trabalho",
+    "notes": "[groupId:rev_29d349b7-befd-4cc6-8bb1-3104c46821bc_2026-06-25] Revisão automática (7d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-19T15:11:13.919776+00:00"
+  },
+  {
+    "date": "2026-06-25",
+    "activityType": "Revisão",
+    "subjectName": "Processo do Trabalho",
+    "topicName": "Atos, Termos, Prazos e Vícios dos Atos Processuais",
+    "notes": "[groupId:rev_29d349b7-befd-4cc6-8bb1-3104c46821bc_2026-06-25] Revisão automática (7d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-19T15:11:14.568894+00:00"
+  },
+  {
+    "date": "2026-06-25",
+    "activityType": "Revisão",
+    "subjectName": "Direito do Trabalho",
+    "topicName": "Contrato de Trabalho",
+    "notes": "[groupId:rev_51e28115-af21-44f9-8bf7-0d2f6a4d7a51_2026-06-25] Revisão automática (14d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-13T23:40:06.89067+00:00"
+  },
+  {
+    "date": "2026-06-25",
+    "activityType": "Revisão",
+    "subjectName": "Direito do Trabalho",
+    "topicName": "Relação de Emprego",
+    "notes": "[groupId:rev_51e28115-af21-44f9-8bf7-0d2f6a4d7a51_2026-06-25] Revisão automática (14d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-13T23:40:05.481114+00:00"
+  },
+  {
+    "date": "2026-06-26",
+    "activityType": "Revisão",
+    "subjectName": "Direito Tributário",
+    "topicName": "Limitações ao Poder de Tributar: Princípios",
+    "notes": "[groupId:rev_fef0bef1-4766-460e-9978-0169a8fd9415_2026-06-26] Revisão automática (7d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-20T04:35:10.265066+00:00"
+  },
+  {
+    "date": "2026-06-26",
+    "activityType": "Revisão",
+    "subjectName": "Processo Penal",
+    "topicName": "Acordo de Não Persecução Penal",
+    "notes": "[groupId:rev_99940adf-d8de-47d5-8ee1-0256afe20893_2026-06-26] Revisão automática (14d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-15T02:49:58.23822+00:00"
+  },
+  {
+    "date": "2026-06-26",
+    "activityType": "Revisão",
+    "subjectName": "Direito Tributário",
+    "topicName": "Tributos em Espécie: Impostos",
+    "notes": "[groupId:rev_fef0bef1-4766-460e-9978-0169a8fd9415_2026-06-26] Revisão automática (7d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-20T04:35:09.650383+00:00"
+  },
+  {
+    "date": "2026-06-26",
+    "activityType": "Revisão",
+    "subjectName": "Processo Penal",
+    "topicName": "Aplicação da Lei Processual Penal",
+    "notes": "[groupId:rev_99940adf-d8de-47d5-8ee1-0256afe20893_2026-06-26] Revisão automática (14d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-14T01:07:52.068308+00:00"
+  },
+  {
+    "date": "2026-06-26",
+    "activityType": "Revisão",
+    "subjectName": "Processo Penal",
+    "topicName": "Ação Penal",
+    "notes": "[groupId:rev_99940adf-d8de-47d5-8ee1-0256afe20893_2026-06-26] Revisão automática (14d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-14T01:07:52.821907+00:00"
+  },
+  {
+    "date": "2026-06-26",
+    "activityType": "Revisão",
+    "subjectName": "Direito Tributário",
+    "topicName": "Competência Tributária",
+    "notes": "[groupId:rev_fef0bef1-4766-460e-9978-0169a8fd9415_2026-06-26] Revisão automática (7d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-20T04:35:09.019569+00:00"
+  },
+  {
+    "date": "2026-06-26",
+    "activityType": "Leitura, Questões, Aula",
+    "subjectName": "Processo Penal",
+    "topicName": "Provas",
+    "notes": "[groupId:69590f1f-4eeb-40ad-b592-81c30df2fb89]",
+    "origin": "Manual (Adicionada pelo usuário)",
+    "createdAt": "2026-06-22T20:22:21.315721+00:00"
+  },
+  {
+    "date": "2026-06-26",
+    "activityType": "Revisão",
+    "subjectName": "Processo Penal",
+    "topicName": "Competência e Jurisdição",
+    "notes": "[groupId:rev_99940adf-d8de-47d5-8ee1-0256afe20893_2026-06-26] Revisão automática (14d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-14T01:07:53.588575+00:00"
+  },
+  {
+    "date": "2026-06-26",
+    "activityType": "Revisão",
+    "subjectName": "Direito Tributário",
+    "topicName": "Imunidades Tributárias",
+    "notes": "[groupId:rev_fef0bef1-4766-460e-9978-0169a8fd9415_2026-06-26] Revisão automática (7d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-20T04:35:10.869719+00:00"
+  },
+  {
+    "date": "2026-06-26",
+    "activityType": "Leitura, Questões, Aula",
+    "subjectName": "Processo Penal",
+    "topicName": "Prisões",
+    "notes": "[groupId:69590f1f-4eeb-40ad-b592-81c30df2fb89]",
+    "origin": "Manual (Adicionada pelo usuário)",
+    "createdAt": "2026-06-22T20:22:21.711079+00:00"
+  },
+  {
+    "date": "2026-06-26",
+    "activityType": "Revisão",
+    "subjectName": "Processo Penal",
+    "topicName": "Princípios Fundamentais do Direito Processual Penal",
+    "notes": "[groupId:rev_99940adf-d8de-47d5-8ee1-0256afe20893_2026-06-26] Revisão automática (14d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-14T01:07:50.933773+00:00"
+  },
+  {
+    "date": "2026-06-26",
+    "activityType": "Leitura, Questões, Aula",
+    "subjectName": "Processo Penal",
+    "topicName": "Procedimentos Penais",
+    "notes": "[groupId:69590f1f-4eeb-40ad-b592-81c30df2fb89]",
+    "origin": "Manual (Adicionada pelo usuário)",
+    "createdAt": "2026-06-22T20:22:21.940858+00:00"
+  },
+  {
+    "date": "2026-06-26",
+    "activityType": "Leitura, Questões, Aula",
+    "subjectName": "Processo Penal",
+    "topicName": "Ação Penal",
+    "notes": "[groupId:69590f1f-4eeb-40ad-b592-81c30df2fb89]",
+    "origin": "Manual (Adicionada pelo usuário)",
+    "createdAt": "2026-06-22T20:22:22.175529+00:00"
+  },
+  {
+    "date": "2026-06-29",
+    "activityType": "Revisão",
+    "subjectName": "Ética Profissional",
+    "topicName": "Advogado Empregado",
+    "notes": "[groupId:rev_1bb05ff7-e2c9-49fe-a6b9-5ddec736054c_2026-06-29] Revisão automática (14d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-16T02:33:55.943429+00:00"
+  },
+  {
+    "date": "2026-06-29",
+    "activityType": "Revisão",
+    "subjectName": "Ética Profissional",
+    "topicName": "Advocacia Pro Bono",
+    "notes": "[groupId:rev_1bb05ff7-e2c9-49fe-a6b9-5ddec736054c_2026-06-29] Revisão automática (7d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-22T20:10:58.420273+00:00"
+  },
+  {
+    "date": "2026-06-29",
+    "activityType": "Revisão",
+    "subjectName": "Ética Profissional",
+    "topicName": "Licenciamento e Cancelamento da Inscrição",
+    "notes": "[groupId:rev_1bb05ff7-e2c9-49fe-a6b9-5ddec736054c_2026-06-29] Revisão automática (14d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-16T02:33:54.99873+00:00"
+  },
+  {
+    "date": "2026-06-29",
+    "activityType": "Revisão",
+    "subjectName": "Ética Profissional",
+    "topicName": "Atividades Privativas do Advogado",
+    "notes": "[groupId:rev_1bb05ff7-e2c9-49fe-a6b9-5ddec736054c_2026-06-29] Revisão automática (14d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-16T02:33:56.406062+00:00"
+  },
+  {
+    "date": "2026-06-29",
+    "activityType": "Revisão",
+    "subjectName": "Ética Profissional",
+    "topicName": "Honorários Advocatícios",
+    "notes": "[groupId:rev_1bb05ff7-e2c9-49fe-a6b9-5ddec736054c_2026-06-29] Revisão automática (7d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-22T20:10:57.465471+00:00"
+  },
+  {
+    "date": "2026-06-29",
+    "activityType": "Revisão",
+    "subjectName": "Ética Profissional",
+    "topicName": "Estagiário",
+    "notes": "[groupId:rev_1bb05ff7-e2c9-49fe-a6b9-5ddec736054c_2026-06-29] Revisão automática (14d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-16T02:33:55.484371+00:00"
+  },
+  {
+    "date": "2026-06-29",
+    "activityType": "Revisão",
+    "subjectName": "Ética Profissional",
+    "topicName": "Sociedade de Advogados",
+    "notes": "[groupId:rev_1bb05ff7-e2c9-49fe-a6b9-5ddec736054c_2026-06-29] Revisão automática (7d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-22T20:10:56.525263+00:00"
+  },
+  {
+    "date": "2026-06-29",
+    "activityType": "Revisão",
+    "subjectName": "Ética Profissional",
+    "topicName": "Procuração e Mandato",
+    "notes": "[groupId:rev_1bb05ff7-e2c9-49fe-a6b9-5ddec736054c_2026-06-29] Revisão automática (14d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-16T02:33:56.856454+00:00"
+  },
+  {
+    "date": "2026-06-30",
+    "activityType": "Revisão",
+    "subjectName": "Direito Constitucional",
+    "topicName": "Poder Legislativo",
+    "notes": "[groupId:rev_ec31add4-6d1c-41cb-b6a3-031c2adc57dd_2026-06-30] Revisão automática (14d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-17T03:37:32.16342+00:00"
+  },
+  {
+    "date": "2026-06-30",
+    "activityType": "Revisão",
+    "subjectName": "Direito Constitucional",
+    "topicName": "Organização do Estado",
+    "notes": "[groupId:rev_ec31add4-6d1c-41cb-b6a3-031c2adc57dd_2026-06-30] Revisão automática (14d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-17T03:37:30.868401+00:00"
+  },
+  {
+    "date": "2026-06-30",
+    "activityType": "Revisão",
+    "subjectName": "Direito Constitucional",
+    "topicName": "Intervenção Federal e Estadual",
+    "notes": "[groupId:rev_ec31add4-6d1c-41cb-b6a3-031c2adc57dd_2026-06-30] Revisão automática (14d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-17T03:37:31.519188+00:00"
+  },
+  {
+    "date": "2026-07-01",
+    "activityType": "Revisão",
+    "subjectName": "Direito Penal",
+    "topicName": "Imputabilidade Penal",
+    "notes": "[groupId:rev_bb356fe3-5563-48b2-a701-47c5bf1da5b0_2026-07-01] Revisão automática (14d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-17T15:13:56.281138+00:00"
+  },
+  {
+    "date": "2026-07-01",
+    "activityType": "Revisão",
+    "subjectName": "Direito Penal",
+    "topicName": "Teoria Geral do Crime",
+    "notes": "[groupId:rev_bb356fe3-5563-48b2-a701-47c5bf1da5b0_2026-07-01] Revisão automática (14d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-17T15:13:55.474224+00:00"
+  },
+  {
+    "date": "2026-07-01",
+    "activityType": "Revisão",
+    "subjectName": "Direito Penal",
+    "topicName": "Concurso de Pessoas",
+    "notes": "[groupId:rev_bb356fe3-5563-48b2-a701-47c5bf1da5b0_2026-07-01] Revisão automática (14d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-17T15:13:56.891829+00:00"
+  },
+  {
+    "date": "2026-07-02",
+    "activityType": "Revisão",
+    "subjectName": "Processo do Trabalho",
+    "topicName": "Organização e Competência da Justiça do Trabalho",
+    "notes": "[groupId:rev_29d349b7-befd-4cc6-8bb1-3104c46821bc_2026-07-02] Revisão automática (14d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-19T15:11:14.050432+00:00"
+  },
+  {
+    "date": "2026-07-02",
+    "activityType": "Revisão",
+    "subjectName": "Processo do Trabalho",
+    "topicName": "Petição Inicial e Resposta do Réu",
+    "notes": "[groupId:rev_29d349b7-befd-4cc6-8bb1-3104c46821bc_2026-07-02] Revisão automática (14d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-19T15:11:15.966974+00:00"
+  },
+  {
+    "date": "2026-07-02",
+    "activityType": "Revisão",
+    "subjectName": "Processo do Trabalho",
+    "topicName": "Procedimentos Trabalhistas",
+    "notes": "[groupId:rev_29d349b7-befd-4cc6-8bb1-3104c46821bc_2026-07-02] Revisão automática (14d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-19T15:11:15.33351+00:00"
+  },
+  {
+    "date": "2026-07-02",
+    "activityType": "Revisão",
+    "subjectName": "Processo do Trabalho",
+    "topicName": "Atos, Termos, Prazos e Vícios dos Atos Processuais",
+    "notes": "[groupId:rev_29d349b7-befd-4cc6-8bb1-3104c46821bc_2026-07-02] Revisão automática (14d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-19T15:11:14.692305+00:00"
+  },
+  {
+    "date": "2026-07-03",
+    "activityType": "Revisão",
+    "subjectName": "Direito Tributário",
+    "topicName": "Imunidades Tributárias",
+    "notes": "[groupId:rev_fef0bef1-4766-460e-9978-0169a8fd9415_2026-07-03] Revisão automática (14d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-20T04:35:11.006615+00:00"
+  },
+  {
+    "date": "2026-07-03",
+    "activityType": "Revisão",
+    "subjectName": "Direito Tributário",
+    "topicName": "Limitações ao Poder de Tributar: Princípios",
+    "notes": "[groupId:rev_fef0bef1-4766-460e-9978-0169a8fd9415_2026-07-03] Revisão automática (14d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-20T04:35:10.380142+00:00"
+  },
+  {
+    "date": "2026-07-03",
+    "activityType": "Revisão",
+    "subjectName": "Direito Tributário",
+    "topicName": "Tributos em Espécie: Impostos",
+    "notes": "[groupId:rev_fef0bef1-4766-460e-9978-0169a8fd9415_2026-07-03] Revisão automática (14d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-20T04:35:09.766205+00:00"
+  },
+  {
+    "date": "2026-07-03",
+    "activityType": "Revisão",
+    "subjectName": "Direito Tributário",
+    "topicName": "Competência Tributária",
+    "notes": "[groupId:rev_fef0bef1-4766-460e-9978-0169a8fd9415_2026-07-03] Revisão automática (14d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-20T04:35:09.133706+00:00"
+  },
+  {
+    "date": "2026-07-06",
+    "activityType": "Revisão",
+    "subjectName": "Ética Profissional",
+    "topicName": "Advocacia Pro Bono",
+    "notes": "[groupId:rev_1bb05ff7-e2c9-49fe-a6b9-5ddec736054c_2026-07-06] Revisão automática (14d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-22T20:10:58.624906+00:00"
+  },
+  {
+    "date": "2026-07-06",
+    "activityType": "Revisão",
+    "subjectName": "Ética Profissional",
+    "topicName": "Honorários Advocatícios",
+    "notes": "[groupId:rev_1bb05ff7-e2c9-49fe-a6b9-5ddec736054c_2026-07-06] Revisão automática (14d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-22T20:10:57.617092+00:00"
+  },
+  {
+    "date": "2026-07-06",
+    "activityType": "Revisão",
+    "subjectName": "Ética Profissional",
+    "topicName": "Sociedade de Advogados",
+    "notes": "[groupId:rev_1bb05ff7-e2c9-49fe-a6b9-5ddec736054c_2026-07-06] Revisão automática (14d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-22T20:10:56.731466+00:00"
+  },
+  {
+    "date": "2026-07-08",
+    "activityType": "Revisão",
+    "subjectName": "Direito Penal",
+    "topicName": "Aplicação da Lei Penal",
+    "notes": "[groupId:rev_bb356fe3-5563-48b2-a701-47c5bf1da5b0_2026-07-08] Revisão automática (30d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-21T21:11:26.571265+00:00"
+  },
+  {
+    "date": "2026-07-09",
+    "activityType": "Revisão",
+    "subjectName": "Direito Constitucional",
+    "topicName": "Direitos e Liberdades Fundamentais",
+    "notes": "[groupId:rev_ec31add4-6d1c-41cb-b6a3-031c2adc57dd_2026-07-09] Revisão automática (30d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-16T16:31:23.555168+00:00"
+  },
+  {
+    "date": "2026-07-09",
+    "activityType": "Revisão",
+    "subjectName": "Direito Constitucional",
+    "topicName": "Direitos Políticos e Partidos Polítocs",
+    "notes": "[groupId:rev_ec31add4-6d1c-41cb-b6a3-031c2adc57dd_2026-07-09] Revisão automática (30d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-17T19:50:27.104808+00:00"
+  },
+  {
+    "date": "2026-07-10",
+    "activityType": "Revisão",
+    "subjectName": "Ética Profissional",
+    "topicName": "Eleições e Mandados",
+    "notes": "[groupId:rev_1bb05ff7-e2c9-49fe-a6b9-5ddec736054c_2026-07-10] Revisão automática (30d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-16T16:31:24.158121+00:00"
+  },
+  {
+    "date": "2026-07-10",
+    "activityType": "Revisão",
+    "subjectName": "Ética Profissional",
+    "topicName": "Legislação da Ordem dos Advogados",
+    "notes": "[groupId:rev_1bb05ff7-e2c9-49fe-a6b9-5ddec736054c_2026-07-10] Revisão automática (30d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-16T16:31:23.918732+00:00"
+  },
+  {
+    "date": "2026-07-10",
+    "activityType": "Revisão",
+    "subjectName": "Ética Profissional",
+    "topicName": "Órgãos de Gestão da OAB",
+    "notes": "[groupId:rev_1bb05ff7-e2c9-49fe-a6b9-5ddec736054c_2026-07-10] Revisão automática (30d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-16T16:31:24.042077+00:00"
+  },
+  {
+    "date": "2026-07-11",
+    "activityType": "Revisão",
+    "subjectName": "Direito do Trabalho",
+    "topicName": "Relação de Trabalho",
+    "notes": "[groupId:rev_51e28115-af21-44f9-8bf7-0d2f6a4d7a51_2026-07-11] Revisão automática (30d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-16T16:31:26.275549+00:00"
+  },
+  {
+    "date": "2026-07-11",
+    "activityType": "Revisão",
+    "subjectName": "Direito do Trabalho",
+    "topicName": "Prescrição Trabalhista",
+    "notes": "[groupId:rev_51e28115-af21-44f9-8bf7-0d2f6a4d7a51_2026-07-11] Revisão automática (30d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-16T16:31:26.036555+00:00"
+  },
+  {
+    "date": "2026-07-11",
+    "activityType": "Revisão",
+    "subjectName": "Direito do Trabalho",
+    "topicName": "Contrato de Trabalho",
+    "notes": "[groupId:rev_51e28115-af21-44f9-8bf7-0d2f6a4d7a51_2026-07-11] Revisão automática (30d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-16T16:31:26.371145+00:00"
+  },
+  {
+    "date": "2026-07-11",
+    "activityType": "Revisão",
+    "subjectName": "Direito do Trabalho",
+    "topicName": "Relação de Emprego",
+    "notes": "[groupId:rev_51e28115-af21-44f9-8bf7-0d2f6a4d7a51_2026-07-11] Revisão automática (30d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-16T16:31:26.153705+00:00"
+  },
+  {
+    "date": "2026-07-12",
+    "activityType": "Revisão",
+    "subjectName": "Processo Penal",
+    "topicName": "Acordo de Não Persecução Penal",
+    "notes": "[groupId:rev_99940adf-d8de-47d5-8ee1-0256afe20893_2026-07-12] Revisão automática (30d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-16T16:31:25.923534+00:00"
+  },
+  {
+    "date": "2026-07-12",
+    "activityType": "Revisão",
+    "subjectName": "Processo Penal",
+    "topicName": "Aplicação da Lei Processual Penal",
+    "notes": "[groupId:rev_99940adf-d8de-47d5-8ee1-0256afe20893_2026-07-12] Revisão automática (30d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-16T16:31:25.556186+00:00"
+  },
+  {
+    "date": "2026-07-12",
+    "activityType": "Revisão",
+    "subjectName": "Processo Penal",
+    "topicName": "Ação Penal",
+    "notes": "[groupId:rev_99940adf-d8de-47d5-8ee1-0256afe20893_2026-07-12] Revisão automática (30d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-16T16:31:25.66503+00:00"
+  },
+  {
+    "date": "2026-07-12",
+    "activityType": "Revisão",
+    "subjectName": "Processo Penal",
+    "topicName": "Princípios Fundamentais do Direito Processual Penal",
+    "notes": "[groupId:rev_99940adf-d8de-47d5-8ee1-0256afe20893_2026-07-12] Revisão automática (30d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-16T16:31:25.432982+00:00"
+  },
+  {
+    "date": "2026-07-12",
+    "activityType": "Revisão",
+    "subjectName": "Processo Penal",
+    "topicName": "Competência e Jurisdição",
+    "notes": "[groupId:rev_99940adf-d8de-47d5-8ee1-0256afe20893_2026-07-12] Revisão automática (30d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-16T16:31:25.803092+00:00"
+  },
+  {
+    "date": "2026-07-15",
+    "activityType": "Revisão",
+    "subjectName": "Ética Profissional",
+    "topicName": "Advogado Empregado",
+    "notes": "[groupId:rev_1bb05ff7-e2c9-49fe-a6b9-5ddec736054c_2026-07-15] Revisão automática (30d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-16T16:31:24.519721+00:00"
+  },
+  {
+    "date": "2026-07-15",
+    "activityType": "Revisão",
+    "subjectName": "Ética Profissional",
+    "topicName": "Licenciamento e Cancelamento da Inscrição",
+    "notes": "[groupId:rev_1bb05ff7-e2c9-49fe-a6b9-5ddec736054c_2026-07-15] Revisão automática (30d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-16T16:31:24.27614+00:00"
+  },
+  {
+    "date": "2026-07-15",
+    "activityType": "Revisão",
+    "subjectName": "Ética Profissional",
+    "topicName": "Atividades Privativas do Advogado",
+    "notes": "[groupId:rev_1bb05ff7-e2c9-49fe-a6b9-5ddec736054c_2026-07-15] Revisão automática (30d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-16T16:31:24.634022+00:00"
+  },
+  {
+    "date": "2026-07-15",
+    "activityType": "Revisão",
+    "subjectName": "Ética Profissional",
+    "topicName": "Procuração e Mandato",
+    "notes": "[groupId:rev_1bb05ff7-e2c9-49fe-a6b9-5ddec736054c_2026-07-15] Revisão automática (30d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-16T16:31:24.746453+00:00"
+  },
+  {
+    "date": "2026-07-15",
+    "activityType": "Revisão",
+    "subjectName": "Ética Profissional",
+    "topicName": "Estagiário",
+    "notes": "[groupId:rev_1bb05ff7-e2c9-49fe-a6b9-5ddec736054c_2026-07-15] Revisão automática (30d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-16T16:31:24.401571+00:00"
+  },
+  {
+    "date": "2026-07-16",
+    "activityType": "Revisão",
+    "subjectName": "Direito Constitucional",
+    "topicName": "Organização do Estado",
+    "notes": "[groupId:rev_ec31add4-6d1c-41cb-b6a3-031c2adc57dd_2026-07-16] Revisão automática (30d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-17T03:37:31.002494+00:00"
+  },
+  {
+    "date": "2026-07-16",
+    "activityType": "Revisão",
+    "subjectName": "Direito Constitucional",
+    "topicName": "Intervenção Federal e Estadual",
+    "notes": "[groupId:rev_ec31add4-6d1c-41cb-b6a3-031c2adc57dd_2026-07-16] Revisão automática (30d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-17T03:37:31.664536+00:00"
+  },
+  {
+    "date": "2026-07-16",
+    "activityType": "Revisão",
+    "subjectName": "Direito Constitucional",
+    "topicName": "Poder Legislativo",
+    "notes": "[groupId:rev_ec31add4-6d1c-41cb-b6a3-031c2adc57dd_2026-07-16] Revisão automática (30d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-17T03:37:32.282964+00:00"
+  },
+  {
+    "date": "2026-07-17",
+    "activityType": "Revisão",
+    "subjectName": "Direito Penal",
+    "topicName": "Concurso de Pessoas",
+    "notes": "[groupId:rev_bb356fe3-5563-48b2-a701-47c5bf1da5b0_2026-07-17] Revisão automática (30d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-17T15:13:57.010414+00:00"
+  },
+  {
+    "date": "2026-07-17",
+    "activityType": "Revisão",
+    "subjectName": "Direito Penal",
+    "topicName": "Imputabilidade Penal",
+    "notes": "[groupId:rev_bb356fe3-5563-48b2-a701-47c5bf1da5b0_2026-07-17] Revisão automática (30d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-17T15:13:56.404724+00:00"
+  },
+  {
+    "date": "2026-07-17",
+    "activityType": "Revisão",
+    "subjectName": "Direito Penal",
+    "topicName": "Teoria Geral do Crime",
+    "notes": "[groupId:rev_bb356fe3-5563-48b2-a701-47c5bf1da5b0_2026-07-17] Revisão automática (30d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-17T15:13:55.670859+00:00"
+  },
+  {
+    "date": "2026-07-18",
+    "activityType": "Revisão",
+    "subjectName": "Processo do Trabalho",
+    "topicName": "Atos, Termos, Prazos e Vícios dos Atos Processuais",
+    "notes": "[groupId:rev_29d349b7-befd-4cc6-8bb1-3104c46821bc_2026-07-18] Revisão automática (30d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-19T15:11:14.808221+00:00"
+  },
+  {
+    "date": "2026-07-18",
+    "activityType": "Revisão",
+    "subjectName": "Processo do Trabalho",
+    "topicName": "Organização e Competência da Justiça do Trabalho",
+    "notes": "[groupId:rev_29d349b7-befd-4cc6-8bb1-3104c46821bc_2026-07-18] Revisão automática (30d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-19T15:11:14.181653+00:00"
+  },
+  {
+    "date": "2026-07-18",
+    "activityType": "Revisão",
+    "subjectName": "Processo do Trabalho",
+    "topicName": "Petição Inicial e Resposta do Réu",
+    "notes": "[groupId:rev_29d349b7-befd-4cc6-8bb1-3104c46821bc_2026-07-18] Revisão automática (30d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-19T15:11:16.080932+00:00"
+  },
+  {
+    "date": "2026-07-18",
+    "activityType": "Revisão",
+    "subjectName": "Processo do Trabalho",
+    "topicName": "Procedimentos Trabalhistas",
+    "notes": "[groupId:rev_29d349b7-befd-4cc6-8bb1-3104c46821bc_2026-07-18] Revisão automática (30d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-19T15:11:15.471637+00:00"
+  },
+  {
+    "date": "2026-07-19",
+    "activityType": "Revisão",
+    "subjectName": "Direito Tributário",
+    "topicName": "Imunidades Tributárias",
+    "notes": "[groupId:rev_fef0bef1-4766-460e-9978-0169a8fd9415_2026-07-19] Revisão automática (30d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-20T04:35:11.131425+00:00"
+  },
+  {
+    "date": "2026-07-19",
+    "activityType": "Revisão",
+    "subjectName": "Direito Tributário",
+    "topicName": "Limitações ao Poder de Tributar: Princípios",
+    "notes": "[groupId:rev_fef0bef1-4766-460e-9978-0169a8fd9415_2026-07-19] Revisão automática (30d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-20T04:35:10.497964+00:00"
+  },
+  {
+    "date": "2026-07-19",
+    "activityType": "Revisão",
+    "subjectName": "Direito Tributário",
+    "topicName": "Competência Tributária",
+    "notes": "[groupId:rev_fef0bef1-4766-460e-9978-0169a8fd9415_2026-07-19] Revisão automática (30d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-20T04:35:09.279768+00:00"
+  },
+  {
+    "date": "2026-07-19",
+    "activityType": "Revisão",
+    "subjectName": "Direito Tributário",
+    "topicName": "Tributos em Espécie: Impostos",
+    "notes": "[groupId:rev_fef0bef1-4766-460e-9978-0169a8fd9415_2026-07-19] Revisão automática (30d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-20T04:35:09.893082+00:00"
+  },
+  {
+    "date": "2026-07-22",
+    "activityType": "Revisão",
+    "subjectName": "Ética Profissional",
+    "topicName": "Advocacia Pro Bono",
+    "notes": "[groupId:rev_1bb05ff7-e2c9-49fe-a6b9-5ddec736054c_2026-07-22] Revisão automática (30d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-22T20:10:58.790501+00:00"
+  },
+  {
+    "date": "2026-07-22",
+    "activityType": "Revisão",
+    "subjectName": "Ética Profissional",
+    "topicName": "Honorários Advocatícios",
+    "notes": "[groupId:rev_1bb05ff7-e2c9-49fe-a6b9-5ddec736054c_2026-07-22] Revisão automática (30d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-22T20:10:57.836005+00:00"
+  },
+  {
+    "date": "2026-07-22",
+    "activityType": "Revisão",
+    "subjectName": "Ética Profissional",
+    "topicName": "Sociedade de Advogados",
+    "notes": "[groupId:rev_1bb05ff7-e2c9-49fe-a6b9-5ddec736054c_2026-07-22] Revisão automática (30d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-22T20:10:56.867232+00:00"
+  },
+  {
+    "date": "2026-08-07",
+    "activityType": "Revisão",
+    "subjectName": "Direito Penal",
+    "topicName": "Aplicação da Lei Penal",
+    "notes": "[groupId:rev_bb356fe3-5563-48b2-a701-47c5bf1da5b0_2026-08-07] Revisão automática (60d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-21T21:11:26.692589+00:00"
+  },
+  {
+    "date": "2026-08-08",
+    "activityType": "Revisão",
+    "subjectName": "Direito Constitucional",
+    "topicName": "Direitos Políticos e Partidos Polítocs",
+    "notes": "[groupId:rev_ec31add4-6d1c-41cb-b6a3-031c2adc57dd_2026-08-08] Revisão automática (60d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-17T19:50:27.223742+00:00"
+  },
+  {
+    "date": "2026-08-08",
+    "activityType": "Revisão",
+    "subjectName": "Direito Constitucional",
+    "topicName": "Direitos e Liberdades Fundamentais",
+    "notes": "[groupId:rev_ec31add4-6d1c-41cb-b6a3-031c2adc57dd_2026-08-08] Revisão automática (60d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-14T00:43:37.738375+00:00"
+  },
+  {
+    "date": "2026-08-09",
+    "activityType": "Revisão",
+    "subjectName": "Ética Profissional",
+    "topicName": "Eleições e Mandados",
+    "notes": "[groupId:rev_1bb05ff7-e2c9-49fe-a6b9-5ddec736054c_2026-08-09] Revisão automática (60d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-13T23:39:01.125481+00:00"
+  },
+  {
+    "date": "2026-08-09",
+    "activityType": "Revisão",
+    "subjectName": "Ética Profissional",
+    "topicName": "Órgãos de Gestão da OAB",
+    "notes": "[groupId:rev_1bb05ff7-e2c9-49fe-a6b9-5ddec736054c_2026-08-09] Revisão automática (60d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-13T23:39:00.43917+00:00"
+  },
+  {
+    "date": "2026-08-09",
+    "activityType": "Revisão",
+    "subjectName": "Ética Profissional",
+    "topicName": "Legislação da Ordem dos Advogados",
+    "notes": "[groupId:rev_1bb05ff7-e2c9-49fe-a6b9-5ddec736054c_2026-08-09] Revisão automática (60d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-13T23:38:59.776765+00:00"
+  },
+  {
+    "date": "2026-08-10",
+    "activityType": "Revisão",
+    "subjectName": "Direito do Trabalho",
+    "topicName": "Contrato de Trabalho",
+    "notes": "[groupId:rev_51e28115-af21-44f9-8bf7-0d2f6a4d7a51_2026-08-10] Revisão automática (60d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-13T23:40:07.136877+00:00"
+  },
+  {
+    "date": "2026-08-10",
+    "activityType": "Revisão",
+    "subjectName": "Direito do Trabalho",
+    "topicName": "Relação de Trabalho",
+    "notes": "[groupId:rev_51e28115-af21-44f9-8bf7-0d2f6a4d7a51_2026-08-10] Revisão automática (60d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-13T23:40:06.519481+00:00"
+  },
+  {
+    "date": "2026-08-10",
+    "activityType": "Revisão",
+    "subjectName": "Direito do Trabalho",
+    "topicName": "Relação de Emprego",
+    "notes": "[groupId:rev_51e28115-af21-44f9-8bf7-0d2f6a4d7a51_2026-08-10] Revisão automática (60d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-13T23:40:05.799127+00:00"
+  },
+  {
+    "date": "2026-08-10",
+    "activityType": "Revisão",
+    "subjectName": "Direito do Trabalho",
+    "topicName": "Prescrição Trabalhista",
+    "notes": "[groupId:rev_51e28115-af21-44f9-8bf7-0d2f6a4d7a51_2026-08-10] Revisão automática (60d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-13T23:40:04.891532+00:00"
+  },
+  {
+    "date": "2026-08-11",
+    "activityType": "Revisão",
+    "subjectName": "Processo Penal",
+    "topicName": "Competência e Jurisdição",
+    "notes": "[groupId:rev_99940adf-d8de-47d5-8ee1-0256afe20893_2026-08-11] Revisão automática (60d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-14T01:07:53.865401+00:00"
+  },
+  {
+    "date": "2026-08-11",
+    "activityType": "Revisão",
+    "subjectName": "Processo Penal",
+    "topicName": "Acordo de Não Persecução Penal",
+    "notes": "[groupId:rev_99940adf-d8de-47d5-8ee1-0256afe20893_2026-08-11] Revisão automática (60d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-15T02:49:58.51755+00:00"
+  },
+  {
+    "date": "2026-08-11",
+    "activityType": "Revisão",
+    "subjectName": "Processo Penal",
+    "topicName": "Princípios Fundamentais do Direito Processual Penal",
+    "notes": "[groupId:rev_99940adf-d8de-47d5-8ee1-0256afe20893_2026-08-11] Revisão automática (60d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-14T01:07:51.397625+00:00"
+  },
+  {
+    "date": "2026-08-11",
+    "activityType": "Revisão",
+    "subjectName": "Processo Penal",
+    "topicName": "Aplicação da Lei Processual Penal",
+    "notes": "[groupId:rev_99940adf-d8de-47d5-8ee1-0256afe20893_2026-08-11] Revisão automática (60d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-14T01:07:52.379439+00:00"
+  },
+  {
+    "date": "2026-08-11",
+    "activityType": "Revisão",
+    "subjectName": "Processo Penal",
+    "topicName": "Ação Penal",
+    "notes": "[groupId:rev_99940adf-d8de-47d5-8ee1-0256afe20893_2026-08-11] Revisão automática (60d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-14T01:07:53.111761+00:00"
+  },
+  {
+    "date": "2026-08-14",
+    "activityType": "Revisão",
+    "subjectName": "Ética Profissional",
+    "topicName": "Estagiário",
+    "notes": "[groupId:rev_1bb05ff7-e2c9-49fe-a6b9-5ddec736054c_2026-08-14] Revisão automática (60d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-16T02:33:55.621077+00:00"
+  },
+  {
+    "date": "2026-08-14",
+    "activityType": "Revisão",
+    "subjectName": "Ética Profissional",
+    "topicName": "Procuração e Mandato",
+    "notes": "[groupId:rev_1bb05ff7-e2c9-49fe-a6b9-5ddec736054c_2026-08-14] Revisão automática (60d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-16T02:33:56.974134+00:00"
+  },
+  {
+    "date": "2026-08-14",
+    "activityType": "Revisão",
+    "subjectName": "Ética Profissional",
+    "topicName": "Advogado Empregado",
+    "notes": "[groupId:rev_1bb05ff7-e2c9-49fe-a6b9-5ddec736054c_2026-08-14] Revisão automática (60d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-16T02:33:56.052088+00:00"
+  },
+  {
+    "date": "2026-08-14",
+    "activityType": "Revisão",
+    "subjectName": "Ética Profissional",
+    "topicName": "Atividades Privativas do Advogado",
+    "notes": "[groupId:rev_1bb05ff7-e2c9-49fe-a6b9-5ddec736054c_2026-08-14] Revisão automática (60d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-16T02:33:56.519565+00:00"
+  },
+  {
+    "date": "2026-08-14",
+    "activityType": "Revisão",
+    "subjectName": "Ética Profissional",
+    "topicName": "Licenciamento e Cancelamento da Inscrição",
+    "notes": "[groupId:rev_1bb05ff7-e2c9-49fe-a6b9-5ddec736054c_2026-08-14] Revisão automática (60d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-16T02:33:55.112513+00:00"
+  },
+  {
+    "date": "2026-08-15",
+    "activityType": "Revisão",
+    "subjectName": "Direito Constitucional",
+    "topicName": "Intervenção Federal e Estadual",
+    "notes": "[groupId:rev_ec31add4-6d1c-41cb-b6a3-031c2adc57dd_2026-08-15] Revisão automática (60d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-17T03:37:31.787153+00:00"
+  },
+  {
+    "date": "2026-08-15",
+    "activityType": "Revisão",
+    "subjectName": "Direito Constitucional",
+    "topicName": "Poder Legislativo",
+    "notes": "[groupId:rev_ec31add4-6d1c-41cb-b6a3-031c2adc57dd_2026-08-15] Revisão automática (60d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-17T03:37:32.392661+00:00"
+  },
+  {
+    "date": "2026-08-15",
+    "activityType": "Revisão",
+    "subjectName": "Direito Constitucional",
+    "topicName": "Organização do Estado",
+    "notes": "[groupId:rev_ec31add4-6d1c-41cb-b6a3-031c2adc57dd_2026-08-15] Revisão automática (60d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-17T03:37:31.130901+00:00"
+  },
+  {
+    "date": "2026-08-16",
+    "activityType": "Revisão",
+    "subjectName": "Direito Penal",
+    "topicName": "Concurso de Pessoas",
+    "notes": "[groupId:rev_bb356fe3-5563-48b2-a701-47c5bf1da5b0_2026-08-16] Revisão automática (60d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-17T15:13:57.143704+00:00"
+  },
+  {
+    "date": "2026-08-16",
+    "activityType": "Revisão",
+    "subjectName": "Direito Penal",
+    "topicName": "Imputabilidade Penal",
+    "notes": "[groupId:rev_bb356fe3-5563-48b2-a701-47c5bf1da5b0_2026-08-16] Revisão automática (60d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-17T15:13:56.551912+00:00"
+  },
+  {
+    "date": "2026-08-16",
+    "activityType": "Revisão",
+    "subjectName": "Direito Penal",
+    "topicName": "Teoria Geral do Crime",
+    "notes": "[groupId:rev_bb356fe3-5563-48b2-a701-47c5bf1da5b0_2026-08-16] Revisão automática (60d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-17T15:13:55.845001+00:00"
+  },
+  {
+    "date": "2026-08-17",
+    "activityType": "Revisão",
+    "subjectName": "Processo do Trabalho",
+    "topicName": "Procedimentos Trabalhistas",
+    "notes": "[groupId:rev_29d349b7-befd-4cc6-8bb1-3104c46821bc_2026-08-17] Revisão automática (60d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-19T15:11:15.598999+00:00"
+  },
+  {
+    "date": "2026-08-17",
+    "activityType": "Revisão",
+    "subjectName": "Processo do Trabalho",
+    "topicName": "Atos, Termos, Prazos e Vícios dos Atos Processuais",
+    "notes": "[groupId:rev_29d349b7-befd-4cc6-8bb1-3104c46821bc_2026-08-17] Revisão automática (60d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-19T15:11:14.940069+00:00"
+  },
+  {
+    "date": "2026-08-17",
+    "activityType": "Revisão",
+    "subjectName": "Processo do Trabalho",
+    "topicName": "Organização e Competência da Justiça do Trabalho",
+    "notes": "[groupId:rev_29d349b7-befd-4cc6-8bb1-3104c46821bc_2026-08-17] Revisão automática (60d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-19T15:11:14.323612+00:00"
+  },
+  {
+    "date": "2026-08-17",
+    "activityType": "Revisão",
+    "subjectName": "Processo do Trabalho",
+    "topicName": "Petição Inicial e Resposta do Réu",
+    "notes": "[groupId:rev_29d349b7-befd-4cc6-8bb1-3104c46821bc_2026-08-17] Revisão automática (60d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-19T15:11:16.211317+00:00"
+  },
+  {
+    "date": "2026-08-18",
+    "activityType": "Revisão",
+    "subjectName": "Direito Tributário",
+    "topicName": "Competência Tributária",
+    "notes": "[groupId:rev_fef0bef1-4766-460e-9978-0169a8fd9415_2026-08-18] Revisão automática (60d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-20T04:35:09.404728+00:00"
+  },
+  {
+    "date": "2026-08-18",
+    "activityType": "Revisão",
+    "subjectName": "Direito Tributário",
+    "topicName": "Imunidades Tributárias",
+    "notes": "[groupId:rev_fef0bef1-4766-460e-9978-0169a8fd9415_2026-08-18] Revisão automática (60d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-20T04:35:11.266361+00:00"
+  },
+  {
+    "date": "2026-08-18",
+    "activityType": "Revisão",
+    "subjectName": "Direito Tributário",
+    "topicName": "Tributos em Espécie: Impostos",
+    "notes": "[groupId:rev_fef0bef1-4766-460e-9978-0169a8fd9415_2026-08-18] Revisão automática (60d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-20T04:35:10.00935+00:00"
+  },
+  {
+    "date": "2026-08-18",
+    "activityType": "Revisão",
+    "subjectName": "Direito Tributário",
+    "topicName": "Limitações ao Poder de Tributar: Princípios",
+    "notes": "[groupId:rev_fef0bef1-4766-460e-9978-0169a8fd9415_2026-08-18] Revisão automática (60d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-20T04:35:10.615442+00:00"
+  },
+  {
+    "date": "2026-08-21",
+    "activityType": "Revisão",
+    "subjectName": "Ética Profissional",
+    "topicName": "Advocacia Pro Bono",
+    "notes": "[groupId:rev_1bb05ff7-e2c9-49fe-a6b9-5ddec736054c_2026-08-21] Revisão automática (60d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-22T20:10:58.995894+00:00"
+  },
+  {
+    "date": "2026-08-21",
+    "activityType": "Revisão",
+    "subjectName": "Ética Profissional",
+    "topicName": "Honorários Advocatícios",
+    "notes": "[groupId:rev_1bb05ff7-e2c9-49fe-a6b9-5ddec736054c_2026-08-21] Revisão automática (60d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-22T20:10:58.053623+00:00"
+  },
+  {
+    "date": "2026-08-21",
+    "activityType": "Revisão",
+    "subjectName": "Ética Profissional",
+    "topicName": "Sociedade de Advogados",
+    "notes": "[groupId:rev_1bb05ff7-e2c9-49fe-a6b9-5ddec736054c_2026-08-21] Revisão automática (60d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-22T20:10:57.056513+00:00"
+  },
+  {
+    "date": "2026-09-06",
+    "activityType": "Revisão",
+    "subjectName": "Direito Penal",
+    "topicName": "Aplicação da Lei Penal",
+    "notes": "[groupId:rev_bb356fe3-5563-48b2-a701-47c5bf1da5b0_2026-09-06] Revisão automática (90d)",
+    "origin": "Automática (Gerada pelas sessões de estudo)",
+    "createdAt": "2026-06-21T21:11:26.822313+00:00"
+  }
+]

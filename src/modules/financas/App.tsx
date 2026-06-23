@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { LayoutTemplate, Wallet, TrendingUp, TrendingDown, CreditCard, ChevronLeft, ChevronRight, Trash2, Calendar, PieChart as PieChartIcon, Edit3, Menu } from 'lucide-react';
+import { LayoutTemplate, Wallet, TrendingUp, TrendingDown, CreditCard, ChevronLeft, ChevronRight, Trash2, Calendar, PieChart as PieChartIcon, Edit3, Menu, RefreshCw, FileText } from 'lucide-react';
 import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts';
 import { financasApi } from './api';
+import { ParcelasRecorrencia } from './ParcelasRecorrencia';
+import { ImpostoRenda } from './ImpostoRenda';
 
 const CHART_COLORS = ['#3b82f6', '#f43f5e', '#10b981', '#f59e0b', '#8b5cf6', '#06b6d4', '#ec4899', '#14b8a6', '#f97316', '#6366f1'];
 
@@ -64,7 +66,7 @@ const DEFAULT_SAIDA_CATEGORIES: FinCategoria[] = [
 const DEFAULT_PAYMENT_METHODS: FinCategoria[] = ['Pix / Dinheiro', 'Inter', 'Banrisul', 'Mercado Pago', 'Caixa Econômica'].map((c, i) => ({ id: `pay_${i}`, name: c, color: CHART_COLORS[i % CHART_COLORS.length] }));
 
 const FinancasApp: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'anual' | 'ajustes'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'anual' | 'recorrencia' | 'imposto' | 'ajustes'>('dashboard');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
     return localStorage.getItem('isSidebarCollapsed_financas') !== 'false';
   });
@@ -128,6 +130,7 @@ const FinancasApp: React.FC = () => {
   const [txDate, setTxDate] = useState('');
   const [txMethod, setTxMethod] = useState('');
   const [txPending, setTxPending] = useState(false);
+  const [txIsIR, setTxIsIR] = useState(false);
   const [txInstallments, setTxInstallments] = useState(''); // total number of installments
   const [txInstallmentNum, setTxInstallmentNum] = useState(''); // current installment being paid
   const [txRecurrent, setTxRecurrent] = useState(false);
@@ -247,7 +250,9 @@ const FinancasApp: React.FC = () => {
   const startEditTransaction = (t: Transaction) => {
     setEditingTxId(t.id);
     setTxType(t.type);
-    setTxName(t.name);
+    const nameWithoutIR = t.name.startsWith('[IR]') ? t.name.replace(/^\[IR\]\s*/, '') : t.name;
+    setTxName(nameWithoutIR);
+    setTxIsIR(t.name.startsWith('[IR]'));
     // Format amount cleanly for editing text box (e.g. 1500,50 or 1500.5 -> 1500,50)
     setTxAmount(t.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
     setTxCategory(t.category);
@@ -276,6 +281,7 @@ const FinancasApp: React.FC = () => {
     setTxAmount('');
     setTxDate('');
     setTxPending(false);
+    setTxIsIR(false);
     setTxInstallments('');
     setTxInstallmentNum('');
     setTxRecurrent(false);
@@ -306,10 +312,11 @@ const FinancasApp: React.FC = () => {
     const amountNum = parseFloat(txAmount.replace(/\./g, '').replace(',', '.'));
 
     if (editingTxId) {
+      const formattedName = txIsIR ? (txName.startsWith('[IR]') ? txName : `[IR] ${txName}`) : (txName.startsWith('[IR]') ? txName.replace(/^\[IR\]\s*/, '') : txName);
       const updatedTx: Transaction = {
         id: editingTxId,
         type: txType,
-        name: txName,
+        name: formattedName,
         amount: amountNum,
         category: txCategory,
         date: finalDate,
@@ -325,13 +332,15 @@ const FinancasApp: React.FC = () => {
       setTxAmount('');
       setTxDate('');
       setTxPending(false);
+      setTxIsIR(false);
     } else {
       const totalParcelas = parseInt(txInstallments) || 0;
       const currentParcela = parseInt(txInstallmentNum) || 0;
       const isParcelado = txType === 'saida' && totalParcelas > 1 && currentParcela >= 1 && currentParcela <= totalParcelas;
 
+      const baseTxName = txIsIR ? (txName.startsWith('[IR]') ? txName : `[IR] ${txName}`) : txName;
       // Build base name: append parcel label if parcelado
-      const baseName = isParcelado ? `${txName} (${currentParcela}/${totalParcelas})` : txName;
+      const baseName = isParcelado ? `${baseTxName} (${currentParcela}/${totalParcelas})` : baseTxName;
 
       const t: Transaction = {
         id: crypto.randomUUID(),
@@ -357,7 +366,7 @@ const FinancasApp: React.FC = () => {
           const futureTx: Transaction = {
             id: crypto.randomUUID(),
             type: txType,
-            name: `${txName} (${futureParcelNum}/${totalParcelas})`,
+            name: `${baseTxName} (${futureParcelNum}/${totalParcelas})`,
             amount: amountNum,
             category: txCategory,
             date: futureDate,
@@ -381,7 +390,7 @@ const FinancasApp: React.FC = () => {
           const futureTx: Transaction = {
             id: crypto.randomUUID(),
             type: txType,
-            name: txName,
+            name: baseTxName,
             amount: amountNum,
             category: txCategory,
             date: futureDate,
@@ -399,6 +408,7 @@ const FinancasApp: React.FC = () => {
       setTxAmount('');
       setTxDate('');
       setTxPending(false);
+      setTxIsIR(false);
       setTxInstallments('');
       setTxInstallmentNum('');
       setTxRecurrent(false);
@@ -546,6 +556,22 @@ const FinancasApp: React.FC = () => {
                 {!isSidebarCollapsed && <span>Resumo Anual</span>}
               </button>
               <button 
+                onClick={() => setActiveTab('recorrencia')} 
+                className={`rounded-xl flex items-center transition-all text-xs font-bold uppercase tracking-wider ${isSidebarCollapsed ? 'justify-center p-3' : 'p-3 gap-3'} ${activeTab === 'recorrencia' ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/20' : 'text-zinc-500 hover:bg-white dark:hover:bg-zinc-800'}`}
+                title={isSidebarCollapsed ? 'Parcelamento e Recorrência' : ''}
+              >
+                <RefreshCw size={16} className="shrink-0" />
+                {!isSidebarCollapsed && <span>Parcelamento e Recorrência</span>}
+              </button>
+              <button 
+                onClick={() => setActiveTab('imposto')} 
+                className={`rounded-xl flex items-center transition-all text-xs font-bold uppercase tracking-wider ${isSidebarCollapsed ? 'justify-center p-3' : 'p-3 gap-3'} ${activeTab === 'imposto' ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/20' : 'text-zinc-500 hover:bg-white dark:hover:bg-zinc-800'}`}
+                title={isSidebarCollapsed ? 'Imposto de Renda' : ''}
+              >
+                <FileText size={16} className="shrink-0" />
+                {!isSidebarCollapsed && <span>Imposto de Renda</span>}
+              </button>
+              <button 
                 onClick={() => setActiveTab('ajustes')} 
                 className={`rounded-xl flex items-center transition-all text-xs font-bold uppercase tracking-wider ${isSidebarCollapsed ? 'justify-center p-3' : 'p-3 gap-3'} ${activeTab === 'ajustes' ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/20' : 'text-zinc-500 hover:bg-white dark:hover:bg-zinc-800'}`}
                 title={isSidebarCollapsed ? 'Ajustes' : ''}
@@ -595,6 +621,22 @@ const FinancasApp: React.FC = () => {
             <ResumoAnual 
               transactions={transactions}
               inCategories={inCategories}
+              outCategories={outCategories}
+              paymentMethods={paymentMethods}
+            />
+          </div>
+        ) : activeTab === 'recorrencia' ? (
+          <div className="flex-1 overflow-y-auto custom-scrollbar">
+            <ParcelasRecorrencia 
+              transactions={transactions}
+              onUpdateTransactions={setTransactions}
+            />
+          </div>
+        ) : activeTab === 'imposto' ? (
+          <div className="flex-1 overflow-y-auto custom-scrollbar">
+            <ImpostoRenda 
+              transactions={transactions}
+              onUpdateTransactions={setTransactions}
               outCategories={outCategories}
               paymentMethods={paymentMethods}
             />
@@ -800,6 +842,17 @@ const FinancasApp: React.FC = () => {
                   </div>
                   )}
                   </>
+                )}
+
+                {txType === 'saida' && (
+                  <button 
+                    type="button" 
+                    onClick={() => setTxIsIR(!txIsIR)} 
+                    className={`w-full border rounded-lg py-2 text-[9px] font-black uppercase tracking-wider transition-colors mb-2 flex items-center justify-center gap-1.5 ${txIsIR ? 'bg-rose-100 text-rose-750 border-rose-200 dark:bg-rose-500/10 dark:text-rose-450 dark:border-rose-500/20' : 'bg-zinc-50 text-zinc-400 border-zinc-200 dark:bg-zinc-900 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800/55'}`}
+                  >
+                    <FileText size={12} />
+                    {txIsIR ? 'Dedutível Imposto de Renda (IR)' : 'Marcar como Dedutível IR'}
+                  </button>
                 )}
 
                 <div className="flex gap-2 items-center pt-2.5 border-t border-zinc-100 dark:border-zinc-800/50">
@@ -1011,7 +1064,16 @@ const FinancasApp: React.FC = () => {
                           {t.dayOnly ? t.date.split('-')[2] : new Date(`${t.date}T12:00:00`).getDate()}
                         </div>
                         <div>
-                          <p className="font-bold text-xs text-zinc-800 dark:text-zinc-200">{t.name}</p>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <p className="font-bold text-xs text-zinc-800 dark:text-zinc-200">
+                              {t.name.startsWith('[IR]') ? t.name.replace(/^\[IR\]\s*/, '') : t.name}
+                            </p>
+                            {t.name.startsWith('[IR]') && (
+                              <span className="text-[8px] font-black uppercase tracking-wider px-1 bg-rose-100 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 rounded leading-none px-1.5 py-0.5">
+                                IR
+                              </span>
+                            )}
+                          </div>
                           <p className="text-[9px] font-bold uppercase tracking-wider text-zinc-400">{t.category}</p>
                         </div>
                       </div>
@@ -1073,8 +1135,15 @@ const FinancasApp: React.FC = () => {
                           {t.dayOnly ? t.date.split('-')[2] : new Date(`${t.date}T12:00:00`).getDate()}
                         </div>
                         <div>
-                          <div className="flex items-center gap-1.5">
-                            <p className="font-bold text-xs text-zinc-800 dark:text-zinc-200">{t.name}</p>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <p className="font-bold text-xs text-zinc-800 dark:text-zinc-200">
+                              {t.name.startsWith('[IR]') ? t.name.replace(/^\[IR\]\s*/, '') : t.name}
+                            </p>
+                            {t.name.startsWith('[IR]') && (
+                              <span className="text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-455 border border-rose-200/50 dark:border-rose-800/40 leading-none">
+                                IR
+                              </span>
+                            )}
                             {isLastPayment && (
                               <span className="text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-amber-400/20 dark:bg-amber-500/25 text-amber-700 dark:text-amber-400 border border-amber-300/50 dark:border-amber-500/40 leading-none">
                                 {isLastInstallment ? 'Última Parcela' : 'Última Recorrência'}

@@ -81,6 +81,21 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
     return saved ? JSON.parse(saved) : [7, 30, 90, 15, 45];
   });
 
+  const [reviewsDisabled, setReviewsDisabled] = useState(() => {
+    if (selectedConcursoId && selectedConcursoId !== 'all') {
+      return localStorage.getItem('estudos_disabled_reviews_' + selectedConcursoId) === 'true';
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    if (selectedConcursoId && selectedConcursoId !== 'all') {
+      setReviewsDisabled(localStorage.getItem('estudos_disabled_reviews_' + selectedConcursoId) === 'true');
+    } else {
+      setReviewsDisabled(false);
+    }
+  }, [selectedConcursoId]);
+
   // Topic editing state
   const [editingTopicId, setEditingTopicId] = useState<string | null>(null);
   const [editTopicTitle, setEditTopicTitle] = useState('');
@@ -168,7 +183,17 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
       { dateStr: '', status: 'none' }
     ];
 
-    if (topicSessions.length > 0) {
+    if (reviewsDisabled) {
+      for (let i = 0; i < 5; i++) {
+        customReviewDates[i] = { dateStr: 'N/A', status: 'none' };
+      }
+      if (topicSessions.length > 0) {
+        const sortedSessions = [...topicSessions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        const lastDate = new Date(sortedSessions[0].date);
+        const formatDate = (date: Date) => date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' });
+        lastStudyDate = formatDate(lastDate);
+      }
+    } else if (topicSessions.length > 0) {
       const sortedSessions = [...topicSessions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
       const lastDate = new Date(sortedSessions[0].date);
 
@@ -531,26 +556,53 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
             <p className="text-[10px] text-zinc-400">Defina o intervalo de dias para as revisões de todos os assuntos.</p>
           </div>
         </div>
-        <div className="flex flex-wrap gap-2 items-center">
-          {customReviewDays.map((days, idx) => (
-            <label key={idx} className="flex items-center gap-1.5 text-xs font-bold text-zinc-500">
-              Rev. {idx + 1}
+        <div className="flex flex-wrap gap-4 items-center">
+          {selectedConcursoId && selectedConcursoId !== 'all' && (
+            <label className="flex items-center gap-2 cursor-pointer py-1.5 px-3 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-bold text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700/50 transition-colors select-none">
               <input
-                type="number"
-                min="1"
-                max="365"
-                value={days}
+                type="checkbox"
+                checked={reviewsDisabled}
                 onChange={(e) => {
-                  const newVal = Math.max(1, parseInt(e.target.value) || 1);
-                  const updated = [...customReviewDays];
-                  updated[idx] = newVal;
-                  setCustomReviewDays(updated);
-                  localStorage.setItem('estudos_custom_review_days', JSON.stringify(updated));
+                  const newVal = e.target.checked;
+                  setReviewsDisabled(newVal);
+                  if (newVal) {
+                    localStorage.setItem('estudos_disabled_reviews_' + selectedConcursoId, 'true');
+                  } else {
+                    localStorage.removeItem('estudos_disabled_reviews_' + selectedConcursoId);
+                  }
+                  window.dispatchEvent(new Event('local-reviews-toggled'));
+                  window.dispatchEvent(new Event('local-settings-changed'));
                 }}
-                className="w-14 px-1.5 py-1 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg text-center text-xs font-mono font-bold text-zinc-800 dark:text-white outline-none focus:ring-1 focus:ring-zinc-400"
+                className="rounded border-zinc-300 dark:border-zinc-700 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
               />
+              <span>Não aplicar revisões (N/A)</span>
             </label>
-          ))}
+          )}
+
+          <div className="flex flex-wrap gap-2 items-center">
+            {customReviewDays.map((days, idx) => (
+              <label key={idx} className={`flex items-center gap-1.5 text-xs font-bold text-zinc-500 ${reviewsDisabled ? 'opacity-40' : ''}`}>
+                Rev. {idx + 1}
+                <input
+                  type="number"
+                  min="1"
+                  max="365"
+                  value={days}
+                  disabled={reviewsDisabled}
+                  onChange={(e) => {
+                    const newVal = Math.max(1, parseInt(e.target.value) || 1);
+                    const updated = [...customReviewDays];
+                    updated[idx] = newVal;
+                    setCustomReviewDays(updated);
+                    localStorage.setItem('estudos_custom_review_days', JSON.stringify(updated));
+                  }}
+                  className={`w-14 px-1.5 py-1 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg text-center text-xs font-mono font-bold text-zinc-800 dark:text-white outline-none focus:ring-1 focus:ring-zinc-400 ${
+                    reviewsDisabled ? 'cursor-not-allowed opacity-60' : ''
+                  }`}
+                />
+              </label>
+            ))}
+          </div>
         </div>
       </div>
 

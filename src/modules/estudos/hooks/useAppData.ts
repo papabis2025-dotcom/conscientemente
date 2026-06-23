@@ -290,6 +290,9 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         const expectedReviews: ScheduledStudy[] = [];
 
         allConcursos.forEach(concurso => {
+            const isReviewsDisabled = localStorage.getItem(`estudos_disabled_reviews_${concurso.id}`) === 'true';
+            if (isReviewsDisabled) return;
+
             (concurso.subjects || []).forEach(subject => {
                 const topicsList = [{ id: 'geral', title: 'Geral / Outros' }, ...(subject.topics || [])];
                 topicsList.forEach(topic => {
@@ -448,6 +451,14 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         }
         await syncPlannedReviewsDb(sessions, scheduledStudies, concursos);
     }, [sessions, scheduledStudies, concursos, syncPlannedReviewsDb]);
+
+    useEffect(() => {
+        const handleReviewsToggle = () => {
+            syncPlannedReviews();
+        };
+        window.addEventListener('local-reviews-toggled', handleReviewsToggle);
+        return () => window.removeEventListener('local-reviews-toggled', handleReviewsToggle);
+    }, [syncPlannedReviews]);
 
     // Initial Data Fetch
     const fetchData = useCallback(async () => {

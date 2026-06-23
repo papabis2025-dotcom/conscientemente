@@ -67,7 +67,7 @@ interface MenuItem {
 
 const DEFAULT_MENU_ITEMS: MenuItem[] = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { id: 'concursos', label: 'Meus Editais', icon: GraduationCap },
+  { id: 'concursos', label: 'Cursos', icon: GraduationCap },
   { id: 'subjects', label: 'Disciplinas', icon: Library },
   { id: 'statistics', label: 'Análise Estatística', icon: Percent },
   { id: 'simulados', label: 'Simulados', icon: FileSpreadsheet },

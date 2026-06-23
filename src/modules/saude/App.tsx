@@ -50,7 +50,6 @@ const hexToRgba = (hex: string, alpha: number) => {
 
 const SaudeApp: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'atividades' | 'sono' | 'planner' | 'gerenciador'>('dashboard');
-  const [sonoSubTab, setSonoSubTab] = useState<'sono' | 'atividades'>('sono');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
     return localStorage.getItem('isSidebarCollapsed_saude') !== 'false';
   });
@@ -68,14 +67,6 @@ const SaudeApp: React.FC = () => {
       setActiveTab('planner');
     }
   }, []);
-
-  // Redirect activities tab to sono tab with activities sub-tab active
-  useEffect(() => {
-    if (activeTab === 'atividades') {
-      setActiveTab('sono');
-      setSonoSubTab('atividades');
-    }
-  }, [activeTab]);
 
   const [activityTypes, setActivityTypes] = useState<HealthActivityType[]>(() => {
     const saved = localStorage.getItem('cn_saude_activity_types');
@@ -873,6 +864,21 @@ const SaudeApp: React.FC = () => {
               </div>
             </button>
             <button 
+              onClick={() => setActiveTab('atividades')} 
+              className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center p-3' : 'justify-between px-4 py-3'} rounded-xl transition-all font-semibold ${activeTab === 'atividades' ? 'bg-cyan-500 text-white shadow-md shadow-cyan-500/20' : 'text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800/50'}`}
+              title={isSidebarCollapsed ? 'Atividades' : ''}
+            >
+              <div className="flex items-center gap-3">
+                <Activity size={20} className="shrink-0" />
+                {!isSidebarCollapsed && <span>Atividades</span>}
+              </div>
+              {!isSidebarCollapsed && (
+                <span className={`text-xs px-2 py-0.5 rounded-full ${activeTab === 'atividades' ? 'bg-white/20' : 'bg-zinc-200 dark:bg-zinc-800'}`}>
+                  {realizedActivities.length}
+                </span>
+              )}
+            </button>
+            <button 
               onClick={() => setActiveTab('sono')} 
               className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center p-3' : 'justify-between px-4 py-3'} rounded-xl transition-all font-semibold ${activeTab === 'sono' ? 'bg-cyan-500 text-white shadow-md shadow-cyan-500/20' : 'text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800/50'}`}
               title={isSidebarCollapsed ? 'Monitoramento do Sono' : ''}
@@ -917,9 +923,8 @@ const SaudeApp: React.FC = () => {
         </div>
       </aside>
 
-      {/* Main Content */}
-      <main className="flex-1 overflow-y-auto p-6 relative custom-scrollbar">
-        <div className="max-w-[1440px] mx-auto h-full flex flex-col gap-6 animate-in fade-in duration-500">
+      <main className={`flex-1 ${activeTab === 'sono' || activeTab === 'atividades' ? 'overflow-hidden' : 'overflow-y-auto'} p-6 relative custom-scrollbar`}>
+        <div className="max-w-[1440px] mx-auto h-full flex flex-col gap-6 animate-in fade-in duration-500 min-h-0">
           
           {activeTab !== 'sono' && activeTab !== 'atividades' && (
             <header className="flex justify-between items-center bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 shrink-0">
@@ -1087,111 +1092,82 @@ const SaudeApp: React.FC = () => {
 
           {/* SONO TAB */}
           {activeTab === 'sono' && (
-            <div className="flex-1 flex flex-col gap-4 min-h-0 overflow-hidden">
-              {/* Sub-tabs Selector */}
-              <div className="flex border-b border-zinc-200 dark:border-zinc-800 shrink-0">
-                <button
-                  onClick={() => setSonoSubTab('sono')}
-                  className={`px-6 py-3 text-xs font-black uppercase tracking-wider border-b-2 transition-all ${
-                    sonoSubTab === 'sono'
-                      ? 'border-cyan-500 text-cyan-500'
-                      : 'border-transparent text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'
-                  }`}
-                >
-                  Monitoramento do Sono
-                </button>
-                <button
-                  onClick={() => setSonoSubTab('atividades')}
-                  className={`px-6 py-3 text-xs font-black uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 ${
-                    sonoSubTab === 'atividades'
-                      ? 'border-cyan-500 text-cyan-500'
-                      : 'border-transparent text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'
-                  }`}
-                >
-                  Histórico de Atividades
-                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-850 text-zinc-500 dark:text-zinc-400 font-bold">
-                    {realizedActivities.length}
-                  </span>
-                </button>
-              </div>
+            <div className="flex-1 flex flex-col min-h-0 overflow-hidden h-full">
+              <MonitoramentoSono onUpdateSleepLogs={loadSleepLogs} />
+            </div>
+          )}
 
-              {/* Sub-tab Content */}
-              <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
-                {sonoSubTab === 'sono' ? (
-                  <MonitoramentoSono onUpdateSleepLogs={loadSleepLogs} />
-                ) : (
-                  <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-sm overflow-hidden flex flex-col h-full">
-                    {realizedActivities.length === 0 ? (
-                      <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
-                        <Activity size={48} className="text-zinc-300 dark:text-zinc-700 mb-4" strokeWidth={1} />
-                        <p className="text-zinc-500 font-medium">Nenhuma atividade realizada registrada.</p>
-                      </div>
-                    ) : (
-                      <div className="overflow-x-auto flex-1 custom-scrollbar">
-                        <table className="w-full text-left border-collapse">
-                          <thead className="bg-zinc-50 dark:bg-zinc-800/50 sticky top-0">
-                            <tr>
-                              <th className="px-6 py-4 text-[10px] font-black uppercase text-zinc-400 tracking-wider">Data</th>
-                              <th className="px-6 py-4 text-[10px] font-black uppercase text-zinc-400 tracking-wider">Tipo</th>
-                              <th className="px-6 py-4 text-[10px] font-black uppercase text-zinc-400 tracking-wider">Duração</th>
-                              <th className="px-6 py-4 text-[10px] font-black uppercase text-zinc-400 tracking-wider">Detalhes (Dist / Pace / Nível)</th>
-                              <th className="px-6 py-4 w-10"></th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
-                            {realizedActivities.map(a => (
-                              <tr key={a.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors group">
-                                <td className="px-6 py-4 text-xs font-bold text-zinc-600 dark:text-zinc-300">
-                                  {new Date(`${a.date}T12:00:00`).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })}
-                                </td>
-                                <td className="px-6 py-4">
-                                  {(() => {
-                                    const typeColor = activityTypes.find(t => t.name === a.type)?.color || '#6b7280';
-                                    return (
-                                      <span 
-                                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider"
-                                        style={{ 
-                                          backgroundColor: hexToRgba(typeColor, 0.15), 
-                                          color: typeColor 
-                                        }}
-                                      >
-                                        {a.type}
-                                      </span>
-                                    );
-                                  })()}
-                                </td>
-                                <td className="px-6 py-4 text-xs font-bold text-zinc-700 dark:text-zinc-200">
-                                  {a.timeInMinutes} min
-                                </td>
-                                <td className="px-6 py-4">
-                                  {a.type === 'Musculação' ? (
-                                    <div className="flex flex-wrap gap-1">
-                                      {a.muscles?.map(m => (
-                                        <span key={m} className="px-2 py-0.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 rounded text-[9px] uppercase font-bold tracking-wider">{m}</span>
-                                      ))}
-                                    </div>
-                                  ) : (
-                                    <div className="flex items-center gap-3 text-xs font-medium text-zinc-500 dark:text-zinc-400">
-                                      {a.distanceKm && <span className="text-zinc-800 dark:text-zinc-200 font-bold">{a.distanceKm} km</span>}
-                                      {a.pace && <span>Pace: {a.pace}</span>}
-                                      {a.level && <span className="px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-[9px] uppercase tracking-wider">{a.level}</span>}
-                                    </div>
-                                  )}
-                                </td>
-                                <td className="px-6 py-4 text-right">
-                                  <button onClick={() => deleteActivity(a.id)} className="p-2 rounded-lg text-zinc-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950 opacity-0 group-hover:opacity-100 transition-all">
-                                    <Trash2 size={16} />
-                                  </button>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
+          {/* ATIVIDADES TAB */}
+          {activeTab === 'atividades' && (
+            <div className="flex-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-sm overflow-hidden flex flex-col h-full min-h-0">
+              {realizedActivities.length === 0 ? (
+                <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
+                  <Activity size={48} className="text-zinc-300 dark:text-zinc-700 mb-4" strokeWidth={1} />
+                  <p className="text-zinc-500 font-medium">Nenhuma atividade realizada registrada.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto flex-1 custom-scrollbar">
+                  <table className="w-full text-left border-collapse">
+                    <thead className="bg-zinc-50 dark:bg-zinc-800/50 sticky top-0">
+                      <tr>
+                        <th className="px-6 py-4 text-[10px] font-black uppercase text-zinc-400 tracking-wider">Data</th>
+                        <th className="px-6 py-4 text-[10px] font-black uppercase text-zinc-400 tracking-wider">Tipo</th>
+                        <th className="px-6 py-4 text-[10px] font-black uppercase text-zinc-400 tracking-wider">Duração</th>
+                        <th className="px-6 py-4 text-[10px] font-black uppercase text-zinc-400 tracking-wider">Detalhes (Dist / Pace / Nível)</th>
+                        <th className="px-6 py-4 w-10"></th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
+                      {realizedActivities.map(a => (
+                        <tr key={a.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors group">
+                          <td className="px-6 py-4 text-xs font-bold text-zinc-600 dark:text-zinc-300">
+                            {new Date(`${a.date}T12:00:00`).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })}
+                          </td>
+                          <td className="px-6 py-4">
+                            {(() => {
+                              const typeColor = activityTypes.find(t => t.name === a.type)?.color || '#6b7280';
+                              return (
+                                <span 
+                                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider"
+                                  style={{ 
+                                    backgroundColor: hexToRgba(typeColor, 0.15), 
+                                    color: typeColor 
+                                  }}
+                                >
+                                  {a.type}
+                                </span>
+                              );
+                            })()}
+                          </td>
+                          <td className="px-6 py-4 text-xs font-bold text-zinc-700 dark:text-zinc-200">
+                            {a.timeInMinutes} min
+                          </td>
+                          <td className="px-6 py-4">
+                            {a.type === 'Musculação' ? (
+                              <div className="flex flex-wrap gap-1">
+                                {a.muscles?.map(m => (
+                                  <span key={m} className="px-2 py-0.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 rounded text-[9px] uppercase font-bold tracking-wider">{m}</span>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-3 text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                                {a.distanceKm && <span className="text-zinc-800 dark:text-zinc-200 font-bold">{a.distanceKm} km</span>}
+                                {a.pace && <span>Pace: {a.pace}</span>}
+                                {a.level && <span className="px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-[9px] uppercase tracking-wider">{a.level}</span>}
+                              </div>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            <button onClick={() => deleteActivity(a.id)} className="p-2 rounded-lg text-zinc-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950 opacity-0 group-hover:opacity-100 transition-all">
+                              <Trash2 size={16} />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           )}
 

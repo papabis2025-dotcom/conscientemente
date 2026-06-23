@@ -537,10 +537,14 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                <select
                   value={selectedConcursoId}
                   onChange={(e) => onSelectConcursoId(e.target.value)}
-                  className="bg-transparent border-none outline-none text-xs font-black text-zinc-800 dark:text-white cursor-pointer w-32 uppercase tracking-wide"
+                  className="bg-white dark:bg-zinc-900 border-none outline-none text-xs font-black text-zinc-800 dark:text-zinc-100 cursor-pointer w-32 uppercase tracking-wide focus:ring-0"
                >
-                  <option value="all">Visão Global</option>
-                  {concursos.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  <option value="all" className="bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-100">Visão Global</option>
+                  {concursos.map(c => (
+                    <option key={c.id} value={c.id} className="bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-100">
+                      {c.name}
+                    </option>
+                  ))}
                </select>
             </div>
           )}

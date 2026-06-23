@@ -2069,7 +2069,7 @@ const HubHome: React.FC<HubHomeProps> = ({
                         <div
                           key={h.id}
                           onClick={() => toggleHabit(h.id)}
-                          className={`flex items-center gap-3 p-1.5 rounded-xl border transition-all duration-200 cursor-pointer select-none ${
+                          className={`flex items-center gap-2.5 p-2 px-3 rounded-xl border transition-all duration-200 cursor-pointer select-none ${
                             isCompleted
                               ? 'bg-zinc-100/50 dark:bg-zinc-950/15 border-zinc-200 dark:border-zinc-900/50 opacity-60'
                               : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800/80 hover:border-slate-400 dark:hover:border-slate-600 hover:shadow-sm'
@@ -2084,10 +2084,10 @@ const HubHome: React.FC<HubHomeProps> = ({
                               {isCompleted && <Check size={9} strokeWidth={3} />}
                             </div>
                           </div>
-                          <span className={`text-[10px] font-bold transition-all truncate leading-none ${
+                          <span className={`text-xs font-black transition-all truncate leading-none ${
                             isCompleted
-                              ? 'line-through text-zinc-400 dark:text-zinc-500 font-medium'
-                              : 'text-zinc-800 dark:text-zinc-150'
+                              ? 'line-through text-zinc-400 dark:text-zinc-500 font-bold'
+                              : 'text-zinc-900 dark:text-white'
                           }`}>
                             {h.name}
                           </span>

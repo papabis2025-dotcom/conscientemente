@@ -135,6 +135,7 @@ const FinancasApp: React.FC = () => {
   const [txInstallmentNum, setTxInstallmentNum] = useState(''); // current installment being paid
   const [txRecurrent, setTxRecurrent] = useState(false);
   const [txRecurrences, setTxRecurrences] = useState('');
+  const [txUntilCancelled, setTxUntilCancelled] = useState(false);
   const [editingTxId, setEditingTxId] = useState<string | null>(null);
   const [activeChartTab, setActiveChartTab] = useState<'cartoes' | 'saidas' | 'entradas'>('cartoes');
   const [deleteModalConfig, setDeleteModalConfig] = useState<{
@@ -250,9 +251,10 @@ const FinancasApp: React.FC = () => {
   const startEditTransaction = (t: Transaction) => {
     setEditingTxId(t.id);
     setTxType(t.type);
-    const nameWithoutIR = t.name.startsWith('[IR]') ? t.name.replace(/^\[IR\]\s*/, '') : t.name;
-    setTxName(nameWithoutIR);
+    const nameWithoutPrefixes = t.name.replace(/^\[IR\]\s*/, '').replace(/^\[AC\]\s*/, '');
+    setTxName(nameWithoutPrefixes);
     setTxIsIR(t.name.startsWith('[IR]'));
+    setTxUntilCancelled(t.name.startsWith('[AC]'));
     // Format amount cleanly for editing text box (e.g. 1500,50 or 1500.5 -> 1500,50)
     setTxAmount(t.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
     setTxCategory(t.category);
@@ -282,6 +284,7 @@ const FinancasApp: React.FC = () => {
     setTxDate('');
     setTxPending(false);
     setTxIsIR(false);
+    setTxUntilCancelled(false);
     setTxInstallments('');
     setTxInstallmentNum('');
     setTxRecurrent(false);
@@ -312,7 +315,8 @@ const FinancasApp: React.FC = () => {
     const amountNum = parseFloat(txAmount.replace(/\./g, '').replace(',', '.'));
 
     if (editingTxId) {
-      const formattedName = txIsIR ? (txName.startsWith('[IR]') ? txName : `[IR] ${txName}`) : (txName.startsWith('[IR]') ? txName.replace(/^\[IR\]\s*/, '') : txName);
+      let formattedName = txIsIR ? (txName.startsWith('[IR]') ? txName : `[IR] ${txName}`) : (txName.startsWith('[IR]') ? txName.replace(/^\[IR\]\s*/, '') : txName);
+      formattedName = txUntilCancelled ? (formattedName.startsWith('[AC]') ? formattedName : `[AC] ${formattedName}`) : (formattedName.startsWith('[AC]') ? formattedName.replace(/^\[AC\]\s*/, '') : formattedName);
       const updatedTx: Transaction = {
         id: editingTxId,
         type: txType,
@@ -333,6 +337,7 @@ const FinancasApp: React.FC = () => {
       setTxDate('');
       setTxPending(false);
       setTxIsIR(false);
+      setTxUntilCancelled(false);
     } else {
       const totalParcelas = parseInt(txInstallments) || 0;
       const currentParcela = parseInt(txInstallmentNum) || 0;
@@ -342,7 +347,10 @@ const FinancasApp: React.FC = () => {
       const totalRecurrencias = txRecurrent && isPixOrDinheiro ? (parseInt(txRecurrences) || 0) : 0;
       const isRecorrente = txType === 'saida' && totalRecurrencias > 1;
 
-      const baseTxName = txIsIR ? (txName.startsWith('[IR]') ? txName : `[IR] ${txName}`) : txName;
+      let baseTxName = txIsIR ? (txName.startsWith('[IR]') ? txName : `[IR] ${txName}`) : txName;
+      if (txUntilCancelled) {
+        baseTxName = baseTxName.startsWith('[AC]') ? baseTxName : `[AC] ${baseTxName}`;
+      }
       
       // Build base name: append parcel label if parcelado or recurrent
       let baseName = baseTxName;
@@ -409,12 +417,33 @@ const FinancasApp: React.FC = () => {
         }
       }
 
+      // Generate future AC (Until Cancelled) transactions for the next 11 months
+      if (txUntilCancelled) {
+        for (let i = 1; i <= 11; i++) {
+          const futureDate = addMonthsToDate(finalDate, i);
+          const futureTx: Transaction = {
+            id: crypto.randomUUID(),
+            type: txType,
+            name: baseName,
+            amount: amountNum,
+            category: txCategory,
+            date: futureDate,
+            pending: true, // future ones are always pending
+            dayOnly,
+            ...(txType === 'saida' ? { paymentMethod: txMethod } : {})
+          };
+          financasApi.createTransaction(futureTx).catch(err => console.error('Error creating AC transaction:', err));
+          newTransactions.push(futureTx);
+        }
+      }
+
       setTransactions(prev => [...prev, ...newTransactions]);
       setTxName('');
       setTxAmount('');
       setTxDate('');
       setTxPending(false);
       setTxIsIR(false);
+      setTxUntilCancelled(false);
       setTxInstallments('');
       setTxInstallmentNum('');
       setTxRecurrent(false);
@@ -771,8 +800,36 @@ const FinancasApp: React.FC = () => {
                     </select>
                   </div>
 
+                  {/* Até o Cancelamento */}
+                  {!editingTxId && (
+                    <div className="flex flex-col gap-1 animate-in slide-in-from-top-1 duration-150">
+                      <label className="flex items-center gap-1.5 cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          checked={txUntilCancelled} 
+                          onChange={e => {
+                            setTxUntilCancelled(e.target.checked);
+                            if (e.target.checked) {
+                              setTxRecurrent(false);
+                              setTxRecurrences('');
+                              setTxInstallments('');
+                              setTxInstallmentNum('');
+                            }
+                          }}
+                          className="rounded border-zinc-300 dark:border-zinc-700 text-rose-500 focus:ring-rose-500"
+                        />
+                        <span className="text-[10px] font-bold text-zinc-600 dark:text-zinc-300">Até o cancelamento? (Netflix, Internet, etc.)</span>
+                      </label>
+                      {txUntilCancelled && (
+                        <p className="text-[9px] text-amber-600 dark:text-amber-400 font-bold mt-0.5">
+                          ✦ 12 meses de lançamentos pendentes serão gerados automaticamente.
+                        </p>
+                      )}
+                    </div>
+                  )}
+
                   {/* Recorrência (Pix/Dinheiro) */}
-                  {(txMethod?.toLowerCase().includes('pix') || txMethod?.toLowerCase().includes('dinheiro')) && !editingTxId && (
+                  {(txMethod?.toLowerCase().includes('pix') || txMethod?.toLowerCase().includes('dinheiro')) && !editingTxId && !txUntilCancelled && (
                     <div className="flex flex-col gap-1 animate-in slide-in-from-top-1 duration-150">
                       <label className="text-[9px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Recorrência</label>
                       <div className="flex gap-2 items-center">
@@ -812,7 +869,7 @@ const FinancasApp: React.FC = () => {
                   )}
 
                   {/* Parcelamento */}
-                  {!editingTxId && !txRecurrent && (
+                  {!editingTxId && !txRecurrent && !txUntilCancelled && (
                   <div className="flex flex-col gap-1 animate-in slide-in-from-top-1 duration-150">
                     <label className="text-[9px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Parcelado? (opcional)</label>
                     <div className="flex gap-2 items-center">
@@ -1072,11 +1129,16 @@ const FinancasApp: React.FC = () => {
                         <div>
                           <div className="flex items-center gap-1.5 flex-wrap">
                             <p className="font-bold text-xs text-zinc-800 dark:text-zinc-200">
-                              {t.name.startsWith('[IR]') ? t.name.replace(/^\[IR\]\s*/, '') : t.name}
+                              {t.name.replace(/^\[IR\]\s*/, '').replace(/^\[AC\]\s*/, '')}
                             </p>
                             {t.name.startsWith('[IR]') && (
                               <span className="text-[8px] font-black uppercase tracking-wider px-1 bg-rose-100 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 rounded leading-none px-1.5 py-0.5">
                                 IR
+                              </span>
+                            )}
+                            {t.name.startsWith('[AC]') && (
+                              <span className="text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 leading-none">
+                                Fixo
                               </span>
                             )}
                           </div>
@@ -1143,11 +1205,16 @@ const FinancasApp: React.FC = () => {
                         <div>
                           <div className="flex items-center gap-1.5 flex-wrap">
                             <p className="font-bold text-xs text-zinc-800 dark:text-zinc-200">
-                              {t.name.startsWith('[IR]') ? t.name.replace(/^\[IR\]\s*/, '') : t.name}
+                              {t.name.replace(/^\[IR\]\s*/, '').replace(/^\[AC\]\s*/, '')}
                             </p>
-                            {t.name.startsWith('[IR]') && (
+                            {t.name.includes('[IR]') && (
                               <span className="text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-455 border border-rose-200/50 dark:border-rose-800/40 leading-none">
                                 IR
+                              </span>
+                            )}
+                            {t.name.includes('[AC]') && (
+                              <span className="text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-900/20 text-blue-650 dark:text-blue-455 border border-blue-200/50 dark:border-blue-800/40 leading-none">
+                                Fixo
                               </span>
                             )}
                             {isLastPayment && (

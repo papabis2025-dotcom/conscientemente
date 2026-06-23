@@ -90,6 +90,7 @@ export const ParcelasRecorrencia: React.FC<ParcelasRecorrenciaProps> = ({ transa
   const candidates: { [key: string]: Transaction[] } = {};
   transactions.forEach(t => {
     if (t.type !== 'saida') return;
+    if (t.name.startsWith('[AC]') || t.name.includes('[AC]')) return;
     if (t.name.match(installmentRegex)) return;
 
     const isPixOrDinheiro = t.paymentMethod?.toLowerCase().includes('pix') || t.paymentMethod?.toLowerCase().includes('dinheiro');
@@ -120,6 +121,7 @@ export const ParcelasRecorrencia: React.FC<ParcelasRecorrenciaProps> = ({ transa
 
   transactions.forEach(t => {
     if (t.type !== 'saida') return;
+    if (t.name.startsWith('[AC]') || t.name.includes('[AC]')) return;
 
     const installmentMatch = t.name.match(installmentRegex);
     if (installmentMatch) {

@@ -1521,8 +1521,21 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
 
         const targetStatus: 'planejado' | 'realizado' = studies[0].status === 'realizado' ? 'planejado' : 'realizado';
 
+        // Save status synchronously to localStorage FIRST to avoid race conditions.
+        // If fetchData runs between here and the async React state update,
+        // it will still read the correct status from localStorage.
+        try {
+            const currentRaw = localStorage.getItem('cp_scheduled_studies');
+            const currentList: ScheduledStudy[] = currentRaw ? JSON.parse(currentRaw) : scheduledStudies;
+            const updatedList = currentList.map(s => ids.includes(s.id) ? { ...s, status: targetStatus } : s);
+            localStorage.setItem('cp_scheduled_studies', JSON.stringify(updatedList));
+        } catch (e) {
+            console.error('Error saving status to localStorage:', e);
+        }
+
         setScheduledStudies(prev => {
             const updated = prev.map(s => ids.includes(s.id) ? { ...s, status: targetStatus } : s);
+            // localStorage already updated above, but sync again to be safe
             localStorage.setItem('cp_scheduled_studies', JSON.stringify(updated));
             window.dispatchEvent(new Event('local-settings-changed'));
             return updated;

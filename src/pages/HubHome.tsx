@@ -1210,10 +1210,15 @@ const HubHome: React.FC<HubHomeProps> = ({
         console.error('Error reloading local storage states on sync event:', e);
       }
     };
+    // 'local-storage-sync'  → fired by GlobalSidebar and other modules
+    // 'local-settings-changed' → fired by the estudos module (useAppData.ts) when
+    //   scheduled studies, status, or other planner data changes
     window.addEventListener('local-storage-sync', handleSync);
+    window.addEventListener('local-settings-changed', handleSync);
     window.addEventListener('storage', handleSync);
     return () => {
       window.removeEventListener('local-storage-sync', handleSync);
+      window.removeEventListener('local-settings-changed', handleSync);
       window.removeEventListener('storage', handleSync);
     };
   }, [calendarMonth, fetchCalendarData]);
@@ -1323,6 +1328,34 @@ const HubHome: React.FC<HubHomeProps> = ({
     }, 30000);
     return () => clearInterval(interval);
   }, [fetchCloudData]);
+
+  // Immediately refresh pending estudos count and calendar when the estudos module
+  // updates its local data (e.g. toggling a study activity as realizado/planejado).
+  useEffect(() => {
+    const handleEstudosChange = () => {
+      try {
+        const now = new Date();
+        const localTodayStr = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().split('T')[0];
+
+        const estudosRaw = JSON.parse(localStorage.getItem('cp_study_tasks') || '[]');
+        const estudos = Array.isArray(estudosRaw) ? estudosRaw : [];
+        const pendingStudyTasks = estudos.filter((t: any) => t.date <= localTodayStr && !t.done).length;
+
+        const scheduledRaw = JSON.parse(localStorage.getItem('cp_scheduled_studies') || '[]');
+        const scheduled = Array.isArray(scheduledRaw) ? scheduledRaw : [];
+        const pendingScheduled = scheduled.filter((s: any) => {
+          const sDate = s.date?.split('T')[0];
+          return sDate && sDate <= localTodayStr && s.status !== 'realizado';
+        }).length;
+
+        setPendingEstudos(pendingStudyTasks + pendingScheduled);
+      } catch (e) {
+        console.error('Error updating pending estudos count:', e);
+      }
+    };
+    window.addEventListener('local-settings-changed', handleEstudosChange);
+    return () => window.removeEventListener('local-settings-changed', handleEstudosChange);
+  }, []);
 
   // Task limit checker running periodically
   useEffect(() => {

@@ -422,8 +422,50 @@ const HubHome: React.FC<HubHomeProps> = ({
         };
       });
 
+      const { data: dbScheduled } = await supabase
+        .from('scheduled_studies')
+        .select('id, date, subject_id, topic_id, activity_type, notes, duration_minutes, questions_done, questions_correct')
+        .eq('user_id', user.id);
+
+      const { data: dbSessions } = await supabase
+        .from('study_sessions')
+        .select('id')
+        .eq('user_id', user.id);
+
       const studyTasksFiltered = JSON.parse(localStorage.getItem('cp_study_tasks') || '[]');
-      const scheduledStudiesFiltered = JSON.parse(localStorage.getItem('cp_scheduled_studies') || '[]');
+      
+      let scheduledStudiesFiltered: any[] = [];
+      if (dbScheduled) {
+        const localRaw = localStorage.getItem('cp_scheduled_studies');
+        const localStudies: any[] = localRaw ? JSON.parse(localRaw) : [];
+        const localStatusMap = new Map(localStudies.map(s => [s.id, s.status]));
+        const sessionIds = new Set((dbSessions || []).map(s => s.id));
+
+        scheduledStudiesFiltered = dbScheduled.map((s: any) => {
+          let status: 'planejado' | 'realizado' = 'planejado';
+          if (sessionIds.has(s.id)) {
+            status = 'realizado';
+          } else if (localStatusMap.has(s.id)) {
+            status = localStatusMap.get(s.id) as 'planejado' | 'realizado';
+          }
+          return {
+            id: s.id,
+            date: s.date?.split('T')[0],
+            subjectId: s.subject_id,
+            topicId: s.topic_id,
+            activityType: s.activity_type,
+            notes: s.notes,
+            durationInMinutes: s.duration_minutes,
+            questionsDone: s.questions_done,
+            questionsCorrect: s.questions_correct,
+            status
+          };
+        });
+        localStorage.setItem('cp_scheduled_studies', JSON.stringify(scheduledStudiesFiltered));
+      } else {
+        scheduledStudiesFiltered = JSON.parse(localStorage.getItem('cp_scheduled_studies') || '[]');
+      }
+
       const simuladosFiltered = normalizedSimulados;
 
       // Filter out individual simulado study sessions from scheduled studies

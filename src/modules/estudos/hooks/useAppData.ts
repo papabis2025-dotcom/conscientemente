@@ -520,10 +520,10 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
 
                 finalSchedule = scheduleData.map(s => {
                     let status: 'planejado' | 'realizado' = 'planejado';
-                    if (localStatusMap.has(s.id)) {
-                        status = localStatusMap.get(s.id) as 'planejado' | 'realizado';
-                    } else if (sessionIds.has(s.id)) {
+                    if (sessionIds.has(s.id)) {
                         status = 'realizado';
+                    } else if (localStatusMap.has(s.id)) {
+                        status = localStatusMap.get(s.id) as 'planejado' | 'realizado';
                     }
                     return {
                         ...s,

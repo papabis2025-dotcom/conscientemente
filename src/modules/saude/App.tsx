@@ -81,6 +81,7 @@ const SaudeApp: React.FC = () => {
 
   useEffect(() => {
     localStorage.setItem('cn_saude_activity_types', JSON.stringify(activityTypes));
+    window.dispatchEvent(new Event('local-settings-changed'));
   }, [activityTypes]);
 
   const [muscleGroups, setMuscleGroups] = useState<string[]>(() => {
@@ -91,6 +92,7 @@ const SaudeApp: React.FC = () => {
 
   useEffect(() => {
     localStorage.setItem('cn_saude_muscle_groups', JSON.stringify(muscleGroups));
+    window.dispatchEvent(new Event('local-settings-changed'));
   }, [muscleGroups]);
 
   const [widgets, setWidgets] = useState<SaudeWidgetState[]>(() => {
@@ -131,6 +133,7 @@ const SaudeApp: React.FC = () => {
 
   useEffect(() => {
     localStorage.setItem('cn_saude_dashboard_layout', JSON.stringify(widgets));
+    window.dispatchEvent(new Event('local-settings-changed'));
   }, [widgets]);
 
   const [sleepLogs, setSleepLogs] = useState<any[]>([]);
@@ -188,7 +191,13 @@ const SaudeApp: React.FC = () => {
 
   const [draggedWidgetIndex, setDraggedWidgetIndex] = useState<number | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
-  const [volumeChartPeriod, setVolumeChartPeriod] = useState<'semanal' | 'mensal'>('mensal');
+  const [dashboardPeriod, setDashboardPeriod] = useState<'sempre' | 'ano' | 'mes' | 'semana'>(() => {
+    return (localStorage.getItem('cn_saude_dashboard_period') as any) || 'mes';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('cn_saude_dashboard_period', dashboardPeriod);
+  }, [dashboardPeriod]);
   
   const [newActivityTypeName, setNewActivityTypeName] = useState('');
   const [newActivityTypeColor, setNewActivityTypeColor] = useState('#06b6d4');
@@ -407,17 +416,41 @@ const SaudeApp: React.FC = () => {
   };
 
   const realizedActivities = activities.filter(a => a.status !== 'planejado');
+
+  const filteredRealizedActivities = useMemo(() => {
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+    
+    return activities.filter(a => {
+      if (a.status === 'planejado') return false;
+      
+      if (dashboardPeriod === 'semana') {
+        const start = new Date(today);
+        start.setDate(today.getDate() - 6);
+        start.setHours(0, 0, 0, 0);
+        const activityDate = new Date(a.date + 'T12:00:00');
+        return activityDate >= start && a.date <= todayStr;
+      } else if (dashboardPeriod === 'mes') {
+        const activityDate = new Date(a.date + 'T12:00:00');
+        return activityDate.getFullYear() === today.getFullYear() && activityDate.getMonth() === today.getMonth();
+      } else if (dashboardPeriod === 'ano') {
+        const activityDate = new Date(a.date + 'T12:00:00');
+        return activityDate.getFullYear() === today.getFullYear();
+      }
+      return true; // sempre
+    });
+  }, [activities, dashboardPeriod]);
   
-  const totalTreinos = realizedActivities.length;
-  const horasTotais = realizedActivities.reduce((acc, a) => acc + (a.timeInMinutes || 0), 0) / 60;
-  const kmTotais = realizedActivities.filter(a => a.type !== 'Musculação').reduce((acc, a) => acc + (a.distanceKm || 0), 0);
+  const totalTreinos = filteredRealizedActivities.length;
+  const horasTotais = filteredRealizedActivities.reduce((acc, a) => acc + (a.timeInMinutes || 0), 0) / 60;
+  const kmTotais = filteredRealizedActivities.filter(a => a.type !== 'Musculação').reduce((acc, a) => acc + (a.distanceKm || 0), 0);
 
   const freqData = useMemo(() => {
     const counts: Record<string, number> = {};
     activityTypes.forEach(t => {
       counts[t.name] = 0;
     });
-    realizedActivities.forEach(a => {
+    filteredRealizedActivities.forEach(a => {
       if (counts[a.type] !== undefined) {
         counts[a.type]++;
       } else {
@@ -434,14 +467,14 @@ const SaudeApp: React.FC = () => {
           fill: typeColor
         };
       });
-  }, [activities, activityTypes]);
+  }, [filteredRealizedActivities, activityTypes]);
 
   const cardioLevelData = useMemo(() => {
     const counts: Record<string, number> = {};
     CARDIO_LEVELS.forEach(l => {
       counts[l] = 0;
     });
-    realizedActivities.forEach(a => {
+    filteredRealizedActivities.forEach(a => {
       if (a.level) {
         counts[a.level] = (counts[a.level] || 0) + 1;
       }
@@ -452,7 +485,7 @@ const SaudeApp: React.FC = () => {
       .map(([name, count]) => ({
         name, count
       }));
-  }, [activities]);
+  }, [filteredRealizedActivities]);
 
   const todayDateObj = new Date();
   const currentYear = todayDateObj.getFullYear();
@@ -464,32 +497,59 @@ const SaudeApp: React.FC = () => {
     return Array.from({ length: daysInMonth }, (_, i) => {
       const day = i + 1;
       const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-      const dayActivities = realizedActivities.filter(a => a.date === dateStr);
+      const dayActivities = filteredRealizedActivities.filter(a => a.date === dateStr);
       return { day, dateStr, activities: dayActivities };
     });
-  }, [realizedActivities, currentYear, currentMonth, daysInMonth]);
+  }, [filteredRealizedActivities, currentYear, currentMonth, daysInMonth]);
 
   const volumeChartData = useMemo(() => {
-    if (volumeChartPeriod === 'semanal') {
+    if (dashboardPeriod === 'semana') {
       const data = [];
       const today = new Date();
       for (let i = 6; i >= 0; i--) {
         const d = new Date(today);
         d.setDate(today.getDate() - i);
         const dStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-        const dayActivities = realizedActivities.filter(a => a.date === dStr);
+        const dayActivities = filteredRealizedActivities.filter(a => a.date === dStr);
         const totalMin = dayActivities.reduce((acc, a) => acc + (a.timeInMinutes || 0), 0);
         const label = `${d.getDate()}/${d.getMonth() + 1}`;
         data.push({ label, minutos: totalMin });
       }
       return data;
-    } else {
+    } else if (dashboardPeriod === 'mes') {
       return calendarDays.map(d => ({
         label: String(d.day),
         minutos: d.activities.reduce((acc, a) => acc + (a.timeInMinutes || 0), 0)
       }));
+    } else if (dashboardPeriod === 'ano') {
+      const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+      return months.map((monthLabel, idx) => {
+        const monthActivities = filteredRealizedActivities.filter(a => {
+          const actDate = new Date(a.date + 'T12:00:00');
+          return actDate.getFullYear() === currentYear && actDate.getMonth() === idx;
+        });
+        const totalMin = monthActivities.reduce((acc, a) => acc + (a.timeInMinutes || 0), 0);
+        return { label: monthLabel, minutos: totalMin };
+      });
+    } else { // sempre
+      const data = [];
+      const today = new Date();
+      for (let i = 11; i >= 0; i--) {
+        const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+        const mIdx = d.getMonth();
+        const yVal = d.getFullYear();
+        const label = `${String(mIdx + 1).padStart(2, '0')}/${String(yVal).slice(-2)}`;
+        
+        const monthActivities = filteredRealizedActivities.filter(a => {
+          const actDate = new Date(a.date + 'T12:00:00');
+          return actDate.getFullYear() === yVal && actDate.getMonth() === mIdx;
+        });
+        const totalMin = monthActivities.reduce((acc, a) => acc + (a.timeInMinutes || 0), 0);
+        data.push({ label, minutos: totalMin });
+      }
+      return data;
     }
-  }, [realizedActivities, volumeChartPeriod, calendarDays]);
+  }, [filteredRealizedActivities, dashboardPeriod, calendarDays, currentYear]);
 
   const handleAddActivityType = (e: React.FormEvent) => {
     e.preventDefault();
@@ -549,6 +609,42 @@ const SaudeApp: React.FC = () => {
       return;
     }
     setMuscleGroups(prev => prev.map(m => m === oldName ? newName.trim() : m));
+  };
+
+  const getSleepLogStats = (log: any) => {
+    const totalMin = log ? (log.deepMinutes + log.lightMinutes + log.remMinutes + log.awakeMinutes) : 0;
+    const totalHours = Number((totalMin / 60).toFixed(1));
+    const score = log ? (() => {
+      const total = log.deepMinutes + log.lightMinutes + log.remMinutes + log.awakeMinutes;
+      if (total === 0) return 0;
+      const deepPct = log.deepMinutes / total;
+      const remPct = log.remMinutes / total;
+      const awakePct = log.awakeMinutes / total;
+      let sc = 100;
+      if (awakePct > 0.1) sc -= (awakePct - 0.1) * 150;
+      if (deepPct < 0.18) sc -= (0.18 - deepPct) * 120;
+      if (remPct < 0.18) sc -= (0.18 - remPct) * 100;
+      const totalHours = total / 60;
+      if (totalHours < 7) sc -= (7 - totalHours) * 15;
+      else if (totalHours > 9.5) sc -= (totalHours - 9.5) * 8;
+      return Math.max(0, Math.min(100, Math.round(sc)));
+    })() : 0;
+    return { totalHours, score };
+  };
+
+  const getGroupedSleepStats = (logs: any[]) => {
+    if (logs.length === 0) return { horas: 0, score: 0 };
+    let totalHoursSum = 0;
+    let totalScoreSum = 0;
+    logs.forEach(log => {
+      const { totalHours, score } = getSleepLogStats(log);
+      totalHoursSum += totalHours;
+      totalScoreSum += score;
+    });
+    return {
+      horas: Number((totalHoursSum / logs.length).toFixed(1)),
+      score: Math.round(totalScoreSum / logs.length)
+    };
   };
 
   const renderWidgetContent = (id: string) => {
@@ -624,26 +720,8 @@ const SaudeApp: React.FC = () => {
 
       case 'exercise_volume':
         return (
-          <div className="h-full flex flex-col">
-            <div className="flex justify-end mb-2 shrink-0">
-              <div className="flex items-center gap-0.5 bg-zinc-50 dark:bg-zinc-800/50 p-0.5 rounded-lg border border-zinc-200 dark:border-zinc-700">
-                <button
-                  type="button"
-                  onClick={() => setVolumeChartPeriod('semanal')}
-                  className={`py-0.5 px-2 rounded-md text-[9px] font-bold uppercase tracking-wide transition-all ${volumeChartPeriod === 'semanal' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-sm' : 'text-zinc-400 hover:bg-zinc-100/50'}`}
-                >
-                  Semanal
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setVolumeChartPeriod('mensal')}
-                  className={`py-0.5 px-2 rounded-md text-[9px] font-bold uppercase tracking-wide transition-all ${volumeChartPeriod === 'mensal' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-sm' : 'text-zinc-400 hover:bg-zinc-100/50'}`}
-                >
-                  Mensal
-                </button>
-              </div>
-            </div>
-            <div className="flex-1 w-full min-h-0">
+          <div className="h-full flex flex-col justify-center">
+            <div className="flex-1 w-full min-h-0 pt-2">
               {volumeChartData.some(d => d.minutos > 0) ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={volumeChartData} margin={{ top: 5, right: 0, left: -25, bottom: 0 }}>
@@ -669,7 +747,7 @@ const SaudeApp: React.FC = () => {
 
       case 'sleep_performance':
         const sleepChartData = (() => {
-          if (volumeChartPeriod === 'semanal') {
+          if (dashboardPeriod === 'semana') {
             const data = [];
             const today = new Date();
             for (let i = 6; i >= 0; i--) {
@@ -677,53 +755,48 @@ const SaudeApp: React.FC = () => {
               d.setDate(today.getDate() - i);
               const dStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
               const log = sleepLogs.find(l => l.date === dStr);
-              const totalMin = log ? (log.deepMinutes + log.lightMinutes + log.remMinutes + log.awakeMinutes) : 0;
-              const totalHours = Number((totalMin / 60).toFixed(1));
-              const score = log ? (() => {
-                const total = log.deepMinutes + log.lightMinutes + log.remMinutes + log.awakeMinutes;
-                if (total === 0) return 0;
-                const deepPct = log.deepMinutes / total;
-                const remPct = log.remMinutes / total;
-                const awakePct = log.awakeMinutes / total;
-                let sc = 100;
-                if (awakePct > 0.1) sc -= (awakePct - 0.1) * 150;
-                if (deepPct < 0.18) sc -= (0.18 - deepPct) * 120;
-                if (remPct < 0.18) sc -= (0.18 - remPct) * 100;
-                const totalHours = total / 60;
-                if (totalHours < 7) sc -= (7 - totalHours) * 15;
-                else if (totalHours > 9.5) sc -= (totalHours - 9.5) * 8;
-                return Math.max(0, Math.min(100, Math.round(sc)));
-              })() : 0;
+              const { totalHours, score } = getSleepLogStats(log);
               const label = `${d.getDate()}/${d.getMonth() + 1}`;
               data.push({ label, horas: totalHours, score });
             }
             return data;
-          } else {
+          } else if (dashboardPeriod === 'mes') {
             return calendarDays.map(d => {
               const log = sleepLogs.find(l => l.date === d.dateStr);
-              const totalMin = log ? (log.deepMinutes + log.lightMinutes + log.remMinutes + log.awakeMinutes) : 0;
-              const totalHours = Number((totalMin / 60).toFixed(1));
-              const score = log ? (() => {
-                const total = log.deepMinutes + log.lightMinutes + log.remMinutes + log.awakeMinutes;
-                if (total === 0) return 0;
-                const deepPct = log.deepMinutes / total;
-                const remPct = log.remMinutes / total;
-                const awakePct = log.awakeMinutes / total;
-                let sc = 100;
-                if (awakePct > 0.1) sc -= (awakePct - 0.1) * 150;
-                if (deepPct < 0.18) sc -= (0.18 - deepPct) * 120;
-                if (remPct < 0.18) sc -= (0.18 - remPct) * 100;
-                const totalHours = total / 60;
-                if (totalHours < 7) sc -= (7 - totalHours) * 15;
-                else if (totalHours > 9.5) sc -= (totalHours - 9.5) * 8;
-                return Math.max(0, Math.min(100, Math.round(sc)));
-              })() : 0;
+              const { totalHours, score } = getSleepLogStats(log);
               return {
                 label: String(d.day),
                 horas: totalHours,
                 score
               };
             });
+          } else if (dashboardPeriod === 'ano') {
+            const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+            return months.map((monthLabel, idx) => {
+              const monthLogs = sleepLogs.filter(l => {
+                const logDate = new Date(l.date + 'T12:00:00');
+                return logDate.getFullYear() === currentYear && logDate.getMonth() === idx;
+              });
+              const { horas, score } = getGroupedSleepStats(monthLogs);
+              return { label: monthLabel, horas, score };
+            });
+          } else { // sempre
+            const data = [];
+            const today = new Date();
+            for (let i = 11; i >= 0; i--) {
+              const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+              const mIdx = d.getMonth();
+              const yVal = d.getFullYear();
+              const label = `${String(mIdx + 1).padStart(2, '0')}/${String(yVal).slice(-2)}`;
+              
+              const monthLogs = sleepLogs.filter(l => {
+                const logDate = new Date(l.date + 'T12:00:00');
+                return logDate.getFullYear() === yVal && logDate.getMonth() === mIdx;
+              });
+              const { horas, score } = getGroupedSleepStats(monthLogs);
+              data.push({ label, horas, score });
+            }
+            return data;
           }
         })();
 
@@ -731,7 +804,7 @@ const SaudeApp: React.FC = () => {
 
         return (
           <div className="h-full flex flex-col">
-            <div className="flex-1 w-full min-h-0">
+            <div className="flex-1 w-full min-h-0 pt-2">
               {hasSleepData ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={sleepChartData} margin={{ top: 5, right: -5, left: -25, bottom: 0 }}>
@@ -937,6 +1010,24 @@ const SaudeApp: React.FC = () => {
                 </p>
               </div>
               <div className="flex items-center gap-3">
+                {activeTab === 'dashboard' && (
+                  <div className="flex items-center gap-0.5 bg-zinc-50 dark:bg-zinc-800/50 p-0.5 rounded-xl border border-zinc-200 dark:border-zinc-700 mr-2 shadow-inner">
+                    {(['sempre', 'ano', 'mes', 'semana'] as const).map((period) => (
+                      <button
+                        key={period}
+                        type="button"
+                        onClick={() => setDashboardPeriod(period)}
+                        className={`py-1.5 px-3 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all ${
+                          dashboardPeriod === period 
+                            ? 'bg-white dark:bg-zinc-700 text-zinc-950 dark:text-white shadow-sm border border-zinc-200/50 dark:border-zinc-650/50' 
+                            : 'text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100/30'
+                        }`}
+                      >
+                        {period === 'sempre' ? 'Sempre' : period === 'ano' ? 'Ano' : period === 'mes' ? 'Mês' : 'Semana'}
+                      </button>
+                    ))}
+                  </div>
+                )}
                 {activeTab === 'dashboard' && (
                    <button 
                      type="button"

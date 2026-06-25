@@ -1314,11 +1314,42 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         const baseDuration = Math.floor(durationVal / totalCount);
         const remDuration = durationVal % totalCount;
 
-        const baseDone = questionsDoneVal !== undefined ? Math.floor(questionsDoneVal / totalCount) : undefined;
-        const remDone = questionsDoneVal !== undefined ? questionsDoneVal % totalCount : 0;
+        const itemDones: (number | undefined)[] = [];
+        if (questionsDoneVal !== undefined) {
+            const baseDone = Math.floor(questionsDoneVal / totalCount);
+            const remDone = questionsDoneVal % totalCount;
+            for (let i = 0; i < totalCount; i++) {
+                itemDones.push(baseDone + (i < remDone ? 1 : 0));
+            }
+        } else {
+            for (let i = 0; i < totalCount; i++) {
+                itemDones.push(undefined);
+            }
+        }
 
-        const baseCorrect = questionsCorrectVal !== undefined ? Math.floor(questionsCorrectVal / totalCount) : undefined;
-        const remCorrect = questionsCorrectVal !== undefined ? questionsCorrectVal % totalCount : 0;
+        const itemCorrects: (number | undefined)[] = [];
+        if (questionsCorrectVal !== undefined && questionsDoneVal !== undefined) {
+            const correctList = new Array(totalCount).fill(0);
+            let remainingCorrect = questionsCorrectVal;
+            let added = true;
+            while (remainingCorrect > 0 && added) {
+                added = false;
+                for (let i = 0; i < totalCount; i++) {
+                    if (remainingCorrect > 0 && correctList[i] < (itemDones[i] || 0)) {
+                        correctList[i] += 1;
+                        remainingCorrect -= 1;
+                        added = true;
+                    }
+                }
+            }
+            for (let i = 0; i < totalCount; i++) {
+                itemCorrects.push(correctList[i]);
+            }
+        } else {
+            for (let i = 0; i < totalCount; i++) {
+                itemCorrects.push(questionsCorrectVal !== undefined ? Math.floor(questionsCorrectVal / totalCount) : undefined);
+            }
+        }
 
         const newEntries: ScheduledStudy[] = [];
         const sessionsList: StudySession[] = [];
@@ -1327,8 +1358,8 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         for (const subId of selectedSubjects) {
             for (const topicId of topicIdsToSave) {
                 const itemDuration = itemIndex === 0 ? baseDuration + remDuration : baseDuration;
-                const itemDone = questionsDoneVal !== undefined ? (itemIndex === 0 ? baseDone! + remDone : baseDone) : undefined;
-                const itemCorrect = questionsCorrectVal !== undefined ? (itemIndex === 0 ? baseCorrect! + remCorrect : baseCorrect) : undefined;
+                const itemDone = itemDones[itemIndex];
+                const itemCorrect = itemCorrects[itemIndex];
                 itemIndex++;
 
                 if (formData.status === 'realizado') {

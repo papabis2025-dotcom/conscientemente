@@ -189,6 +189,36 @@ const Dashboard: React.FC<DashboardProps> = ({
     return sessions.filter(s => allSubjectIds.has(s.subjectId));
   }, [sessions, allSubjectIds]);
 
+  const targetStartDate = useMemo(() => {
+    if (selectedConcursoId === 'all') {
+      const validDates = concursos
+        .map(c => c.startDate ? new Date(c.startDate).getTime() : 0)
+        .filter(t => t > 0);
+      if (validDates.length > 0) {
+        return new Date(Math.min(...validDates));
+      }
+    } else {
+      const activeC = concursos.find(c => c.id === selectedConcursoId);
+      if (activeC && activeC.startDate) {
+        const t = new Date(activeC.startDate).getTime();
+        if (!isNaN(t)) {
+          return new Date(t);
+        }
+      }
+    }
+    // Fallback: 30 days before today
+    const fallback = new Date();
+    fallback.setDate(fallback.getDate() - 30);
+    return fallback;
+  }, [concursos, selectedConcursoId]);
+
+  const chartStartDate = useMemo(() => {
+    const d = new Date(targetStartDate);
+    d.setDate(d.getDate() - 30);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }, [targetStartDate]);
+
   const filteredSessions = useMemo(() => {
     const today = new Date();
     const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
@@ -209,10 +239,13 @@ const Dashboard: React.FC<DashboardProps> = ({
       } else if (dashboardPeriod === 'ano') {
         const sessionDate = new Date(sDateStr + 'T12:00:00');
         return sessionDate.getFullYear() === today.getFullYear();
+      } else {
+        // sempre
+        const sessionDate = new Date(sDateStr + 'T12:00:00');
+        return sessionDate >= chartStartDate;
       }
-      return true; // sempre
     });
-  }, [relevantSessions, dashboardPeriod]);
+  }, [relevantSessions, dashboardPeriod, chartStartDate]);
 
   const filteredSimulados = useMemo(() => {
     const today = new Date();
@@ -243,10 +276,13 @@ const Dashboard: React.FC<DashboardProps> = ({
       } else if (dashboardPeriod === 'ano') {
         const sessionDate = new Date(sDateStr + 'T12:00:00');
         return sessionDate.getFullYear() === today.getFullYear();
+      } else {
+        // sempre
+        const sessionDate = new Date(sDateStr + 'T12:00:00');
+        return sessionDate >= chartStartDate;
       }
-      return true; // sempre
     });
-  }, [simulados, dashboardPeriod, selectedConcursoId, concursos]);
+  }, [simulados, dashboardPeriod, selectedConcursoId, concursos, chartStartDate]);
 
   const subjectStats = useMemo(() => {
     const stats: Record<string, { done: number, correct: number, minutes: number, name: string, colorClass: string }> = {};
@@ -269,7 +305,7 @@ const Dashboard: React.FC<DashboardProps> = ({
     const list = Object.values(stats)
       .map(s => ({
         ...s,
-        accuracy: s.done > 0 ? Math.round((s.correct / s.done) * 100) : 0,
+        accuracy: s.done > 0 ? Math.min(100, Math.round((s.correct / s.done) * 100)) : 0,
         hours: parseFloat((s.minutes / 60).toFixed(2)),
         hexColor: getColorHex(s.colorClass),
         acronym: getAcronym(s.name),
@@ -338,7 +374,7 @@ const Dashboard: React.FC<DashboardProps> = ({
       .filter(t => t.done > 0)
       .map(t => ({
         ...t,
-        accuracy: Math.round((t.correct / t.done) * 100)
+        accuracy: Math.min(100, Math.round((t.correct / t.done) * 100))
       }));
 
     const sorted = [...list].sort((a, b) => b.accuracy - a.accuracy);
@@ -474,13 +510,16 @@ const Dashboard: React.FC<DashboardProps> = ({
     }
 
     else {
-      // Sempre view: Last 12 months rolling
+      // Sempre view: month-by-month from chartStartDate to today
       const dataMap: { n: string; h: number; q: number; correct: number; done: number; year: number; month: number }[] = [];
       const today = new Date();
-      for (let i = 11; i >= 0; i--) {
-        const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
-        const mIdx = d.getMonth();
-        const yVal = d.getFullYear();
+      
+      let current = new Date(chartStartDate.getFullYear(), chartStartDate.getMonth(), 1);
+      let loopLimit = 0;
+      while (current <= today && loopLimit < 120) {
+        loopLimit++;
+        const mIdx = current.getMonth();
+        const yVal = current.getFullYear();
         const label = `${String(mIdx + 1).padStart(2, '0')}/${String(yVal).slice(-2)}`;
         
         dataMap.push({
@@ -492,6 +531,8 @@ const Dashboard: React.FC<DashboardProps> = ({
           year: yVal,
           month: mIdx
         });
+        
+        current.setMonth(current.getMonth() + 1);
       }
 
       relevantSessions.forEach(s => {
@@ -512,11 +553,11 @@ const Dashboard: React.FC<DashboardProps> = ({
       const finalData = dataMap.map(d => ({ 
         ...d, 
         h: parseFloat(d.h.toFixed(2)), 
-        acc: d.done > 0 ? Math.round((d.correct / d.done) * 100) : 0 
+        acc: d.done > 0 ? Math.min(100, Math.round((d.correct / d.done) * 100)) : 0 
       }));
       return { weeklyData: finalData, weeklyQuestionsData: finalData, weeklyAccuracyData: finalData };
     }
-  }, [relevantSessions, dashboardPeriod]);
+  }, [relevantSessions, dashboardPeriod, chartStartDate]);
 
   const frequencyData = useMemo(() => {
     // Determine current streak
@@ -578,11 +619,11 @@ const Dashboard: React.FC<DashboardProps> = ({
       case 'general_stats':
         const generalDone = filteredSessions.filter(s => !isSimuladoSession(s)).reduce((acc, s) => acc + (s.questionsDone || 0), 0);
         const generalCorrect = filteredSessions.filter(s => !isSimuladoSession(s)).reduce((acc, s) => acc + (s.questionsCorrect || 0), 0);
-        const globalAccuracy = generalDone > 0 ? Math.round((generalCorrect / generalDone) * 100) : 0;
+        const globalAccuracy = generalDone > 0 ? Math.min(100, Math.round((generalCorrect / generalDone) * 100)) : 0;
 
         const simDone = filteredSimulados.reduce((acc, s) => acc + (s.results || []).reduce((a, r) => a + r.done, 0), 0);
         const simCorrect = filteredSimulados.reduce((acc, s) => acc + (s.results || []).reduce((a, r) => a + r.correct, 0), 0);
-        const simAccuracy = simDone > 0 ? Math.round((simCorrect / simDone) * 100) : 0;
+        const simAccuracy = simDone > 0 ? Math.min(100, Math.round((simCorrect / simDone) * 100)) : 0;
 
         const globalColor = getPerformanceColor(globalAccuracy);
         const globalColorHex = getPerformanceColorHex(globalAccuracy);

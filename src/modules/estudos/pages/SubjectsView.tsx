@@ -153,7 +153,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
     const totalMinutes = subSessions.reduce((acc, s) => acc + s.durationInMinutes, 0);
     const totalQuestions = subSessions.reduce((acc, s) => acc + (s.questionsDone || 0), 0);
     const totalCorrect = subSessions.reduce((acc, s) => acc + (s.questionsCorrect || 0), 0);
-    const accuracy = totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : 0;
+    const accuracy = totalQuestions > 0 ? Math.min(100, Math.round((totalCorrect / totalQuestions) * 100)) : 0;
 
     return {
       hours: parseFloat((totalMinutes / 60).toFixed(1)),
@@ -167,7 +167,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
     const tMinutes = topicSessions.reduce((acc, s) => acc + s.durationInMinutes, 0);
     const tDone = topicSessions.reduce((acc, s) => acc + (s.questionsDone || 0), 0);
     const tCorrect = topicSessions.reduce((acc, s) => acc + (s.questionsCorrect || 0), 0);
-    const tAcc = tDone > 0 ? Math.round((tCorrect / tDone) * 100) : 0;
+    const tAcc = tDone > 0 ? Math.min(100, Math.round((tCorrect / tDone) * 100)) : 0;
     const tHours = (tMinutes / 60).toFixed(1);
 
     // Calculate last study date

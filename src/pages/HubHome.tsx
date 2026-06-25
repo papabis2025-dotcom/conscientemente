@@ -328,6 +328,31 @@ const HubHome: React.FC<HubHomeProps> = ({
     return (localStorage.getItem('cn_global_alignment') as any) || 'center';
   });
 
+  const [widgetsOrder, setWidgetsOrder] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('cn_home_widgets_order');
+      return saved ? JSON.parse(saved) : ['calendar', 'habits', 'sleep'];
+    } catch {
+      return ['calendar', 'habits', 'sleep'];
+    }
+  });
+
+  const moveWidget = (id: string, direction: 'up' | 'down') => {
+    const index = widgetsOrder.indexOf(id);
+    if (index === -1) return;
+    const newOrder = [...widgetsOrder];
+    if (direction === 'up' && index > 0) {
+      newOrder[index] = newOrder[index - 1];
+      newOrder[index - 1] = id;
+    } else if (direction === 'down' && index < widgetsOrder.length - 1) {
+      newOrder[index] = newOrder[index + 1];
+      newOrder[index + 1] = id;
+    }
+    setWidgetsOrder(newOrder);
+    localStorage.setItem('cn_home_widgets_order', JSON.stringify(newOrder));
+    window.dispatchEvent(new Event('local-settings-changed'));
+  };
+
   const handleSetAlignment = (align: 'left' | 'center' | 'right') => {
     setAlignment(align);
     localStorage.setItem('cn_global_alignment', align);
@@ -338,6 +363,14 @@ const HubHome: React.FC<HubHomeProps> = ({
     const handleSettingsChange = () => {
       const val = (localStorage.getItem('cn_global_alignment') as any) || 'center';
       setAlignment(val);
+      try {
+        const savedOrder = localStorage.getItem('cn_home_widgets_order');
+        if (savedOrder) {
+          setWidgetsOrder(JSON.parse(savedOrder));
+        }
+      } catch (e) {
+        console.error('Error parsing cn_home_widgets_order on sync:', e);
+      }
     };
     window.addEventListener('local-storage-sync', handleSettingsChange);
     window.addEventListener('local-settings-changed', handleSettingsChange);
@@ -1903,556 +1936,627 @@ const HubHome: React.FC<HubHomeProps> = ({
                 />
               );
             })}
-          </div>
+            </div>
+            
+            <div className="flex flex-col gap-6 mt-6 w-full animate-in fade-in slide-in-from-top-2 duration-300">
+              {widgetsOrder.map((widgetId) => {
+            if (widgetId === 'calendar') {
+              return (
+                <div 
+                  key="calendar"
+                  onMouseEnter={() => setIsCalendarHovered(true)}
+                  onMouseLeave={() => setIsCalendarHovered(false)}
+                  style={{ opacity: isCalendarHovered ? 1 : calendarOpacity }}
+                  className="w-full bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm rounded-2xl border border-zinc-200 dark:border-zinc-800 p-3.5 transition-all duration-300"
+                >
+                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-6">
+                    
+                    {/* Calendário Mensal (Grade) */}
+                    <div className="sm:col-span-8 flex flex-col gap-2">
+                      {/* Header do calendário com botões de navegação */}
+                      <div className="flex justify-between items-center px-1">
+                        <h3 className="text-xs font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest flex items-center gap-2">
+                          <CalendarDays size={12} />
+                          {calendarMonth.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }).toUpperCase()}
+                        </h3>
+                        <div className="flex items-center gap-2">
+                          {/* Opacity control for Calendar — only visible in edit mode */}
+                          {isHomeEditMode && (
+                            <div className="flex items-center gap-1.5 bg-zinc-100/60 dark:bg-zinc-800/50 px-2 py-0.5 rounded-lg border border-zinc-300/30 dark:border-zinc-700/50 animate-in fade-in duration-200">
+                              <Sliders size={10} className="text-zinc-400 dark:text-zinc-500" />
+                              <input 
+                                type="range" 
+                                min="0.2" 
+                                max="1" 
+                                step="0.05" 
+                                value={calendarOpacity} 
+                                onChange={(e) => {
+                                  e.stopPropagation();
+                                  const val = parseFloat(e.target.value);
+                                  setCalendarOpacity(val);
+                                  localStorage.setItem('cn_calendar_opacity', val.toString());
+                                }}
+                                className="w-14 h-1 bg-zinc-250 dark:bg-zinc-750 rounded-lg appearance-none cursor-pointer accent-zinc-500 dark:accent-zinc-400"
+                                title="Opacidade do calendário"
+                              />
+                              <span className="text-[8px] font-bold text-zinc-450 dark:text-zinc-500 w-6 text-right mr-1">
+                                {Math.round(calendarOpacity * 100)}%
+                              </span>
 
-        <div 
-          onMouseEnter={() => setIsCalendarHovered(true)}
-          onMouseLeave={() => setIsCalendarHovered(false)}
-          style={{ opacity: isCalendarHovered ? 1 : calendarOpacity }}
-          className="w-full mt-6 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm rounded-2xl border border-zinc-200 dark:border-zinc-800 p-3.5 transition-all duration-300 animate-in fade-in slide-in-from-top-2"
-        >
-            <div className="grid grid-cols-1 sm:grid-cols-12 gap-6">
-              
-              {/* Calendário Mensal (Grade) */}
-              <div className="sm:col-span-8 flex flex-col gap-2">
-                {/* Header do calendário com botões de navegação */}
-                <div className="flex justify-between items-center px-1">
-                  <h3 className="text-xs font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest flex items-center gap-2">
-                    <CalendarDays size={12} />
-                    {calendarMonth.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }).toUpperCase()}
-                  </h3>
-                  <div className="flex items-center gap-2">
-                    {/* Opacity control for Calendar — only visible in edit mode */}
-                    {isHomeEditMode && (
-                      <div className="flex items-center gap-1 bg-zinc-100/60 dark:bg-zinc-800/50 px-2 py-0.5 rounded-lg border border-zinc-300/30 dark:border-zinc-700/50 animate-in fade-in duration-200">
-                        <Sliders size={10} className="text-zinc-400 dark:text-zinc-500" />
-                        <input 
-                          type="range" 
-                          min="0.2" 
-                          max="1" 
-                          step="0.05" 
-                          value={calendarOpacity} 
-                          onChange={(e) => {
-                            e.stopPropagation();
-                            const val = parseFloat(e.target.value);
-                            setCalendarOpacity(val);
-                            localStorage.setItem('cn_calendar_opacity', val.toString());
-                          }}
-                          className="w-14 h-1 bg-zinc-250 dark:bg-zinc-750 rounded-lg appearance-none cursor-pointer accent-zinc-500 dark:accent-zinc-400"
-                          title="Opacidade do calendário"
-                        />
-                        <span className="text-[8px] font-bold text-zinc-450 dark:text-zinc-500 w-6 text-right">
-                          {Math.round(calendarOpacity * 100)}%
+                              <div className="w-[1px] h-3 bg-zinc-350 dark:bg-zinc-700 mx-0.5" />
+
+                              <button
+                                onClick={(e) => { e.stopPropagation(); moveWidget('calendar', 'up'); }}
+                                disabled={widgetsOrder.indexOf('calendar') === 0}
+                                className="text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed p-0.5"
+                                title="Mover para cima"
+                              >
+                                <ChevronUp size={11} strokeWidth={3} />
+                              </button>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); moveWidget('calendar', 'down'); }}
+                                disabled={widgetsOrder.indexOf('calendar') === widgetsOrder.length - 1}
+                                className="text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed p-0.5"
+                                title="Mover para baixo"
+                              >
+                                <ChevronDown size={11} strokeWidth={3} />
+                              </button>
+                            </div>
+                          )}
+
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const newDate = new Date(calendarMonth);
+                              newDate.setMonth(newDate.getMonth() - 1);
+                              setCalendarMonth(newDate);
+                            }}
+                            type="button"
+                            className={`p-1 hover:bg-zinc-200/30 dark:hover:bg-zinc-800 rounded-lg text-zinc-500 transition-colors cursor-pointer ${
+                              hasPastPendingEvents ? 'animate-pulse text-amber-500 dark:text-amber-400 font-black' : ''
+                            }`}
+                          >
+                            <ChevronLeft size={14} />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const newDate = new Date(calendarMonth);
+                              newDate.setMonth(newDate.getMonth() + 1);
+                              setCalendarMonth(newDate);
+                            }}
+                            type="button"
+                            className="p-1 hover:bg-zinc-200/30 dark:hover:bg-zinc-800 rounded-lg text-zinc-500 transition-colors cursor-pointer"
+                          >
+                            <ChevronRight size={14} />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Grade do Calendário */}
+                      <div className="grid grid-cols-7 gap-1">
+                        {/* Dias da semana */}
+                        {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((day, idx) => (
+                          <div key={idx} className="text-center text-[9px] font-black text-zinc-400 dark:text-zinc-650 uppercase py-1">{day}</div>
+                        ))}
+
+                        {/* Células dos dias do mês */}
+                        {(() => {
+                          const year = calendarMonth.getFullYear();
+                          const month = calendarMonth.getMonth();
+                          const firstDayIndex = new Date(year, month, 1).getDay();
+                          const totalDays = new Date(year, month + 1, 0).getDate();
+
+                          const cells = [];
+                          // Células vazias do mês anterior
+                          for (let i = 0; i < firstDayIndex; i++) {
+                            cells.push(<div key={`empty-${i}`} className="py-1.5" />);
+                          }
+
+                          // Dias do mês atual
+                          for (let day = 1; day <= totalDays; day++) {
+                            const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                            const isToday = dateStr === todayStr;
+                            const isSelected = dateStr === selectedCalendarDate;
+
+                            // Filtrar eventos do dia
+                            const dayTasks = calendarEvents.tasks.filter(t => {
+                              if (t.endDate) {
+                                return t.due_date <= dateStr && dateStr <= t.endDate;
+                              }
+                              return t.due_date === dateStr;
+                            });
+                            const dayStudies = calendarEvents.studies.filter(s => s.date === dateStr);
+                            const dayWorkouts = calendarEvents.workouts.filter(w => w.date === dateStr);
+                            const dayFinances = calendarEvents.finances.filter(f => f.date === dateStr);
+
+                            const hasTasks = dayTasks.length > 0;
+                            const hasRangeTask = dayTasks.some(t => !!t.endDate);
+                            const hasStudies = dayStudies.length > 0;
+                            const hasWorkouts = dayWorkouts.length > 0;
+                            const hasFinances = dayFinances.length > 0;
+
+                            cells.push(
+                              <div
+                                key={`day-${day}`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedCalendarDate(dateStr);
+                                }}
+                                className={`py-1.5 rounded-xl border flex flex-col items-center justify-center relative cursor-pointer transition-all hover:scale-105 active:scale-95 ${
+                                  isSelected
+                                    ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-950 border-zinc-900 dark:border-white shadow-sm'
+                                    : isToday
+                                      ? 'bg-zinc-200/50 dark:bg-zinc-800/60 border-zinc-300 dark:border-zinc-700 text-zinc-800 dark:text-white font-bold'
+                                      : hasRangeTask
+                                        ? 'bg-rose-500/10 dark:bg-rose-500/20 border-rose-500/20 dark:border-rose-900/50 text-rose-800 dark:text-rose-200'
+                                        : 'bg-zinc-50/40 dark:bg-zinc-900/40 border-zinc-250/60 dark:border-zinc-800/70 text-zinc-800 dark:text-zinc-200 hover:border-zinc-300 dark:hover:border-zinc-650'
+                                }`}
+                              >
+                                <span className="text-[10px] font-black leading-none">{day}</span>
+                                
+                                {/* Ícones indicadores sob o dia */}
+                                <div className="flex gap-0.5 mt-1 shrink-0 flex-wrap justify-center max-w-full">
+                                  {dayStudies.map((s, idx) => {
+                                    const isAtrasado = dateStr < todayStr && !s.completed;
+                                    return (
+                                      <BookOpen 
+                                        key={`study-${s.id || idx}`}
+                                        size={12} 
+                                        className={`shrink-0 transition-all ${
+                                          isAtrasado 
+                                            ? 'text-purple-600 dark:text-purple-400 drop-shadow-[0_0_4px_rgba(168,85,247,0.85)] scale-110 animate-pulse' 
+                                            : 'text-purple-500/80 dark:text-purple-400/80'
+                                        }`} 
+                                      />
+                                    );
+                                  })}
+                                  {dayTasks.filter(t => !t.endDate).map((t, idx) => {
+                                    const isAtrasado = dateStr < todayStr && !t.completed;
+                                    return (
+                                      <ListTodo 
+                                        key={`task-${t.id || idx}`}
+                                        size={12} 
+                                        className={`shrink-0 transition-all ${
+                                          isAtrasado 
+                                            ? 'text-red-600 dark:text-red-400 drop-shadow-[0_0_4px_rgba(239,68,68,0.85)] scale-110 animate-pulse' 
+                                            : 'text-red-500/80 dark:text-red-400/80'
+                                        }`} 
+                                      />
+                                    );
+                                  })}
+                                  {dayFinances.map((f, idx) => {
+                                    const isAtrasado = dateStr < todayStr;
+                                    return (
+                                      <DollarSign 
+                                        key={`finance-${f.id || idx}`}
+                                        size={12} 
+                                        className={`shrink-0 transition-all ${
+                                          isAtrasado 
+                                            ? 'text-emerald-600 dark:text-emerald-400 drop-shadow-[0_0_4px_rgba(10,185,129,0.85)] scale-110 animate-pulse' 
+                                            : 'text-emerald-500/80 dark:text-emerald-400/80'
+                                        }`} 
+                                      />
+                                    );
+                                  })}
+                                  {dayWorkouts.map((w, idx) => {
+                                    const isAtrasado = dateStr < todayStr && w.status !== 'realizado';
+                                    return (
+                                      <Activity 
+                                        key={`workout-${w.id || idx}`}
+                                        size={12} 
+                                        className={`shrink-0 transition-all ${
+                                          isAtrasado 
+                                            ? 'text-blue-600 dark:text-blue-400 drop-shadow-[0_0_4px_rgba(59,130,246,0.85)] scale-110 animate-pulse' 
+                                            : 'text-blue-500/80 dark:text-blue-400/80'
+                                        }`} 
+                                      />
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            );
+                          }
+
+                          return cells;
+                        })()}
+                      </div>
+                    </div>
+
+                    {/* Lista de Compromissos do Dia (Direita) */}
+                    <div className="sm:col-span-4 flex flex-col gap-3 min-w-0 sm:pl-6">
+                      <div className="flex justify-between items-center px-1">
+                        <h4 className="text-[9px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest">
+                          Compromissos do Dia
+                        </h4>
+                        <span className="text-[8px] font-bold text-zinc-400">
+                          {(() => {
+                            const parts = selectedCalendarDate.split('-');
+                            if (parts.length === 3) {
+                              return `${parts[2]}/${parts[1]}`;
+                            }
+                            return '';
+                          })()}
                         </span>
                       </div>
-                    )}
 
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        const newDate = new Date(calendarMonth);
-                        newDate.setMonth(newDate.getMonth() - 1);
-                        setCalendarMonth(newDate);
-                      }}
-                      type="button"
-                      className={`p-1 hover:bg-zinc-200/30 dark:hover:bg-zinc-800 rounded-lg text-zinc-500 transition-colors cursor-pointer ${
-                        hasPastPendingEvents ? 'animate-pulse text-amber-500 dark:text-amber-400 font-black' : ''
-                      }`}
-                    >
-                      <ChevronLeft size={14} />
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        const newDate = new Date(calendarMonth);
-                        newDate.setMonth(newDate.getMonth() + 1);
-                        setCalendarMonth(newDate);
-                      }}
-                      type="button"
-                      className="p-1 hover:bg-zinc-200/30 dark:hover:bg-zinc-800 rounded-lg text-zinc-500 transition-colors cursor-pointer"
-                    >
-                      <ChevronRight size={14} />
-                    </button>
+                      <div className="flex-1 overflow-y-auto pr-1 space-y-1.5 flex flex-col">
+                        {(() => {
+                          const dayTasks = calendarEvents.tasks.filter(t => {
+                            if (t.endDate) {
+                              return t.due_date <= selectedCalendarDate && selectedCalendarDate <= t.endDate;
+                            }
+                            return t.due_date === selectedCalendarDate;
+                          });
+                          const dayStudies = calendarEvents.studies.filter(s => s.date === selectedCalendarDate);
+                          const dayWorkouts = calendarEvents.workouts.filter(w => w.date === selectedCalendarDate);
+                          const dayFinances = calendarEvents.finances.filter(f => f.date === selectedCalendarDate);
+
+                          const totalCount = dayTasks.length + dayStudies.length + dayWorkouts.length + dayFinances.length;
+
+                          if (totalCount === 0) {
+                            return (
+                              <div className="flex-1 flex flex-col items-center justify-center text-center py-8 opacity-50">
+                                <CheckCircle2 size={20} className="text-zinc-400 mb-1" />
+                                <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">Dia Livre</p>
+                              </div>
+                            );
+                          }
+
+                          return (
+                            <>
+                               {/* Estudos */}
+                               {dayStudies.map(s => {
+                                 const isCompleted = s.completed;
+                                 const isRevisao = s.text && (s.text.toLowerCase().includes('revisão') || s.text.toLowerCase().includes('revisao'));
+                                 return (
+                                   <div 
+                                     key={s.id} 
+                                     onClick={() => { window.location.hash = 'estudos'; sessionStorage.setItem('estudosActiveTab', 'calendar'); }}
+                                     title="Abrir no módulo de Estudos"
+                                     className={`flex items-center gap-2 p-2 rounded-xl transition-all duration-200 cursor-pointer hover:scale-[1.01] ${
+                                       isCompleted
+                                         ? 'bg-zinc-100/40 dark:bg-zinc-800/20 border border-zinc-200/25 dark:border-zinc-800/30 opacity-40'
+                                         : isRevisao
+                                           ? 'bg-amber-500/10 dark:bg-amber-500/10 border-2 border-amber-500/40 dark:border-amber-400/50 shadow-xs'
+                                           : 'bg-purple-500/10 dark:bg-purple-500/10 border-2 border-purple-500/40 dark:border-purple-400/50 shadow-xs'
+                                     }`}
+                                   >
+                                     <Brain size={12} className={isCompleted ? 'text-zinc-450 dark:text-zinc-600 shrink-0' : isRevisao ? 'text-amber-500 shrink-0' : 'text-purple-500 shrink-0'} />
+                                     <div className="min-w-0 flex-1">
+                                       <p className={`text-[9px] font-black uppercase tracking-wider leading-none ${
+                                         isCompleted ? 'text-zinc-400 dark:text-zinc-550' : isRevisao ? 'text-amber-600 dark:text-amber-400' : 'text-purple-600 dark:text-purple-400'
+                                       }`}>
+                                         {isRevisao ? 'Revisão' : 'Estudo'} {!isCompleted && '• Pendente'}
+                                       </p>
+                                       <p className={`text-[10px] font-bold text-zinc-750 dark:text-zinc-200 truncate mt-0.5 leading-none ${
+                                         isCompleted ? 'line-through opacity-50' : ''
+                                       }`}>{s.text}</p>
+                                     </div>
+                                   </div>
+                                 );
+                               })}
+
+                               {/* Tarefas */}
+                               {dayTasks.map(t => {
+                                 const isCompleted = t.completed;
+                                 return (
+                                   <div 
+                                     key={t.id} 
+                                     onClick={() => { window.location.hash = 'tarefas'; }}
+                                     title="Abrir no módulo de Tarefas"
+                                     className={`flex items-center gap-2 p-2 rounded-xl transition-all duration-200 cursor-pointer hover:scale-[1.01] ${
+                                       isCompleted
+                                         ? 'bg-zinc-100/40 dark:bg-zinc-800/20 border border-zinc-200/25 dark:border-zinc-800/30 opacity-40'
+                                         : 'bg-red-500/10 dark:bg-red-500/10 border-2 border-red-500/40 dark:border-red-400/50 shadow-xs'
+                                     }`}
+                                   >
+                                     <ListTodo size={12} className={isCompleted ? 'text-zinc-450 dark:text-zinc-600 shrink-0' : 'text-red-500 shrink-0'} />
+                                     <div className="min-w-0 flex-1">
+                                       <p className={`text-[9px] font-black uppercase tracking-wider leading-none ${
+                                         isCompleted ? 'text-zinc-400 dark:text-zinc-550' : 'text-red-600 dark:text-red-400'
+                                       }`}>
+                                         Tarefa {!isCompleted && '• Pendente'}
+                                       </p>
+                                       <p className={`text-[10px] font-bold text-zinc-750 dark:text-zinc-200 truncate mt-0.5 leading-none ${
+                                         isCompleted ? 'line-through opacity-50' : ''
+                                       }`}>{t.text}</p>
+                                     </div>
+                                   </div>
+                                 );
+                               })}
+
+                               {/* Treinos */}
+                               {dayWorkouts.map(w => {
+                                 const isCompleted = w.status === 'realizado';
+                                 return (
+                                   <div 
+                                     key={w.id} 
+                                     onClick={() => { window.location.hash = 'saude'; sessionStorage.setItem('saude_active_tab', 'planner'); }}
+                                     title="Abrir no módulo de Saúde"
+                                     className={`flex items-center gap-2 p-2 rounded-xl transition-all duration-200 cursor-pointer hover:scale-[1.01] ${
+                                       isCompleted
+                                         ? 'bg-zinc-100/40 dark:bg-zinc-800/20 border border-zinc-200/25 dark:border-zinc-800/30 opacity-40'
+                                         : 'bg-blue-500/10 dark:bg-blue-500/10 border-2 border-blue-500/40 dark:border-blue-400/50 shadow-xs'
+                                     }`}
+                                   >
+                                     <Activity size={12} className={isCompleted ? 'text-zinc-450 dark:text-zinc-600 shrink-0' : 'text-blue-500 shrink-0'} />
+                                     <div className="min-w-0 flex-1">
+                                       <p className={`text-[9px] font-black uppercase tracking-wider leading-none ${
+                                         isCompleted ? 'text-zinc-400 dark:text-zinc-550' : 'text-blue-600 dark:text-blue-400'
+                                       }`}>
+                                         Treino {!isCompleted && '• Pendente'}
+                                       </p>
+                                       <p className={`text-[10px] font-bold text-zinc-750 dark:text-zinc-200 truncate mt-0.5 leading-none ${
+                                         isCompleted ? 'line-through opacity-50' : ''
+                                       }`}>{w.type}{w.muscles && w.muscles.length > 0 ? ` (${w.muscles.join(', ')})` : ''}</p>
+                                     </div>
+                                   </div>
+                                 );
+                               })}
+
+                               {/* Finanças */}
+                               {dayFinances.map(f => (
+                                 <div 
+                                   key={f.id} 
+                                   onClick={() => { window.location.hash = 'financas'; sessionStorage.setItem('openAddFinancasType', 'saida'); }}
+                                   title="Abrir no módulo de Finanças"
+                                   className="flex items-center gap-2 p-2 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/10 border border-emerald-500/30 dark:border-emerald-400/45 shadow-xs cursor-pointer hover:scale-[1.01] transition-all duration-200"
+                                 >
+                                   <DollarSign size={12} className="text-emerald-500 shrink-0" />
+                                   <div className="min-w-0 flex-1">
+                                     <p className="text-[9px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider leading-none">
+                                       Despesa • Pendente
+                                     </p>
+                                     <p className="text-[10px] font-bold text-zinc-750 dark:text-zinc-200 truncate mt-0.5 leading-none">
+                                       {f.name}
+                                     </p>
+                                   </div>
+                                   <span className="text-[9px] font-bold text-emerald-650 dark:text-emerald-400 shrink-0">
+                                     {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(f.amount)}
+                                   </span>
+                                 </div>
+                               ))}
+                            </>
+                          );
+                        })()}
+                      </div>
+                    </div>
+
                   </div>
                 </div>
+              );
+            }
 
-                {/* Grade do Calendário */}
-                <div className="grid grid-cols-7 gap-1">
-                  {/* Dias da semana */}
-                  {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((day, idx) => (
-                    <div key={idx} className="text-center text-[9px] font-black text-zinc-400 dark:text-zinc-650 uppercase py-1">{day}</div>
-                  ))}
-
-                  {/* Células dos dias do mês */}
-                  {(() => {
-                    const year = calendarMonth.getFullYear();
-                    const month = calendarMonth.getMonth();
-                    const firstDayIndex = new Date(year, month, 1).getDay();
-                    const totalDays = new Date(year, month + 1, 0).getDate();
-
-                    const cells = [];
-                    // Células vazias do mês anterior
-                    for (let i = 0; i < firstDayIndex; i++) {
-                      cells.push(<div key={`empty-${i}`} className="py-1.5" />);
-                    }
-
-                    // Dias do mês atual
-                    for (let day = 1; day <= totalDays; day++) {
-                      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                      const isToday = dateStr === todayStr;
-                      const isSelected = dateStr === selectedCalendarDate;
-
-                      // Filtrar eventos do dia
-                      const dayTasks = calendarEvents.tasks.filter(t => {
-                        if (t.endDate) {
-                          return t.due_date <= dateStr && dateStr <= t.endDate;
-                        }
-                        return t.due_date === dateStr;
-                      });
-                      const dayStudies = calendarEvents.studies.filter(s => s.date === dateStr);
-                      const dayWorkouts = calendarEvents.workouts.filter(w => w.date === dateStr);
-                      const dayFinances = calendarEvents.finances.filter(f => f.date === dateStr);
-
-                      const hasTasks = dayTasks.length > 0;
-                      const hasRangeTask = dayTasks.some(t => !!t.endDate);
-                      const hasStudies = dayStudies.length > 0;
-                      const hasWorkouts = dayWorkouts.length > 0;
-                      const hasFinances = dayFinances.length > 0;
-
-                      cells.push(
-                        <div
-                          key={`day-${day}`}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedCalendarDate(dateStr);
-                          }}
-                          className={`py-1.5 rounded-xl border flex flex-col items-center justify-center relative cursor-pointer transition-all hover:scale-105 active:scale-95 ${
-                            isSelected
-                              ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-950 border-zinc-900 dark:border-white shadow-sm'
-                              : isToday
-                                ? 'bg-zinc-200/50 dark:bg-zinc-800/60 border-zinc-300 dark:border-zinc-700 text-zinc-800 dark:text-white font-bold'
-                                : hasRangeTask
-                                  ? 'bg-rose-500/10 dark:bg-rose-500/20 border-rose-500/20 dark:border-rose-900/50 text-rose-800 dark:text-rose-200'
-                                  : 'bg-zinc-50/40 dark:bg-zinc-900/40 border-zinc-250/60 dark:border-zinc-800/70 text-zinc-800 dark:text-zinc-200 hover:border-zinc-300 dark:hover:border-zinc-650'
-                          }`}
-                        >
-                          <span className="text-[10px] font-black leading-none">{day}</span>
-                          
-                          {/* Ícones indicadores sob o dia */}
-                          <div className="flex gap-0.5 mt-1 shrink-0 flex-wrap justify-center max-w-full">
-                            {dayStudies.map((s, idx) => {
-                              const isAtrasado = dateStr < todayStr && !s.completed;
-                              return (
-                                <BookOpen 
-                                  key={`study-${s.id || idx}`}
-                                  size={12} 
-                                  className={`shrink-0 transition-all ${
-                                    isAtrasado 
-                                      ? 'text-purple-600 dark:text-purple-400 drop-shadow-[0_0_4px_rgba(168,85,247,0.85)] scale-110 animate-pulse' 
-                                      : 'text-purple-500/80 dark:text-purple-400/80'
-                                  }`} 
-                                />
-                              );
-                            })}
-                            {dayTasks.filter(t => !t.endDate).map((t, idx) => {
-                              const isAtrasado = dateStr < todayStr && !t.completed;
-                              return (
-                                <ListTodo 
-                                  key={`task-${t.id || idx}`}
-                                  size={12} 
-                                  className={`shrink-0 transition-all ${
-                                    isAtrasado 
-                                      ? 'text-red-600 dark:text-red-400 drop-shadow-[0_0_4px_rgba(239,68,68,0.85)] scale-110 animate-pulse' 
-                                      : 'text-red-500/80 dark:text-red-400/80'
-                                  }`} 
-                                />
-                              );
-                            })}
-                            {dayFinances.map((f, idx) => {
-                              const isAtrasado = dateStr < todayStr;
-                              return (
-                                <DollarSign 
-                                  key={`finance-${f.id || idx}`}
-                                  size={12} 
-                                  className={`shrink-0 transition-all ${
-                                    isAtrasado 
-                                      ? 'text-emerald-600 dark:text-emerald-400 drop-shadow-[0_0_4px_rgba(10,185,129,0.85)] scale-110 animate-pulse' 
-                                      : 'text-emerald-500/80 dark:text-emerald-400/80'
-                                  }`} 
-                                />
-                              );
-                            })}
-                            {dayWorkouts.map((w, idx) => {
-                              const isAtrasado = dateStr < todayStr && w.status !== 'realizado';
-                              return (
-                                <Activity 
-                                  key={`workout-${w.id || idx}`}
-                                  size={12} 
-                                  className={`shrink-0 transition-all ${
-                                    isAtrasado 
-                                      ? 'text-blue-600 dark:text-blue-400 drop-shadow-[0_0_4px_rgba(59,130,246,0.85)] scale-110 animate-pulse' 
-                                      : 'text-blue-500/80 dark:text-blue-400/80'
-                                  }`} 
-                                />
-                              );
-                            })}
-                          </div>
+            if (widgetId === 'habits') {
+              return (
+                <div 
+                  key="habits"
+                  onMouseEnter={() => setIsHabitsHovered(true)}
+                  onMouseLeave={() => setIsHabitsHovered(false)}
+                  style={{ opacity: isHabitsHovered ? 1 : habitsOpacity }}
+                  className="w-full bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm rounded-2xl border border-zinc-200 dark:border-zinc-800 flex flex-col justify-between p-3.5 overflow-hidden relative transition-all duration-300 h-[190px]"
+                >
+                  <div className="flex-1 min-h-0 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between mb-3">
+                        <div>
+                          <h3 className="text-[10px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest flex items-center gap-1.5">
+                            <ClipboardList size={12} className="text-zinc-450 dark:text-zinc-500" />
+                            Rastreador de Hábitos
+                          </h3>
                         </div>
-                      );
-                    }
 
-                    return cells;
-                  })()}
-                </div>
-              </div>
+                        {/* Opacity control for Habit Tracker — only visible in edit mode */}
+                        {isHomeEditMode && (
+                          <div className="flex items-center gap-1.5 bg-zinc-100/60 dark:bg-zinc-800/50 px-2 py-0.5 rounded-lg border border-zinc-300/30 dark:border-zinc-700/50 animate-in fade-in duration-200">
+                            <Sliders size={10} className="text-zinc-400 dark:text-zinc-500" />
+                            <input 
+                              type="range" 
+                              min="0.2" 
+                              max="1" 
+                              step="0.05" 
+                              value={habitsOpacity} 
+                              onChange={(e) => {
+                                e.stopPropagation();
+                                const val = parseFloat(e.target.value);
+                                setHabitsOpacity(val);
+                                localStorage.setItem('cn_habits_opacity', val.toString());
+                              }}
+                              className="w-14 h-1 bg-zinc-250 dark:bg-zinc-750 rounded-lg appearance-none cursor-pointer accent-zinc-500 dark:accent-zinc-400"
+                              title="Opacidade dos hábitos"
+                            />
+                            <span className="text-[8px] font-bold text-zinc-450 dark:text-zinc-500 w-6 text-right mr-1">
+                              {Math.round(habitsOpacity * 100)}%
+                            </span>
 
-              {/* Lista de Compromissos do Dia (Direita) */}
-              <div className="sm:col-span-4 flex flex-col gap-3 min-w-0 sm:pl-6">
-                <div className="flex justify-between items-center px-1">
-                  <h4 className="text-[9px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest">
-                    Compromissos do Dia
-                  </h4>
-                  <span className="text-[8px] font-bold text-zinc-400">
-                    {(() => {
-                      const parts = selectedCalendarDate.split('-');
-                      if (parts.length === 3) {
-                        return `${parts[2]}/${parts[1]}`;
-                      }
-                      return '';
-                    })()}
-                  </span>
-                </div>
+                            <div className="w-[1px] h-3 bg-zinc-350 dark:bg-zinc-700 mx-0.5" />
 
-                <div className="flex-1 overflow-y-auto pr-1 space-y-1.5 flex flex-col">
-                  {(() => {
-                    const dayTasks = calendarEvents.tasks.filter(t => {
-                      if (t.endDate) {
-                        return t.due_date <= selectedCalendarDate && selectedCalendarDate <= t.endDate;
-                      }
-                      return t.due_date === selectedCalendarDate;
-                    });
-                    const dayStudies = calendarEvents.studies.filter(s => s.date === selectedCalendarDate);
-                    const dayWorkouts = calendarEvents.workouts.filter(w => w.date === selectedCalendarDate);
-                    const dayFinances = calendarEvents.finances.filter(f => f.date === selectedCalendarDate);
-
-                    const totalCount = dayTasks.length + dayStudies.length + dayWorkouts.length + dayFinances.length;
-
-                    if (totalCount === 0) {
-                      return (
-                        <div className="flex-1 flex flex-col items-center justify-center text-center py-8 opacity-50">
-                          <CheckCircle2 size={20} className="text-zinc-400 mb-1" />
-                          <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">Dia Livre</p>
-                        </div>
-                      );
-                    }
-
-                    return (
-                      <>
-                         {/* Estudos */}
-                         {dayStudies.map(s => {
-                           const isCompleted = s.completed;
-                           const isRevisao = s.text && (s.text.toLowerCase().includes('revisão') || s.text.toLowerCase().includes('revisao'));
-                           return (
-                             <div 
-                               key={s.id} 
-                               onClick={() => { window.location.hash = 'estudos'; sessionStorage.setItem('estudosActiveTab', 'calendar'); }}
-                               title="Abrir no módulo de Estudos"
-                               className={`flex items-center gap-2 p-2 rounded-xl transition-all duration-200 cursor-pointer hover:scale-[1.01] ${
-                                 isCompleted
-                                   ? 'bg-zinc-100/40 dark:bg-zinc-800/20 border border-zinc-200/25 dark:border-zinc-800/30 opacity-40'
-                                   : isRevisao
-                                     ? 'bg-amber-500/10 dark:bg-amber-500/10 border-2 border-amber-500/40 dark:border-amber-400/50 shadow-xs'
-                                     : 'bg-purple-500/10 dark:bg-purple-500/10 border-2 border-purple-500/40 dark:border-purple-400/50 shadow-xs'
-                               }`}
-                             >
-                               <Brain size={12} className={isCompleted ? 'text-zinc-450 dark:text-zinc-600 shrink-0' : isRevisao ? 'text-amber-500 shrink-0' : 'text-purple-500 shrink-0'} />
-                               <div className="min-w-0 flex-1">
-                                 <p className={`text-[9px] font-black uppercase tracking-wider leading-none ${
-                                   isCompleted ? 'text-zinc-400 dark:text-zinc-550' : isRevisao ? 'text-amber-600 dark:text-amber-400' : 'text-purple-600 dark:text-purple-400'
-                                 }`}>
-                                   {isRevisao ? 'Revisão' : 'Estudo'} {!isCompleted && '• Pendente'}
-                                 </p>
-                                 <p className={`text-[10px] font-bold text-zinc-750 dark:text-zinc-200 truncate mt-0.5 leading-none ${
-                                   isCompleted ? 'line-through opacity-50' : ''
-                                 }`}>{s.text}</p>
-                               </div>
-                             </div>
-                           );
-                         })}
-
-                         {/* Tarefas */}
-                         {dayTasks.map(t => {
-                           const isCompleted = t.completed;
-                           return (
-                             <div 
-                               key={t.id} 
-                               onClick={() => { window.location.hash = 'tarefas'; }}
-                               title="Abrir no módulo de Tarefas"
-                               className={`flex items-center gap-2 p-2 rounded-xl transition-all duration-200 cursor-pointer hover:scale-[1.01] ${
-                                 isCompleted
-                                   ? 'bg-zinc-100/40 dark:bg-zinc-800/20 border border-zinc-200/25 dark:border-zinc-800/30 opacity-40'
-                                   : 'bg-red-500/10 dark:bg-red-500/10 border-2 border-red-500/40 dark:border-red-400/50 shadow-xs'
-                               }`}
-                             >
-                               <ListTodo size={12} className={isCompleted ? 'text-zinc-450 dark:text-zinc-600 shrink-0' : 'text-red-500 shrink-0'} />
-                               <div className="min-w-0 flex-1">
-                                 <p className={`text-[9px] font-black uppercase tracking-wider leading-none ${
-                                   isCompleted ? 'text-zinc-400 dark:text-zinc-550' : 'text-red-600 dark:text-red-400'
-                                 }`}>
-                                   Tarefa {!isCompleted && '• Pendente'}
-                                 </p>
-                                 <p className={`text-[10px] font-bold text-zinc-750 dark:text-zinc-200 truncate mt-0.5 leading-none ${
-                                   isCompleted ? 'line-through opacity-50' : ''
-                                 }`}>{t.text}</p>
-                               </div>
-                             </div>
-                           );
-                         })}
-
-                         {/* Treinos */}
-                         {dayWorkouts.map(w => {
-                           const isCompleted = w.status === 'realizado';
-                           return (
-                             <div 
-                               key={w.id} 
-                               onClick={() => { window.location.hash = 'saude'; sessionStorage.setItem('saude_active_tab', 'planner'); }}
-                               title="Abrir no módulo de Saúde"
-                               className={`flex items-center gap-2 p-2 rounded-xl transition-all duration-200 cursor-pointer hover:scale-[1.01] ${
-                                 isCompleted
-                                   ? 'bg-zinc-100/40 dark:bg-zinc-800/20 border border-zinc-200/25 dark:border-zinc-800/30 opacity-40'
-                                   : 'bg-blue-500/10 dark:bg-blue-500/10 border-2 border-blue-500/40 dark:border-blue-400/50 shadow-xs'
-                               }`}
-                             >
-                               <Activity size={12} className={isCompleted ? 'text-zinc-450 dark:text-zinc-600 shrink-0' : 'text-blue-500 shrink-0'} />
-                               <div className="min-w-0 flex-1">
-                                 <p className={`text-[9px] font-black uppercase tracking-wider leading-none ${
-                                   isCompleted ? 'text-zinc-400 dark:text-zinc-550' : 'text-blue-600 dark:text-blue-400'
-                                 }`}>
-                                   Treino {!isCompleted && '• Pendente'}
-                                 </p>
-                                 <p className={`text-[10px] font-bold text-zinc-750 dark:text-zinc-200 truncate mt-0.5 leading-none ${
-                                   isCompleted ? 'line-through opacity-50' : ''
-                                 }`}>{w.type}{w.muscles && w.muscles.length > 0 ? ` (${w.muscles.join(', ')})` : ''}</p>
-                               </div>
-                             </div>
-                           );
-                         })}
-
-                         {/* Finanças */}
-                         {dayFinances.map(f => (
-                           <div 
-                             key={f.id} 
-                             onClick={() => { window.location.hash = 'financas'; sessionStorage.setItem('openAddFinancasType', 'saida'); }}
-                             title="Abrir no módulo de Finanças"
-                             className="flex items-center gap-2 p-2 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/10 border border-emerald-500/30 dark:border-emerald-400/45 shadow-xs cursor-pointer hover:scale-[1.01] transition-all duration-200"
-                           >
-                             <DollarSign size={12} className="text-emerald-500 shrink-0" />
-                             <div className="min-w-0 flex-1">
-                               <p className="text-[9px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider leading-none">
-                                 Despesa • Pendente
-                               </p>
-                               <p className="text-[10px] font-bold text-zinc-750 dark:text-zinc-200 truncate mt-0.5 leading-none">
-                                 {f.name}
-                               </p>
-                             </div>
-                             <span className="text-[9px] font-bold text-emerald-650 dark:text-emerald-400 shrink-0">
-                               {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(f.amount)}
-                             </span>
-                           </div>
-                         ))}
-                      </>
-                    );
-                  })()}
-                </div>
-              </div>
-
-            </div>
-          </div>
-
-        {/* Habits & Sleep widgets container side-by-side */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6 w-full animate-in fade-in slide-in-from-top-2 duration-300">
-          
-          {/* Habit Tracker Section */}
-          <div 
-            onMouseEnter={() => setIsHabitsHovered(true)}
-            onMouseLeave={() => setIsHabitsHovered(false)}
-            style={{ opacity: isHabitsHovered ? 1 : habitsOpacity }}
-            className="bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm rounded-2xl border border-zinc-200 dark:border-zinc-800 flex flex-col justify-between p-3.5 overflow-hidden relative transition-all duration-300 h-[280px]"
-          >
-            <div className="flex-1 min-h-0 flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <div>
-                    <h3 className="text-[10px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest flex items-center gap-1.5">
-                      <ClipboardList size={12} className="text-zinc-450 dark:text-zinc-500" />
-                      Rastreador de Hábitos
-                    </h3>
-                  </div>
-
-                  {/* Opacity control for Habit Tracker — only visible in edit mode */}
-                  {isHomeEditMode && (
-                    <div className="flex items-center gap-1 bg-zinc-100/60 dark:bg-zinc-800/50 px-2 py-0.5 rounded-lg border border-zinc-300/30 dark:border-zinc-700/50 animate-in fade-in duration-200">
-                      <Sliders size={10} className="text-zinc-400 dark:text-zinc-500" />
-                      <input 
-                        type="range" 
-                        min="0.2" 
-                        max="1" 
-                        step="0.05" 
-                        value={habitsOpacity} 
-                        onChange={(e) => {
-                          e.stopPropagation();
-                          const val = parseFloat(e.target.value);
-                          setHabitsOpacity(val);
-                          localStorage.setItem('cn_habits_opacity', val.toString());
-                        }}
-                        className="w-14 h-1 bg-zinc-250 dark:bg-zinc-750 rounded-lg appearance-none cursor-pointer accent-zinc-500 dark:accent-zinc-400"
-                        title="Opacidade dos hábitos"
-                      />
-                      <span className="text-[8px] font-bold text-zinc-450 dark:text-zinc-500 w-6 text-right">
-                        {Math.round(habitsOpacity * 100)}%
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                {/* List of habits checkboxes */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 xl:grid-cols-3 gap-2 mt-2 max-h-[140px] overflow-y-auto custom-scrollbar pr-1">
-                  {habits.length === 0 ? (
-                    <div className="py-4 text-center text-xs text-zinc-450 dark:text-zinc-500 font-medium col-span-full">
-                      Você não possui hábitos definidos. Acesse o card de Hábitos para criar.
-                    </div>
-                  ) : (
-                    habits.map(h => {
-                      const isCompleted = (habitHistory[todayStr] || []).includes(h.id);
-                      return (
-                        <div
-                          key={h.id}
-                          onClick={() => toggleHabit(h.id)}
-                          className={`flex items-center gap-2.5 p-2 px-3 rounded-xl border transition-all duration-200 cursor-pointer select-none ${
-                            isCompleted
-                              ? 'bg-zinc-100/50 dark:bg-zinc-950/15 border-zinc-200 dark:border-zinc-900/50 opacity-60'
-                              : 'bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800/80 hover:border-slate-400 dark:hover:border-slate-600 hover:shadow-sm'
-                          }`}
-                        >
-                          <div className="relative flex items-center justify-center shrink-0">
-                            <div className={`w-4 h-4 rounded-md border flex items-center justify-center transition-all ${
-                              isCompleted
-                                ? 'bg-slate-700 dark:bg-slate-600 border-slate-700 dark:border-slate-600 text-white shadow-sm shadow-slate-500/25'
-                                : 'border-zinc-300 dark:border-zinc-600 bg-zinc-50 dark:bg-zinc-800 group-hover:border-slate-500'
-                            }`}>
-                              {isCompleted && <Check size={9} strokeWidth={3} />}
-                            </div>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); moveWidget('habits', 'up'); }}
+                              disabled={widgetsOrder.indexOf('habits') === 0}
+                              className="text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed p-0.5"
+                              title="Mover para cima"
+                            >
+                              <ChevronUp size={11} strokeWidth={3} />
+                            </button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); moveWidget('habits', 'down'); }}
+                              disabled={widgetsOrder.indexOf('habits') === widgetsOrder.length - 1}
+                              className="text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed p-0.5"
+                              title="Mover para baixo"
+                            >
+                              <ChevronDown size={11} strokeWidth={3} />
+                            </button>
                           </div>
-                          <span className={`text-xs font-black transition-all truncate leading-none ${
-                            isCompleted
-                              ? 'line-through text-zinc-400 dark:text-zinc-500 font-bold'
-                              : 'text-zinc-900 dark:text-white'
-                          }`}>
-                            {h.name}
+                        )}
+                      </div>
+
+                      {/* List of habits checkboxes */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 xl:grid-cols-3 gap-2 mt-2 max-h-[140px] overflow-y-auto custom-scrollbar pr-1">
+                        {habits.length === 0 ? (
+                          <div className="py-4 text-center text-xs text-zinc-450 dark:text-zinc-500 font-medium col-span-full">
+                            Você não possui hábitos definidos. Acesse o card de Hábitos para criar.
+                          </div>
+                        ) : (
+                          habits.map(h => {
+                            const isCompleted = (habitHistory[todayStr] || []).includes(h.id);
+                            return (
+                              <div
+                                key={h.id}
+                                onClick={() => toggleHabit(h.id)}
+                                className={`flex items-center gap-2.5 p-2 px-3 rounded-xl border transition-all duration-200 cursor-pointer select-none ${
+                                  isCompleted
+                                    ? 'bg-zinc-100/50 dark:bg-zinc-955/15 border-zinc-200 dark:border-zinc-900/50 opacity-60'
+                                    : 'bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800/80 hover:border-slate-400 dark:hover:border-slate-600 hover:shadow-sm'
+                                }`}
+                              >
+                                <div className="relative flex items-center justify-center shrink-0">
+                                  <div className={`w-4 h-4 rounded-md border flex items-center justify-center transition-all ${
+                                    isCompleted
+                                      ? 'bg-slate-700 dark:bg-slate-600 border-slate-700 dark:border-slate-600 text-white shadow-sm shadow-slate-500/25'
+                                      : 'border-zinc-300 dark:border-zinc-600 bg-zinc-50 dark:bg-zinc-800 group-hover:border-slate-500'
+                                  }`}>
+                                    {isCompleted && <Check size={9} strokeWidth={3} />}
+                                  </div>
+                                </div>
+                                <span className={`text-xs font-black transition-all truncate leading-none ${
+                                  isCompleted
+                                    ? 'line-through text-zinc-450 dark:text-zinc-500 font-bold'
+                                    : 'text-zinc-900 dark:text-white'
+                                }`}>
+                                  {h.name}
+                                </span>
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Progress Indicator */}
+                    {habits.length > 0 && (
+                      <div className="mt-2 pt-2 border-t border-zinc-200/20 dark:border-zinc-800/20 animate-in fade-in duration-300 shrink-0">
+                        <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-wider text-zinc-400 mb-1">
+                          <span>Progresso de hoje</span>
+                          <span className="text-slate-600 dark:text-slate-400">
+                            {habits.filter(h => (habitHistory[todayStr] || []).includes(h.id)).length}/{habits.length}
                           </span>
                         </div>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
-
-              {/* Progress Indicator */}
-              {habits.length > 0 && (
-                <div className="mt-2 pt-2 border-t border-zinc-200/20 dark:border-zinc-800/20 animate-in fade-in duration-300 shrink-0">
-                  <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-wider text-zinc-400 mb-1">
-                    <span>Progresso de hoje</span>
-                    <span className="text-slate-600 dark:text-slate-400">
-                      {habits.filter(h => (habitHistory[todayStr] || []).includes(h.id)).length}/{habits.length}
-                    </span>
-                  </div>
-                  <div className="w-full h-1.5 bg-zinc-200/40 dark:bg-zinc-800/40 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-gradient-to-r from-slate-600 to-zinc-500 rounded-full transition-all duration-500"
-                      style={{ width: `${(habits.filter(h => (habitHistory[todayStr] || []).includes(h.id)).length / habits.length) * 100}%` }}
-                    />
+                        <div className="w-full h-1.5 bg-zinc-200/40 dark:bg-zinc-800/40 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-gradient-to-r from-slate-600 to-zinc-500 rounded-full transition-all duration-500"
+                            style={{ width: `${(habits.filter(h => (habitHistory[todayStr] || []).includes(h.id)).length / habits.length) * 100}%` }}
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
-              )}
-            </div>
-          </div>
+              );
+            }
 
-          {/* Sleep Tracker Section */}
-          <div 
-            onMouseEnter={() => setIsSleepHovered(true)}
-            onMouseLeave={() => setIsSleepHovered(false)}
-            style={{ opacity: isSleepHovered ? 1 : sleepOpacity }}
-            className="bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm rounded-2xl border border-zinc-200 dark:border-zinc-800 flex flex-col justify-between p-3.5 overflow-hidden relative transition-all duration-300 h-[280px]"
-          >
-            <div className="flex items-center justify-between mb-1.5 shrink-0">
-              <h3 className="text-[10px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest flex items-center gap-1.5">
-                <Moon size={12} className="text-zinc-450 dark:text-zinc-500" />
-                Monitoramento de Sono (Últimos 7 dias)
-              </h3>
-              
-              <div className="flex items-center gap-2">
-                {/* Opacity control for Sleep — only visible in edit mode */}
-                {isHomeEditMode && (
-                  <div className="flex items-center gap-1 bg-zinc-100/60 dark:bg-zinc-800/50 px-2 py-0.5 rounded-lg border border-zinc-300/30 dark:border-zinc-700/50 animate-in fade-in duration-200">
-                    <Sliders size={10} className="text-zinc-400 dark:text-zinc-500" />
-                    <input 
-                      type="range" 
-                      min="0.2" 
-                      max="1" 
-                      step="0.05" 
-                      value={sleepOpacity} 
-                      onChange={(e) => {
-                        e.stopPropagation();
-                        const val = parseFloat(e.target.value);
-                        setSleepOpacity(val);
-                        localStorage.setItem('cn_sleep_opacity', val.toString());
-                      }}
-                      className="w-14 h-1 bg-zinc-250 dark:bg-zinc-750 rounded-lg appearance-none cursor-pointer accent-zinc-500 dark:accent-zinc-400"
-                      title="Opacidade do sono"
-                    />
-                    <span className="text-[8px] font-bold text-zinc-450 dark:text-zinc-500 w-6 text-right">
-                      {Math.round(sleepOpacity * 100)}%
-                    </span>
-                  </div>
-                )}
-                
-                {/* Minimal and elegant shortcut button */}
-                <button
-                  onClick={() => setShowAddSleepModal(true)}
-                  className="flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-purple-600 dark:text-purple-400 bg-purple-55/15 hover:bg-purple-100 dark:hover:bg-purple-900/30 border border-purple-200/50 dark:border-purple-900/50 px-2 py-1 rounded-xl shadow-xs transition-all hover:scale-102 cursor-pointer shrink-0 font-extrabold"
-                  title="Registrar Noite de Sono"
+            if (widgetId === 'sleep') {
+              return (
+                <div 
+                  key="sleep"
+                  onMouseEnter={() => setIsSleepHovered(true)}
+                  onMouseLeave={() => setIsSleepHovered(false)}
+                  style={{ opacity: isSleepHovered ? 1 : sleepOpacity }}
+                  className="w-full bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm rounded-2xl border border-zinc-200 dark:border-zinc-800 flex flex-col justify-between p-3.5 overflow-hidden relative transition-all duration-300 h-[190px]"
                 >
-                  <Plus size={10} strokeWidth={2.5} />
-                  <span>Novo Registro</span>
-                </button>
-              </div>
-            </div>
+                  <div className="flex items-center justify-between mb-1.5 shrink-0">
+                    <h3 className="text-[10px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest flex items-center gap-1.5">
+                      <Moon size={12} className="text-zinc-450 dark:text-zinc-500" />
+                      Monitoramento de Sono (Últimos 7 dias)
+                    </h3>
+                    
+                    <div className="flex items-center gap-2">
+                      {/* Opacity control for Sleep — only visible in edit mode */}
+                      {isHomeEditMode && (
+                        <div className="flex items-center gap-1.5 bg-zinc-100/60 dark:bg-zinc-800/50 px-2 py-0.5 rounded-lg border border-zinc-300/30 dark:border-zinc-700/50 animate-in fade-in duration-200">
+                          <Sliders size={10} className="text-zinc-400 dark:text-zinc-500" />
+                          <input 
+                            type="range" 
+                            min="0.2" 
+                            max="1" 
+                            step="0.05" 
+                            value={sleepOpacity} 
+                            onChange={(e) => {
+                              e.stopPropagation();
+                              const val = parseFloat(e.target.value);
+                              setSleepOpacity(val);
+                              localStorage.setItem('cn_sleep_opacity', val.toString());
+                            }}
+                            className="w-14 h-1 bg-zinc-250 dark:bg-zinc-750 rounded-lg appearance-none cursor-pointer accent-zinc-500 dark:accent-zinc-400"
+                            title="Opacidade do sono"
+                          />
+                          <span className="text-[8px] font-bold text-zinc-450 dark:text-zinc-500 w-6 text-right mr-1">
+                            {Math.round(sleepOpacity * 100)}%
+                          </span>
 
-            {/* Sleep Graph Area */}
-            <div className="flex-1 w-full min-h-0 pt-2 relative">
-              {sleepChartData.some(d => d.horas > 0) ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={sleepChartData} margin={{ top: 5, right: -5, left: -25, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="colorSleepHoras" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3}/>
-                        <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
-                    <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#888' }} />
-                    <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#888' }} />
-                    <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#888' }} />
-                    <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '10px', fontWeight: 'bold' }} />
-                    <Area yAxisId="left" type="monotone" dataKey="horas" stroke="#8b5cf6" strokeWidth={3} fillOpacity={1} fill="url(#colorSleepHoras)" name="Tempo (h)" />
-                    <Area yAxisId="right" type="monotone" dataKey="score" stroke="#0ea5e9" strokeWidth={2} fillOpacity={0} name="Score (%)" />
-                  </AreaChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="h-full flex items-center justify-center text-zinc-400 text-xs font-semibold py-8">Nenhum registro de sono esta semana.</div>
-              )}
-            </div>
-          </div>
+                          <div className="w-[1px] h-3 bg-zinc-350 dark:bg-zinc-700 mx-0.5" />
+
+                          <button
+                            onClick={(e) => { e.stopPropagation(); moveWidget('sleep', 'up'); }}
+                            disabled={widgetsOrder.indexOf('sleep') === 0}
+                            className="text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed p-0.5"
+                            title="Mover para cima"
+                          >
+                            <ChevronUp size={11} strokeWidth={3} />
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); moveWidget('sleep', 'down'); }}
+                            disabled={widgetsOrder.indexOf('sleep') === widgetsOrder.length - 1}
+                            className="text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed p-0.5"
+                            title="Mover para baixo"
+                          >
+                            <ChevronDown size={11} strokeWidth={3} />
+                          </button>
+                        </div>
+                      )}
+                      
+                      {/* Minimal and elegant shortcut button */}
+                      <button
+                        onClick={() => setShowAddSleepModal(true)}
+                        className="flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-purple-600 dark:text-purple-400 bg-purple-55/15 hover:bg-purple-100 dark:hover:bg-purple-900/30 border border-purple-200/50 dark:border-purple-900/50 px-2 py-1 rounded-xl shadow-xs transition-all hover:scale-102 cursor-pointer shrink-0 font-extrabold"
+                        title="Registrar Noite de Sono"
+                      >
+                        <Plus size={10} strokeWidth={2.5} />
+                        <span>Novo Registro</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Sleep Graph Area */}
+                  <div className="flex-1 w-full min-h-0 pt-2 relative">
+                    {sleepChartData.some(d => d.horas > 0) ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={sleepChartData} margin={{ top: 5, right: -5, left: -25, bottom: 0 }}>
+                          <defs>
+                            <linearGradient id="colorSleepHoras" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3}/>
+                              <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
+                          <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#888' }} />
+                          <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#888' }} />
+                          <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#888' }} />
+                          <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '10px', fontWeight: 'bold' }} />
+                          <Area yAxisId="left" type="monotone" dataKey="horas" stroke="#8b5cf6" strokeWidth={3} fillOpacity={1} fill="url(#colorSleepHoras)" name="Tempo (h)" />
+                          <Area yAxisId="right" type="monotone" dataKey="score" stroke="#0ea5e9" strokeWidth={2} fillOpacity={0} name="Score (%)" />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div className="h-full flex items-center justify-center text-zinc-400 text-xs font-semibold py-8">Nenhum registro de sono esta semana.</div>
+                    )}
+                  </div>
+                </div>
+              );
+            }
+            return null;
+          })}
         </div>
 
         {/* Modal para registrar sono */}

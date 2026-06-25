@@ -44,7 +44,8 @@ const SYNC_KEYS = [
   'cn_saude_muscle_groups',
   'cn_saude_dashboard_layout',
   'cn_home_cards_layout',
-  'cn_global_alignment'
+  'cn_global_alignment',
+  'cn_home_widgets_order'
 ];
 
 function mergeLists<T extends { id: string }>(listA: T[], listB: T[]): T[] {

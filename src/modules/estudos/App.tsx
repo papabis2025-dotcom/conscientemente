@@ -118,18 +118,49 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
         const baseDuration = Math.floor(durationVal / count);
         const remDuration = durationVal % count;
 
-        const baseDone = qDone !== undefined ? Math.floor(qDone / count) : undefined;
-        const remDone = qDone !== undefined ? qDone % count : 0;
+        const itemDones: (number | undefined)[] = [];
+        if (qDone !== undefined) {
+          const baseDone = Math.floor(qDone / count);
+          const remDone = qDone % count;
+          for (let i = 0; i < count; i++) {
+            itemDones.push(baseDone + (i < remDone ? 1 : 0));
+          }
+        } else {
+          for (let i = 0; i < count; i++) {
+            itemDones.push(undefined);
+          }
+        }
 
-        const baseCorrect = qCorrect !== undefined ? Math.floor(qCorrect / count) : undefined;
-        const remCorrect = qCorrect !== undefined ? qCorrect % count : 0;
+        const itemCorrects: (number | undefined)[] = [];
+        if (qCorrect !== undefined && qDone !== undefined) {
+          const correctList = new Array(count).fill(0);
+          let remainingCorrect = qCorrect;
+          let added = true;
+          while (remainingCorrect > 0 && added) {
+            added = false;
+            for (let i = 0; i < count; i++) {
+              if (remainingCorrect > 0 && correctList[i] < (itemDones[i] || 0)) {
+                correctList[i] += 1;
+                remainingCorrect -= 1;
+                added = true;
+              }
+            }
+          }
+          for (let i = 0; i < count; i++) {
+            itemCorrects.push(correctList[i]);
+          }
+        } else {
+          for (let i = 0; i < count; i++) {
+            itemCorrects.push(qCorrect !== undefined ? Math.floor(qCorrect / count) : undefined);
+          }
+        }
 
         const sessionsList: StudySession[] = [];
 
         for (let i = 0; i < count; i++) {
           const itemDuration = i === 0 ? baseDuration + remDuration : baseDuration;
-          const itemDone = qDone !== undefined ? (i === 0 ? baseDone! + remDone : baseDone) : undefined;
-          const itemCorrect = qCorrect !== undefined ? (i === 0 ? baseCorrect! + remCorrect : baseCorrect) : undefined;
+          const itemDone = itemDones[i];
+          const itemCorrect = itemCorrects[i];
 
           sessionsList.push({
             id: crypto.randomUUID(),

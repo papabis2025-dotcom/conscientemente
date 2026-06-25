@@ -57,7 +57,12 @@ const SimuladosView: React.FC<SimuladosViewProps> = ({ subjects, simulados, onAd
       return;
     }
 
-    const totalQuestions = results.reduce((acc, r) => acc + r.done, 0);
+    const sanitizedResults = results.map(r => ({
+      ...r,
+      correct: Math.min(r.correct, r.done)
+    }));
+
+    const totalQuestions = sanitizedResults.reduce((acc, r) => acc + r.done, 0);
     const durationVal = parseInt(duration) || 0;
 
     if (editingId) {
@@ -66,7 +71,7 @@ const SimuladosView: React.FC<SimuladosViewProps> = ({ subjects, simulados, onAd
         name,
         date,
         totalQuestions,
-        results,
+        results: sanitizedResults,
         durationInMinutes: durationVal
       };
       onUpdateSimulado(editingId, updatedSim);
@@ -76,7 +81,7 @@ const SimuladosView: React.FC<SimuladosViewProps> = ({ subjects, simulados, onAd
         name,
         date,
         totalQuestions,
-        results,
+        results: sanitizedResults,
         durationInMinutes: durationVal
       };
       onAddSimulado(newSim);

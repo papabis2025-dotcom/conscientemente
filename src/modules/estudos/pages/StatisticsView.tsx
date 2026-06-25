@@ -88,7 +88,7 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, con
       const subSessions = sessions.filter(s => s.subjectId === sub.id);
       const questions = subSessions.reduce((acc, s) => acc + (s.questionsDone || 0), 0);
       const correct = subSessions.reduce((acc, s) => acc + (s.questionsCorrect || 0), 0);
-      const accuracy = questions > 0 ? Math.round((correct / questions) * 100) : 0;
+      const accuracy = questions > 0 ? Math.min(100, Math.round((correct / questions) * 100)) : 0;
       const weight = sub.weight || 1;
       const questionsGoal = sub.questionsGoal || 0;
       const minutes = subSessions.reduce((acc, s) => acc + (s.durationInMinutes || 0), 0);
@@ -268,7 +268,7 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, con
                         const topicSessions = sessions.filter(s => s.subjectId === sub.id && s.topicId === topic.id);
                         const tQuestions = topicSessions.reduce((acc, s) => acc + (s.questionsDone || 0), 0);
                         const tCorrect = topicSessions.reduce((acc, s) => acc + (s.questionsCorrect || 0), 0);
-                        const tAccuracy = tQuestions > 0 ? Math.round((tCorrect / tQuestions) * 100) : 0;
+                        const tAccuracy = tQuestions > 0 ? Math.min(100, Math.round((tCorrect / tQuestions) * 100)) : 0;
                         const tMinutes = topicSessions.reduce((acc, s) => acc + (s.durationInMinutes || 0), 0);
 
                         return (

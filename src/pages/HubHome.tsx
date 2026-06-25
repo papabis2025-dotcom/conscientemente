@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { MODULES } from '../constants';
 import { Module } from '../types';
 import { LogEntry } from '../modules/estudos/types';
@@ -322,6 +323,140 @@ const HubHome: React.FC<HubHomeProps> = ({
     }
   });
   const [mounted, setMounted] = useState(false);
+
+  const [alignment, setAlignment] = useState<'left' | 'center' | 'right'>(() => {
+    return (localStorage.getItem('cn_global_alignment') as any) || 'center';
+  });
+
+  const handleSetAlignment = (align: 'left' | 'center' | 'right') => {
+    setAlignment(align);
+    localStorage.setItem('cn_global_alignment', align);
+    window.dispatchEvent(new Event('local-settings-changed'));
+  };
+
+  useEffect(() => {
+    const handleSettingsChange = () => {
+      const val = (localStorage.getItem('cn_global_alignment') as any) || 'center';
+      setAlignment(val);
+    };
+    window.addEventListener('local-storage-sync', handleSettingsChange);
+    window.addEventListener('local-settings-changed', handleSettingsChange);
+    window.addEventListener('storage', handleSettingsChange);
+    return () => {
+      window.removeEventListener('local-storage-sync', handleSettingsChange);
+      window.removeEventListener('local-settings-changed', handleSettingsChange);
+      window.removeEventListener('storage', handleSettingsChange);
+    };
+  }, []);
+
+  const [sleepOpacity, setSleepOpacity] = useState<number>(() => {
+    const saved = localStorage.getItem('cn_sleep_opacity');
+    return saved ? parseFloat(saved) : 0.95;
+  });
+  const [isSleepHovered, setIsSleepHovered] = useState(false);
+  const [sleepLogs, setSleepLogs] = useState<any[]>([]);
+
+  const loadSleepLogs = useCallback(() => {
+    try {
+      const saved = localStorage.getItem('cn_saude_sleep_logs');
+      if (saved) {
+        setSleepLogs(JSON.parse(saved));
+      } else {
+        setSleepLogs([]);
+      }
+    } catch (e) {
+      console.error('Error loading sleep logs:', e);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadSleepLogs();
+  }, [loadSleepLogs]);
+
+  const [showAddSleepModal, setShowAddSleepModal] = useState(false);
+  const [sleepFormDate, setSleepFormDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [sleepDeepH, setSleepDeepH] = useState('1');
+  const [sleepDeepM, setSleepDeepM] = useState('30');
+  const [sleepLightH, setSleepLightH] = useState('4');
+  const [sleepLightM, setSleepLightM] = useState('0');
+  const [sleepRemH, setSleepRemH] = useState('1');
+  const [sleepRemM, setSleepRemM] = useState('30');
+  const [sleepAwakeH, setSleepAwakeH] = useState('0');
+  const [sleepAwakeM, setSleepAwakeM] = useState('15');
+  const [sleepNotes, setSleepNotes] = useState('');
+
+  const getSleepLogStats = (log: any) => {
+    const totalMin = log ? (log.deepMinutes + log.lightMinutes + log.remMinutes + log.awakeMinutes) : 0;
+    const totalHours = Number((totalMin / 60).toFixed(1));
+    const score = log ? (() => {
+      const total = log.deepMinutes + log.lightMinutes + log.remMinutes + log.awakeMinutes;
+      if (total === 0) return 0;
+      const deepPct = log.deepMinutes / total;
+      const remPct = log.remMinutes / total;
+      const awakePct = log.awakeMinutes / total;
+      let sc = 100;
+      if (awakePct > 0.1) sc -= (awakePct - 0.1) * 150;
+      if (deepPct < 0.18) sc -= (0.18 - deepPct) * 120;
+      if (remPct < 0.18) sc -= (0.18 - remPct) * 100;
+      const totalHours = total / 60;
+      if (totalHours < 7) sc -= (7 - totalHours) * 15;
+      else if (totalHours > 9.5) sc -= (totalHours - 9.5) * 8;
+      return Math.max(0, Math.min(100, Math.round(sc)));
+    })() : 0;
+    return { totalHours, score };
+  };
+
+  const sleepChartData = useMemo(() => {
+    const data = [];
+    const today = new Date();
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(today.getDate() - i);
+      const dStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      const log = sleepLogs.find((l: any) => l.date === dStr);
+      const { totalHours, score } = getSleepLogStats(log);
+      const label = `${d.getDate()}/${d.getMonth() + 1}`;
+      data.push({ label, horas: totalHours, score });
+    }
+    return data;
+  }, [sleepLogs]);
+
+  const handleAddSleepLog = (e: React.FormEvent) => {
+    e.preventDefault();
+    const deep = (parseInt(sleepDeepH) || 0) * 60 + (parseInt(sleepDeepM) || 0);
+    const light = (parseInt(sleepLightH) || 0) * 60 + (parseInt(sleepLightM) || 0);
+    const rem = (parseInt(sleepRemH) || 0) * 60 + (parseInt(sleepRemM) || 0);
+    const awake = (parseInt(sleepAwakeH) || 0) * 60 + (parseInt(sleepAwakeM) || 0);
+    
+    if (deep + light + rem + awake === 0) {
+      alert('Por favor, preencha os tempos de sono.');
+      return;
+    }
+
+    const newLog = {
+      id: crypto.randomUUID(),
+      date: sleepFormDate,
+      deepMinutes: deep,
+      lightMinutes: light,
+      remMinutes: rem,
+      awakeMinutes: awake,
+      notes: sleepNotes
+    };
+
+    const saved = localStorage.getItem('cn_saude_sleep_logs');
+    const logs = saved ? JSON.parse(saved) : [];
+    const filteredLogs = logs.filter((l: any) => l.date !== sleepFormDate);
+    const updatedLogs = [...filteredLogs, newLog];
+    
+    localStorage.setItem('cn_saude_sleep_logs', JSON.stringify(updatedLogs));
+    
+    setSleepNotes('');
+    setShowAddSleepModal(false);
+    
+    loadSleepLogs();
+    window.dispatchEvent(new Event('local-storage-sync'));
+    window.dispatchEvent(new Event('local-settings-changed'));
+  };
 
 
   // Estados do Calendário Unificado
@@ -1248,6 +1383,7 @@ const HubHome: React.FC<HubHomeProps> = ({
 
         // Sync calendar events from local changes
         fetchCalendarData(calendarMonth).catch(console.error);
+        loadSleepLogs();
       } catch (e) {
         console.error('Error reloading local storage states on sync event:', e);
       }
@@ -1534,7 +1670,11 @@ const HubHome: React.FC<HubHomeProps> = ({
     return list;
   };
     return (
-    <div className="flex-1 h-screen overflow-y-auto flex flex-col items-center">
+    <div className={`flex-1 h-screen overflow-y-auto flex flex-col transition-all duration-300 ${
+      alignment === 'left' ? 'items-start px-4 sm:px-6 md:px-12' :
+      alignment === 'right' ? 'items-end px-4 sm:px-6 md:px-12' :
+      'items-center'
+    }`}>
         {/* Mobile Header */}
         <div className="w-full md:hidden flex items-center justify-between px-4 py-3 border-b border-zinc-200/50 dark:border-zinc-800/50 bg-white/50 dark:bg-zinc-900/50 backdrop-blur-xl sticky top-0 z-30 select-none">
           <button
@@ -1554,6 +1694,48 @@ const HubHome: React.FC<HubHomeProps> = ({
 
         {/* Main content */}
         <main className={`relative z-10 w-full ${showHabitsReport ? 'max-w-4xl' : 'max-w-7xl'} px-6 py-10 flex flex-col transition-all duration-300`}>
+        {isHomeEditMode && !showHabitsReport && (
+          <div className="w-full mb-6 p-4 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md rounded-2xl border border-emerald-500/30 dark:border-emerald-500/20 flex flex-col sm:flex-row items-center justify-between gap-4 animate-in slide-in-from-top-2 duration-300 select-none">
+            <div className="flex items-center gap-2">
+              <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse" />
+              <span className="text-xs font-bold text-zinc-700 dark:text-zinc-200">Modo de Edição Ativo: Ajuste o Layout da sua Tela Inicial</span>
+            </div>
+            {/* Alignment buttons */}
+            <div className="flex items-center gap-2 bg-zinc-100/80 dark:bg-zinc-800/80 p-1 rounded-xl border border-zinc-200/50 dark:border-zinc-700">
+              <span className="text-[10px] font-black text-zinc-450 dark:text-zinc-500 uppercase tracking-widest px-2">Alinhamento</span>
+              <button
+                onClick={() => handleSetAlignment('left')}
+                className={`px-3 py-1.5 rounded-lg text-[10px] font-extrabold uppercase tracking-wider transition-all cursor-pointer ${
+                  alignment === 'left'
+                    ? 'bg-white dark:bg-zinc-700 text-zinc-800 dark:text-white shadow-sm'
+                    : 'text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
+                }`}
+              >
+                Esquerda
+              </button>
+              <button
+                onClick={() => handleSetAlignment('center')}
+                className={`px-3 py-1.5 rounded-lg text-[10px] font-extrabold uppercase tracking-wider transition-all cursor-pointer ${
+                  alignment === 'center'
+                    ? 'bg-white dark:bg-zinc-700 text-zinc-800 dark:text-white shadow-sm'
+                    : 'text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
+                }`}
+              >
+                Centro
+              </button>
+              <button
+                onClick={() => handleSetAlignment('right')}
+                className={`px-3 py-1.5 rounded-lg text-[10px] font-extrabold uppercase tracking-wider transition-all cursor-pointer ${
+                  alignment === 'right'
+                    ? 'bg-white dark:bg-zinc-700 text-zinc-800 dark:text-white shadow-sm'
+                    : 'text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
+                }`}
+              >
+                Direita
+              </button>
+            </div>
+          </div>
+        )}
 
         {showHabitsReport ? (
           /* ── Habits Report ─────────────────────────────────────── */
@@ -2087,15 +2269,17 @@ const HubHome: React.FC<HubHomeProps> = ({
             </div>
           </div>
 
-        {/* Habit Tracker Container */}
-        <div className="w-full mt-6 animate-in fade-in slide-in-from-top-2 duration-300">
-            {/* Habit Tracker Section */}
-            <div 
-              onMouseEnter={() => setIsHabitsHovered(true)}
-              onMouseLeave={() => setIsHabitsHovered(false)}
-              style={{ opacity: isHabitsHovered ? 1 : habitsOpacity }}
-              className="w-full bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm rounded-2xl border border-zinc-200 dark:border-zinc-800 flex flex-col justify-between gap-3.5 p-3.5 overflow-hidden relative transition-all duration-300"
-            >
+        {/* Habits & Sleep widgets container side-by-side */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6 w-full animate-in fade-in slide-in-from-top-2 duration-300">
+          
+          {/* Habit Tracker Section */}
+          <div 
+            onMouseEnter={() => setIsHabitsHovered(true)}
+            onMouseLeave={() => setIsHabitsHovered(false)}
+            style={{ opacity: isHabitsHovered ? 1 : habitsOpacity }}
+            className="bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm rounded-2xl border border-zinc-200 dark:border-zinc-800 flex flex-col justify-between p-3.5 overflow-hidden relative transition-all duration-300 h-[280px]"
+          >
+            <div className="flex-1 min-h-0 flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between mb-3">
                   <div>
@@ -2132,7 +2316,7 @@ const HubHome: React.FC<HubHomeProps> = ({
                 </div>
 
                 {/* List of habits checkboxes */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2 mt-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 xl:grid-cols-3 gap-2 mt-2 max-h-[140px] overflow-y-auto custom-scrollbar pr-1">
                   {habits.length === 0 ? (
                     <div className="py-4 text-center text-xs text-zinc-450 dark:text-zinc-500 font-medium col-span-full">
                       Você não possui hábitos definidos. Acesse o card de Hábitos para criar.
@@ -2147,7 +2331,7 @@ const HubHome: React.FC<HubHomeProps> = ({
                           className={`flex items-center gap-2.5 p-2 px-3 rounded-xl border transition-all duration-200 cursor-pointer select-none ${
                             isCompleted
                               ? 'bg-zinc-100/50 dark:bg-zinc-950/15 border-zinc-200 dark:border-zinc-900/50 opacity-60'
-                              : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800/80 hover:border-slate-400 dark:hover:border-slate-600 hover:shadow-sm'
+                              : 'bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800/80 hover:border-slate-400 dark:hover:border-slate-600 hover:shadow-sm'
                           }`}
                         >
                           <div className="relative flex items-center justify-center shrink-0">
@@ -2175,7 +2359,7 @@ const HubHome: React.FC<HubHomeProps> = ({
 
               {/* Progress Indicator */}
               {habits.length > 0 && (
-                <div className="mt-1 pt-2 border-t border-zinc-200/20 dark:border-zinc-800/20 animate-in fade-in duration-300 shrink-0">
+                <div className="mt-2 pt-2 border-t border-zinc-200/20 dark:border-zinc-800/20 animate-in fade-in duration-300 shrink-0">
                   <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-wider text-zinc-400 mb-1">
                     <span>Progresso de hoje</span>
                     <span className="text-slate-600 dark:text-slate-400">
@@ -2192,6 +2376,241 @@ const HubHome: React.FC<HubHomeProps> = ({
               )}
             </div>
           </div>
+
+          {/* Sleep Tracker Section */}
+          <div 
+            onMouseEnter={() => setIsSleepHovered(true)}
+            onMouseLeave={() => setIsSleepHovered(false)}
+            style={{ opacity: isSleepHovered ? 1 : sleepOpacity }}
+            className="bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm rounded-2xl border border-zinc-200 dark:border-zinc-800 flex flex-col justify-between p-3.5 overflow-hidden relative transition-all duration-300 h-[280px]"
+          >
+            <div className="flex items-center justify-between mb-1.5 shrink-0">
+              <h3 className="text-[10px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest flex items-center gap-1.5">
+                <Moon size={12} className="text-zinc-450 dark:text-zinc-500" />
+                Monitoramento de Sono (Últimos 7 dias)
+              </h3>
+              
+              <div className="flex items-center gap-2">
+                {/* Opacity control for Sleep — only visible in edit mode */}
+                {isHomeEditMode && (
+                  <div className="flex items-center gap-1 bg-zinc-100/60 dark:bg-zinc-800/50 px-2 py-0.5 rounded-lg border border-zinc-300/30 dark:border-zinc-700/50 animate-in fade-in duration-200">
+                    <Sliders size={10} className="text-zinc-400 dark:text-zinc-500" />
+                    <input 
+                      type="range" 
+                      min="0.2" 
+                      max="1" 
+                      step="0.05" 
+                      value={sleepOpacity} 
+                      onChange={(e) => {
+                        e.stopPropagation();
+                        const val = parseFloat(e.target.value);
+                        setSleepOpacity(val);
+                        localStorage.setItem('cn_sleep_opacity', val.toString());
+                      }}
+                      className="w-14 h-1 bg-zinc-250 dark:bg-zinc-750 rounded-lg appearance-none cursor-pointer accent-zinc-500 dark:accent-zinc-400"
+                      title="Opacidade do sono"
+                    />
+                    <span className="text-[8px] font-bold text-zinc-450 dark:text-zinc-500 w-6 text-right">
+                      {Math.round(sleepOpacity * 100)}%
+                    </span>
+                  </div>
+                )}
+                
+                {/* Minimal and elegant shortcut button */}
+                <button
+                  onClick={() => setShowAddSleepModal(true)}
+                  className="flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-purple-600 dark:text-purple-400 bg-purple-55/15 hover:bg-purple-100 dark:hover:bg-purple-900/30 border border-purple-200/50 dark:border-purple-900/50 px-2 py-1 rounded-xl shadow-xs transition-all hover:scale-102 cursor-pointer shrink-0 font-extrabold"
+                  title="Registrar Noite de Sono"
+                >
+                  <Plus size={10} strokeWidth={2.5} />
+                  <span>Novo Registro</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Sleep Graph Area */}
+            <div className="flex-1 w-full min-h-0 pt-2 relative">
+              {sleepChartData.some(d => d.horas > 0) ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={sleepChartData} margin={{ top: 5, right: -5, left: -25, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="colorSleepHoras" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
+                    <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#888' }} />
+                    <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#888' }} />
+                    <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#888' }} />
+                    <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '10px', fontWeight: 'bold' }} />
+                    <Area yAxisId="left" type="monotone" dataKey="horas" stroke="#8b5cf6" strokeWidth={3} fillOpacity={1} fill="url(#colorSleepHoras)" name="Tempo (h)" />
+                    <Area yAxisId="right" type="monotone" dataKey="score" stroke="#0ea5e9" strokeWidth={2} fillOpacity={0} name="Score (%)" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-full flex items-center justify-center text-zinc-400 text-xs font-semibold py-8">Nenhum registro de sono esta semana.</div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Modal para registrar sono */}
+        {showAddSleepModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/80 backdrop-blur-sm p-4 animate-in fade-in duration-300 select-none">
+            <div className="bg-white dark:bg-zinc-900 w-full max-w-md rounded-3xl shadow-2xl p-6 relative animate-in zoom-in-95 duration-200 border border-zinc-200 dark:border-zinc-800">
+              <button
+                onClick={() => setShowAddSleepModal(false)}
+                className="absolute top-4 right-4 text-zinc-400 hover:text-rose-500 w-8 h-8 flex items-center justify-center rounded-full bg-zinc-50 dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+
+              <div className="flex items-center gap-2.5 mb-6">
+                <div className="w-8 h-8 rounded-xl bg-purple-500/10 text-purple-500 flex items-center justify-center">
+                  <Moon size={16} />
+                </div>
+                <h3 className="text-sm font-black uppercase tracking-widest text-zinc-900 dark:text-white">Registrar Noite de Sono</h3>
+              </div>
+
+              <form onSubmit={handleAddSleepLog} className="space-y-4">
+                <div>
+                  <label className="text-[10px] font-bold text-zinc-450 dark:text-zinc-500 uppercase tracking-widest mb-1.5 block">Data do Sono</label>
+                  <input
+                    type="date"
+                    value={sleepFormDate}
+                    onChange={(e) => setSleepFormDate(e.target.value)}
+                    required
+                    className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-xs font-bold text-zinc-800 dark:text-zinc-100 outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  {/* Deep Sleep */}
+                  <div className="p-3 bg-zinc-50 dark:bg-zinc-955 border border-zinc-200 dark:border-zinc-800/80 rounded-2xl">
+                    <span className="text-[8px] font-black text-purple-600 dark:text-purple-400 uppercase tracking-wider block mb-2">Sono Profundo</span>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        min="0"
+                        max="23"
+                        value={sleepDeepH}
+                        onChange={(e) => setSleepDeepH(e.target.value)}
+                        className="w-full bg-white dark:bg-zinc-900 border border-zinc-250 dark:border-zinc-800 rounded-lg px-2 py-1 text-xs font-bold text-center dark:text-zinc-200"
+                        placeholder="Horas"
+                      />
+                      <span className="text-zinc-400 text-xs">:</span>
+                      <input
+                        type="number"
+                        min="0"
+                        max="59"
+                        value={sleepDeepM}
+                        onChange={(e) => setSleepDeepM(e.target.value)}
+                        className="w-full bg-white dark:bg-zinc-900 border border-zinc-250 dark:border-zinc-800 rounded-lg px-2 py-1 text-xs font-bold text-center dark:text-zinc-200"
+                        placeholder="Min"
+                      />
+                    </div>
+                  </div>
+
+                  {/* REM Sleep */}
+                  <div className="p-3 bg-zinc-50 dark:bg-zinc-955 border border-zinc-200 dark:border-zinc-800/80 rounded-2xl">
+                    <span className="text-[8px] font-black text-sky-500 dark:text-sky-400 uppercase tracking-wider block mb-2">Sono REM</span>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        min="0"
+                        max="23"
+                        value={sleepRemH}
+                        onChange={(e) => setSleepRemH(e.target.value)}
+                        className="w-full bg-white dark:bg-zinc-900 border border-zinc-250 dark:border-zinc-800 rounded-lg px-2 py-1 text-xs font-bold text-center dark:text-zinc-200"
+                        placeholder="Horas"
+                      />
+                      <span className="text-zinc-400 text-xs">:</span>
+                      <input
+                        type="number"
+                        min="0"
+                        max="59"
+                        value={sleepRemM}
+                        onChange={(e) => setSleepRemM(e.target.value)}
+                        className="w-full bg-white dark:bg-zinc-900 border border-zinc-250 dark:border-zinc-800 rounded-lg px-2 py-1 text-xs font-bold text-center dark:text-zinc-200"
+                        placeholder="Min"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Light Sleep */}
+                  <div className="p-3 bg-zinc-50 dark:bg-zinc-955 border border-zinc-200 dark:border-zinc-800/80 rounded-2xl">
+                    <span className="text-[8px] font-black text-indigo-500 uppercase tracking-wider block mb-2">Sono Leve</span>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        min="0"
+                        max="23"
+                        value={sleepLightH}
+                        onChange={(e) => setSleepLightH(e.target.value)}
+                        className="w-full bg-white dark:bg-zinc-900 border border-zinc-250 dark:border-zinc-800 rounded-lg px-2 py-1 text-xs font-bold text-center dark:text-zinc-200"
+                        placeholder="Horas"
+                      />
+                      <span className="text-zinc-400 text-xs">:</span>
+                      <input
+                        type="number"
+                        min="0"
+                        max="59"
+                        value={sleepLightM}
+                        onChange={(e) => setSleepLightM(e.target.value)}
+                        className="w-full bg-white dark:bg-zinc-900 border border-zinc-250 dark:border-zinc-800 rounded-lg px-2 py-1 text-xs font-bold text-center dark:text-zinc-200"
+                        placeholder="Min"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Awake Time */}
+                  <div className="p-3 bg-zinc-50 dark:bg-zinc-955 border border-zinc-200 dark:border-zinc-800/80 rounded-2xl">
+                    <span className="text-[8px] font-black text-rose-500 uppercase tracking-wider block mb-2">Acordado</span>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        min="0"
+                        max="23"
+                        value={sleepAwakeH}
+                        onChange={(e) => setSleepAwakeH(e.target.value)}
+                        className="w-full bg-white dark:bg-zinc-900 border border-zinc-250 dark:border-zinc-800 rounded-lg px-2 py-1 text-xs font-bold text-center dark:text-zinc-200"
+                        placeholder="Horas"
+                      />
+                      <span className="text-zinc-400 text-xs">:</span>
+                      <input
+                        type="number"
+                        min="0"
+                        max="59"
+                        value={sleepAwakeM}
+                        onChange={(e) => setSleepAwakeM(e.target.value)}
+                        className="w-full bg-white dark:bg-zinc-900 border border-zinc-250 dark:border-zinc-800 rounded-lg px-2 py-1 text-xs font-bold text-center dark:text-zinc-200"
+                        placeholder="Min"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-bold text-zinc-450 dark:text-zinc-500 uppercase tracking-widest mb-1.5 block">Observações (Opcional)</label>
+                  <textarea
+                    value={sleepNotes}
+                    onChange={(e) => setSleepNotes(e.target.value)}
+                    className="w-full bg-zinc-50 dark:bg-zinc-955 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-xs font-bold text-zinc-800 dark:text-zinc-100 outline-none focus:ring-2 focus:ring-purple-500 h-16 resize-none dark:text-zinc-100"
+                    placeholder="Como foi a noite de sono..."
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  className="w-full py-3 bg-purple-600 hover:bg-purple-750 text-white rounded-xl text-xs font-bold uppercase tracking-widest shadow-lg shadow-purple-500/20 active:scale-[0.98] transition-all cursor-pointer font-extrabold"
+                >
+                  Salvar Registro
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
 
           </>
         )}

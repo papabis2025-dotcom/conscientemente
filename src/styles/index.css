@@ -119,3 +119,16 @@
 .dark .scrollbar-accent::-webkit-scrollbar-thumb:hover {
   background: rgba(113, 113, 122, 0.8);
 }
+
+/* ─── Global Layout Alignment Overrides ─── */
+[data-alignment="left"] .mx-auto,
+[data-alignment="left"] .lg\:mx-auto {
+  margin-left: 0 !important;
+  margin-right: auto !important;
+}
+
+[data-alignment="right"] .mx-auto,
+[data-alignment="right"] .lg\:mx-auto {
+  margin-left: auto !important;
+  margin-right: 0 !important;
+}

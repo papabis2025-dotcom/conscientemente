@@ -43,7 +43,8 @@ const SYNC_KEYS = [
   'cn_saude_activity_types',
   'cn_saude_muscle_groups',
   'cn_saude_dashboard_layout',
-  'cn_home_cards_layout'
+  'cn_home_cards_layout',
+  'cn_global_alignment'
 ];
 
 function mergeLists<T extends { id: string }>(listA: T[], listB: T[]): T[] {
@@ -323,6 +324,22 @@ const App: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [currentRoute, setCurrentRoute] = useState(() => window.location.hash.replace('#', '') || 'hub');
   const [isHomeEditMode, setIsHomeEditMode] = useState(false);
+  const [globalAlignment, setGlobalAlignment] = useState<'left' | 'center' | 'right'>(() => {
+    return (localStorage.getItem('cn_global_alignment') as any) || 'center';
+  });
+
+  useEffect(() => {
+    const handleSync = () => {
+      const savedAlign = (localStorage.getItem('cn_global_alignment') as any) || 'center';
+      setGlobalAlignment(savedAlign);
+    };
+    window.addEventListener('local-storage-sync', handleSync);
+    window.addEventListener('local-settings-changed', handleSync);
+    return () => {
+      window.removeEventListener('local-storage-sync', handleSync);
+      window.removeEventListener('local-settings-changed', handleSync);
+    };
+  }, []);
 
   // Global click event listener for premium click sound feedback
   useEffect(() => {
@@ -884,6 +901,7 @@ const App: React.FC = () => {
     <div 
       className={`min-h-screen ${bgClass} flex relative transition-colors duration-300`}
       style={bgStyle}
+      data-alignment={globalAlignment}
     >
       {currentRoute === 'hub' && (
         <GlobalSidebar

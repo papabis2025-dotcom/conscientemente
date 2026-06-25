@@ -99,7 +99,13 @@ const Dashboard: React.FC<DashboardProps> = ({
   const [draggedWidgetIndex, setDraggedWidgetIndex] = useState<number | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [fullscreenWidgetId, setFullscreenWidgetId] = useState<string | null>(null);
-  const [activeWeeklyPeriod, setActiveWeeklyPeriod] = useState<'weekly' | 'monthly' | 'annual'>('weekly');
+  const [dashboardPeriod, setDashboardPeriod] = useState<'semana' | 'mes' | 'ano' | 'sempre'>(() => {
+    return (localStorage.getItem('cp_studies_dashboard_period') as any) || 'mes';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('cp_studies_dashboard_period', dashboardPeriod);
+  }, [dashboardPeriod]);
   const [activeWeeklyTab, setActiveWeeklyTab] = useState<'hours' | 'questions' | 'desempenho'>('hours');
   const [activeAnalysisTab, setActiveAnalysisTab] = useState<'questions' | 'time' | 'performance'>('questions');
 
@@ -162,6 +168,86 @@ const Dashboard: React.FC<DashboardProps> = ({
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   };
 
+  // Build a set of subject IDs for the selected concurso/edital.
+  const allSubjectIds = useMemo(() => {
+    const ids = new Set<string>();
+    if (selectedConcursoId === 'all') {
+      concursos.forEach(c => (c.subjects || []).forEach(s => ids.add(s.id)));
+    } else {
+      const activeC = concursos.find(c => c.id === selectedConcursoId);
+      if (activeC) {
+        (activeC.subjects || []).forEach(s => ids.add(s.id));
+      }
+    }
+    // Also include the currently filtered subjects
+    subjects.forEach(s => ids.add(s.id));
+    return ids;
+  }, [concursos, subjects, selectedConcursoId]);
+
+  // Filter sessions relevant to the weekly chart (all subjects, including simulados)
+  const relevantSessions = useMemo(() => {
+    return sessions.filter(s => allSubjectIds.has(s.subjectId));
+  }, [sessions, allSubjectIds]);
+
+  const filteredSessions = useMemo(() => {
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    
+    return relevantSessions.filter(s => {
+      const sDateStr = getLocalSessionDate(s.date);
+      if (!sDateStr) return false;
+      
+      if (dashboardPeriod === 'semana') {
+        const start = new Date(today);
+        start.setDate(today.getDate() - 6);
+        start.setHours(0, 0, 0, 0);
+        const sessionDate = new Date(sDateStr + 'T12:00:00');
+        return sessionDate >= start && sDateStr <= todayStr;
+      } else if (dashboardPeriod === 'mes') {
+        const sessionDate = new Date(sDateStr + 'T12:00:00');
+        return sessionDate.getFullYear() === today.getFullYear() && sessionDate.getMonth() === today.getMonth();
+      } else if (dashboardPeriod === 'ano') {
+        const sessionDate = new Date(sDateStr + 'T12:00:00');
+        return sessionDate.getFullYear() === today.getFullYear();
+      }
+      return true; // sempre
+    });
+  }, [relevantSessions, dashboardPeriod]);
+
+  const filteredSimulados = useMemo(() => {
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    
+    return simulados.filter(s => {
+      if (selectedConcursoId !== 'all') {
+        const activeC = concursos.find(c => c.id === selectedConcursoId);
+        if (activeC) {
+          const subjectIds = (activeC.subjects || []).map(sub => sub.id);
+          const hasRelevantSubject = s.results.some(r => subjectIds.includes(r.subjectId));
+          if (!hasRelevantSubject && s.results.length > 0) return false;
+        }
+      }
+
+      const sDateStr = getLocalSessionDate(s.date);
+      if (!sDateStr) return false;
+      
+      if (dashboardPeriod === 'semana') {
+        const start = new Date(today);
+        start.setDate(today.getDate() - 6);
+        start.setHours(0, 0, 0, 0);
+        const sessionDate = new Date(sDateStr + 'T12:00:00');
+        return sessionDate >= start && sDateStr <= todayStr;
+      } else if (dashboardPeriod === 'mes') {
+        const sessionDate = new Date(sDateStr + 'T12:00:00');
+        return sessionDate.getFullYear() === today.getFullYear() && sessionDate.getMonth() === today.getMonth();
+      } else if (dashboardPeriod === 'ano') {
+        const sessionDate = new Date(sDateStr + 'T12:00:00');
+        return sessionDate.getFullYear() === today.getFullYear();
+      }
+      return true; // sempre
+    });
+  }, [simulados, dashboardPeriod, selectedConcursoId, concursos]);
+
   const subjectStats = useMemo(() => {
     const stats: Record<string, { done: number, correct: number, minutes: number, name: string, colorClass: string }> = {};
 
@@ -171,7 +257,7 @@ const Dashboard: React.FC<DashboardProps> = ({
       }
     });
 
-    sessions.forEach(session => {
+    filteredSessions.forEach(session => {
       const sub = subjects.find(s => s.id === session.subjectId);
       if (sub && stats[sub.name]) {
         stats[sub.name].done += (session.questionsDone || 0);
@@ -198,7 +284,7 @@ const Dashboard: React.FC<DashboardProps> = ({
       best: [...list].filter(s => s.done > 0).sort((a, b) => b.accuracy - a.accuracy)[0] || null,
       worst: list.filter(s => s.done > 0).length > 0 ? [...list].filter(s => s.done > 0).sort((a, b) => a.accuracy - b.accuracy)[0] : null
     };
-  }, [sessions, subjects]);
+  }, [filteredSessions, subjects]);
 
   const CustomXAxisTick = useCallback((props: any) => {
     const { x, y, payload } = props;
@@ -226,7 +312,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   const topicStats = useMemo(() => {
     const stats: Record<string, { done: number, correct: number, title: string, subjectName: string }> = {};
 
-    sessions.forEach(session => {
+    filteredSessions.forEach(session => {
       if (!session.topicId) return;
 
       const sub = subjects.find(s => s.id === session.subjectId);
@@ -260,34 +346,7 @@ const Dashboard: React.FC<DashboardProps> = ({
     const worst = sorted.length > 0 ? sorted[sorted.length - 1] : null;
 
     return { best, worst };
-  }, [sessions, subjects]);
-
-  // Build a set of subject IDs for the selected concurso/edital.
-  const allSubjectIds = useMemo(() => {
-    const ids = new Set<string>();
-    if (selectedConcursoId === 'all') {
-      concursos.forEach(c => (c.subjects || []).forEach(s => ids.add(s.id)));
-    } else {
-      const activeC = concursos.find(c => c.id === selectedConcursoId);
-      if (activeC) {
-        (activeC.subjects || []).forEach(s => ids.add(s.id));
-      }
-    }
-    // Also include the currently filtered subjects
-    subjects.forEach(s => ids.add(s.id));
-    console.debug('[Dashboard] allSubjectIds:', ids.size, 'total sessions:', sessions.length);
-    return ids;
-  }, [concursos, subjects, selectedConcursoId]);
-
-  // Filter sessions relevant to the weekly chart (all subjects, including simulados)
-  const relevantSessions = useMemo(() => {
-    const filtered = sessions.filter(s => allSubjectIds.has(s.subjectId));
-    console.debug('[Dashboard] relevantSessions:', filtered.length, '/', sessions.length,
-      '| sample dates:', filtered.slice(0, 3).map(s => s.date),
-      '| allSubjectIds has sessions?', sessions.slice(0, 3).map(s => ({ id: s.subjectId, has: allSubjectIds.has(s.subjectId), isSimulado: isSimuladoSession(s) }))
-    );
-    return filtered;
-  }, [sessions, allSubjectIds]);
+  }, [filteredSessions, subjects]);
 
   const progress = useMemo(() => {
     const today = new Date();
@@ -305,7 +364,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   const { weeklyData, weeklyQuestionsData, weeklyAccuracyData } = useMemo(() => {
     const today = new Date();
 
-    if (activeWeeklyPeriod === 'weekly') {
+    if (dashboardPeriod === 'semana') {
       // Weekly view: Rolling last 7 days
       const days = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
@@ -344,7 +403,7 @@ const Dashboard: React.FC<DashboardProps> = ({
       return { weeklyData: finalData, weeklyQuestionsData: finalData, weeklyAccuracyData: finalData };
     }
 
-    else if (activeWeeklyPeriod === 'monthly') {
+    else if (dashboardPeriod === 'mes') {
       // Monthly view: Weeks of current month
       const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
       const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
@@ -386,7 +445,7 @@ const Dashboard: React.FC<DashboardProps> = ({
       return { weeklyData: finalData, weeklyQuestionsData: finalData, weeklyAccuracyData: finalData };
     }
 
-    else {
+    else if (dashboardPeriod === 'ano') {
       // Annual view: Months of current year
       const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
       const dataMap = months.map(month => ({ n: month, h: 0, q: 0, correct: 0, done: 0 }));
@@ -413,7 +472,51 @@ const Dashboard: React.FC<DashboardProps> = ({
       }));
       return { weeklyData: finalData, weeklyQuestionsData: finalData, weeklyAccuracyData: finalData };
     }
-  }, [relevantSessions, activeWeeklyPeriod]);
+
+    else {
+      // Sempre view: Last 12 months rolling
+      const dataMap: { n: string; h: number; q: number; correct: number; done: number; year: number; month: number }[] = [];
+      const today = new Date();
+      for (let i = 11; i >= 0; i--) {
+        const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+        const mIdx = d.getMonth();
+        const yVal = d.getFullYear();
+        const label = `${String(mIdx + 1).padStart(2, '0')}/${String(yVal).slice(-2)}`;
+        
+        dataMap.push({
+          n: label,
+          h: 0,
+          q: 0,
+          correct: 0,
+          done: 0,
+          year: yVal,
+          month: mIdx
+        });
+      }
+
+      relevantSessions.forEach(s => {
+        const sDateStr = getLocalSessionDate(s.date);
+        if (!sDateStr) return;
+        const [sYear, sMonth] = sDateStr.split('-').map(Number);
+        const sMonthIdx = sMonth - 1;
+
+        const match = dataMap.find(d => d.year === sYear && d.month === sMonthIdx);
+        if (match) {
+          match.h += (Number(s.durationInMinutes) || 0) / 60;
+          match.q += (Number(s.questionsDone) || 0);
+          match.correct += (Number(s.questionsCorrect) || 0);
+          match.done += (Number(s.questionsDone) || 0);
+        }
+      });
+
+      const finalData = dataMap.map(d => ({ 
+        ...d, 
+        h: parseFloat(d.h.toFixed(2)), 
+        acc: d.done > 0 ? Math.round((d.correct / d.done) * 100) : 0 
+      }));
+      return { weeklyData: finalData, weeklyQuestionsData: finalData, weeklyAccuracyData: finalData };
+    }
+  }, [relevantSessions, dashboardPeriod]);
 
   const frequencyData = useMemo(() => {
     // Determine current streak
@@ -473,12 +576,12 @@ const Dashboard: React.FC<DashboardProps> = ({
   const renderWidgetContent = (id: string) => {
     switch (id) {
       case 'general_stats':
-        const generalDone = sessions.filter(s => !isSimuladoSession(s)).reduce((acc, s) => acc + (s.questionsDone || 0), 0);
-        const generalCorrect = sessions.filter(s => !isSimuladoSession(s)).reduce((acc, s) => acc + (s.questionsCorrect || 0), 0);
+        const generalDone = filteredSessions.filter(s => !isSimuladoSession(s)).reduce((acc, s) => acc + (s.questionsDone || 0), 0);
+        const generalCorrect = filteredSessions.filter(s => !isSimuladoSession(s)).reduce((acc, s) => acc + (s.questionsCorrect || 0), 0);
         const globalAccuracy = generalDone > 0 ? Math.round((generalCorrect / generalDone) * 100) : 0;
 
-        const simDone = simulados.reduce((acc, s) => acc + (s.results || []).reduce((a, r) => a + r.done, 0), 0);
-        const simCorrect = simulados.reduce((acc, s) => acc + (s.results || []).reduce((a, r) => a + r.correct, 0), 0);
+        const simDone = filteredSimulados.reduce((acc, s) => acc + (s.results || []).reduce((a, r) => a + r.done, 0), 0);
+        const simCorrect = filteredSimulados.reduce((acc, s) => acc + (s.results || []).reduce((a, r) => a + r.correct, 0), 0);
         const simAccuracy = simDone > 0 ? Math.round((simCorrect / simDone) * 100) : 0;
 
         const globalColor = getPerformanceColor(globalAccuracy);
@@ -486,7 +589,7 @@ const Dashboard: React.FC<DashboardProps> = ({
         const simColor = getPerformanceColor(simAccuracy);
         const simColorHex = getPerformanceColorHex(simAccuracy);
 
-        const totalMinutes = relevantSessions.reduce((acc, s) => acc + (Number(s.durationInMinutes) || 0), 0);
+        const totalMinutes = filteredSessions.reduce((acc, s) => acc + (Number(s.durationInMinutes) || 0), 0);
         const totalHours = (totalMinutes / 60).toFixed(1);
 
         return (
@@ -763,27 +866,6 @@ const Dashboard: React.FC<DashboardProps> = ({
                   className={`py-0.5 px-2 rounded-md text-[9px] font-bold uppercase tracking-wide transition-all ${activeWeeklyTab === 'desempenho' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-sm' : 'text-zinc-400 hover:bg-zinc-100/50'}`}
                 >
                   Desempenho
-                </button>
-              </div>
-
-              <div className="flex items-center gap-0.5 bg-zinc-50 dark:bg-zinc-800/50 p-0.5 rounded-lg">
-                <button
-                  onClick={() => setActiveWeeklyPeriod('weekly')}
-                  className={`py-0.5 px-1.5 rounded-md text-[8px] font-bold uppercase tracking-wide transition-all ${activeWeeklyPeriod === 'weekly' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-sm' : 'text-zinc-400 hover:bg-zinc-100/50'}`}
-                >
-                  Sem
-                </button>
-                <button
-                  onClick={() => setActiveWeeklyPeriod('monthly')}
-                  className={`py-0.5 px-1.5 rounded-md text-[8px] font-bold uppercase tracking-wide transition-all ${activeWeeklyPeriod === 'monthly' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-sm' : 'text-zinc-400 hover:bg-zinc-100/50'}`}
-                >
-                  Mês
-                </button>
-                <button
-                  onClick={() => setActiveWeeklyPeriod('annual')}
-                  className={`py-0.5 px-1.5 rounded-md text-[8px] font-bold uppercase tracking-wide transition-all ${activeWeeklyPeriod === 'annual' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-sm' : 'text-zinc-400 hover:bg-zinc-100/50'}`}
-                >
-                  Ano
                 </button>
               </div>
             </div>
@@ -1109,6 +1191,21 @@ const Dashboard: React.FC<DashboardProps> = ({
         </div>
 
         <div className="flex items-center gap-4">
+          {/* Period selector */}
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl px-4 py-2 flex items-center gap-2 shadow-sm">
+            <span className="text-[10px] font-black text-zinc-450 dark:text-zinc-500 uppercase tracking-widest">Período:</span>
+            <select
+              value={dashboardPeriod}
+              onChange={(e) => setDashboardPeriod(e.target.value as any)}
+              className="bg-transparent border-none outline-none text-xs font-black text-zinc-800 dark:text-zinc-100 cursor-pointer uppercase tracking-wide focus:ring-0 p-0"
+            >
+              <option value="semana" className="bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-100">Semanal</option>
+              <option value="mes" className="bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-100">Mensal</option>
+              <option value="ano" className="bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-100">Anual</option>
+              <option value="sempre" className="bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-100">Sempre</option>
+            </select>
+          </div>
+
           <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl px-4 py-2 flex items-center gap-3 shadow-sm">
              <Trophy size={16} className="text-amber-500" />
              <select

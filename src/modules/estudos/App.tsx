@@ -54,6 +54,21 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
   } = useTimer();
 
   const [showAddModal, setShowAddModal] = useState(false);
+  const [alignment, setAlignment] = useState<'left' | 'center' | 'right'>(() => {
+    return (localStorage.getItem('cn_global_alignment') as any) || 'center';
+  });
+
+  React.useEffect(() => {
+    const handleSync = () => {
+      setAlignment((localStorage.getItem('cn_global_alignment') as any) || 'center');
+    };
+    window.addEventListener('local-storage-sync', handleSync);
+    window.addEventListener('local-settings-changed', handleSync);
+    return () => {
+      window.removeEventListener('local-storage-sync', handleSync);
+      window.removeEventListener('local-settings-changed', handleSync);
+    };
+  }, []);
 
   React.useEffect(() => {
     if (sessionStorage.getItem('openAddStudyModal') === 'true') {
@@ -260,7 +275,11 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
         onOpenAddModal={() => setShowAddModal(true)}
       />
       <main className="flex-1 overflow-y-auto p-3 relative">
-        <div className="max-w-[1440px] mx-auto">{renderContent()}</div>
+        <div className={`max-w-[1440px] w-full transition-all duration-300 ${
+          alignment === 'left' ? 'ml-0 mr-auto' :
+          alignment === 'right' ? 'ml-auto mr-0' :
+          'mx-auto'
+        }`}>{renderContent()}</div>
       </main>
 
 

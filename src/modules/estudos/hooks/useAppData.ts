@@ -308,14 +308,19 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                             (s as any).notes.toLowerCase().includes('revisão') || 
                             (s as any).notes.toLowerCase().includes('revisao')
                         );
-                        const isRevId = allSchedule.some(sched => 
-                            sched.id === s.id && 
-                            sched.activityType && 
-                            (sched.activityType.toLowerCase().includes('revisão') || 
-                             sched.activityType.toLowerCase().includes('revisao'))
+                        // Check if this session corresponds to a scheduled review entry (by ID),
+                        // regardless of whether that entry is planejado or realizado.
+                        const matchingSched = allSchedule.find(sched => sched.id === s.id);
+                        const isRevId = matchingSched && matchingSched.activityType && (
+                            matchingSched.activityType.toLowerCase().includes('revisão') || 
+                            matchingSched.activityType.toLowerCase().includes('revisao')
                         );
+                        // A completed (realizado) scheduled review entry also counts as a review session
+                        const isRevCompleted = matchingSched && 
+                            matchingSched.status === 'realizado' &&
+                            matchingSched.activityType === 'Revisão';
                         const isDeterministic = s.id && s.id.split('-')[3]?.startsWith('400');
-                        return !!(isRevType || isRevNotes || isRevId || isDeterministic);
+                        return !!(isRevType || isRevNotes || isRevId || isRevCompleted || isDeterministic);
                     };
 
                     const topicSessions = allSess.filter(s =>
@@ -366,6 +371,14 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
 
         const expectedIds = new Set(expectedReviews.map(r => r.id));
 
+        // Build a set of IDs that represent reviews already "done" (status realizado in allSchedule)
+        // These must NOT be deleted even if they aren't in expectedIds (they were completed by the user)
+        const completedReviewIds = new Set(
+            allSchedule
+                .filter(s => s.activityType === 'Revisão' && s.status === 'realizado')
+                .map(s => s.id)
+        );
+
         const reviewsToDelete = allSchedule.filter(s => 
             s.activityType === 'Revisão' && 
             s.status === 'planejado' && 
@@ -381,14 +394,20 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         }
 
         const currentIds = new Set(allSchedule.map(s => s.id));
-        const reviewsToCreate = expectedReviews.filter(r => !currentIds.has(r.id) && !deletedReviewIds.includes(r.id));
+        // Never recreate a review that is already completed (status realizado) or explicitly deleted
+        const reviewsToCreate = expectedReviews.filter(r => 
+            !currentIds.has(r.id) && 
+            !deletedReviewIds.includes(r.id) &&
+            !completedReviewIds.has(r.id)
+        );
 
         // Find existing reviews that need updates (e.g. have legacy notes format or changed dates)
+        // Skip updates for reviews that are already completed
         const currentScheduleMap = new Map(allSchedule.map(s => [s.id, s]));
         const reviewsToUpdate: ScheduledStudy[] = [];
         expectedReviews.forEach(expected => {
             const current = currentScheduleMap.get(expected.id);
-            if (current && (current.notes !== expected.notes || current.date !== expected.date)) {
+            if (current && current.status !== 'realizado' && (current.notes !== expected.notes || current.date !== expected.date)) {
                 reviewsToUpdate.push({
                     ...current,
                     notes: expected.notes,
@@ -431,13 +450,20 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         }
 
         if (reviewsToDelete.length > 0 || reviewsToCreate.length > 0 || reviewsToUpdate.length > 0) {
+            // IMPORTANT: Use `prev` (current React state) as the base, NOT `allSchedule` (which may be stale).
+            // Applying incremental changes to `prev` prevents overwriting state updates made by concurrent setScheduledStudies calls.
+            const deleteIds = new Set(reviewsToDelete.map(r => r.id));
+            const updateMap = new Map(reviewsToUpdate.map(r => [r.id, r]));
             setScheduledStudies(prev => {
-                let filtered = allSchedule.filter(s => !reviewsToDelete.some(rd => rd.id === s.id));
+                let filtered = prev.filter(s => !deleteIds.has(s.id));
                 filtered = filtered.map(s => {
-                    const updated = reviewsToUpdate.find(ru => ru.id === s.id);
+                    const updated = updateMap.get(s.id);
                     return updated ? { ...s, notes: updated.notes, date: updated.date } : s;
                 });
-                const combined = [...filtered, ...reviewsToCreate];
+                // Only add reviews that are not already in the current state
+                const existingIds = new Set(filtered.map(s => s.id));
+                const toAdd = reviewsToCreate.filter(r => !existingIds.has(r.id));
+                const combined = [...filtered, ...toAdd];
                 localStorage.setItem('cp_scheduled_studies', JSON.stringify(combined));
                 window.dispatchEvent(new Event('local-settings-changed'));
                 return combined;
@@ -1238,7 +1264,11 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         const selectedTypes = formData.activityTypes;
         const hasQuestions = selectedTypes.includes('Questões') || selectedTypes.includes('Flashcards') || selectedTypes.includes('Revisão');
         const questionsDoneVal = hasQuestions ? (parseInt(formData.questionsDone) || undefined) : undefined;
-        const questionsCorrectVal = hasQuestions ? (parseInt(formData.questionsCorrect) || undefined) : undefined;
+        const questionsCorrectRaw = hasQuestions ? (parseInt(formData.questionsCorrect) || undefined) : undefined;
+        // Acertos não podem superar o total de questões feitas
+        const questionsCorrectVal = (questionsCorrectRaw !== undefined && questionsDoneVal !== undefined)
+            ? Math.min(questionsCorrectRaw, questionsDoneVal)
+            : questionsCorrectRaw;
         const activityTypesStr = selectedTypes.join(', ');
 
         const selectedTopicIds = isAulao ? [] : formData.topicIds;

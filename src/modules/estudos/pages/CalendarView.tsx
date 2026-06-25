@@ -1154,7 +1154,20 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                     </div>
                     <div>
                       <label className="text-[10px] font-black text-zinc-400 uppercase mb-1 block">Acertos</label>
-                      <input type="number" placeholder="Ex: 18" value={formData.questionsCorrect} onChange={(e) => setFormData({ ...formData, questionsCorrect: e.target.value })} className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 border rounded-2xl outline-none text-sm dark:text-white" />
+                      <input
+                        type="number"
+                        placeholder="Ex: 18"
+                        min={0}
+                        max={parseInt(formData.questionsDone) || undefined}
+                        value={formData.questionsCorrect}
+                        onChange={(e) => {
+                          const done = parseInt(formData.questionsDone) || undefined;
+                          const val = parseInt(e.target.value);
+                          const clamped = (done !== undefined && !isNaN(val)) ? String(Math.min(val, done)) : e.target.value;
+                          setFormData({ ...formData, questionsCorrect: clamped });
+                        }}
+                        className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 border rounded-2xl outline-none text-sm dark:text-white"
+                      />
                     </div>
                   </div>
                 )}

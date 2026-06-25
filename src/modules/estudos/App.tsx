@@ -87,7 +87,11 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
     const selectedTypes = activityFormData.activityTypes;
     const hasQuestions = selectedTypes.includes('Questões') || selectedTypes.includes('Flashcards') || selectedTypes.includes('Revisão');
     const qDone = hasQuestions ? (parseInt(activityFormData.questionsDone) || undefined) : undefined;
-    const qCorrect = hasQuestions ? (parseInt(activityFormData.questionsCorrect) || undefined) : undefined;
+    const qCorrectRaw = hasQuestions ? (parseInt(activityFormData.questionsCorrect) || undefined) : undefined;
+    // Acertos não podem superar o total de questões feitas
+    const qCorrect = (qCorrectRaw !== undefined && qDone !== undefined)
+      ? Math.min(qCorrectRaw, qDone)
+      : qCorrectRaw;
 
     const selectedTopicIds = isAulao ? [] : activityFormData.topicIds;
     const durationVal = parseInt(activityFormData.duration) || 0;
@@ -396,7 +400,20 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
                     </div>
                     <div>
                       <label className="text-[10px] font-bold text-zinc-400 uppercase mb-1.5 block">Acertos</label>
-                      <input type="number" placeholder="0" value={activityFormData.questionsCorrect} onChange={(e) => setActivityFormData({ ...activityFormData, questionsCorrect: e.target.value })} className="w-full p-3 bg-white dark:bg-zinc-900 border-none rounded-xl outline-none text-sm font-bold dark:text-white shadow-sm" />
+                      <input
+                        type="number"
+                        placeholder="0"
+                        min={0}
+                        max={parseInt(activityFormData.questionsDone) || undefined}
+                        value={activityFormData.questionsCorrect}
+                        onChange={(e) => {
+                          const done = parseInt(activityFormData.questionsDone) || undefined;
+                          const val = parseInt(e.target.value);
+                          const clamped = (done !== undefined && !isNaN(val)) ? String(Math.min(val, done)) : e.target.value;
+                          setActivityFormData({ ...activityFormData, questionsCorrect: clamped });
+                        }}
+                        className="w-full p-3 bg-white dark:bg-zinc-900 border-none rounded-xl outline-none text-sm font-bold dark:text-white shadow-sm"
+                      />
                     </div>
                   </div>
                 )}

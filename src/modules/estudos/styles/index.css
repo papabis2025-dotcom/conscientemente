@@ -9,14 +9,64 @@
 @layer base {
   html {
     font-size: 14px;
+    scrollbar-width: thin;
+    scrollbar-color: #d4d4d8 transparent;
   }
+
+  html.dark {
+    scrollbar-color: #3f3f46 transparent;
+  }
+
   body {
     @apply font-sans antialiased tracking-tight text-sm text-zinc-900 dark:text-zinc-50 bg-zinc-50 dark:bg-zinc-900;
   }
+
+  /* ─── Global WebKit Scrollbars ─── */
+  *::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: 9999px;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background: #d4d4d8;
+    border-radius: 9999px;
+    transition: background 0.2s ease;
+  }
+
+  *::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+
+  .dark *::-webkit-scrollbar-thumb {
+    background: #3f3f46;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background: #a1a1aa;
+  }
+
+  .dark *::-webkit-scrollbar-thumb:hover {
+    background: #52525b;
+  }
+
+  *::-webkit-scrollbar-thumb:active {
+    background: #71717a;
+  }
+
+  .dark *::-webkit-scrollbar-thumb:active {
+    background: #71717a;
+  }
 }
 
+/* ─── .custom-scrollbar: thin variant (4px) ─── */
 .custom-scrollbar::-webkit-scrollbar {
   width: 4px;
+  height: 4px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
@@ -25,8 +75,48 @@
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
   @apply bg-zinc-300 dark:bg-zinc-700 rounded-full;
+  transition: background 0.2s ease;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  @apply bg-zinc-400 dark:bg-zinc-600;
-}
+  @apply bg-zinc-400 dark:bg-zinc-500;
+}
+
+/* ─── .scrollbar-hidden: completely hide scrollbar ─── */
+.scrollbar-hidden {
+  scrollbar-width: none;
+}
+
+.scrollbar-hidden::-webkit-scrollbar {
+  display: none;
+}
+
+/* ─── .scrollbar-accent: colored variant for highlighted panels ─── */
+.scrollbar-accent::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.scrollbar-accent::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-accent::-webkit-scrollbar-thumb {
+  background: rgba(161, 161, 170, 0.4);
+  border-radius: 9999px;
+  transition: background 0.2s ease;
+}
+
+.dark .scrollbar-accent::-webkit-scrollbar-thumb,
+.scrollbar-accent.dark::-webkit-scrollbar-thumb {
+  background: rgba(82, 82, 91, 0.5);
+}
+
+.scrollbar-accent::-webkit-scrollbar-thumb:hover {
+  background: rgba(113, 113, 122, 0.7);
+}
+
+.dark .scrollbar-accent::-webkit-scrollbar-thumb:hover {
+  background: rgba(113, 113, 122, 0.8);
+}
+

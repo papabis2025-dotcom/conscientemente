@@ -2335,11 +2335,11 @@ const HubHome: React.FC<HubHomeProps> = ({
                   onMouseEnter={() => setIsHabitsHovered(true)}
                   onMouseLeave={() => setIsHabitsHovered(false)}
                   style={{ opacity: isHabitsHovered ? 1 : habitsOpacity }}
-                  className="w-full bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm rounded-2xl border border-zinc-200 dark:border-zinc-800 flex flex-col justify-between p-3.5 overflow-hidden relative transition-all duration-300 h-[190px]"
+                  className="w-full bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm rounded-2xl border border-zinc-200 dark:border-zinc-800 flex flex-col justify-between p-3 overflow-hidden relative transition-all duration-300 h-[140px]"
                 >
                   <div className="flex-1 min-h-0 flex flex-col justify-between">
                     <div>
-                      <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center justify-between mb-2">
                         <div>
                           <h3 className="text-[10px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest flex items-center gap-1.5">
                             <ClipboardList size={12} className="text-zinc-450 dark:text-zinc-500" />
@@ -2393,9 +2393,9 @@ const HubHome: React.FC<HubHomeProps> = ({
                       </div>
 
                       {/* List of habits checkboxes */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 xl:grid-cols-3 gap-2 mt-2 max-h-[140px] overflow-y-auto custom-scrollbar pr-1">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 xl:grid-cols-3 gap-1.5 mt-1.5 max-h-[55px] overflow-y-auto custom-scrollbar pr-1">
                         {habits.length === 0 ? (
-                          <div className="py-4 text-center text-xs text-zinc-450 dark:text-zinc-500 font-medium col-span-full">
+                          <div className="py-2 text-center text-xs text-zinc-450 dark:text-zinc-500 font-medium col-span-full">
                             Você não possui hábitos definidos. Acesse o card de Hábitos para criar.
                           </div>
                         ) : (
@@ -2405,7 +2405,7 @@ const HubHome: React.FC<HubHomeProps> = ({
                               <div
                                 key={h.id}
                                 onClick={() => toggleHabit(h.id)}
-                                className={`flex items-center gap-2.5 p-2 px-3 rounded-xl border transition-all duration-200 cursor-pointer select-none ${
+                                className={`flex items-center gap-2 p-1.5 px-2.5 rounded-lg border transition-all duration-200 cursor-pointer select-none ${
                                   isCompleted
                                     ? 'bg-zinc-100/50 dark:bg-zinc-955/15 border-zinc-200 dark:border-zinc-900/50 opacity-60'
                                     : 'bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800/80 hover:border-slate-400 dark:hover:border-slate-600 hover:shadow-sm'

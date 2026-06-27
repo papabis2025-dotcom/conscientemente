@@ -2093,6 +2093,9 @@ const HubHome: React.FC<HubHomeProps> = ({
                             const hasWorkouts = dayWorkouts.length > 0;
                             const hasFinances = dayFinances.length > 0;
 
+                            const isHealthProvaDay = dayWorkouts.some(w => w.type.startsWith('Prova') || w.type === 'Prova');
+                            const hasImportantTask = dayTasks.some(t => !t.completed && (t.category === 'Importante' || t.category === 'Urgente'));
+
                             cells.push(
                               <div
                                 key={`day-${day}`}
@@ -2106,19 +2109,17 @@ const HubHome: React.FC<HubHomeProps> = ({
                                     : isToday
                                       ? 'bg-zinc-200/50 dark:bg-zinc-800/60 border-zinc-300 dark:border-zinc-700 text-zinc-800 dark:text-white font-bold'
                                       : isExamDay
-                                        ? 'bg-amber-500/10 dark:bg-amber-500/25 border-amber-500 dark:border-amber-450 text-amber-900 dark:text-amber-300 font-extrabold shadow-sm'
-                                        : hasRangeTask
-                                          ? 'bg-rose-500/10 dark:bg-rose-500/20 border-rose-500/20 dark:border-rose-900/50 text-rose-800 dark:text-rose-200'
-                                          : 'bg-zinc-50/40 dark:bg-zinc-900/40 border-zinc-250/60 dark:border-zinc-800/70 text-zinc-800 dark:text-zinc-200 hover:border-zinc-300 dark:hover:border-zinc-650'
+                                        ? 'bg-purple-500/5 dark:bg-purple-500/10 border-purple-500 dark:border-purple-400 text-purple-900 dark:text-purple-300 font-extrabold shadow-sm'
+                                        : isHealthProvaDay
+                                          ? 'bg-blue-500/5 dark:bg-blue-500/10 border-blue-500 dark:border-blue-400 text-blue-900 dark:text-blue-300 font-extrabold shadow-sm'
+                                          : hasImportantTask
+                                            ? 'bg-red-500/5 dark:bg-red-500/10 border-red-500 dark:border-red-450 text-red-900 dark:text-red-300 font-bold'
+                                            : hasRangeTask
+                                              ? 'bg-rose-500/10 dark:bg-rose-500/20 border-rose-500/20 dark:border-rose-900/50 text-rose-800 dark:text-rose-200'
+                                              : 'bg-zinc-50/40 dark:bg-zinc-900/40 border-zinc-250/60 dark:border-zinc-800/70 text-zinc-800 dark:text-zinc-200 hover:border-zinc-300 dark:hover:border-zinc-650'
                                 }`}
                               >
                                 <span className="text-[10px] font-black leading-none">{day}</span>
-                                
-                                {isExamDay && (
-                                  <div className="absolute -top-1 -right-1 bg-amber-500 text-white rounded-full p-0.5 shadow-md flex items-center justify-center" title={`Prova de: ${dayExams.map(x => x.name).join(', ')}`}>
-                                    <Trophy size={8} className="animate-bounce text-white" />
-                                  </div>
-                                )}
                                 
                                 {/* Bolas elegantes indicadoras sob o dia */}
                                 <div className="flex gap-0.5 mt-1 shrink-0 flex-wrap justify-center max-w-full">
@@ -2143,7 +2144,7 @@ const HubHome: React.FC<HubHomeProps> = ({
                                         key={`task-${t.id || idx}`}
                                         className={`rounded-full shrink-0 transition-all ${
                                           isImportant
-                                            ? 'w-2 h-2 bg-red-600 dark:bg-red-400 ring-1 ring-red-400/50 shadow-[0_0_5px_rgba(239,68,68,0.95)] animate-pulse'
+                                            ? 'w-2 h-2 bg-red-650 dark:bg-red-400 ring-1 ring-red-400/50'
                                             : `w-1.5 h-1.5 ${
                                                 isAtrasado 
                                                   ? 'bg-red-600 dark:bg-red-400 shadow-[0_0_4px_rgba(239,68,68,0.85)] scale-110 animate-pulse' 
@@ -2281,7 +2282,7 @@ const HubHome: React.FC<HubHomeProps> = ({
                                      }`}
                                    >
                                      {isImportant ? (
-                                       <AlertCircle size={12} className={isCompleted ? 'text-zinc-450 shrink-0' : 'text-red-500 shrink-0 animate-bounce'} />
+                                       <AlertCircle size={12} className={isCompleted ? 'text-zinc-450 shrink-0' : 'text-red-500 shrink-0'} />
                                      ) : (
                                        <ListTodo size={12} className={isCompleted ? 'text-zinc-450 dark:text-zinc-600 shrink-0' : 'text-red-500 shrink-0'} />
                                      )}

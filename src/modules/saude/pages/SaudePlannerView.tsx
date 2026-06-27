@@ -61,6 +61,7 @@ const SaudePlannerView: React.FC<SaudePlannerViewProps> = ({
   const [formLevel, setFormLevel] = useState<CardioLevel>('Leve');
   const [formMuscles, setFormMuscles] = useState<MuscleGroup[]>([]);
   const [formStatus, setFormStatus] = useState<'realizado' | 'planejado'>('realizado');
+  const [formProvaSport, setFormProvaSport] = useState<string>('Corrida');
 
   useEffect(() => {
     if (activityTypes.length > 0 && !formType) {
@@ -91,13 +92,21 @@ const SaudePlannerView: React.FC<SaudePlannerViewProps> = ({
     setFormLevel('Leve');
     setFormMuscles([]);
     setFormStatus('realizado');
+    setFormProvaSport('Corrida');
     setShowModal(true);
   };
 
   const handleActivityClick = (e: React.MouseEvent, act: HealthActivity) => {
     e.stopPropagation();
     setEditingActivity(act);
-    setFormType(act.type);
+    if (act.type.startsWith('Prova')) {
+      setFormType('Prova');
+      const match = act.type.match(/Prova \(([^)]+)\)/);
+      setFormProvaSport(match ? match[1] : 'Corrida');
+    } else {
+      setFormType(act.type);
+      setFormProvaSport('Corrida');
+    }
     setFormTime(act.timeInMinutes?.toString() || '');
     setFormDistance(act.distanceKm?.toString() || '');
     setFormLevel(act.level || 'Leve');
@@ -116,19 +125,22 @@ const SaudePlannerView: React.FC<SaudePlannerViewProps> = ({
       return;
     }
 
-    const dist = formType !== 'Musculação' && formDistance ? (parseFloat(formDistance.replace(',', '.')) || 0) : null;
-    if (formStatus === 'realizado' && formType !== 'Musculação' && (!dist || dist <= 0)) {
+    const typeValue = formType === 'Prova' ? `Prova (${formProvaSport})` : formType;
+    const isMusculacao = formType === 'Musculação' || (formType === 'Prova' && formProvaSport === 'Musculação');
+
+    const dist = !isMusculacao && formDistance ? (parseFloat(formDistance.replace(',', '.')) || 0) : null;
+    if (formStatus === 'realizado' && !isMusculacao && (!dist || dist <= 0)) {
       alert('Por favor, insira uma distância válida.');
       return;
     }
 
-    const level = formType !== 'Musculação' ? formLevel : null;
-    const muscles = formType === 'Musculação' ? formMuscles : null;
+    const level = !isMusculacao ? formLevel : null;
+    const muscles = isMusculacao ? formMuscles : null;
 
     if (editingActivity) {
       if (onUpdateActivity) {
         onUpdateActivity(editingActivity.id, {
-          type: formType,
+          type: typeValue,
           date: selectedDayKey,
           timeInMinutes: time,
           status: formStatus,
@@ -140,7 +152,7 @@ const SaudePlannerView: React.FC<SaudePlannerViewProps> = ({
     } else {
       const newActivity: HealthActivity = {
         id: crypto.randomUUID(),
-        type: formType,
+        type: typeValue,
         date: selectedDayKey,
         timeInMinutes: time,
         status: formStatus,
@@ -158,6 +170,7 @@ const SaudePlannerView: React.FC<SaudePlannerViewProps> = ({
     setFormLevel('Leve');
     setFormMuscles([]);
     setFormStatus('realizado');
+    setFormProvaSport('Corrida');
   };
 
   const prevMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
@@ -177,7 +190,8 @@ const SaudePlannerView: React.FC<SaudePlannerViewProps> = ({
   });
 
   const getBadgeColorStyles = (type: string) => {
-    const actType = activityTypes.find(t => t.name === type);
+    const baseType = type.startsWith('Prova') ? 'Prova' : type;
+    const actType = activityTypes.find(t => t.name === baseType);
     const color = actType?.color || '#71717a';
     return {
       backgroundColor: hexToRgba(color, 0.15),
@@ -261,7 +275,7 @@ const SaudePlannerView: React.FC<SaudePlannerViewProps> = ({
                       </div>
                       {act.timeInMinutes !== undefined && act.timeInMinutes !== null && act.timeInMinutes > 0 && <span className="opacity-80 font-medium text-[9px]">{act.timeInMinutes} min</span>}
                       {act.distanceKm !== undefined && act.distanceKm !== null && act.distanceKm > 0 && <span className="opacity-75 text-[8px]">{act.distanceKm} km</span>}
-                      {act.type === 'Musculação' && act.muscles && act.muscles.length > 0 && (
+                      {(act.type === 'Musculação' || act.type.startsWith('Prova (Musculação')) && act.muscles && act.muscles.length > 0 && (
                         <div className="flex flex-wrap gap-0.5 mt-0.5 max-h-[22px] overflow-hidden">
                           {act.muscles.map(m => (
                             <span key={m} className="px-1 py-px bg-zinc-200/50 dark:bg-zinc-800/50 text-[7px] text-indigo-700 dark:text-indigo-300 rounded uppercase font-black tracking-wider shrink-0 truncate max-w-[45px]">{m}</span>
@@ -337,7 +351,18 @@ const SaudePlannerView: React.FC<SaudePlannerViewProps> = ({
                 </div>
               </div>
 
-              {formType !== 'Musculação' ? (
+              {formType === 'Prova' && (
+                <div className="animate-in fade-in duration-200">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 block mb-1.5">Esporte da Prova</label>
+                  <select value={formProvaSport} onChange={e => setFormProvaSport(e.target.value)} className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 text-sm font-bold text-zinc-800 dark:text-zinc-100 outline-none focus:ring-2 focus:ring-cyan-500 transition-all">
+                    {activityTypes.filter(t => t.name !== 'Prova').map(t => (
+                      <option key={t.name} value={t.name}>{t.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {!(formType === 'Musculação' || (formType === 'Prova' && formProvaSport === 'Musculação')) ? (
                 <div className="grid grid-cols-2 gap-3 animate-in fade-in duration-200">
                   <div>
                     <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 block mb-1.5">Distância (km)</label>

@@ -85,13 +85,16 @@ const SaudeApp: React.FC = () => {
 
   const [activityTypes, setActivityTypes] = useState<HealthActivityType[]>(() => {
     const saved = localStorage.getItem('cn_saude_activity_types');
-    if (saved) return JSON.parse(saved);
-    return [
+    let list = saved ? JSON.parse(saved) : [
       { name: 'Corrida', color: '#10b981' },
       { name: 'Ciclismo', color: '#f59e0b' },
       { name: 'Natação', color: '#0ea5e9' },
       { name: 'Musculação', color: '#6366f1' }
     ];
+    if (!list.some((t: any) => t.name === 'Prova')) {
+      list.push({ name: 'Prova', color: '#3b82f6' });
+    }
+    return list;
   });
 
   useEffect(() => {

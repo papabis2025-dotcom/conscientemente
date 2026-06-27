@@ -401,6 +401,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                 s.activityType.toLowerCase().includes('revisao')
             ) && 
             s.status === 'planejado' && 
+            s.id && s.id.split('-')[3]?.startsWith('400') &&
             !expectedIds.has(s.id)
         );
 

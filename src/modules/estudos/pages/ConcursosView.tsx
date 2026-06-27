@@ -14,7 +14,10 @@ const isTopicCompletedHelper = (subjectId: string, topicId: string, isCompletedF
   const reviews = (scheduledStudies || []).filter(sched =>
     sched.subjectId === subjectId &&
     sched.topicId === topicId &&
-    sched.activityType === 'Revisão'
+    sched.activityType && (
+      sched.activityType.toLowerCase().includes('revisão') || 
+      sched.activityType.toLowerCase().includes('revisao')
+    )
   );
   if (reviews.length === 0) {
     return isCompletedFlag;

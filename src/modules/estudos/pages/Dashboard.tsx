@@ -799,7 +799,7 @@ const Dashboard: React.FC<DashboardProps> = ({
             const isDelayed = diffDays > 0;
             
             let labelType = 'Tarefa Programada';
-            if (s.activityType === 'Revisão') {
+            if (s.activityType && (s.activityType.toLowerCase().includes('revisão') || s.activityType.toLowerCase().includes('revisao'))) {
               labelType = isDelayed ? 'Revisão Atrasada' : 'Revisão';
             } else {
               labelType = isDelayed ? 'Tarefa Atrasada' : 'Tarefa Programada';
@@ -995,10 +995,13 @@ const Dashboard: React.FC<DashboardProps> = ({
             const sDate = s.date ? s.date.split('T')[0] : '';
             return sDate === dateStr && s.status === 'realizado' && s.activityType !== 'Simulado';
           });
-          // Planned reviews for the day (status === 'planejado' && activityType === 'Revisão')
+          // Planned reviews for the day (status === 'planejado' && activityType is Review)
           const dayPendingReviews = (scheduledStudies || []).filter(s => {
             const sDate = s.date ? s.date.split('T')[0] : '';
-            return sDate === dateStr && s.status === 'planejado' && s.activityType === 'Revisão';
+            return sDate === dateStr && s.status === 'planejado' && s.activityType && (
+              s.activityType.toLowerCase().includes('revisão') || 
+              s.activityType.toLowerCase().includes('revisao')
+            );
           });
           const hasPendingReview = dayPendingReviews.length > 0;
           

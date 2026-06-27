@@ -34,7 +34,10 @@ const isTopicCompletedHelper = (subjectId: string, topicId: string, isCompletedF
   const reviews = (scheduledStudies || []).filter(sched =>
     sched.subjectId === subjectId &&
     sched.topicId === topicId &&
-    sched.activityType === 'Revisão'
+    sched.activityType && (
+      sched.activityType.toLowerCase().includes('revisão') || 
+      sched.activityType.toLowerCase().includes('revisao')
+    )
   );
   if (reviews.length === 0) {
     return isCompletedFlag;
@@ -245,8 +248,11 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
         const review = (scheduledStudies || []).find(s => 
           s.subjectId === subjectId &&
           s.topicId === (topicId === null ? undefined : topicId) &&
-          s.activityType === 'Revisão' &&
-          s.id && s.id.split('-')[3] === `400${i}`
+          s.activityType && (
+            s.activityType.toLowerCase().includes('revisão') || 
+            s.activityType.toLowerCase().includes('revisao')
+          ) &&
+          s.id && s.id.toLowerCase().split('-')[3] === `400${i}`
         );
 
         customReviewDates[i] = {
@@ -479,7 +485,10 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
     const topicReviews = (scheduledStudies || []).filter(sched =>
       sched.subjectId === subjectId &&
       sched.topicId === topicId &&
-      sched.activityType === 'Revisão'
+      sched.activityType && (
+        sched.activityType.toLowerCase().includes('revisão') || 
+        sched.activityType.toLowerCase().includes('revisao')
+      )
     );
 
     if (topicReviews.length > 0 && onToggleScheduledStudyStatus) {

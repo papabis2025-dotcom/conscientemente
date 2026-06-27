@@ -11,9 +11,9 @@ const getDeterministicSessionId = (simId: string, subjectId: string): string => 
 };
 
 const getDeterministicReviewId = (subId: string, topicId: string | undefined, lastSessId: string, idx: number): string => {
-    const cleanSub = subId.replace(/-/g, '').padEnd(32, '0');
-    const cleanTopic = (topicId || 'geral').replace(/-/g, '').padEnd(32, '0');
-    const cleanSess = lastSessId.replace(/-/g, '').padEnd(32, '0');
+    const cleanSub = subId.toLowerCase().replace(/-/g, '').padEnd(32, '0');
+    const cleanTopic = (topicId || 'geral').toLowerCase().replace(/-/g, '').padEnd(32, '0');
+    const cleanSess = lastSessId.toLowerCase().replace(/-/g, '').padEnd(32, '0');
     
     const part1 = cleanSub.substring(0, 8);
     const part2 = cleanTopic.substring(8, 12);
@@ -22,6 +22,7 @@ const getDeterministicReviewId = (subId: string, topicId: string | undefined, la
     const part5 = cleanSess.substring(16, 28);
     return `${part1}-${part2}-${part3}-${part4}-${part5}`;
 };
+
 
 const parseNotesGroup = (notes: string) => {
     const match = notes?.match(/^\[groupId:([^\]]+)\](.*)/s);
@@ -318,7 +319,10 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                         // A completed (realizado) scheduled review entry also counts as a review session
                         const isRevCompleted = matchingSched && 
                             matchingSched.status === 'realizado' &&
-                            matchingSched.activityType === 'Revisão';
+                            matchingSched.activityType && (
+                                matchingSched.activityType.toLowerCase().includes('revisão') || 
+                                matchingSched.activityType.toLowerCase().includes('revisao')
+                            );
                         const isDeterministic = s.id && s.id.split('-')[3]?.startsWith('400');
                         return !!(isRevType || isRevNotes || isRevId || isRevCompleted || isDeterministic);
                     };
@@ -375,12 +379,18 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         // These must NOT be deleted even if they aren't in expectedIds (they were completed by the user)
         const completedReviewIds = new Set(
             allSchedule
-                .filter(s => s.activityType === 'Revisão' && s.status === 'realizado')
+                .filter(s => s.status === 'realizado' && s.activityType && (
+                    s.activityType.toLowerCase().includes('revisão') || 
+                    s.activityType.toLowerCase().includes('revisao')
+                ))
                 .map(s => s.id)
         );
 
         const reviewsToDelete = allSchedule.filter(s => 
-            s.activityType === 'Revisão' && 
+            s.activityType && (
+                s.activityType.toLowerCase().includes('revisão') || 
+                s.activityType.toLowerCase().includes('revisao')
+            ) && 
             s.status === 'planejado' && 
             !expectedIds.has(s.id)
         );
@@ -713,18 +723,18 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         const activityType = session.activityType || (session.isSimulado ? 'Simulado' : session.questionsDone !== undefined ? 'Questões' : 'Leitura');
 
         let existingPlanned = scheduledStudies.find(s => s.id === session.id && s.status === 'planejado');
-        if (!existingPlanned && activityType === 'Revisão') {
+        if (!existingPlanned && activityType && (activityType.toLowerCase().includes('revisão') || activityType.toLowerCase().includes('revisao'))) {
             // Prefer a review on the same date; fallback to any pending review for same subject/topic
             existingPlanned = scheduledStudies.find(s =>
                 s.subjectId === session.subjectId &&
                 s.topicId === session.topicId &&
-                s.activityType === 'Revisão' &&
+                s.activityType && (s.activityType.toLowerCase().includes('revisão') || s.activityType.toLowerCase().includes('revisao')) &&
                 s.status === 'planejado' &&
                 s.date === sessionDate
             ) || scheduledStudies.find(s =>
                 s.subjectId === session.subjectId &&
                 s.topicId === session.topicId &&
-                s.activityType === 'Revisão' &&
+                s.activityType && (s.activityType.toLowerCase().includes('revisão') || s.activityType.toLowerCase().includes('revisao')) &&
                 s.status === 'planejado'
             );
         }
@@ -842,20 +852,20 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
             const activityType = session.activityType || (session.isSimulado ? 'Simulado' : session.questionsDone !== undefined ? 'Questões' : 'Leitura');
 
             let existingPlanned = currentLocalSchedule.find(s => s.id === session.id && s.status === 'planejado');
-            if (!existingPlanned && activityType === 'Revisão') {
+            if (!existingPlanned && activityType && (activityType.toLowerCase().includes('revisão') || activityType.toLowerCase().includes('revisao'))) {
                 const sessionDate = session.date.split('T')[0];
                 // Prefer a review on the same date; fallback to any pending review for same subject/topic
                 existingPlanned = currentLocalSchedule.find(s =>
                     s.subjectId === session.subjectId &&
                     s.topicId === session.topicId &&
-                    s.activityType === 'Revisão' &&
+                    s.activityType && (s.activityType.toLowerCase().includes('revisão') || s.activityType.toLowerCase().includes('revisao')) &&
                     s.status === 'planejado' &&
                     s.date === sessionDate &&
                     !newScheduledList.some(ns => ns.id === s.id)
                 ) || currentLocalSchedule.find(s =>
                     s.subjectId === session.subjectId &&
                     s.topicId === session.topicId &&
-                    s.activityType === 'Revisão' &&
+                    s.activityType && (s.activityType.toLowerCase().includes('revisão') || s.activityType.toLowerCase().includes('revisao')) &&
                     s.status === 'planejado' &&
                     !newScheduledList.some(ns => ns.id === s.id)
                 );
@@ -1125,7 +1135,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         setSaveError(null);
 
         // If any of them are reviews, track them as deleted so they are not auto-recreated
-        const reviewsToDelete = scheduledStudies.filter(s => ids.includes(s.id) && s.activityType === 'Revisão');
+        const reviewsToDelete = scheduledStudies.filter(s => ids.includes(s.id) && s.activityType && (s.activityType.toLowerCase().includes('revisão') || s.activityType.toLowerCase().includes('revisao')));
         if (reviewsToDelete.length > 0) {
             try {
                 const deletedRaw = localStorage.getItem('estudos_deleted_review_ids') || '[]';

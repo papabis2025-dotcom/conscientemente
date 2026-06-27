@@ -738,10 +738,20 @@ const HubHome: React.FC<HubHomeProps> = ({
           endDate = dueTime.substring(6);
           dueTime = '';
         }
+        let category = t.category || 'Tarefa';
+        if (!t.category || t.category === 'Tarefa') {
+          const txt = (t.text || '').toLowerCase();
+          if (txt.includes('urgente') || txt.includes('[urgente]') || txt.includes('🔴')) {
+            category = 'Urgente';
+          } else if (txt.includes('importante') || txt.includes('[importante]') || txt.includes('⭐') || txt.includes('⚠️')) {
+            category = 'Importante';
+          }
+        }
         return {
           ...t,
           due_time: dueTime,
-          endDate
+          endDate,
+          category
         };
       });
 

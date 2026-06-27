@@ -69,7 +69,19 @@ const TarefasApp: React.FC = () => {
     const loadTasks = async () => {
       try {
         const data = await tarefasApi.list();
-        setTasks(data);
+        const mapped = data.map(t => {
+          if (!t.category || t.category === 'Tarefa') {
+            const txt = (t.text || '').toLowerCase();
+            if (txt.includes('urgente') || txt.includes('[urgente]') || txt.includes('🔴')) {
+              return { ...t, category: 'Urgente' };
+            }
+            if (txt.includes('importante') || txt.includes('[importante]') || txt.includes('⭐') || txt.includes('⚠️')) {
+              return { ...t, category: 'Importante' };
+            }
+          }
+          return t;
+        });
+        setTasks(mapped);
       } catch (err) {
         console.error('Failed to load tasks:', err);
       } finally {

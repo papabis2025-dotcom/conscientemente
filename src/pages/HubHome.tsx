@@ -2096,6 +2096,14 @@ const HubHome: React.FC<HubHomeProps> = ({
                             const isHealthProvaDay = dayWorkouts.some(w => w.type.startsWith('Prova') || w.type === 'Prova');
                             const hasImportantTask = dayTasks.some(t => !t.completed && (t.category === 'Importante' || t.category === 'Urgente'));
 
+                            const todayBorderClass = isExamDay
+                              ? 'border-2 border-purple-500 dark:border-purple-400'
+                              : isHealthProvaDay
+                                ? 'border-2 border-blue-500 dark:border-blue-400'
+                                : hasImportantTask
+                                  ? 'border-2 border-red-500 dark:border-red-400'
+                                  : 'border-zinc-300 dark:border-zinc-700';
+
                             cells.push(
                               <div
                                 key={`day-${day}`}
@@ -2107,13 +2115,13 @@ const HubHome: React.FC<HubHomeProps> = ({
                                   isSelected
                                     ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-950 border-zinc-900 dark:border-white shadow-sm'
                                     : isToday
-                                      ? 'bg-zinc-200/50 dark:bg-zinc-800/60 border-zinc-300 dark:border-zinc-700 text-zinc-800 dark:text-white font-bold'
+                                      ? `bg-zinc-200/50 dark:bg-zinc-800/60 ${todayBorderClass} text-zinc-800 dark:text-white font-bold`
                                       : isExamDay
-                                        ? 'bg-purple-500/5 dark:bg-purple-500/10 border-purple-500 dark:border-purple-400 text-purple-900 dark:text-purple-300 font-extrabold shadow-sm'
+                                        ? 'bg-purple-500/5 dark:bg-purple-500/10 border-2 border-purple-500 dark:border-purple-400 text-purple-900 dark:text-purple-300 font-extrabold shadow-sm'
                                         : isHealthProvaDay
-                                          ? 'bg-blue-500/5 dark:bg-blue-500/10 border-blue-500 dark:border-blue-400 text-blue-900 dark:text-blue-300 font-extrabold shadow-sm'
+                                          ? 'bg-blue-500/5 dark:bg-blue-500/10 border-2 border-blue-500 dark:border-blue-400 text-blue-900 dark:text-blue-300 font-extrabold shadow-sm'
                                           : hasImportantTask
-                                            ? 'bg-red-500/5 dark:bg-red-500/10 border-red-500 dark:border-red-450 text-red-900 dark:text-red-300 font-bold'
+                                            ? 'bg-red-500/5 dark:bg-red-500/10 border-2 border-red-500 dark:border-red-400 text-red-900 dark:text-red-300 font-bold'
                                             : hasRangeTask
                                               ? 'bg-rose-500/10 dark:bg-rose-500/20 border-rose-500/20 dark:border-rose-900/50 text-rose-800 dark:text-rose-200'
                                               : 'bg-zinc-50/40 dark:bg-zinc-900/40 border-zinc-250/60 dark:border-zinc-800/70 text-zinc-800 dark:text-zinc-200 hover:border-zinc-300 dark:hover:border-zinc-650'

@@ -43,6 +43,7 @@ const SYNC_KEYS = [
   'cn_saude_activity_types',
   'cn_saude_muscle_groups',
   'cn_saude_dashboard_layout',
+  'cn_saude_sleep_logs',
   'cn_home_cards_layout',
   'cn_global_alignment',
   'cn_home_widgets_order'

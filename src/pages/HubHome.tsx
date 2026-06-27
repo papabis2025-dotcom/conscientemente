@@ -3,7 +3,7 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { MODULES } from '../constants';
 import { Module } from '../types';
 import { LogEntry } from '../modules/estudos/types';
-import { LogOut, Sun, Moon, ArrowUpRight, Lock, BookOpen, Wallet, ListTodo, Brain, ChevronRight, ChevronLeft, ChevronDown, ChevronUp, Sliders, Activity, TrendingUp, Settings, User, X, HeartPulse, Bell, Plus, Trash2, Check, ClipboardList, BarChart3, Calendar, Award, CheckCircle2, StickyNote, Flame, Clock, DollarSign, Database, Cloud, AlertTriangle, FileText, CalendarDays, Menu } from 'lucide-react';
+import { LogOut, Sun, Moon, ArrowUpRight, Lock, BookOpen, Wallet, ListTodo, Brain, ChevronRight, ChevronLeft, ChevronDown, ChevronUp, Sliders, Activity, TrendingUp, Settings, User, X, HeartPulse, Bell, Plus, Trash2, Check, ClipboardList, BarChart3, Calendar, Award, CheckCircle2, StickyNote, Flame, Clock, DollarSign, Database, Cloud, AlertTriangle, FileText, CalendarDays, Menu, Trophy, AlertCircle } from 'lucide-react';
 import LogView from '../modules/estudos/pages/LogView';
 import { api } from '../modules/estudos/services/api';
 import { supabase } from '../modules/estudos/services/supabase';
@@ -503,6 +503,7 @@ const HubHome: React.FC<HubHomeProps> = ({
     workouts: any[];
     finances: any[];
   }>({ tasks: [], studies: [], workouts: [], finances: [] });
+  const [concursoExamDates, setConcursoExamDates] = useState<{ date: string; name: string }[]>([]);
   const [selectedCalendarDate, setSelectedCalendarDate] = useState(() => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
@@ -750,6 +751,19 @@ const HubHome: React.FC<HubHomeProps> = ({
         workouts: dbWorkouts || [],
         finances: dbFinances || []
       });
+
+      const examDatesList: { date: string; name: string }[] = [];
+      if (dbConcursos) {
+        dbConcursos.forEach((c: any) => {
+          if (c.target_date) {
+            examDatesList.push({
+              date: c.target_date.split('T')[0],
+              name: c.name
+            });
+          }
+        });
+      }
+      setConcursoExamDates(examDatesList);
 
       // Query past incomplete tasks from Supabase
       const { count: pastTasksCount } = await supabase
@@ -2059,6 +2073,9 @@ const HubHome: React.FC<HubHomeProps> = ({
                             const isToday = dateStr === todayStr;
                             const isSelected = dateStr === selectedCalendarDate;
 
+                            const dayExams = concursoExamDates.filter(ed => ed.date === dateStr);
+                            const isExamDay = dayExams.length > 0;
+
                             // Filtrar eventos do dia
                             const dayTasks = calendarEvents.tasks.filter(t => {
                               if (t.endDate) {
@@ -2088,39 +2105,50 @@ const HubHome: React.FC<HubHomeProps> = ({
                                     ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-950 border-zinc-900 dark:border-white shadow-sm'
                                     : isToday
                                       ? 'bg-zinc-200/50 dark:bg-zinc-800/60 border-zinc-300 dark:border-zinc-700 text-zinc-800 dark:text-white font-bold'
-                                      : hasRangeTask
-                                        ? 'bg-rose-500/10 dark:bg-rose-500/20 border-rose-500/20 dark:border-rose-900/50 text-rose-800 dark:text-rose-200'
-                                        : 'bg-zinc-50/40 dark:bg-zinc-900/40 border-zinc-250/60 dark:border-zinc-800/70 text-zinc-800 dark:text-zinc-200 hover:border-zinc-300 dark:hover:border-zinc-650'
+                                      : isExamDay
+                                        ? 'bg-amber-500/10 dark:bg-amber-500/25 border-amber-500 dark:border-amber-450 text-amber-900 dark:text-amber-300 font-extrabold shadow-sm'
+                                        : hasRangeTask
+                                          ? 'bg-rose-500/10 dark:bg-rose-500/20 border-rose-500/20 dark:border-rose-900/50 text-rose-800 dark:text-rose-200'
+                                          : 'bg-zinc-50/40 dark:bg-zinc-900/40 border-zinc-250/60 dark:border-zinc-800/70 text-zinc-800 dark:text-zinc-200 hover:border-zinc-300 dark:hover:border-zinc-650'
                                 }`}
                               >
                                 <span className="text-[10px] font-black leading-none">{day}</span>
                                 
-                                {/* Ícones indicadores sob o dia */}
+                                {isExamDay && (
+                                  <div className="absolute -top-1 -right-1 bg-amber-500 text-white rounded-full p-0.5 shadow-md flex items-center justify-center" title={`Prova de: ${dayExams.map(x => x.name).join(', ')}`}>
+                                    <Trophy size={8} className="animate-bounce text-white" />
+                                  </div>
+                                )}
+                                
+                                {/* Bolas elegantes indicadoras sob o dia */}
                                 <div className="flex gap-0.5 mt-1 shrink-0 flex-wrap justify-center max-w-full">
                                   {dayStudies.map((s, idx) => {
                                     const isAtrasado = dateStr < todayStr && !s.completed;
                                     return (
-                                      <BookOpen 
+                                      <div 
                                         key={`study-${s.id || idx}`}
-                                        size={12} 
-                                        className={`shrink-0 transition-all ${
+                                        className={`w-1.5 h-1.5 rounded-full shrink-0 transition-all ${
                                           isAtrasado 
-                                            ? 'text-purple-600 dark:text-purple-400 drop-shadow-[0_0_4px_rgba(168,85,247,0.85)] scale-110 animate-pulse' 
-                                            : 'text-purple-500/80 dark:text-purple-400/80'
+                                            ? 'bg-purple-600 dark:bg-purple-400 shadow-[0_0_4px_rgba(168,85,247,0.85)] scale-110 animate-pulse' 
+                                            : 'bg-purple-500/80 dark:bg-purple-400/80'
                                         }`} 
                                       />
                                     );
                                   })}
                                   {dayTasks.filter(t => !t.endDate).map((t, idx) => {
+                                    const isImportant = t.category === 'Importante' || t.category === 'Urgente';
                                     const isAtrasado = dateStr < todayStr && !t.completed;
                                     return (
-                                      <ListTodo 
+                                      <div 
                                         key={`task-${t.id || idx}`}
-                                        size={12} 
-                                        className={`shrink-0 transition-all ${
-                                          isAtrasado 
-                                            ? 'text-red-600 dark:text-red-400 drop-shadow-[0_0_4px_rgba(239,68,68,0.85)] scale-110 animate-pulse' 
-                                            : 'text-red-500/80 dark:text-red-400/80'
+                                        className={`rounded-full shrink-0 transition-all ${
+                                          isImportant
+                                            ? 'w-2 h-2 bg-red-600 dark:bg-red-400 ring-1 ring-red-400/50 shadow-[0_0_5px_rgba(239,68,68,0.95)] animate-pulse'
+                                            : `w-1.5 h-1.5 ${
+                                                isAtrasado 
+                                                  ? 'bg-red-600 dark:bg-red-400 shadow-[0_0_4px_rgba(239,68,68,0.85)] scale-110 animate-pulse' 
+                                                  : 'bg-red-500/80 dark:bg-red-400/80'
+                                              }`
                                         }`} 
                                       />
                                     );
@@ -2128,13 +2156,12 @@ const HubHome: React.FC<HubHomeProps> = ({
                                   {dayFinances.map((f, idx) => {
                                     const isAtrasado = dateStr < todayStr;
                                     return (
-                                      <DollarSign 
+                                      <div 
                                         key={`finance-${f.id || idx}`}
-                                        size={12} 
-                                        className={`shrink-0 transition-all ${
+                                        className={`w-1.5 h-1.5 rounded-full shrink-0 transition-all ${
                                           isAtrasado 
-                                            ? 'text-emerald-600 dark:text-emerald-400 drop-shadow-[0_0_4px_rgba(10,185,129,0.85)] scale-110 animate-pulse' 
-                                            : 'text-emerald-500/80 dark:text-emerald-400/80'
+                                            ? 'bg-emerald-600 dark:bg-emerald-400 shadow-[0_0_4px_rgba(10,185,129,0.85)] scale-110 animate-pulse' 
+                                            : 'bg-emerald-500/80 dark:bg-emerald-400/80'
                                         }`} 
                                       />
                                     );
@@ -2142,13 +2169,12 @@ const HubHome: React.FC<HubHomeProps> = ({
                                   {dayWorkouts.map((w, idx) => {
                                     const isAtrasado = dateStr < todayStr && w.status !== 'realizado';
                                     return (
-                                      <Activity 
+                                      <div 
                                         key={`workout-${w.id || idx}`}
-                                        size={12} 
-                                        className={`shrink-0 transition-all ${
+                                        className={`w-1.5 h-1.5 rounded-full shrink-0 transition-all ${
                                           isAtrasado 
-                                            ? 'text-blue-600 dark:text-blue-400 drop-shadow-[0_0_4px_rgba(59,130,246,0.85)] scale-110 animate-pulse' 
-                                            : 'text-blue-500/80 dark:text-blue-400/80'
+                                            ? 'bg-blue-600 dark:bg-blue-400 shadow-[0_0_4px_rgba(59,130,246,0.85)] scale-110 animate-pulse' 
+                                            : 'bg-blue-500/80 dark:bg-blue-400/80'
                                         }`} 
                                       />
                                     );
@@ -2240,6 +2266,7 @@ const HubHome: React.FC<HubHomeProps> = ({
                                {/* Tarefas */}
                                {dayTasks.map(t => {
                                  const isCompleted = t.completed;
+                                 const isImportant = t.category === 'Importante' || t.category === 'Urgente';
                                  return (
                                    <div 
                                      key={t.id} 
@@ -2248,15 +2275,21 @@ const HubHome: React.FC<HubHomeProps> = ({
                                      className={`flex items-center gap-2 p-2 rounded-xl transition-all duration-200 cursor-pointer hover:scale-[1.01] ${
                                        isCompleted
                                          ? 'bg-zinc-100/40 dark:bg-zinc-800/20 border border-zinc-200/25 dark:border-zinc-800/30 opacity-40'
-                                         : 'bg-red-500/10 dark:bg-red-500/10 border-2 border-red-500/40 dark:border-red-400/50 shadow-xs'
+                                         : isImportant
+                                           ? 'bg-red-500/15 dark:bg-red-500/20 border-l-4 border-l-red-500 border-t border-r border-b border-red-500/35 dark:border-red-400/40 shadow-sm font-black'
+                                           : 'bg-red-500/10 dark:bg-red-500/10 border border-red-500/20 dark:border-red-400/30 shadow-xs'
                                      }`}
                                    >
-                                     <ListTodo size={12} className={isCompleted ? 'text-zinc-450 dark:text-zinc-600 shrink-0' : 'text-red-500 shrink-0'} />
+                                     {isImportant ? (
+                                       <AlertCircle size={12} className={isCompleted ? 'text-zinc-450 shrink-0' : 'text-red-500 shrink-0 animate-bounce'} />
+                                     ) : (
+                                       <ListTodo size={12} className={isCompleted ? 'text-zinc-450 dark:text-zinc-600 shrink-0' : 'text-red-500 shrink-0'} />
+                                     )}
                                      <div className="min-w-0 flex-1">
                                        <p className={`text-[9px] font-black uppercase tracking-wider leading-none ${
                                          isCompleted ? 'text-zinc-400 dark:text-zinc-550' : 'text-red-600 dark:text-red-400'
                                        }`}>
-                                         Tarefa {!isCompleted && '• Pendente'}
+                                         {isImportant ? '⚠️ Tarefa Importante' : 'Tarefa'} {!isCompleted && '• Pendente'}
                                        </p>
                                        <p className={`text-[10px] font-bold text-zinc-750 dark:text-zinc-200 truncate mt-0.5 leading-none ${
                                          isCompleted ? 'line-through opacity-50' : ''

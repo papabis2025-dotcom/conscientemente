@@ -564,23 +564,6 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
         </div>
 
         <div className="flex flex-wrap gap-3 items-center">
-          {concursos && onSelectConcursoId && (
-            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl px-4 py-2 flex items-center gap-3 shadow-sm">
-               <Trophy size={16} className="text-amber-500" />
-               <select
-                  value={selectedConcursoId}
-                  onChange={(e) => onSelectConcursoId(e.target.value)}
-                  className="bg-white dark:bg-zinc-900 border-none outline-none text-xs font-black text-zinc-800 dark:text-zinc-100 cursor-pointer w-32 uppercase tracking-wide focus:ring-0"
-               >
-                  <option value="all" className="bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-100">Visão Global</option>
-                  {concursos.map(c => (
-                    <option key={c.id} value={c.id} className="bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-100">
-                      {c.name}
-                    </option>
-                  ))}
-               </select>
-            </div>
-          )}
         </div>
       </header>
 
@@ -631,7 +614,6 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                     const updated = [...customReviewDays];
                     updated[idx] = newVal;
                     setCustomReviewDays(updated);
-                    localStorage.setItem('estudos_custom_review_days', JSON.stringify(updated));
                   }}
                   className={`w-14 px-1.5 py-1 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg text-center text-xs font-mono font-bold text-zinc-800 dark:text-white outline-none focus:ring-1 focus:ring-zinc-400 ${
                     reviewsDisabled ? 'cursor-not-allowed opacity-60' : ''
@@ -639,6 +621,19 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                 />
               </label>
             ))}
+
+            <button
+              onClick={() => {
+                localStorage.setItem('estudos_custom_review_days', JSON.stringify(customReviewDays));
+                window.dispatchEvent(new Event('local-reviews-toggled'));
+                window.dispatchEvent(new Event('local-settings-changed'));
+                alert('Intervalos de revisão salvos com sucesso!');
+              }}
+              disabled={reviewsDisabled}
+              className="px-4 py-1.5 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-xl text-xs font-bold hover:opacity-90 disabled:opacity-50 transition-all cursor-pointer"
+            >
+              Salvar
+            </button>
           </div>
         </div>
       </div>
@@ -730,17 +725,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                 <th className="px-4 py-4 text-[10px] font-bold uppercase text-zinc-400 tracking-wider cursor-pointer hover:text-zinc-900 dark:text-zinc-300" onClick={() => { setSortBy('name'); setSortOrder(o => o === 'asc' ? 'desc' : 'asc'); }}>
                   Disciplina {sortBy === 'name' && (sortOrder === 'asc' ? '↓' : '↑')}
                 </th>
-
-                <th className="w-40 px-4 py-4 text-[10px] font-bold uppercase text-zinc-400 tracking-wider cursor-pointer hover:text-zinc-900 dark:text-zinc-300" onClick={() => { setSortBy('accuracy'); setSortOrder(o => o === 'desc' ? 'asc' : 'desc'); }}>
-                  Aproveitamento {sortBy === 'accuracy' && (sortOrder === 'desc' ? '↓' : '↑')}
-                </th>
                 <th className="w-32 px-4 py-4 text-[10px] font-bold uppercase text-zinc-400 tracking-wider text-right">Ações</th>
-                <th className="w-36 px-4 py-4 text-[10px] font-bold uppercase text-zinc-400 tracking-wider cursor-pointer hover:text-zinc-900 dark:text-zinc-300" onClick={() => { setSortBy('questionsGoal'); setSortOrder(o => o === 'desc' ? 'asc' : 'desc'); }}>
-                  Prev. no Edital {sortBy === 'questionsGoal' && (sortOrder === 'desc' ? '↓' : '↑')}
-                </th>
-                <th className="w-32 px-4 py-4 text-[10px] font-bold uppercase text-zinc-400 tracking-wider cursor-pointer hover:text-zinc-900 dark:text-zinc-300" onClick={() => { setSortBy('weight'); setSortOrder(o => o === 'desc' ? 'asc' : 'desc'); }}>
-                  Peso Total {sortBy === 'weight' && (sortOrder === 'desc' ? '↓' : '↑')}
-                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
@@ -819,14 +804,6 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                         </div>
                       </td>
 
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <div className="w-14 h-1.5 bg-zinc-100 dark:bg-zinc-700 rounded-full overflow-hidden">
-                            <div className={`h-full ${stats.accuracy >= 80 ? 'bg-emerald-500' : stats.accuracy < 50 ? 'bg-rose-500' : 'bg-blue-500'}`} style={{ width: `${stats.accuracy}%` }} />
-                          </div>
-                          <span className="text-xs font-bold text-zinc-600 dark:text-zinc-400">{stats.accuracy}%</span>
-                        </div>
-                      </td>
                       <td className="px-4 py-3 text-right">
                         <div className="flex items-center justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button onClick={(e) => startEditing(subject, e)} className="p-1.5 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg text-zinc-400 hover:text-zinc-900 dark:text-zinc-300 transition-colors">
@@ -837,44 +814,11 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                           </button>
                         </div>
                       </td>
-                      {/* Previsto no Edital */}
-                      <td className="px-4 py-3" onClick={e => editingSubjectId === subject.id && e.stopPropagation()}>
-                        {editingSubjectId === subject.id ? (
-                          <input
-                            type="number"
-                            placeholder="Qtd"
-                            className="w-20 px-2 py-1 bg-white dark:bg-zinc-900 border rounded text-sm text-zinc-800 dark:text-white"
-                            value={editQuestionsGoal}
-                            onChange={e => setEditQuestionsGoal(e.target.value === '' ? '' : Number(e.target.value))}
-                          />
-                        ) : (
-                          subject.questionsGoal
-                            ? <span className="bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 px-2 py-0.5 rounded text-xs font-bold">{subject.questionsGoal} Qs</span>
-                            : <span className="text-zinc-300 dark:text-zinc-600 text-xs">—</span>
-                        )}
-                      </td>
-                      {/* Peso Total */}
-                      <td className="px-4 py-3" onClick={e => editingSubjectId === subject.id && e.stopPropagation()}>
-                        {editingSubjectId === subject.id ? (
-                          <input
-                            type="number"
-                            placeholder="Peso"
-                            className="w-16 px-2 py-1 bg-white dark:bg-zinc-900 border rounded text-sm text-zinc-800 dark:text-white"
-                            value={editWeight}
-                            onChange={e => setEditWeight(e.target.value === '' ? '' : Number(e.target.value))}
-                            step="0.1"
-                          />
-                        ) : (
-                          subject.weight
-                            ? <span className="bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded text-xs font-bold">{subject.weight}x</span>
-                            : <span className="text-zinc-300 dark:text-zinc-600 text-xs">—</span>
-                        )}
-                      </td>
                     </tr>
 
                     {isExpanded && (
                       <tr>
-                        <td colSpan={6} className="px-0 py-0 bg-zinc-50/30 dark:bg-zinc-800/10 border-b border-zinc-100 dark:border-zinc-800">
+                        <td colSpan={3} className="px-0 py-0 bg-zinc-50/30 dark:bg-zinc-800/10 border-b border-zinc-100 dark:border-zinc-800">
                           <div className="pl-10 pr-4 py-2">
 
                             <table className="w-full text-left text-sm">
@@ -906,7 +850,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                                       </button>
                                     )}
                                   </th>
-                                  <th className="py-1.5 text-[10px] uppercase font-bold cursor-pointer hover:text-zinc-900 dark:text-zinc-300" onClick={() => { setTopicSortBy('firstStudy'); setTopicSortOrder(o => o === 'desc' ? 'asc' : 'desc'); }}>
+                                  <th className="py-1.5 text-[10px] uppercase font-bold cursor-pointer text-emerald-600 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/20 px-2.5 rounded-t-xl" onClick={() => { setTopicSortBy('firstStudy'); setTopicSortOrder(o => o === 'desc' ? 'asc' : 'desc'); }}>
                                     Primeira {topicSortBy === 'firstStudy' && (topicSortOrder === 'desc' ? '↓' : '↑')}
                                   </th>
                                   {customReviewDays.map((days, idx) => (
@@ -937,7 +881,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                                       <td className="py-1.5 font-semibold pl-2 text-xs" style={{ color: getColorHex(subject.color) }}>
                                         Geral / Outros <span className="text-[10px] font-normal opacity-60 ml-1 text-zinc-500">revisão geral</span>
                                       </td>
-                                      <td className="py-1.5 text-zinc-400 text-xs">{stats.firstStudyDate || '—'}</td>
+                                      <td className="py-1.5 text-emerald-700/80 dark:text-emerald-300/80 text-xs bg-emerald-50/30 dark:bg-emerald-950/10 px-2.5 font-medium">{stats.firstStudyDate || '—'}</td>
                                       {stats.customReviewDates.map((item, idx) => {
                                         const dateVal = typeof item === 'string' ? item : item.dateStr;
                                         const statusVal = typeof item === 'string' ? 'none' : item.status;
@@ -1093,7 +1037,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                                             </span>
                                           )}
                                         </td>
-                                        <td className="py-1.5 text-zinc-400 text-xs">
+                                        <td className="py-1.5 text-emerald-700/80 dark:text-emerald-350/80 text-xs bg-emerald-50/30 dark:bg-emerald-950/10 px-2.5 font-medium">
                                           {tStats.firstStudyDate || '-'}
                                         </td>
                                         {tStats.customReviewDates.map((item, idx) => {

@@ -182,6 +182,8 @@ const FinancasApp: React.FC = () => {
   const [outSort, setOutSort] = useState<'date'|'value'|'category'|'name'>('date');
   const [paymentSort, setPaymentSort] = useState<'value'|'type'>('value');
   const [categorySort, setCategorySort] = useState<'value'|'type'>('value');
+  const [inStatusFilter, setInStatusFilter] = useState<'all' | 'pending' | 'paid'>('all');
+  const [outStatusFilter, setOutStatusFilter] = useState<'all' | 'pending' | 'paid'>('all');
 
   // localStorage triggers removed
 
@@ -191,27 +193,50 @@ const FinancasApp: React.FC = () => {
     return transactions.filter(t => t.date.startsWith(currentMonthStr));
   }, [transactions, currentMonthStr]);
 
+  const unfilteredEntradas = useMemo(() => {
+    return monthTransactions.filter(t => t.type === 'entrada');
+  }, [monthTransactions]);
+
+  const unfilteredSaidas = useMemo(() => {
+    return monthTransactions.filter(t => t.type === 'saida');
+  }, [monthTransactions]);
+
+  const totalEntradas = useMemo(() => unfilteredEntradas.reduce((acc, t) => acc + t.amount, 0), [unfilteredEntradas]);
+  const totalSaidas = useMemo(() => unfilteredSaidas.reduce((acc, t) => acc + t.amount, 0), [unfilteredSaidas]);
+  const saldo = totalEntradas - totalSaidas;
+
+  const totalEntradasPendentes = useMemo(() => unfilteredEntradas.filter(t => t.pending).reduce((acc, t) => acc + t.amount, 0), [unfilteredEntradas]);
+  const totalSaidasPendentes = useMemo(() => unfilteredSaidas.filter(t => t.pending).reduce((acc, t) => acc + t.amount, 0), [unfilteredSaidas]);
+
   const entradas = useMemo(() => {
-    let sorted = [...monthTransactions.filter(t => t.type === 'entrada')];
+    let filtered = monthTransactions.filter(t => t.type === 'entrada');
+    if (inStatusFilter === 'pending') {
+      filtered = filtered.filter(t => t.pending);
+    } else if (inStatusFilter === 'paid') {
+      filtered = filtered.filter(t => !t.pending);
+    }
+    let sorted = [...filtered];
     if (inSort === 'date') sorted.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     if (inSort === 'value') sorted.sort((a, b) => b.amount - a.amount);
     if (inSort === 'category') sorted.sort((a, b) => a.category.localeCompare(b.category));
     if (inSort === 'name') sorted.sort((a, b) => a.name.localeCompare(b.name));
     return sorted;
-  }, [monthTransactions, inSort]);
+  }, [monthTransactions, inSort, inStatusFilter]);
 
   const saidas = useMemo(() => {
-    let sorted = [...monthTransactions.filter(t => t.type === 'saida')];
+    let filtered = monthTransactions.filter(t => t.type === 'saida');
+    if (outStatusFilter === 'pending') {
+      filtered = filtered.filter(t => t.pending);
+    } else if (outStatusFilter === 'paid') {
+      filtered = filtered.filter(t => !t.pending);
+    }
+    let sorted = [...filtered];
     if (outSort === 'date') sorted.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     if (outSort === 'value') sorted.sort((a, b) => b.amount - a.amount);
     if (outSort === 'category') sorted.sort((a, b) => a.category.localeCompare(b.category));
     if (outSort === 'name') sorted.sort((a, b) => a.name.localeCompare(b.name));
     return sorted;
-  }, [monthTransactions, outSort]);
-
-  const totalEntradas = entradas.reduce((acc, t) => acc + t.amount, 0);
-  const totalSaidas = saidas.reduce((acc, t) => acc + t.amount, 0);
-  const saldo = totalEntradas - totalSaidas;
+  }, [monthTransactions, outSort, outStatusFilter]);
 
   const gastosPorCartao = useMemo(() => {
     const totals: Record<string, number> = {};
@@ -462,6 +487,18 @@ const FinancasApp: React.FC = () => {
     }));
   };
 
+  const toggleImpostoRenda = (id: string) => {
+    setTransactions(prev => prev.map(t => {
+      if (t.id === id) {
+        const isIR = t.name.startsWith('[IR]');
+        const newName = isIR ? t.name.replace(/^\[IR\]\s*/, '') : `[IR] ${t.name}`;
+        financasApi.updateTransaction(id, { name: newName }).catch(err => console.error('Error updating transaction name for IR:', err));
+        return { ...t, name: newName };
+      }
+      return t;
+    }));
+  };
+
   const deleteTransaction = (id: string) => {
     const tx = transactions.find(t => t.id === id);
     if (!tx) return;
@@ -693,13 +730,23 @@ const FinancasApp: React.FC = () => {
                 <div className="flex items-center gap-2 text-blue-500 mb-0.5">
                   <TrendingUp size={14} /><span className="text-[9px] font-bold uppercase tracking-wider">Entradas</span>
                 </div>
-                <p className="text-sm font-bold dark:text-white">{formatCurrency(totalEntradas)}</p>
+                <div className="flex items-baseline justify-between gap-1 flex-wrap">
+                  <p className="text-sm font-bold dark:text-white">{formatCurrency(totalEntradas)}</p>
+                  <span className="text-[9px] text-amber-500 font-semibold" title="Valor marcado como pendente">
+                    {formatCurrency(totalEntradasPendentes)} pend.
+                  </span>
+                </div>
               </div>
               <div className="bg-white dark:bg-[#121214] p-3 rounded-2xl border border-zinc-200 dark:border-zinc-800/50 shadow-sm flex flex-col justify-center">
                 <div className="flex items-center gap-2 text-rose-500 mb-0.5">
                   <TrendingDown size={14} /><span className="text-[9px] font-bold uppercase tracking-wider">Saídas</span>
                 </div>
-                <p className="text-sm font-bold dark:text-white">{formatCurrency(totalSaidas)}</p>
+                <div className="flex items-baseline justify-between gap-1 flex-wrap">
+                  <p className="text-sm font-bold dark:text-white">{formatCurrency(totalSaidas)}</p>
+                  <span className="text-[9px] text-amber-500 font-semibold" title="Valor marcado como pendente">
+                    {formatCurrency(totalSaidasPendentes)} pend.
+                  </span>
+                </div>
               </div>
             </div>
 
@@ -1104,12 +1151,20 @@ const FinancasApp: React.FC = () => {
             <div className="p-4 bg-blue-50/50 dark:bg-blue-900/10 border-b border-zinc-200 dark:border-zinc-800">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-black uppercase tracking-tight text-blue-600 dark:text-blue-400 flex items-center gap-2"><TrendingUp size={16} /> Entradas</h3>
-                <select value={inSort} onChange={e => setInSort(e.target.value as any)} className="text-[9px] uppercase font-bold tracking-wider bg-transparent text-zinc-400 outline-none cursor-pointer">
-                  <option value="date">Data</option>
-                  <option value="value">Valor</option>
-                  <option value="category">Categ</option>
-                  <option value="name">Nome</option>
-                </select>
+                <div className="flex items-center gap-2">
+                  <select value={inStatusFilter} onChange={e => setInStatusFilter(e.target.value as any)} className="text-[9px] uppercase font-bold tracking-wider bg-transparent text-zinc-400 outline-none cursor-pointer">
+                    <option value="all">Status: Todos</option>
+                    <option value="pending">Status: Pendente</option>
+                    <option value="paid">Status: Pago</option>
+                  </select>
+                  <span className="text-zinc-300 dark:text-zinc-700 text-[10px]">•</span>
+                  <select value={inSort} onChange={e => setInSort(e.target.value as any)} className="text-[9px] uppercase font-bold tracking-wider bg-transparent text-zinc-400 outline-none cursor-pointer">
+                    <option value="date">Data</option>
+                    <option value="value">Valor</option>
+                    <option value="category">Categ</option>
+                    <option value="name">Nome</option>
+                  </select>
+                </div>
               </div>
             </div>
 
@@ -1165,12 +1220,20 @@ const FinancasApp: React.FC = () => {
             <div className="p-4 bg-rose-50/50 dark:bg-rose-900/10 border-b border-zinc-200 dark:border-zinc-800">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-black uppercase tracking-tight text-rose-600 dark:text-rose-400 flex items-center gap-2"><TrendingDown size={16} /> Saídas</h3>
-                <select value={outSort} onChange={e => setOutSort(e.target.value as any)} className="text-[9px] uppercase font-bold tracking-wider bg-transparent text-zinc-400 outline-none cursor-pointer">
-                  <option value="date">Data</option>
-                  <option value="value">Valor</option>
-                  <option value="category">Categ</option>
-                  <option value="name">Nome</option>
-                </select>
+                <div className="flex items-center gap-2">
+                  <select value={outStatusFilter} onChange={e => setOutStatusFilter(e.target.value as any)} className="text-[9px] uppercase font-bold tracking-wider bg-transparent text-zinc-400 outline-none cursor-pointer">
+                    <option value="all">Status: Todos</option>
+                    <option value="pending">Status: Pendente</option>
+                    <option value="paid">Status: Pago</option>
+                  </select>
+                  <span className="text-zinc-300 dark:text-zinc-700 text-[10px]">•</span>
+                  <select value={outSort} onChange={e => setOutSort(e.target.value as any)} className="text-[9px] uppercase font-bold tracking-wider bg-transparent text-zinc-400 outline-none cursor-pointer">
+                    <option value="date">Data</option>
+                    <option value="value">Valor</option>
+                    <option value="category">Categ</option>
+                    <option value="name">Nome</option>
+                  </select>
+                </div>
               </div>
             </div>
 
@@ -1231,6 +1294,13 @@ const FinancasApp: React.FC = () => {
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
+                        <button 
+                          onClick={() => toggleImpostoRenda(t.id)} 
+                          className={`p-1 rounded-lg transition-colors ${t.name.startsWith('[IR]') ? 'text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950 opacity-100' : 'text-zinc-450 hover:text-rose-500 hover:bg-zinc-50 dark:hover:bg-zinc-800 opacity-0 group-hover:opacity-100'}`} 
+                          title={t.name.startsWith('[IR]') ? 'Remover do Imposto de Renda' : 'Enviar para Imposto de Renda'}
+                        >
+                          <FileText size={14}/>
+                        </button>
                         <button onClick={() => togglePending(t.id)} className={`p-1 rounded-lg transition-colors ${t.pending ? 'text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950 opacity-100' : 'text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-950 opacity-0 group-hover:opacity-100'}`} title={t.pending ? 'Pendente (Clique para Efetivar)' : 'Efetivado (Clique para Pendente)'}>
                           <TrendingDown size={14}/>
                         </button>

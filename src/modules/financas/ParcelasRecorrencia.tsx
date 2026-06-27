@@ -127,8 +127,7 @@ export const ParcelasRecorrencia: React.FC<ParcelasRecorrenciaProps> = ({ transa
     if (installmentMatch) {
       const baseName = installmentMatch[1].trim();
       const key = `parcel_${baseName}_${installmentMatch[3]}`;
-      const isPixOrDinheiro = t.paymentMethod?.toLowerCase().includes('pix') || t.paymentMethod?.toLowerCase().includes('dinheiro');
-      const type = isPixOrDinheiro ? 'recorrencia' : 'parcelamento';
+      const type = 'parcelamento';
 
       if (!grouped[key]) {
         grouped[key] = {

@@ -386,6 +386,15 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                 .map(s => s.id)
         );
 
+        const completedReviewKeys = new Set(
+            allSchedule
+                .filter(s => s.status === 'realizado' && s.activityType && (
+                    s.activityType.toLowerCase().includes('revisão') || 
+                    s.activityType.toLowerCase().includes('revisao')
+                ))
+                .map(s => `${s.subjectId}_${s.topicId || 'geral'}_${s.date}`)
+        );
+
         const reviewsToDelete = allSchedule.filter(s => 
             s.activityType && (
                 s.activityType.toLowerCase().includes('revisão') || 
@@ -408,7 +417,8 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         const reviewsToCreate = expectedReviews.filter(r => 
             !currentIds.has(r.id) && 
             !deletedReviewIds.includes(r.id) &&
-            !completedReviewIds.has(r.id)
+            !completedReviewIds.has(r.id) &&
+            !completedReviewKeys.has(`${r.subjectId}_${r.topicId || 'geral'}_${r.date}`)
         );
 
         // Find existing reviews that need updates (e.g. have legacy notes format or changed dates)

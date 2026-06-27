@@ -75,7 +75,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
 
 
 
-  const [topicSortBy, setTopicSortBy] = useState<'default' | 'priority' | 'time' | 'questions' | 'name' | 'lastStudy' | 'review1' | 'review2' | 'review3' | 'review4' | 'review5'>('default');
+  const [topicSortBy, setTopicSortBy] = useState<'default' | 'priority' | 'time' | 'questions' | 'name' | 'firstStudy' | 'lastStudy' | 'review1' | 'review2' | 'review3' | 'review4' | 'review5'>('default');
   const [topicSortOrder, setTopicSortOrder] = useState<'asc' | 'desc'>('desc');
   const [showColorPicker, setShowColorPicker] = useState(false);
 
@@ -166,15 +166,40 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
   };
 
   const getTopicStats = (subjectId: string, topicId: string | null) => {
-    const topicSessions = sessions.filter(s => (topicId ? s.topicId === topicId : !s.topicId) && s.subjectId === subjectId && s.activityType !== 'Simulado' && !s.isSimulado);
+    const isRevisaoSession = (s: any) => {
+      const isRevType = s.activityType && (
+        s.activityType.toLowerCase().includes('revisão') || 
+        s.activityType.toLowerCase().includes('revisao')
+      );
+      const isRevNotes = s.notes && (
+        s.notes.toLowerCase().includes('revisão') || 
+        s.notes.toLowerCase().includes('revisao')
+      );
+      const matchingSched = (scheduledStudies || []).find(sched => sched.id === s.id);
+      const isRevId = matchingSched && matchingSched.activityType && (
+        matchingSched.activityType.toLowerCase().includes('revisão') || 
+        matchingSched.activityType.toLowerCase().includes('revisao')
+      );
+      const isDeterministic = s.id && s.id.toLowerCase().split('-')[3]?.startsWith('400');
+      return !!(isRevType || isRevNotes || isRevId || isDeterministic);
+    };
+
+    const topicSessions = sessions.filter(s => 
+      (topicId ? s.topicId === topicId : !s.topicId) && 
+      s.subjectId === subjectId && 
+      s.activityType !== 'Simulado' && 
+      !s.isSimulado &&
+      !isRevisaoSession(s)
+    );
     const tMinutes = topicSessions.reduce((acc, s) => acc + s.durationInMinutes, 0);
     const tDone = topicSessions.reduce((acc, s) => acc + (s.questionsDone || 0), 0);
     const tCorrect = topicSessions.reduce((acc, s) => acc + (s.questionsCorrect || 0), 0);
     const tAcc = tDone > 0 ? Math.min(100, Math.round((tCorrect / tDone) * 100)) : 0;
     const tHours = (tMinutes / 60).toFixed(1);
 
-    // Calculate last study date
+    // Calculate first and last study dates
     let lastStudyDate = '';
+    let firstStudyDate = '';
     let review7dDate = '';
     let review30dDate = '';
     let review90dDate = '';
@@ -193,16 +218,20 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
       if (topicSessions.length > 0) {
         const sortedSessions = [...topicSessions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
         const lastDate = new Date(sortedSessions[0].date);
+        const firstDate = new Date(sortedSessions[sortedSessions.length - 1].date);
         const formatDate = (date: Date) => date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' });
         lastStudyDate = formatDate(lastDate);
+        firstStudyDate = formatDate(firstDate);
       }
     } else if (topicSessions.length > 0) {
       const sortedSessions = [...topicSessions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
       const lastDate = new Date(sortedSessions[0].date);
+      const firstDate = new Date(sortedSessions[sortedSessions.length - 1].date);
 
       const formatDate = (date: Date) => date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' });
 
       lastStudyDate = formatDate(lastDate);
+      firstStudyDate = formatDate(firstDate);
 
       const d7 = new Date(lastDate);
       d7.setDate(d7.getDate() + 7);
@@ -224,25 +253,20 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
         }
       }
 
-      const capToExam = (date: Date): { date: Date; capped: boolean } => {
-        if (examDateStr) {
-          const dateStr = date.toISOString().split('T')[0];
-          if (dateStr > examDateStr) {
-            // Cap at the exam date
-            const targetDateObj = new Date(examDateStr + 'T12:00:00');
-            return { date: targetDateObj, capped: true };
-          }
-        }
-        return { date, capped: false };
-      };
-
       for (let i = 0; i < 5; i++) {
         const dCustom = new Date(lastDate);
         dCustom.setDate(dCustom.getDate() + customReviewDays[i]);
-        const { date: cappedDate, capped } = capToExam(dCustom);
-        const formattedDate = capped
-          ? `\u26a0\ufe0f ${formatDate(cappedDate)}`
-          : formatDate(cappedDate);
+        
+        const uncappedDateStr = dCustom.toISOString().split('T')[0];
+        const isPastExam = examDateStr && uncappedDateStr > examDateStr;
+
+        if (isPastExam) {
+          customReviewDates[i] = {
+            dateStr: '—',
+            status: 'none'
+          };
+          continue;
+        }
 
         // Look up status in scheduledStudies
         const review = (scheduledStudies || []).find(s => 
@@ -256,13 +280,13 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
         );
 
         customReviewDates[i] = {
-          dateStr: formattedDate,
+          dateStr: formatDate(dCustom),
           status: review ? review.status : 'none'
         };
       }
     }
 
-    return { minutes: tMinutes, done: tDone, correct: tCorrect, acc: tAcc, hours: tHours, lastStudyDate, review7dDate, review30dDate, review90dDate, customReviewDates };
+    return { minutes: tMinutes, done: tDone, correct: tCorrect, acc: tAcc, hours: tHours, firstStudyDate, lastStudyDate, review7dDate, review30dDate, review90dDate, customReviewDates };
   };
 
   const sortedSubjects = [...subjects].sort((a, b) => {
@@ -882,8 +906,8 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                                       </button>
                                     )}
                                   </th>
-                                  <th className="py-1.5 text-[10px] uppercase font-bold cursor-pointer hover:text-zinc-900 dark:text-zinc-300" onClick={() => { setTopicSortBy('lastStudy'); setTopicSortOrder(o => o === 'desc' ? 'asc' : 'desc'); }}>
-                                    Último {topicSortBy === 'lastStudy' && (topicSortOrder === 'desc' ? '↓' : '↑')}
+                                  <th className="py-1.5 text-[10px] uppercase font-bold cursor-pointer hover:text-zinc-900 dark:text-zinc-300" onClick={() => { setTopicSortBy('firstStudy'); setTopicSortOrder(o => o === 'desc' ? 'asc' : 'desc'); }}>
+                                    Primeira {topicSortBy === 'firstStudy' && (topicSortOrder === 'desc' ? '↓' : '↑')}
                                   </th>
                                   {customReviewDays.map((days, idx) => (
                                     <th
@@ -897,6 +921,9 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                                       Rev.{idx + 1} ({days}d) {topicSortBy === `review${idx + 1}` && (topicSortOrder === 'desc' ? '↓' : '↑')}
                                     </th>
                                   ))}
+                                  <th className="py-1.5 text-[10px] uppercase font-bold cursor-pointer text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 bg-red-50 dark:bg-red-950/20 px-2.5 rounded-t-xl" onClick={() => { setTopicSortBy('lastStudy'); setTopicSortOrder(o => o === 'desc' ? 'asc' : 'desc'); }}>
+                                    Último {topicSortBy === 'lastStudy' && (topicSortOrder === 'desc' ? '↓' : '↑')}
+                                  </th>
 
                                   <th className="py-1.5 text-[10px] uppercase font-bold text-right w-16"></th>
                                 </tr>
@@ -910,7 +937,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                                       <td className="py-1.5 font-semibold pl-2 text-xs" style={{ color: getColorHex(subject.color) }}>
                                         Geral / Outros <span className="text-[10px] font-normal opacity-60 ml-1 text-zinc-500">revisão geral</span>
                                       </td>
-                                      <td className="py-1.5 text-zinc-400 text-xs">{stats.lastStudyDate || '—'}</td>
+                                      <td className="py-1.5 text-zinc-400 text-xs">{stats.firstStudyDate || '—'}</td>
                                       {stats.customReviewDates.map((item, idx) => {
                                         const dateVal = typeof item === 'string' ? item : item.dateStr;
                                         const statusVal = typeof item === 'string' ? 'none' : item.status;
@@ -928,6 +955,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                                           </td>
                                         );
                                       })}
+                                      <td className="py-1.5 text-red-700/80 dark:text-red-300/80 text-xs bg-red-50/30 dark:bg-red-950/10 px-2.5 font-medium">{stats.lastStudyDate || '—'}</td>
 
                                       <td className="py-1.5" />
                                     </tr>
@@ -949,7 +977,16 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
 
                                     const multiplier = topicSortOrder === 'asc' ? 1 : -1;
 
-                                    if (topicSortBy === 'name') return a.topic.title.localeCompare(b.topic.title, undefined, { numeric: true }) * multiplier;
+                                    if (topicSortBy === 'firstStudy') {
+                                      const parseDate = (dStr: string) => {
+                                        if (!dStr) return 0;
+                                        const [d, m, y] = dStr.split('/').map(Number);
+                                        return new Date(2000 + y, m - 1, d).getTime();
+                                      };
+                                      const aDate = parseDate(a.stats.firstStudyDate);
+                                      const bDate = parseDate(b.stats.firstStudyDate);
+                                      return (aDate - bDate) * multiplier;
+                                    }
                                     if (topicSortBy === 'lastStudy') {
                                       const parseDate = (dStr: string) => {
                                         if (!dStr) return 0;
@@ -1057,7 +1094,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                                           )}
                                         </td>
                                         <td className="py-1.5 text-zinc-400 text-xs">
-                                          {tStats.lastStudyDate || '-'}
+                                          {tStats.firstStudyDate || '-'}
                                         </td>
                                         {tStats.customReviewDates.map((item, idx) => {
                                           const dateVal = typeof item === 'string' ? item : item.dateStr;
@@ -1076,6 +1113,9 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                                             </td>
                                           );
                                         })}
+                                        <td className="py-1.5 text-red-650/80 dark:text-red-455/80 text-xs bg-red-50/30 dark:bg-red-950/10 px-2.5 font-medium">
+                                          {tStats.lastStudyDate || '-'}
+                                        </td>
                                         <td className="py-1.5 text-right">
                                           <div className="flex items-center justify-end gap-2 opacity-0 group-hover/row:opacity-100 transition-opacity">
                                             <button onClick={() => startEditingTopic(topic)} className="text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors">

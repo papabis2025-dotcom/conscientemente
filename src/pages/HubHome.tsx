@@ -2087,14 +2087,16 @@ const HubHome: React.FC<HubHomeProps> = ({
                             const dayWorkouts = calendarEvents.workouts.filter(w => w.date === dateStr);
                             const dayFinances = calendarEvents.finances.filter(f => f.date === dateStr);
 
-                            const hasTasks = dayTasks.length > 0;
                             const hasRangeTask = dayTasks.some(t => !!t.endDate);
-                            const hasStudies = dayStudies.length > 0;
-                            const hasWorkouts = dayWorkouts.length > 0;
-                            const hasFinances = dayFinances.length > 0;
-
-                            const isHealthProvaDay = dayWorkouts.some(w => w.type.startsWith('Prova') || w.type === 'Prova');
-                            const hasImportantTask = dayTasks.some(t => !t.completed && (t.category === 'Importante' || t.category === 'Urgente'));
+                            const isHealthProvaDay = dayWorkouts.some(w => {
+                              const type = String(w.type || '').trim().toLowerCase();
+                              return type.startsWith('prova') || type === 'prova';
+                            });
+                            const hasImportantTask = dayTasks.some(t => {
+                              const isComp = t.completed === true || String(t.completed).toLowerCase() === 'true';
+                              const cat = String(t.category || '').trim().toLowerCase();
+                              return !isComp && (cat === 'importante' || cat === 'urgente');
+                            });
 
                             const todayBorderClass = isExamDay
                               ? 'border-2 border-purple-500 dark:border-purple-400'
@@ -2145,14 +2147,15 @@ const HubHome: React.FC<HubHomeProps> = ({
                                     );
                                   })}
                                   {dayTasks.filter(t => !t.endDate).map((t, idx) => {
-                                    const isImportant = t.category === 'Importante' || t.category === 'Urgente';
+                                    const cat = String(t.category || '').trim().toLowerCase();
+                                    const isImportant = cat === 'importante' || cat === 'urgente';
                                     const isAtrasado = dateStr < todayStr && !t.completed;
                                     return (
                                       <div 
                                         key={`task-${t.id || idx}`}
                                         className={`rounded-full shrink-0 transition-all ${
                                           isImportant
-                                            ? 'w-2 h-2 bg-red-650 dark:bg-red-400 ring-1 ring-red-400/50'
+                                            ? 'w-2 h-2 bg-red-600 dark:bg-red-400 ring-1 ring-red-400/50'
                                             : `w-1.5 h-1.5 ${
                                                 isAtrasado 
                                                   ? 'bg-red-600 dark:bg-red-400 shadow-[0_0_4px_rgba(239,68,68,0.85)] scale-110 animate-pulse' 
@@ -2274,8 +2277,9 @@ const HubHome: React.FC<HubHomeProps> = ({
 
                                {/* Tarefas */}
                                {dayTasks.map(t => {
-                                 const isCompleted = t.completed;
-                                 const isImportant = t.category === 'Importante' || t.category === 'Urgente';
+                                 const isCompleted = t.completed === true || String(t.completed).toLowerCase() === 'true';
+                                 const cat = String(t.category || '').trim().toLowerCase();
+                                 const isImportant = cat === 'importante' || cat === 'urgente';
                                  return (
                                    <div 
                                      key={t.id} 

@@ -662,21 +662,16 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
     }, [selectedConcursoId, activeConcurso, allSubjects]);
 
     const filteredSessions = useMemo(() => {
-        const activeSimDates = new Set((simulados || []).map(sim => sim.date?.split('T')[0]).filter(Boolean));
-        const validSessions = sessions.filter(s => {
-            if (s.isSimulado || s.activityType === 'Simulado') {
-                const sDate = s.date.split('T')[0];
-                return activeSimDates.has(sDate);
-            }
-            return true;
-        });
+        // Keep all valid sessions (simulados are already deleted from state when deleted in UI)
+        const validSessions = sessions;
 
         // Deduplicate simulado sessions — keep only one per (simDate, subjectId) combination
         // to avoid double-counting when old random-ID sessions coexist with new deterministic-ID ones
         const seenSimKeys = new Set<string>();
         const deduped = validSessions.filter(s => {
             if (s.isSimulado || s.activityType === 'Simulado') {
-                const key = `${s.date.split('T')[0]}__${s.subjectId}`;
+                const sDate = s.date.split('T')[0];
+                const key = `${sDate}__${s.subjectId}`;
                 if (seenSimKeys.has(key)) return false;
                 seenSimKeys.add(key);
             }
@@ -686,7 +681,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         if (selectedConcursoId === 'all') return deduped;
         const subIds = new Set((activeConcurso?.subjects || []).map(s => s.id));
         return deduped.filter(s => subIds.has(s.subjectId));
-    }, [sessions, simulados, selectedConcursoId, activeConcurso]);
+    }, [sessions, selectedConcursoId, activeConcurso]);
 
     const filteredSimulados = useMemo(() => {
         if (selectedConcursoId === 'all') return simulados;

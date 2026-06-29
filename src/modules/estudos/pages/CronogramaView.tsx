@@ -67,6 +67,52 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
   const [dailyHours, setDailyHours] = useState(3);
   const [activeDays, setActiveDays] = useState<string[]>(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']);
   const [startDateStr, setStartDateStr] = useState(() => new Date().toISOString().split('T')[0]);
+  const [subjectsPerDay, setSubjectsPerDay] = useState(2);
+  const [topicsPerSubjectPerDay, setTopicsPerSubjectPerDay] = useState(1);
+
+  // Load preferences from localStorage based on selectedConcursoId
+  React.useEffect(() => {
+    if (!selectedConcursoId) return;
+    try {
+      const saved = localStorage.getItem(`cp_cronograma_prefs_${selectedConcursoId}`);
+      if (saved) {
+        const prefs = JSON.parse(saved);
+        if (prefs.durWeeks !== undefined) setDurWeeks(prefs.durWeeks);
+        if (prefs.dailyHours !== undefined) setDailyHours(prefs.dailyHours);
+        if (prefs.subjectsPerDay !== undefined) setSubjectsPerDay(prefs.subjectsPerDay);
+        if (prefs.topicsPerSubjectPerDay !== undefined) setTopicsPerSubjectPerDay(prefs.topicsPerSubjectPerDay);
+        if (prefs.activeDays !== undefined) setActiveDays(prefs.activeDays);
+        if (prefs.startDateStr !== undefined) setStartDateStr(prefs.startDateStr);
+      } else {
+        // defaults
+        setDurWeeks(8);
+        setDailyHours(3);
+        setSubjectsPerDay(2);
+        setTopicsPerSubjectPerDay(1);
+        setActiveDays(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']);
+        setStartDateStr(new Date().toISOString().split('T')[0]);
+      }
+    } catch (e) {
+      console.error('Error loading cronograma preferences:', e);
+    }
+  }, [selectedConcursoId]);
+
+  const handleSavePreferences = () => {
+    if (!selectedConcursoId || selectedConcursoId === 'all') {
+      alert('Por favor, selecione um concurso primeiro.');
+      return;
+    }
+    const prefs = {
+      durWeeks,
+      dailyHours,
+      subjectsPerDay,
+      topicsPerSubjectPerDay,
+      activeDays,
+      startDateStr
+    };
+    localStorage.setItem(`cp_cronograma_prefs_${selectedConcursoId}`, JSON.stringify(prefs));
+    alert('Preferências salvas com sucesso!');
+  };
 
   // Completion Dialog States
   const [completingTask, setCompletingTask] = useState<ScheduledStudy | null>(null);
@@ -178,17 +224,26 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
           subject: sub,
           priorityScore,
           queue: sortedQueue,
-          queueIndex: 0
+          queueIndex: 0,
+          simulatedMinutes: minutes // used to balance subject selection dynamically
         };
       });
 
       const totalPriority = subjectProfiles.reduce((acc, p) => acc + p.priorityScore, 0);
 
-      // 2. Generate items day by day
-      const items: (Omit<ScheduledStudy, 'id' | 'status'> & { id?: string })[] = [];
+      // 2. Determine targetDate limits
       const start = new Date(`${startDateStr}T12:00:00`);
+      let end = activeConcurso?.targetDate ? new Date(`${activeConcurso.targetDate.split('T')[0]}T12:00:00`) : null;
+      
+      let totalDays = durWeeks * 7;
+      if (end) {
+        const diffTime = end.getTime() - start.getTime();
+        totalDays = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+      }
 
-      const totalDays = durWeeks * 7;
+      // 3. Generate items day by day
+      const items: (Omit<ScheduledStudy, 'id' | 'status'> & { id?: string })[] = [];
+
       for (let dayOffset = 0; dayOffset < totalDays; dayOffset++) {
         const currentDate = new Date(start);
         currentDate.setDate(start.getDate() + dayOffset);
@@ -199,64 +254,68 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
         const isStudyDay = activeDays.includes(weekdayName);
 
         if (isStudyDay) {
-          // Study Day: distribute subjects by priority round-robin / lottery
-          // We distribute 'dailyHours' slots of 60 mins. Let's make it 2 study blocks of 90m per day, or 3 blocks of 60m.
-          // Let's do 3 blocks of 60 mins if dailyHours is 3. Or slots = dailyHours.
-          const slotsCount = Math.max(1, dailyHours);
-          const slotDuration = 60; // 60 mins per slot
-
-          // Select subjects for today's slots
-          for (let slot = 0; slot < slotsCount; slot++) {
-            // Weighted selection
-            let rand = Math.random() * totalPriority;
-            let selectedProfile = subjectProfiles[0];
-            for (const profile of subjectProfiles) {
-              rand -= profile.priorityScore;
-              if (rand <= 0) {
-                selectedProfile = profile;
-                break;
-              }
-            }
-
-            // Pull topic from queue
-            const topic = selectedProfile.queue[selectedProfile.queueIndex % selectedProfile.queue.length];
-            if (topic) {
-              selectedProfile.queueIndex++;
-            }
-
-            // Split slot into Reading/Theory (40% - Material) and Practice (60% - Questões)
-            const readingTime = Math.round(slotDuration * 0.4);
-            const questionsTime = slotDuration - readingTime;
-
-            // Add Material (Leitura) Card
-            items.push({
-              date: dateStr,
-              subjectId: selectedProfile.subject.id,
-              topicId: topic?.id,
-              activityType: 'Leitura',
-              notes: `Leitura do material: ${topic?.title || 'Conteúdo geral'}`,
-              durationInMinutes: readingTime,
-              questionsDone: 0,
-              questionsCorrect: 0
+          // Select todays subjects dynamically based on priority scores
+          const todaysSubjects: typeof subjectProfiles[0][] = [];
+          for (let s = 0; s < subjectsPerDay; s++) {
+            const profilesWithUpdatedPriority = subjectProfiles.map(p => {
+              const accuracy = p.queue.length > 0 ? 70 : 70; // placeholder
+              const priorityScore = p.subject.weight * (105 - accuracy) * (1 / (1 + p.simulatedMinutes / 60));
+              return { ...p, priorityScore };
             });
 
-            // Add Questões Card
-            items.push({
-              date: dateStr,
-              subjectId: selectedProfile.subject.id,
-              topicId: topic?.id,
-              activityType: 'Questões',
-              notes: `Resolução de questões: ${topic?.title || 'Conteúdo geral'}`,
-              durationInMinutes: questionsTime,
-              questionsDone: 10, // default target
-              questionsCorrect: 7  // default target
-            });
+            const available = profilesWithUpdatedPriority
+              .filter(p => !todaysSubjects.find(ts => ts.subject.id === p.subject.id))
+              .sort((a, b) => b.priorityScore - a.priorityScore);
+
+            if (available.length > 0) {
+              const selected = subjectProfiles.find(p => p.subject.id === available[0].subject.id)!;
+              todaysSubjects.push(selected);
+              selected.simulatedMinutes += 60; // offset weight
+            }
           }
 
+          // Study slots per subject
+          const totalTopicsCount = todaysSubjects.length * topicsPerSubjectPerDay;
+          const totalMinutesPerTopic = Math.round((dailyHours * 60) / totalTopicsCount);
+
+          todaysSubjects.forEach(profile => {
+            for (let tIdx = 0; tIdx < topicsPerSubjectPerDay; tIdx++) {
+              const topic = profile.queue[profile.queueIndex % profile.queue.length];
+              if (topic) {
+                profile.queueIndex++;
+              }
+
+              // Split into theory and practice
+              const readingTime = Math.round(totalMinutesPerTopic * 0.4);
+              const questionsTime = totalMinutesPerTopic - readingTime;
+
+              items.push({
+                date: dateStr,
+                subjectId: profile.subject.id,
+                topicId: topic?.id,
+                activityType: 'Leitura',
+                notes: `Leitura do material: ${topic?.title || 'Conteúdo geral'}`,
+                durationInMinutes: readingTime,
+                questionsDone: 0,
+                questionsCorrect: 0
+              });
+
+              items.push({
+                date: dateStr,
+                subjectId: profile.subject.id,
+                topicId: topic?.id,
+                activityType: 'Questões',
+                notes: `Resolução de questões: ${topic?.title || 'Conteúdo geral'}`,
+                durationInMinutes: questionsTime,
+                questionsDone: 10,
+                questionsCorrect: 7
+              });
+            }
+          });
+
           // Add Weekly Review on Saturdays / last day of active study week
-          const isLastActiveDayOfWeek = dayOffset % 7 === 5; // Day 6 of the week (Saturday)
+          const isLastActiveDayOfWeek = dayOffset % 7 === 5; // Saturday
           if (isLastActiveDayOfWeek) {
-            // Select a subject for review
             const bestSubProfile = [...subjectProfiles].sort((a, b) => b.priorityScore - a.priorityScore)[0];
             items.push({
               date: dateStr,
@@ -270,7 +329,6 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
           }
         } else {
           // Off-day / Sunday: schedule a Simulado session (300 min)
-          // Find subject for simulated results (placeholder/any active)
           const fallbackSubject = subjects[0];
           items.push({
             date: dateStr,
@@ -443,21 +501,45 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
             </div>
           ) : (
             <div className="space-y-8">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Duration */}
-                <div>
-                  <label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest block mb-2">Duração do Planejamento</label>
-                  <select
-                    value={durWeeks}
-                    onChange={(e) => setDurWeeks(parseInt(e.target.value))}
-                    className="w-full bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 px-4 py-3 rounded-2xl text-sm font-bold text-zinc-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  >
-                    <option value={4}>4 Semanas (1 Mês)</option>
-                    <option value={8}>8 Semanas (2 Meses)</option>
-                    <option value={12}>12 Semanas (3 Meses)</option>
-                    <option value={16}>16 Semanas (4 Meses)</option>
-                  </select>
+              {activeConcurso?.targetDate ? (
+                <div className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/30 p-6 rounded-2xl flex gap-4 items-center">
+                  <CalendarIcon className="text-emerald-500 shrink-0" size={24} />
+                  <div>
+                    <h5 className="font-bold text-emerald-800 dark:text-emerald-300 text-sm">Data Limite Definida Pela Prova</h5>
+                    <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1 font-medium">
+                      O cronograma terminará exatamente no dia anterior à prova do seu concurso ({new Date(`${activeConcurso.targetDate.split('T')[0]}T12:00:00`).toLocaleDateString('pt-BR')}).
+                    </p>
+                  </div>
                 </div>
+              ) : (
+                <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/30 p-6 rounded-2xl flex gap-4 items-center">
+                  <Info className="text-amber-500 shrink-0" size={24} />
+                  <div>
+                    <h5 className="font-bold text-amber-800 dark:text-amber-300 text-sm">Nenhuma Data de Prova Cadastrada</h5>
+                    <p className="text-xs text-amber-600 dark:text-amber-400 mt-1 font-medium">
+                      O cronograma usará a duração padrão abaixo. Você pode cadastrar uma data de prova editando este curso na aba Cursos.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Duration (Only show if targetDate is not set) */}
+                {!activeConcurso?.targetDate && (
+                  <div>
+                    <label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest block mb-2">Duração do Planejamento</label>
+                    <select
+                      value={durWeeks}
+                      onChange={(e) => setDurWeeks(parseInt(e.target.value))}
+                      className="w-full bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 px-4 py-3 rounded-2xl text-sm font-bold text-zinc-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    >
+                      <option value={4}>4 Semanas (1 Mês)</option>
+                      <option value={8}>8 Semanas (2 Meses)</option>
+                      <option value={12}>12 Semanas (3 Meses)</option>
+                      <option value={16}>16 Semanas (4 Meses)</option>
+                    </select>
+                  </div>
+                )}
 
                 {/* Daily hours */}
                 <div>
@@ -470,6 +552,35 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
                     onChange={(e) => setDailyHours(Math.max(1, parseInt(e.target.value) || 3))}
                     className="w-full bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 px-4 py-3 rounded-2xl text-sm font-bold text-zinc-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   />
+                </div>
+
+                {/* Subjects Per Day */}
+                <div>
+                  <label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest block mb-2">Disciplinas por Dia</label>
+                  <select
+                    value={subjectsPerDay}
+                    onChange={(e) => setSubjectsPerDay(parseInt(e.target.value))}
+                    className="w-full bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 px-4 py-3 rounded-2xl text-sm font-bold text-zinc-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  >
+                    <option value={1}>1 Disciplina</option>
+                    <option value={2}>2 Disciplinas</option>
+                    <option value={3}>3 Disciplinas</option>
+                    <option value={4}>4 Disciplinas</option>
+                  </select>
+                </div>
+
+                {/* Topics Per Subject Per Day */}
+                <div>
+                  <label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest block mb-2">Assuntos por Disciplina por Dia</label>
+                  <select
+                    value={topicsPerSubjectPerDay}
+                    onChange={(e) => setTopicsPerSubjectPerDay(parseInt(e.target.value))}
+                    className="w-full bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 px-4 py-3 rounded-2xl text-sm font-bold text-zinc-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  >
+                    <option value={1}>1 Assunto</option>
+                    <option value={2}>2 Assuntos</option>
+                    <option value={3}>3 Assuntos</option>
+                  </select>
                 </div>
 
                 {/* Start Date */}
@@ -517,7 +628,16 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
                 </div>
               </div>
 
-              <div className="border-t border-zinc-150 dark:border-zinc-800 pt-8 flex justify-center">
+              <div className="border-t border-zinc-150 dark:border-zinc-800 pt-8 flex justify-center gap-4">
+                <button
+                  type="button"
+                  onClick={handleSavePreferences}
+                  className="bg-white hover:bg-zinc-50 border border-zinc-200 text-zinc-700 font-black uppercase tracking-widest text-xs px-8 py-4 rounded-[2rem] shadow-sm hover:shadow-md transition-all flex items-center gap-2 active:scale-95"
+                >
+                  <Settings size={14} />
+                  Salvar Preferências
+                </button>
+                
                 <button
                   type="button"
                   onClick={handleGenerate}

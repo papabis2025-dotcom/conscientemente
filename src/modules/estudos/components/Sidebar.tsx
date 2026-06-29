@@ -25,7 +25,8 @@ import {
   Check,
   LayoutTemplate,
   Menu,
-  Percent
+  Percent,
+  CalendarRange
 } from 'lucide-react';
 import logoImg from '../assets/logo.png';
 
@@ -70,6 +71,7 @@ const DEFAULT_MENU_ITEMS: MenuItem[] = [
   { id: 'concursos', label: 'Cursos', icon: GraduationCap },
   { id: 'subjects', label: 'Disciplinas', icon: Library },
   { id: 'statistics', label: 'Análise Estatística', icon: Percent },
+  { id: 'cronograma', label: 'Cronograma', icon: CalendarRange },
   { id: 'simulados', label: 'Simulados', icon: FileSpreadsheet },
   { id: 'calendar', label: 'Planner', icon: Calendar },
 ];

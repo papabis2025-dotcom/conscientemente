@@ -29,7 +29,7 @@ function getAccuracyText(accuracy: number, hasData: boolean): string {
 }
 
 const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, concursos, selectedConcursoId, onSelectConcursoId }) => {
-  const [sortBy, setSortBy] = useState<'name' | 'questions' | 'questionsGoal' | 'time' | 'accuracy' | 'weight' | 'priority'>('priority');
+  const [sortBy, setSortBy] = useState<'name' | 'questions' | 'correct' | 'questionsGoal' | 'time' | 'accuracy' | 'weight' | 'priority'>('priority');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [showTopics, setShowTopics] = useState(false);
 
@@ -125,6 +125,7 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, con
       let diff = 0;
       if (sortBy === 'name') diff = a.sub.name.localeCompare(b.sub.name);
       else if (sortBy === 'questions') diff = a.questions - b.questions;
+      else if (sortBy === 'correct') diff = a.correct - b.correct;
       else if (sortBy === 'questionsGoal') diff = a.questionsGoal - b.questionsGoal;
       else if (sortBy === 'time') diff = a.minutes - b.minutes;
       else if (sortBy === 'accuracy') diff = a.accuracy - b.accuracy;
@@ -217,6 +218,7 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, con
             <tr>
               {th('name', 'Disciplina')}
               {th('questions', 'Resolvidas', 'text-right')}
+              {th('correct', 'Certas', 'text-right')}
               {th('questionsGoal', 'Previstas', 'text-right')}
               {th('time', 'Tempo', 'text-right')}
               {th('accuracy', 'Aproveitamento', 'text-right')}
@@ -239,6 +241,9 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, con
                     </td>
                     <td className={`px-4 py-3 text-right font-mono tabular-nums font-bold ${questions > 0 ? 'text-zinc-700 dark:text-zinc-200' : 'text-zinc-300 dark:text-zinc-600'}`}>
                       {questions > 0 ? questions : '—'}
+                    </td>
+                    <td className={`px-4 py-3 text-right font-mono tabular-nums ${questions > 0 ? 'text-zinc-700 dark:text-zinc-200' : 'text-zinc-300 dark:text-zinc-600'}`}>
+                      {questions > 0 ? correct : '—'}
                     </td>
                     <td className={`px-4 py-3 text-right font-mono tabular-nums ${questionsGoal > 0 ? 'text-zinc-700 dark:text-zinc-200' : 'text-zinc-300 dark:text-zinc-600'}`}>
                       {questionsGoal > 0 ? questionsGoal : '—'}
@@ -282,6 +287,9 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, con
                             <td className={`px-4 py-2 text-right font-mono tabular-nums ${tQuestions > 0 ? 'text-zinc-600 dark:text-zinc-300 font-bold' : 'text-zinc-350 dark:text-zinc-650'}`}>
                               {tQuestions > 0 ? tQuestions : '—'}
                             </td>
+                            <td className={`px-4 py-2 text-right font-mono tabular-nums ${tQuestions > 0 ? 'text-zinc-600 dark:text-zinc-350' : 'text-zinc-350 dark:text-zinc-650'}`}>
+                              {tQuestions > 0 ? tCorrect : '—'}
+                            </td>
                             <td className="px-4 py-2 text-right text-zinc-300 dark:text-zinc-700">—</td>
                             <td className={`px-4 py-2 text-right font-mono tabular-nums ${tMinutes > 0 ? 'text-zinc-650 dark:text-zinc-300' : 'text-zinc-350 dark:text-zinc-650'}`}>
                               {tMinutes > 0 ? `${parseFloat((tMinutes / 60).toFixed(1))}h` : '—'}
@@ -310,7 +318,7 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, con
 
             {subjects.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-5 py-16 text-center text-zinc-400 text-sm">
+                <td colSpan={8} className="px-5 py-16 text-center text-zinc-400 text-sm">
                   Nenhuma disciplina encontrada. Adicione disciplinas e registre sessões de estudo para ver a análise.
                 </td>
               </tr>

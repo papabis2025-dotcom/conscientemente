@@ -1641,6 +1641,52 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         }
     };
 
+    const addScheduledStudiesBatch = useCallback(async (items: (Omit<ScheduledStudy, 'id' | 'status'> & { id?: string })[]) => {
+        setIsSaving(true);
+        setSaveError(null);
+        try {
+            const savedItems = await api.schedule.createBatch(items);
+            setScheduledStudies(prev => {
+                const combined = [...prev, ...savedItems];
+                localStorage.setItem('cp_scheduled_studies', JSON.stringify(combined));
+                return combined;
+            });
+            setLastSaved(new Date().toLocaleTimeString());
+        } catch (e) {
+            console.error('Error adding scheduled studies batch:', e);
+            setSaveError('Erro ao salvar cronograma.');
+            throw e;
+        } finally {
+            setIsSaving(false);
+        }
+    }, [api.schedule]);
+
+    const deleteScheduledStudiesBatch = useCallback(async (ids: string[]) => {
+        if (ids.length === 0) return;
+        setIsSaving(true);
+        setSaveError(null);
+        try {
+            await api.schedule.deleteBatch(ids);
+            // Also delete corresponding sessions if they exist
+            for (const id of ids) {
+                try { await api.sessions.delete(id); } catch(e) {}
+            }
+            setScheduledStudies(prev => {
+                const filtered = prev.filter(s => !ids.includes(s.id));
+                localStorage.setItem('cp_scheduled_studies', JSON.stringify(filtered));
+                return filtered;
+            });
+            setSessions(prev => prev.filter(s => !ids.includes(s.id)));
+            setLastSaved(new Date().toLocaleTimeString());
+        } catch (e) {
+            console.error('Error deleting scheduled studies batch:', e);
+            setSaveError('Erro ao deletar itens do cronograma.');
+            throw e;
+        } finally {
+            setIsSaving(false);
+        }
+    }, [api.schedule]);
+
     return {
         currentUser, setCurrentUser,
         users, setUsers: updateUser,
@@ -1672,6 +1718,8 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         studyTasks: filteredStudyTasks,
         setStudyTasks: updateStudyTasks,
         toggleScheduledStudyStatus,
+        addScheduledStudiesBatch,
+        deleteScheduledStudiesBatch,
         syncPlannedReviews,
         updateProfile: async (name: string, avatar: string) => {
             if (!currentUser) return;

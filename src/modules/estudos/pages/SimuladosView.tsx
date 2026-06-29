@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Subject, Simulado, SimuladoSubjectResult } from '../types';
-import { Edit2, Trash2, Clock, TrendingDown } from 'lucide-react';
+import { Edit2, Trash2, Clock, TrendingDown, Trophy, Award, Activity, HelpCircle } from 'lucide-react';
 
 interface SimuladosViewProps {
   subjects: Subject[];
@@ -17,6 +17,42 @@ const SimuladosView: React.FC<SimuladosViewProps> = ({ subjects, simulados, onAd
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [duration, setDuration] = useState('');
   const [results, setResults] = useState<SimuladoSubjectResult[]>([]);
+
+  // Calculate general stats for simulados
+  const stats = useMemo(() => {
+    if (!simulados || simulados.length === 0) return null;
+    
+    let totalQuestionsDone = 0;
+    let totalQuestionsCorrect = 0;
+    let totalTime = 0;
+    let bestAccuracy = -1;
+    let bestName = '';
+
+    simulados.forEach(sim => {
+      const done = (sim.results || []).reduce((acc, r) => acc + (r.done || 0), 0);
+      const correct = (sim.results || []).reduce((acc, r) => acc + (r.correct || 0), 0);
+      const acc = done > 0 ? (correct / done) * 100 : 0;
+      totalQuestionsDone += done;
+      totalQuestionsCorrect += correct;
+      totalTime += sim.durationInMinutes || 0;
+      if (acc > bestAccuracy) {
+        bestAccuracy = acc;
+        bestName = sim.name;
+      }
+    });
+
+    const averageAccuracy = totalQuestionsDone > 0 ? Math.round((totalQuestionsCorrect / totalQuestionsDone) * 100) : 0;
+
+    return {
+      totalSimulados: simulados.length,
+      averageAccuracy,
+      totalQuestionsDone,
+      totalQuestionsCorrect,
+      totalTime,
+      bestName,
+      bestAccuracy: Math.round(bestAccuracy)
+    };
+  }, [simulados]);
 
   // Current subject being added to the list
   const [currentSubjectId, setCurrentSubjectId] = useState('');
@@ -235,6 +271,66 @@ const SimuladosView: React.FC<SimuladosViewProps> = ({ subjects, simulados, onAd
         </div>
       )}
 
+      {stats && !isAdding && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="bg-white dark:bg-zinc-900 p-5 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex items-center gap-4">
+            <div className="w-10 h-10 rounded-xl bg-zinc-50 dark:bg-zinc-800 flex items-center justify-center text-zinc-550 dark:text-zinc-400">
+              <Activity size={20} />
+            </div>
+            <div>
+              <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest leading-none">Total Realizados</p>
+              <p className="text-xl font-black text-zinc-800 dark:text-white mt-1">{stats.totalSimulados}</p>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-zinc-900 p-5 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex items-center gap-4">
+            <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/20 flex items-center justify-center text-emerald-500">
+              <Award size={20} />
+            </div>
+            <div>
+              <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest leading-none">Média Aproveitamento</p>
+              <p className="text-xl font-black text-emerald-500 mt-1">{stats.averageAccuracy}%</p>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-zinc-900 p-5 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex items-center gap-4">
+            <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/20 flex items-center justify-center text-blue-500">
+              <HelpCircle size={20} />
+            </div>
+            <div>
+              <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest leading-none">Questões Respondidas</p>
+              <p className="text-xl font-black text-zinc-800 dark:text-white mt-1">{stats.totalQuestionsCorrect}/{stats.totalQuestionsDone}</p>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-zinc-900 p-5 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex items-center gap-4">
+            <div className="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-950/20 flex items-center justify-center text-purple-500">
+              <Clock size={20} />
+            </div>
+            <div>
+              <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest leading-none">Tempo Dedicado</p>
+              <p className="text-xl font-black text-zinc-800 dark:text-white mt-1">
+                {stats.totalTime >= 60 
+                  ? `${Math.floor(stats.totalTime / 60)}h ${stats.totalTime % 60}m` 
+                  : `${stats.totalTime}m`}
+              </p>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-zinc-900 p-5 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex items-center gap-4 sm:col-span-2 lg:col-span-1">
+            <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/20 flex items-center justify-center text-amber-500">
+              <Trophy size={20} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest leading-none">Melhor Simulado</p>
+              <p className="text-sm font-black text-zinc-800 dark:text-white mt-1 truncate" title={`${stats.bestName} (${stats.bestAccuracy}%)`}>
+                {stats.bestName ? `${stats.bestName} (${stats.bestAccuracy}%)` : '—'}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {(simulados || []).map(sim => {
           const totalDone = (sim.results || []).reduce((acc, r) => acc + (r.done || 0), 0);
@@ -272,11 +368,32 @@ const SimuladosView: React.FC<SimuladosViewProps> = ({ subjects, simulados, onAd
                 </div>
               </div>
 
-              <div className="space-y-1 mt-4 max-h-32 overflow-y-auto pr-1 custom-scrollbar">
+              <div className="grid grid-cols-3 gap-2 border-t border-b border-zinc-100 dark:border-zinc-800 py-3 my-4 text-center">
+                <div>
+                  <p className="text-[8px] font-black text-zinc-400 uppercase tracking-widest">Acertos</p>
+                  <p className="text-sm font-black text-emerald-500">{totalCorrect}</p>
+                </div>
+                <div>
+                  <p className="text-[8px] font-black text-zinc-400 uppercase tracking-widest">Erros</p>
+                  <p className="text-sm font-black text-rose-500">{totalDone - totalCorrect}</p>
+                </div>
+                <div>
+                  <p className="text-[8px] font-black text-zinc-400 uppercase tracking-widest">Tempo/Q</p>
+                  <p className="text-sm font-black text-zinc-700 dark:text-zinc-300">
+                    {sim.durationInMinutes && totalDone > 0 
+                      ? `${Math.round((sim.durationInMinutes * 60) / totalDone)}s` 
+                      : '—'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-1.5 mt-4 max-h-32 overflow-y-auto pr-1 custom-scrollbar">
                 {(sim.results || []).map((res, i) => (
                   <div key={i} className="flex justify-between items-center text-[10px]">
                     <span className="text-zinc-500 dark:text-zinc-400 truncate max-w-[120px]">{subjects.find(s => s.id === res.subjectId)?.name}</span>
-                    <span className="font-bold text-zinc-700 dark:text-zinc-300">{res.done > 0 ? Math.round((res.correct / res.done) * 100) : 0}%</span>
+                    <span className="font-bold text-zinc-700 dark:text-zinc-300">
+                      {res.correct}/{res.done} ({res.done > 0 ? Math.round((res.correct / res.done) * 100) : 0}%)
+                    </span>
                   </div>
                 ))}
               </div>

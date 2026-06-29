@@ -11,6 +11,7 @@ import SettingsView from './pages/SettingsView';
 import LogView from './pages/LogView';
 import StatisticsView from './pages/StatisticsView';
 import LoginView from './pages/LoginView';
+import CronogramaView from './pages/CronogramaView';
 import { Concurso, ActivityType, StudySession, Topic } from './types';
 import { useAppData } from './hooks/useAppData';
 import { useTimer } from './hooks/useTimer';
@@ -45,7 +46,8 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
     handleLogout: logout, addSession, addSessionsBatch, addSimulado, updateSimulado,
     deleteSimulado, deleteSession, clearLogs, deleteLog, updateProfile,
     globalDailyGoal, studyTasks, setStudyTasks, toggleScheduledStudyStatus, updateScheduledStudy, saveCalendarActivity,
-    resetStudyHubDataOnly, syncPlannedReviews
+    resetStudyHubDataOnly, syncPlannedReviews,
+    addScheduledStudiesBatch, deleteScheduledStudiesBatch
   } = useAppData(extTheme, extToggleTheme);
 
   const {
@@ -254,6 +256,18 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
         return <QuestionsView subjects={filteredSubjects} sessions={sessions} dailyGoals={dailyGoals} onUpdateDailyGoals={setDailyGoals} onAddSession={addSession} onDeleteSession={deleteSession} />;
       case 'simulados':
         return <SimuladosView subjects={filteredSubjects} simulados={simulados} onAddSimulado={addSimulado} onDeleteSimulado={deleteSimulado} onUpdateSimulado={updateSimulado} />;
+      case 'cronograma':
+        return <CronogramaView
+          subjects={filteredSubjects}
+          sessions={sessions}
+          simulados={simulados}
+          concursos={concursos}
+          selectedConcursoId={selectedConcursoId}
+          scheduledStudies={scheduledStudies}
+          onAddScheduledStudiesBatch={addScheduledStudiesBatch}
+          onDeleteScheduledStudiesBatch={deleteScheduledStudiesBatch}
+          onToggleScheduledStudyStatus={toggleScheduledStudyStatus}
+        />;
       case 'calendar':
         return <CalendarView
           subjects={filteredSubjects}

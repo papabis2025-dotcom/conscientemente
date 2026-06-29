@@ -784,7 +784,7 @@ const Dashboard: React.FC<DashboardProps> = ({
         const upcomingReviews: { subjectName: string; topicName: string; daysUntil: number; reviewType: string }[] = [];
 
         // Add Planner Pending Tasks (Planejado para hoje ou atrasado)
-        const pendingStudies = (scheduledStudies || []).filter(s => s.status === 'planejado' && s.date <= todayStr && s.activityType !== 'Simulado');
+        const pendingStudies = (scheduledStudies || []).filter(s => s.status === 'planejado' && s.date <= todayStr);
         pendingStudies.forEach(s => {
           const sub = subjects.find(sub => sub.id === s.subjectId);
           if (sub) {
@@ -990,10 +990,9 @@ const Dashboard: React.FC<DashboardProps> = ({
 
           // Non-simulado sessions for the day — rendered as color dots
           const daySessions = sessions.filter(s => getLocalSessionDate(s.date) === dateStr && !isSimuladoSession(s));
-          // Planned activities from planner that are marked as done (non-simulado only)
           const dayPlannerRealized = scheduledStudies.filter(s => {
             const sDate = s.date ? s.date.split('T')[0] : '';
-            return sDate === dateStr && s.status === 'realizado' && s.activityType !== 'Simulado';
+            return sDate === dateStr && s.status === 'realizado';
           });
           // Planned reviews for the day (status === 'planejado' && activityType is Review)
           const dayPendingReviews = (scheduledStudies || []).filter(s => {

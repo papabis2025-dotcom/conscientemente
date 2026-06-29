@@ -304,6 +304,43 @@ export const api = {
             const { data: { user } } = await supabase.auth.getUser();
             if (user) return handleRequest(supabase.from('scheduled_studies').delete().eq('user_id', user.id));
         },
+        createBatch: async (items: (Omit<ScheduledStudy, 'id' | 'status'> & { id?: string })[]) => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) throw new Error('Not authenticated');
+
+            const dbPayloads = items.map(item => ({
+                id: item.id || crypto.randomUUID(),
+                user_id: user.id,
+                date: item.date,
+                subject_id: item.subjectId,
+                topic_id: item.topicId || null,
+                activity_type: item.activityType || null,
+                notes: item.notes || null,
+                duration_minutes: item.durationInMinutes || 0,
+                questions_done: item.questionsDone || 0,
+                questions_correct: item.questionsCorrect || 0
+            }));
+
+            const result = await handleRequest<any[]>(supabase.from('scheduled_studies').insert(dbPayloads).select());
+            if (!result) return [];
+
+            return result.map((r: any) => ({
+                id: r.id,
+                date: r.date.split('T')[0],
+                subjectId: r.subject_id,
+                topicId: r.topic_id,
+                activityType: r.activity_type,
+                notes: r.notes,
+                durationInMinutes: r.duration_minutes,
+                questionsDone: r.questions_done,
+                questionsCorrect: r.questions_correct,
+                status: 'planejado' as const
+            }));
+        },
+        deleteBatch: async (ids: string[]) => {
+            if (ids.length === 0) return;
+            return handleRequest(supabase.from('scheduled_studies').delete().in('id', ids));
+        },
     },
 
     // Daily Goals

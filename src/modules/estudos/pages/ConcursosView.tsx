@@ -156,12 +156,7 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 px-1">
-        <div>
-          <h2 className="text-2xl font-black text-zinc-800 dark:text-white tracking-tight uppercase">
-            Cursos
-          </h2>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">Gerencie suas metas e prazos estratégicos.</p>
-        </div>
+
         <button
           onClick={() => setIsAdding(true)}
           className="bg-zinc-900 dark:bg-zinc-700 text-white px-6 py-3 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-zinc-800 dark:hover:bg-zinc-600 transition-all shadow-lg shadow-zinc-900/10 dark:shadow-zinc-900/50 active:scale-95"

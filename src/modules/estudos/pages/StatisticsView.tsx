@@ -153,9 +153,6 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, con
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 px-1">
         <div>
           <div className="flex flex-wrap items-center gap-3">
-            <h2 className="text-2xl font-black text-zinc-800 dark:text-white tracking-tight uppercase">
-              Análise Estatística
-            </h2>
             {concursos && onSelectConcursoId && (
               <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-1.5 flex items-center gap-2 shadow-sm">
                 <Trophy size={14} className="text-amber-500" />

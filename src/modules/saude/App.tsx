@@ -1024,9 +1024,6 @@ const SaudeApp: React.FC = () => {
           {activeTab !== 'sono' && activeTab !== 'atividades' && (
             <header className="flex justify-between items-center bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 shrink-0">
               <div>
-                <h1 className="text-2xl font-black text-zinc-900 dark:text-white uppercase tracking-tight">
-                  {activeTab === 'dashboard' ? 'Estatísticas de Saúde' : activeTab === 'planner' ? 'Planner de Treinos' : activeTab === 'gerenciador' ? 'Gerenciador de Atividades' : 'Histórico de Atividades'}
-                </h1>
                 <p className="text-zinc-500 font-medium mt-1 text-sm">
                   {activeTab === 'gerenciador' ? 'Configure e gerencie suas atividades físicas e grupos musculares.' : 'Monitore seu progresso físico e bem-estar geral.'}
                 </p>

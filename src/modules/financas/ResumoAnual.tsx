@@ -157,15 +157,7 @@ const ResumoAnual: React.FC<ResumoAnualProps> = ({
       
       {/* Header com Filtros */}
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-[#121214] p-6 rounded-3xl border border-zinc-200 dark:border-zinc-800/50 shadow-sm shrink-0">
-        <div>
-          <h2 className="text-2xl font-black text-zinc-800 dark:text-white tracking-tight uppercase flex items-center gap-2">
-            <Calendar className="text-emerald-500" size={24} />
-            Resumo Consolidado Anual
-          </h2>
-          <p className="text-xs text-zinc-400 dark:text-zinc-500 font-semibold uppercase tracking-wider mt-1">
-            Análise e detalhamento financeiro integrado por ano
-          </p>
-        </div>
+        <div className="shrink-0" />
 
         <div className="flex flex-wrap items-center gap-4">
           {/* Seletor de Anos */}

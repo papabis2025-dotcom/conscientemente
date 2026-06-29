@@ -237,16 +237,7 @@ export const ParcelasRecorrencia: React.FC<ParcelasRecorrenciaProps> = ({ transa
 
   return (
     <div className="space-y-6 max-w-[1200px] mx-auto pb-12 animate-in fade-in duration-500">
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h2 className="text-2xl font-black text-zinc-800 dark:text-white uppercase tracking-tight">
-            Parcelamento e Recorrência
-          </h2>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
-            Gerenciamento e controle de despesas parceladas ou com pagamento recorrente.
-          </p>
-        </div>
-      </header>
+
 
       {/* Cards de Resumo */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

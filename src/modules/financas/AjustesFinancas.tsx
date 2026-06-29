@@ -96,7 +96,6 @@ const AjustesList: React.FC<{
 const AjustesFinancas: React.FC<AjustesFinancasProps> = ({ inCategories, setInCategories, outCategories, setOutCategories, paymentMethods, setPaymentMethods }) => {
   return (
     <div className="max-w-[1000px] mx-auto w-full animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <h2 className="text-2xl font-black text-zinc-800 dark:text-white tracking-tight uppercase mb-6">Ajustes Financeiros</h2>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <AjustesList title="Categorias de Entrada" items={inCategories} setItems={setInCategories} />

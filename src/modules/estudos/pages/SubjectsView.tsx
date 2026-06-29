@@ -561,15 +561,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
 
   return (
     <div className="space-y-4 animate-in fade-in duration-500">
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 px-1">
-        <div>
-          <h2 className="text-2xl font-black text-zinc-800 dark:text-white tracking-tight uppercase">Disciplinas</h2>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">Gerenciamento detalhado do conteúdo programático.</p>
-        </div>
 
-        <div className="flex flex-wrap gap-3 items-center">
-        </div>
-      </header>
 
       {/* Menu Superior de Revisões Personalizadas */}
       <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-3 rounded-2xl flex flex-wrap items-center justify-between gap-4 shadow-sm">

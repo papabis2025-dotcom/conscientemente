@@ -801,10 +801,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-10">
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 px-1">
-        <div>
-          <h2 className="text-2xl font-black text-zinc-800 dark:text-white tracking-tight uppercase">Planner de Estudos</h2>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">Organize seu cronograma e acompanhe o que já foi cumprido.</p>
-        </div>
+
 
         <div className="flex flex-wrap items-center gap-3">
           {onSyncReviews && (

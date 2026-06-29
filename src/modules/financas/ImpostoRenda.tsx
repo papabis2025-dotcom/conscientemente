@@ -117,16 +117,7 @@ export const ImpostoRenda: React.FC<ImpostoRendaProps> = ({
 
   return (
     <div className="space-y-6 max-w-[1200px] mx-auto pb-12 animate-in fade-in duration-500">
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h2 className="text-2xl font-black text-zinc-800 dark:text-white uppercase tracking-tight">
-            Imposto de Renda
-          </h2>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
-            Registre e gerencie suas despesas dedutíveis (saúde, educação, etc.) para a declaração anual.
-          </p>
-        </div>
-      </header>
+
 
       {/* Cards de Resumo */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

@@ -732,6 +732,7 @@ const Dashboard: React.FC<DashboardProps> = ({
       case 'general_stats':
         const sessionsDone = filteredSessions.filter(s => !isSimuladoSession(s)).reduce((acc, s) => acc + (s.questionsDone || 0), 0);
         const sessionsCorrect = filteredSessions.filter(s => !isSimuladoSession(s)).reduce((acc, s) => acc + (s.questionsCorrect || 0), 0);
+        const sessionAccuracy = sessionsDone > 0 ? Math.min(100, Math.round((sessionsCorrect / sessionsDone) * 100)) : 0;
 
         const simDone = filteredSimulados.reduce((acc, s) => acc + (s.results || []).reduce((a, r) => a + r.done, 0), 0);
         const simCorrect = filteredSimulados.reduce((acc, s) => acc + (s.results || []).reduce((a, r) => a + r.correct, 0), 0);
@@ -741,6 +742,8 @@ const Dashboard: React.FC<DashboardProps> = ({
         const generalCorrect = sessionsCorrect + simCorrect;
         const globalAccuracy = generalDone > 0 ? Math.min(100, Math.round((generalCorrect / generalDone) * 100)) : 0;
 
+        const sessionColor = getPerformanceColor(sessionAccuracy);
+        const sessionColorHex = getPerformanceColorHex(sessionAccuracy);
         const globalColor = getPerformanceColor(globalAccuracy);
         const globalColorHex = getPerformanceColorHex(globalAccuracy);
         const simColor = getPerformanceColor(simAccuracy);
@@ -750,11 +753,39 @@ const Dashboard: React.FC<DashboardProps> = ({
         const totalHours = (totalMinutes / 60).toFixed(1);
 
         return (
-          <div className="flex flex-row items-center justify-around h-full gap-6 px-6 max-w-2xl mx-auto py-1">
-            {/* General Stats */}
+          <div className="flex flex-row items-center justify-around h-full gap-4 px-4 max-w-3xl mx-auto py-1">
+            {/* Questões */}
             <div className="flex flex-col items-center justify-center flex-1 gap-2">
               <div className="relative w-full flex-1 min-h-0 flex items-center justify-center">
-                <div className="relative w-full h-full max-w-[110px] max-h-[110px] md:max-w-[120px] md:max-h-[120px]">
+                <div className="relative w-full h-full max-w-[90px] max-h-[90px] md:max-w-[100px] md:max-h-[100px]">
+                  <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="40" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-zinc-100 dark:text-zinc-800" />
+                    <circle
+                      cx="50" cy="50" r="40"
+                      stroke="currentColor" strokeWidth="8" fill="transparent"
+                      strokeDasharray={251.2}
+                      strokeDashoffset={251.2 - (251.2 * sessionAccuracy) / 100}
+                      className={`${sessionColor} transition-all duration-1000 ease-out`}
+                      strokeLinecap="round"
+                      style={{ color: sessionColorHex }}
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <span className="text-base font-black leading-none text-zinc-900 dark:text-white" style={{ color: sessionColorHex }}>{sessionAccuracy}%</span>
+                    <span className="text-[8px] text-zinc-400 dark:text-zinc-550 font-bold mt-0.5">{sessionsDone} q</span>
+                  </div>
+                </div>
+              </div>
+              <p className="text-[9px] font-black text-zinc-500 uppercase tracking-widest shrink-0 mt-0.5">Questões</p>
+            </div>
+
+            {/* Divider */}
+            <div className="w-px bg-zinc-100 dark:bg-zinc-800 self-stretch my-3 shrink-0" />
+
+            {/* Geral */}
+            <div className="flex flex-col items-center justify-center flex-1 gap-2">
+              <div className="relative w-full flex-1 min-h-0 flex items-center justify-center">
+                <div className="relative w-full h-full max-w-[90px] max-h-[90px] md:max-w-[100px] md:max-h-[100px]">
                   <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
                     <circle cx="50" cy="50" r="40" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-zinc-100 dark:text-zinc-800" />
                     <circle
@@ -768,21 +799,21 @@ const Dashboard: React.FC<DashboardProps> = ({
                     />
                   </svg>
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-xl font-black leading-none text-zinc-900 dark:text-white" style={{ color: globalColorHex }}>{globalAccuracy}%</span>
-                    <span className="text-[9px] text-zinc-400 dark:text-zinc-550 font-bold mt-1">{generalDone} q</span>
+                    <span className="text-base font-black leading-none text-zinc-900 dark:text-white" style={{ color: globalColorHex }}>{globalAccuracy}%</span>
+                    <span className="text-[8px] text-zinc-400 dark:text-zinc-550 font-bold mt-0.5">{generalDone} q</span>
                   </div>
                 </div>
               </div>
-              <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest shrink-0 mt-1">Questões</p>
+              <p className="text-[9px] font-black text-zinc-500 uppercase tracking-widest shrink-0 mt-0.5">Geral</p>
             </div>
 
             {/* Divider */}
             <div className="w-px bg-zinc-100 dark:bg-zinc-800 self-stretch my-3 shrink-0" />
 
-            {/* Simulado Stats */}
+            {/* Simulados */}
             <div className="flex flex-col items-center justify-center flex-1 gap-2">
               <div className="relative w-full flex-1 min-h-0 flex items-center justify-center">
-                <div className="relative w-full h-full max-w-[110px] max-h-[110px] md:max-w-[120px] md:max-h-[120px]">
+                <div className="relative w-full h-full max-w-[90px] max-h-[90px] md:max-w-[100px] md:max-h-[100px]">
                   <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
                     <circle cx="50" cy="50" r="40" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-zinc-100 dark:text-zinc-800" />
                     <circle
@@ -796,12 +827,12 @@ const Dashboard: React.FC<DashboardProps> = ({
                     />
                   </svg>
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-xl font-black leading-none text-zinc-900 dark:text-white" style={{ color: simColorHex }}>{simAccuracy}%</span>
-                    <span className="text-[9px] text-zinc-400 dark:text-zinc-550 font-bold mt-1">{simDone} q</span>
+                    <span className="text-base font-black leading-none text-zinc-900 dark:text-white" style={{ color: simColorHex }}>{simAccuracy}%</span>
+                    <span className="text-[8px] text-zinc-400 dark:text-zinc-550 font-bold mt-0.5">{simDone} q</span>
                   </div>
                 </div>
               </div>
-              <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest shrink-0 mt-1">Simulados</p>
+              <p className="text-[9px] font-black text-zinc-500 uppercase tracking-widest shrink-0 mt-0.5">Simulados</p>
             </div>
           </div>
         );
@@ -1345,29 +1376,21 @@ const Dashboard: React.FC<DashboardProps> = ({
     return (
     <div className="space-y-4 lg:space-y-3 animate-in fade-in duration-500 lg:pb-0 pb-6">
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 px-1">
-        <div>
-          <h2 className="text-xl font-black text-zinc-800 dark:text-white tracking-tight uppercase">Dashboard</h2>
-        </div>
-
         {activeConcurso && (
-          <div className="flex-1 max-w-xs md:max-w-md mx-4 animate-in fade-in slide-in-from-left-2 duration-300">
-            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-2.5 shadow-sm flex items-center gap-3">
-              <div className="shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-zinc-50 dark:bg-zinc-800 text-zinc-650 dark:text-zinc-300">
-                <BookOpen size={16} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex justify-between items-center text-[10px] font-black uppercase text-zinc-400 tracking-wider mb-1">
-                  <span className="truncate max-w-[150px] md:max-w-[200px]" title={activeConcurso.name}>{activeConcurso.name}</span>
-                  <span className="text-zinc-850 dark:text-zinc-100 font-bold">{progressEdital}%</span>
-                </div>
-                <div className="w-full h-2 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-violet-500 to-indigo-500 dark:from-violet-400 dark:to-indigo-400 rounded-full transition-all duration-1000"
-                    style={{ width: `${progressEdital}%` }}
-                  ></div>
-                </div>
-              </div>
+          <div className="flex-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl px-4 py-2 shadow-sm flex items-center gap-3 h-[38px] md:h-[40px] animate-in fade-in slide-in-from-left-2 duration-300">
+            <BookOpen size={14} className="text-zinc-400 shrink-0" />
+            <span className="text-[10px] font-black uppercase text-zinc-400 tracking-wider truncate shrink-0 max-w-[120px] md:max-w-[200px]" title={activeConcurso.name}>
+              {activeConcurso.name}
+            </span>
+            <div className="flex-1 h-2 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden mx-1">
+              <div
+                className="h-full bg-gradient-to-r from-violet-500 to-indigo-500 dark:from-violet-400 dark:to-indigo-400 rounded-full transition-all duration-1000 shadow-sm"
+                style={{ width: `${progressEdital}%` }}
+              ></div>
             </div>
+            <span className="text-[10px] text-zinc-850 dark:text-zinc-100 font-bold shrink-0">
+              {progressEdital}%
+            </span>
           </div>
         )}
 

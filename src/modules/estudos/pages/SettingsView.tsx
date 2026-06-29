@@ -205,14 +205,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ currentUserEmail }) => {
 
   return (
     <div className="space-y-8 animate-in fade-in">
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 px-1">
-        <div>
-          <h2 className="text-2xl font-black text-zinc-800 dark:text-white tracking-tight uppercase flex items-center gap-2">
-            Configurações <Settings size={20} className="text-zinc-500" />
-          </h2>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">Gerencie sua conta e dados.</p>
-        </div>
-      </header>
+
 
 
 

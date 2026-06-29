@@ -16,12 +16,7 @@ const LogView: React.FC<LogViewProps> = ({ logs, onClearLogs, onDeleteLog }) => 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 px-1">
-        <div>
-          <h2 className="text-2xl font-black text-zinc-800 dark:text-white tracking-tight uppercase flex items-center gap-2">
-            Registro de Atividades <FileText size={20} className="text-zinc-400" />
-          </h2>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">Histórico técnico de alterações e eventos do sistema.</p>
-        </div>
+
         <button
           onClick={() => confirm('Limpar todos os logs?') && onClearLogs()}
           className="px-4 py-2 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl font-bold uppercase text-xs transition-colors"

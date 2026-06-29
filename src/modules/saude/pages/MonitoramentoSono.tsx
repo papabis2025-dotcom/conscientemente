@@ -148,16 +148,7 @@ export const MonitoramentoSono: React.FC<MonitoramentoSonoProps> = ({ onUpdateSl
 
   return (
     <div className="space-y-4 max-w-[1200px] mx-auto pb-4 animate-in fade-in duration-500 flex flex-col h-full overflow-hidden">
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 shrink-0">
-        <div>
-          <h2 className="text-xl font-black text-zinc-800 dark:text-white uppercase tracking-tight">
-            Monitoramento do Sono
-          </h2>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
-            Registre suas noites e analise os estágios do sono para melhorar sua recuperação física e mental.
-          </p>
-        </div>
-      </header>
+
 
       {/* Sub-tabs Selector */}
       <div className="flex border-b border-zinc-200 dark:border-zinc-800/80 shrink-0">

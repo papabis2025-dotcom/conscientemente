@@ -249,7 +249,7 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
       case 'dashboard':
         return <Dashboard subjects={filteredSubjects} sessions={sessions} simulados={simulados} activeConcurso={activeConcurso} selectedConcursoId={selectedConcursoId} onSelectConcursoId={setSelectedConcursoId} concursos={concursos} theme={theme} onToggleReorderMode={setIsReorderMode} onAddSession={addSession} globalDailyGoal={globalDailyGoal} studyTasks={studyTasks} onUpdateTasks={setStudyTasks} scheduledStudies={scheduledStudies} timeLeft={timeLeft} isActive={isActive} isAlarmPlaying={isAlarmPlaying} onStartTimer={startTimer} onPauseTimer={pauseTimer} onResumeTimer={resumeTimer} onResetTimer={resetTimer} onStopAlarm={stopAlarm} />;
       case 'concursos':
-        return <ConcursosView concursos={concursos} onUpdateConcursos={setConcursos} onSelectConcurso={(c) => { setSelectedConcursoId(c.id); setActiveTab('dashboard'); }} scheduledStudies={scheduledStudies} />;
+        return <ConcursosView concursos={concursos} onUpdateConcursos={setConcursos} onSelectConcurso={(c) => { setSelectedConcursoId(c.id); setActiveTab('dashboard'); }} scheduledStudies={scheduledStudies} sessions={sessions} />;
       case 'subjects':
         return <SubjectsView subjects={activeConcurso?.subjects || []} sessions={sessions} onUpdateSubjects={(subs) => setConcursos(concursos.map(c => c.id === selectedConcursoId ? { ...c, subjects: subs } : c))} selectedConcursoId={selectedConcursoId} onSelectConcursoId={setSelectedConcursoId} concursos={concursos} scheduledStudies={scheduledStudies} onToggleScheduledStudyStatus={toggleScheduledStudyStatus} />;
       case 'questions':

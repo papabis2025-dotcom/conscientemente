@@ -1,16 +1,21 @@
 
 import React, { useState } from 'react';
 import { AlertTriangle, Target, Edit2, Trash2, BookOpen, Image as ImageIcon, X } from 'lucide-react';
-import { Concurso } from '../types';
+import { Concurso, StudySession } from '../types';
 
 interface ConcursosViewProps {
   concursos: Concurso[];
   onUpdateConcursos: (concursos: Concurso[]) => void;
   onSelectConcurso: (concurso: Concurso) => void;
   scheduledStudies: any[];
+  sessions: StudySession[];
 }
 
-const isTopicCompletedHelper = (subjectId: string, topicId: string, isCompletedFlag: boolean, scheduledStudies: any[]) => {
+const isTopicCompletedHelper = (subjectId: string, topicId: string, isCompletedFlag: boolean, scheduledStudies: any[], sessions: StudySession[]) => {
+  const hasBeenStudied = (sessions || []).some(s => s.subjectId === subjectId && s.topicId === topicId);
+  if (hasBeenStudied) {
+    return true;
+  }
   const reviews = (scheduledStudies || []).filter(sched =>
     sched.subjectId === subjectId &&
     sched.topicId === topicId &&
@@ -25,7 +30,7 @@ const isTopicCompletedHelper = (subjectId: string, topicId: string, isCompletedF
   return reviews.every(r => r.status === 'realizado');
 };
 
-const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcursos, onSelectConcurso, scheduledStudies }) => {
+const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcursos, onSelectConcurso, scheduledStudies, sessions }) => {
   const [isAdding, setIsAdding] = useState(false);
   const [newConcName, setNewConcName] = useState('');
   const [banca, setBanca] = useState('');
@@ -267,7 +272,7 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {concursos.map(conc => {
           const completedCount = conc.subjects.reduce((acc, s) => {
-            return acc + s.topics.filter(t => isTopicCompletedHelper(s.id, t.id, t.isCompleted, scheduledStudies)).length;
+            return acc + s.topics.filter(t => isTopicCompletedHelper(s.id, t.id, t.isCompleted, scheduledStudies, sessions)).length;
           }, 0);
           const totalCount = conc.subjects.reduce((acc, s) => acc + s.topics.length, 0);
           const progress = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;

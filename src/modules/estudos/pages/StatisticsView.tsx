@@ -227,7 +227,7 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, con
             </tr>
           </thead>
           <tbody>
-            {sortedData.map(({ sub, questions, accuracy, weight, questionsGoal, minutes }) => {
+            {sortedData.map(({ sub, questions, correct, accuracy, weight, questionsGoal, minutes }) => {
               const priority = getPriority(weight, accuracy, questions, minutes);
               const priorityPct = Math.round(priority * 100);
 

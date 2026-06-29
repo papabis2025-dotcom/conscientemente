@@ -30,7 +30,11 @@ interface SubjectsViewProps {
   onToggleScheduledStudyStatus?: (idOrIds: string | string[]) => void;
 }
 
-const isTopicCompletedHelper = (subjectId: string, topicId: string, isCompletedFlag: boolean, scheduledStudies: any[]) => {
+const isTopicCompletedHelper = (subjectId: string, topicId: string, isCompletedFlag: boolean, scheduledStudies: any[], sessions: StudySession[]) => {
+  const hasBeenStudied = (sessions || []).some(s => s.subjectId === subjectId && s.topicId === topicId);
+  if (hasBeenStudied) {
+    return true;
+  }
   const reviews = (scheduledStudies || []).filter(sched =>
     sched.subjectId === subjectId &&
     sched.topicId === topicId &&
@@ -495,7 +499,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
     const topic = subject?.topics.find(t => t.id === topicId);
     if (!topic) return;
 
-    const isCompleted = isTopicCompletedHelper(subjectId, topicId, topic.isCompleted, scheduledStudies);
+    const isCompleted = isTopicCompletedHelper(subjectId, topicId, topic.isCompleted, scheduledStudies, sessions);
     const nextVal = !isCompleted;
     if (nextVal) {
       playSound.success();
@@ -913,8 +917,8 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                                       const orderA = a.topic.order ?? 999;
                                       const orderB = b.topic.order ?? 999;
                                       if (orderA !== orderB) return orderA - orderB;
-                                      const isCompA = isTopicCompletedHelper(subject.id, a.topic.id, a.topic.isCompleted, scheduledStudies);
-                                      const isCompB = isTopicCompletedHelper(subject.id, b.topic.id, b.topic.isCompleted, scheduledStudies);
+                                      const isCompA = isTopicCompletedHelper(subject.id, a.topic.id, a.topic.isCompleted, scheduledStudies, sessions);
+                                      const isCompB = isTopicCompletedHelper(subject.id, b.topic.id, b.topic.isCompleted, scheduledStudies, sessions);
                                       if (isCompA === isCompB) return a.topic.title.localeCompare(b.topic.title, undefined, { numeric: true });
                                       return isCompA ? 1 : -1;
                                     }
@@ -961,7 +965,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                                   })
                                   .map(({ topic, stats: tStats }, topicRenderIndex) => {
                                     const topicOrder = topic.order ?? (topicRenderIndex + 1);
-                                    const isCompleted = isTopicCompletedHelper(subject.id, topic.id, topic.isCompleted, scheduledStudies);
+                                    const isCompleted = isTopicCompletedHelper(subject.id, topic.id, topic.isCompleted, scheduledStudies, sessions);
                                     return (
                                       <tr
                                         key={topic.id}

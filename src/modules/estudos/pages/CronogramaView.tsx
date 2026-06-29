@@ -20,7 +20,8 @@ import {
   Zap,
   Settings,
   ChevronDown,
-  Info
+  Info,
+  X
 } from 'lucide-react';
 
 interface CronogramaViewProps {
@@ -61,6 +62,7 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
   const [currentWeekOffset, setCurrentWeekOffset] = useState(0);
   const [selectedDateStr, setSelectedDateStr] = useState<string>(() => new Date().toISOString().split('T')[0]);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [showPrefsModal, setShowPrefsModal] = useState(false);
 
   // Configuration States for generation
   const [durWeeks, setDurWeeks] = useState(8);
@@ -249,6 +251,17 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
         currentDate.setDate(start.getDate() + dayOffset);
         const dateStr = currentDate.toISOString().split('T')[0];
 
+        // Se este dia já tem alguma atividade cadastrada, pular a geração automática
+        const hasExistingActivity = (scheduledStudies || []).some(s => {
+          if (!s.date) return false;
+          const sDateOnly = s.date.includes('T') ? s.date.split('T')[0] : s.date;
+          return sDateOnly === dateStr;
+        });
+
+        if (hasExistingActivity) {
+          continue;
+        }
+
         // Determine weekday
         const weekdayName = currentDate.toLocaleDateString('en-US', { weekday: 'long' });
         const isStudyDay = activeDays.includes(weekdayName);
@@ -259,7 +272,7 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
           for (let s = 0; s < subjectsPerDay; s++) {
             const profilesWithUpdatedPriority = subjectProfiles.map(p => {
               const accuracy = p.queue.length > 0 ? 70 : 70; // placeholder
-              const priorityScore = p.subject.weight * (105 - accuracy) * (1 / (1 + p.simulatedMinutes / 60));
+              const priorityScore = (p.subject.weight || 1) * (105 - accuracy) * (1 / (1 + p.simulatedMinutes / 60));
               return { ...p, priorityScore };
             });
 
@@ -705,7 +718,15 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
           </button>
         </div>
 
-        <div className="flex items-center gap-2 self-end sm:self-auto">
+        <div className="flex items-center gap-3 self-end sm:self-auto">
+          <button
+            type="button"
+            onClick={() => setShowPrefsModal(true)}
+            className="text-zinc-500 dark:text-zinc-450 hover:text-emerald-500 transition-colors p-2 text-xs font-black uppercase tracking-widest flex items-center gap-1.5"
+            title="Ajustar Preferências de Estudo"
+          >
+            <Settings size={14} /> Preferências
+          </button>
           <button
             type="button"
             onClick={handleClearSchedule}
@@ -1130,6 +1151,170 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
                 className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white font-black uppercase tracking-wider text-xs px-4 py-3 rounded-2xl"
               >
                 Confirmar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showPrefsModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/80 backdrop-blur-sm p-4 animate-in fade-in duration-200 overflow-y-auto">
+          <div className="bg-white dark:bg-zinc-900 w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 border border-zinc-200 dark:border-zinc-800 my-8">
+            <div className="p-6 border-b border-zinc-100 dark:border-zinc-800 flex justify-between items-center bg-zinc-50/50 dark:bg-zinc-900/50">
+              <h3 className="text-lg font-black text-zinc-850 dark:text-white uppercase tracking-tight flex items-center gap-2">
+                <Settings size={18} /> Preferências do Cronograma
+              </h3>
+              <button
+                onClick={() => setShowPrefsModal(false)}
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-500 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-all"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
+              {activeConcurso?.targetDate ? (
+                <div className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/30 p-4 rounded-xl flex gap-3 items-center">
+                  <CalendarIcon className="text-emerald-500 shrink-0" size={20} />
+                  <div>
+                    <h5 className="font-bold text-emerald-800 dark:text-emerald-300 text-xs">Data Limite Definida Pela Prova</h5>
+                    <p className="text-[10px] text-emerald-600 dark:text-emerald-400 mt-0.5 font-medium">
+                      O cronograma terminará exatamente no dia anterior à prova do seu concurso ({new Date(`${activeConcurso.targetDate.split('T')[0]}T12:00:00`).toLocaleDateString('pt-BR')}).
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/30 p-4 rounded-xl flex gap-3 items-center">
+                  <Info className="text-amber-500 shrink-0" size={20} />
+                  <div>
+                    <h5 className="font-bold text-amber-800 dark:text-amber-300 text-xs">Nenhuma Data de Prova Cadastrada</h5>
+                    <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-0.5 font-medium">
+                      O cronograma usará a duração padrão abaixo. Você pode cadastrar uma data de prova editando este curso na aba Cursos.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {!activeConcurso?.targetDate && (
+                  <div>
+                    <label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest block mb-1.5">Duração do Planejamento</label>
+                    <select
+                      value={durWeeks}
+                      onChange={(e) => setDurWeeks(parseInt(e.target.value))}
+                      className="w-full bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 px-4 py-2.5 rounded-xl text-sm font-bold text-zinc-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                    >
+                      <option value={4}>4 Semanas (1 Mês)</option>
+                      <option value={8}>8 Semanas (2 Meses)</option>
+                      <option value={12}>12 Semanas (3 Meses)</option>
+                      <option value={16}>16 Semanas (4 Meses)</option>
+                    </select>
+                  </div>
+                )}
+
+                <div>
+                  <label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest block mb-1.5">Meta de Horas Diárias</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={12}
+                    value={dailyHours}
+                    onChange={(e) => setDailyHours(Math.max(1, parseInt(e.target.value) || 3))}
+                    className="w-full bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 px-4 py-2.5 rounded-xl text-sm font-bold text-zinc-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest block mb-1.5">Disciplinas por Dia</label>
+                  <select
+                    value={subjectsPerDay}
+                    onChange={(e) => setSubjectsPerDay(parseInt(e.target.value))}
+                    className="w-full bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 px-4 py-2.5 rounded-xl text-sm font-bold text-zinc-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                  >
+                    <option value={1}>1 Disciplina</option>
+                    <option value={2}>2 Disciplinas</option>
+                    <option value={3}>3 Disciplinas</option>
+                    <option value={4}>4 Disciplinas</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest block mb-1.5">Assuntos por Disciplina por Dia</label>
+                  <select
+                    value={topicsPerSubjectPerDay}
+                    onChange={(e) => setTopicsPerSubjectPerDay(parseInt(e.target.value))}
+                    className="w-full bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 px-4 py-2.5 rounded-xl text-sm font-bold text-zinc-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                  >
+                    <option value={1}>1 Assunto</option>
+                    <option value={2}>2 Assuntos</option>
+                    <option value={3}>3 Assuntos</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest block mb-1.5">Data de Início</label>
+                  <input
+                    type="date"
+                    value={startDateStr}
+                    onChange={(e) => setStartDateStr(e.target.value)}
+                    className="w-full bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 px-4 py-2.5 rounded-xl text-sm font-bold text-zinc-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                  />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest block mb-2">Dias Disponíveis para Estudo</label>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {WEEKDAYS.map(day => {
+                      const isActive = activeDays.includes(day.id);
+                      return (
+                        <button
+                          key={day.id}
+                          type="button"
+                          onClick={() => {
+                            if (isActive) {
+                              setActiveDays(activeDays.filter(d => d !== day.id));
+                            } else {
+                              setActiveDays([...activeDays, day.id]);
+                            }
+                          }}
+                          className={`px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider border transition-all text-center ${
+                            isActive
+                              ? 'bg-emerald-500 border-emerald-500 text-white shadow-sm'
+                              : 'bg-zinc-50 dark:bg-zinc-800/40 border-zinc-200 dark:border-zinc-700 text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-850'
+                          }`}
+                        >
+                          {day.label.split('-')[0]}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-zinc-100 dark:border-zinc-800 flex flex-col sm:flex-row gap-3 bg-zinc-50/50 dark:bg-zinc-900/50">
+              <button
+                type="button"
+                onClick={() => {
+                  handleSavePreferences();
+                  setShowPrefsModal(false);
+                }}
+                className="flex-1 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs font-black uppercase tracking-widest text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 flex items-center justify-center gap-1.5"
+              >
+                Salvar Preferências
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  handleSavePreferences();
+                  await handleGenerate();
+                  setShowPrefsModal(false);
+                }}
+                disabled={isGenerating}
+                className="flex-1 bg-emerald-500 hover:bg-emerald-600 active:scale-[0.98] text-white font-black uppercase tracking-widest text-xs py-3 rounded-xl shadow-lg shadow-emerald-500/10 hover:shadow-emerald-500/20 transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
+              >
+                {isGenerating ? 'Gerando...' : 'Salvar e Gerar'}
+                <Zap size={12} className="fill-white" />
               </button>
             </div>
           </div>

@@ -302,6 +302,25 @@ const Dashboard: React.FC<DashboardProps> = ({
       }
     });
 
+    filteredSimulados.forEach(sim => {
+      (sim.results || []).forEach(res => {
+        const sub = subjects.find(s => s.id === res.subjectId);
+        if (sub && stats[sub.name]) {
+          stats[sub.name].done += (res.done || 0);
+          stats[sub.name].correct += (res.correct || 0);
+        }
+      });
+      if (sim.durationInMinutes && sim.results.length > 0) {
+        const share = Math.round(sim.durationInMinutes / sim.results.length);
+        sim.results.forEach(res => {
+          const sub = subjects.find(s => s.id === res.subjectId);
+          if (sub && stats[sub.name]) {
+            stats[sub.name].minutes += share;
+          }
+        });
+      }
+    });
+
     const list = Object.values(stats)
       .map(s => ({
         ...s,
@@ -320,7 +339,7 @@ const Dashboard: React.FC<DashboardProps> = ({
       best: [...list].filter(s => s.done > 0).sort((a, b) => b.accuracy - a.accuracy)[0] || null,
       worst: list.filter(s => s.done > 0).length > 0 ? [...list].filter(s => s.done > 0).sort((a, b) => a.accuracy - b.accuracy)[0] : null
     };
-  }, [filteredSessions, subjects]);
+  }, [filteredSessions, filteredSimulados, subjects]);
 
   const CustomXAxisTick = useCallback((props: any) => {
     const { x, y, payload } = props;
@@ -391,11 +410,40 @@ const Dashboard: React.FC<DashboardProps> = ({
     const day = String(today.getDate()).padStart(2, '0');
     const todayStr = `${year}-${month}-${day}`;
 
-    const done = sessions
+    const sessionsDone = sessions
       .filter(s => getLocalSessionDate(s.date) === todayStr && s.questionsDone !== undefined)
       .reduce((acc, s) => acc + (Number(s.questionsDone) || 0), 0);
+    const simuladosDone = simulados
+      .filter(s => getLocalSessionDate(s.date) === todayStr)
+      .reduce((acc, s) => acc + (s.results || []).reduce((a, r) => a + (r.done || 0), 0), 0);
+    const done = sessionsDone + simuladosDone;
     return { total: done, goal: globalDailyGoal || 20 };
-  }, [sessions, globalDailyGoal]);
+  }, [sessions, simulados, globalDailyGoal]);
+
+  const progressEdital = useMemo(() => {
+    if (!activeConcurso) return 0;
+    const completedCount = activeConcurso.subjects.reduce((acc, s) => {
+      return acc + s.topics.filter(t => {
+        const hasBeenStudied = (sessions || []).some(session => session.subjectId === s.id && session.topicId === t.id);
+        if (hasBeenStudied) return true;
+
+        const reviews = (scheduledStudies || []).filter(sched =>
+          sched.subjectId === s.id &&
+          sched.topicId === t.id &&
+          sched.activityType && (
+            sched.activityType.toLowerCase().includes('revisão') || 
+            sched.activityType.toLowerCase().includes('revisao')
+          )
+        );
+        if (reviews.length === 0) {
+          return t.isCompleted;
+        }
+        return reviews.every(r => r.status === 'realizado');
+      }).length;
+    }, 0);
+    const totalCount = activeConcurso.subjects.reduce((acc, s) => acc + s.topics.length, 0);
+    return totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+  }, [activeConcurso, sessions, scheduledStudies]);
 
   const { weeklyData, weeklyQuestionsData, weeklyAccuracyData } = useMemo(() => {
     const today = new Date();
@@ -431,10 +479,24 @@ const Dashboard: React.FC<DashboardProps> = ({
         }
       });
 
+      filteredSimulados.forEach(s => {
+        const sDateStr = getLocalSessionDate(s.date);
+        if (!sDateStr) return;
+        const match = dataMap.find(d => d.dateStr === sDateStr);
+        if (match) {
+          const simDone = (s.results || []).reduce((a, r) => a + r.done, 0);
+          const simCorrect = (s.results || []).reduce((a, r) => a + r.correct, 0);
+          match.h += (Number(s.durationInMinutes) || 0) / 60;
+          match.q += simDone;
+          match.correct += simCorrect;
+          match.done += simDone;
+        }
+      });
+
       const finalData = dataMap.map(d => ({ 
         ...d, 
         h: parseFloat(d.h.toFixed(2)), 
-        acc: d.done > 0 ? Math.round((d.correct / d.done) * 100) : 0 
+        acc: d.done > 0 ? Math.min(100, Math.round((d.correct / d.done) * 100)) : 0 
       }));
       return { weeklyData: finalData, weeklyQuestionsData: finalData, weeklyAccuracyData: finalData };
     }
@@ -473,10 +535,28 @@ const Dashboard: React.FC<DashboardProps> = ({
         }
       });
 
+      filteredSimulados.forEach(s => {
+        const sDateStr = getLocalSessionDate(s.date);
+        if (!sDateStr) return;
+        const [sYear, sMonth, sDay] = sDateStr.split('-').map(Number);
+        
+        if (sYear === today.getFullYear() && sMonth - 1 === today.getMonth()) {
+          const weekIndex = Math.floor((sDay - 1 + firstDayOfWeek) / 7);
+          if (weekIndex < weeksInMonth) {
+            const simDone = (s.results || []).reduce((a, r) => a + r.done, 0);
+            const simCorrect = (s.results || []).reduce((a, r) => a + r.correct, 0);
+            dataMap[weekIndex].h += (Number(s.durationInMinutes) || 0) / 60;
+            dataMap[weekIndex].q += simDone;
+            dataMap[weekIndex].correct += simCorrect;
+            dataMap[weekIndex].done += simDone;
+          }
+        }
+      });
+
       const finalData = dataMap.map(d => ({ 
         ...d, 
         h: parseFloat(d.h.toFixed(2)), 
-        acc: d.done > 0 ? Math.round((d.correct / d.done) * 100) : 0 
+        acc: d.done > 0 ? Math.min(100, Math.round((d.correct / d.done) * 100)) : 0 
       }));
       return { weeklyData: finalData, weeklyQuestionsData: finalData, weeklyAccuracyData: finalData };
     }
@@ -501,10 +581,26 @@ const Dashboard: React.FC<DashboardProps> = ({
         }
       });
 
+      filteredSimulados.forEach(s => {
+        const sDateStr = getLocalSessionDate(s.date);
+        if (!sDateStr) return;
+        const [sYear, sMonth] = sDateStr.split('-').map(Number);
+        
+        if (sYear === currentYear) {
+          const monthIdx = sMonth - 1;
+          const simDone = (s.results || []).reduce((a, r) => a + r.done, 0);
+          const simCorrect = (s.results || []).reduce((a, r) => a + r.correct, 0);
+          dataMap[monthIdx].h += (Number(s.durationInMinutes) || 0) / 60;
+          dataMap[monthIdx].q += simDone;
+          dataMap[monthIdx].correct += simCorrect;
+          dataMap[monthIdx].done += simDone;
+        }
+      });
+
       const finalData = dataMap.map(d => ({ 
         ...d, 
         h: parseFloat(d.h.toFixed(2)), 
-        acc: d.done > 0 ? Math.round((d.correct / d.done) * 100) : 0 
+        acc: d.done > 0 ? Math.min(100, Math.round((d.correct / d.done) * 100)) : 0 
       }));
       return { weeklyData: finalData, weeklyQuestionsData: finalData, weeklyAccuracyData: finalData };
     }
@@ -550,6 +646,23 @@ const Dashboard: React.FC<DashboardProps> = ({
         }
       });
 
+      filteredSimulados.forEach(s => {
+        const sDateStr = getLocalSessionDate(s.date);
+        if (!sDateStr) return;
+        const [sYear, sMonth] = sDateStr.split('-').map(Number);
+        const sMonthIdx = sMonth - 1;
+
+        const match = dataMap.find(d => d.year === sYear && d.month === sMonthIdx);
+        if (match) {
+          const simDone = (s.results || []).reduce((a, r) => a + r.done, 0);
+          const simCorrect = (s.results || []).reduce((a, r) => a + r.correct, 0);
+          match.h += (Number(s.durationInMinutes) || 0) / 60;
+          match.q += simDone;
+          match.correct += simCorrect;
+          match.done += simDone;
+        }
+      });
+
       const finalData = dataMap.map(d => ({ 
         ...d, 
         h: parseFloat(d.h.toFixed(2)), 
@@ -557,7 +670,7 @@ const Dashboard: React.FC<DashboardProps> = ({
       }));
       return { weeklyData: finalData, weeklyQuestionsData: finalData, weeklyAccuracyData: finalData };
     }
-  }, [relevantSessions, dashboardPeriod, chartStartDate]);
+  }, [relevantSessions, filteredSimulados, dashboardPeriod, chartStartDate]);
 
   const frequencyData = useMemo(() => {
     // Determine current streak
@@ -617,13 +730,16 @@ const Dashboard: React.FC<DashboardProps> = ({
   const renderWidgetContent = (id: string) => {
     switch (id) {
       case 'general_stats':
-        const generalDone = filteredSessions.filter(s => !isSimuladoSession(s)).reduce((acc, s) => acc + (s.questionsDone || 0), 0);
-        const generalCorrect = filteredSessions.filter(s => !isSimuladoSession(s)).reduce((acc, s) => acc + (s.questionsCorrect || 0), 0);
-        const globalAccuracy = generalDone > 0 ? Math.min(100, Math.round((generalCorrect / generalDone) * 100)) : 0;
+        const sessionsDone = filteredSessions.filter(s => !isSimuladoSession(s)).reduce((acc, s) => acc + (s.questionsDone || 0), 0);
+        const sessionsCorrect = filteredSessions.filter(s => !isSimuladoSession(s)).reduce((acc, s) => acc + (s.questionsCorrect || 0), 0);
 
         const simDone = filteredSimulados.reduce((acc, s) => acc + (s.results || []).reduce((a, r) => a + r.done, 0), 0);
         const simCorrect = filteredSimulados.reduce((acc, s) => acc + (s.results || []).reduce((a, r) => a + r.correct, 0), 0);
         const simAccuracy = simDone > 0 ? Math.min(100, Math.round((simCorrect / simDone) * 100)) : 0;
+
+        const generalDone = sessionsDone + simDone;
+        const generalCorrect = sessionsCorrect + simCorrect;
+        const globalAccuracy = generalDone > 0 ? Math.min(100, Math.round((generalCorrect / generalDone) * 100)) : 0;
 
         const globalColor = getPerformanceColor(globalAccuracy);
         const globalColorHex = getPerformanceColorHex(globalAccuracy);
@@ -1232,6 +1348,28 @@ const Dashboard: React.FC<DashboardProps> = ({
         <div>
           <h2 className="text-xl font-black text-zinc-800 dark:text-white tracking-tight uppercase">Dashboard</h2>
         </div>
+
+        {activeConcurso && (
+          <div className="flex-1 max-w-xs md:max-w-md mx-4 animate-in fade-in slide-in-from-left-2 duration-300">
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-2.5 shadow-sm flex items-center gap-3">
+              <div className="shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-zinc-50 dark:bg-zinc-800 text-zinc-650 dark:text-zinc-300">
+                <BookOpen size={16} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex justify-between items-center text-[10px] font-black uppercase text-zinc-400 tracking-wider mb-1">
+                  <span className="truncate max-w-[150px] md:max-w-[200px]" title={activeConcurso.name}>{activeConcurso.name}</span>
+                  <span className="text-zinc-850 dark:text-zinc-100 font-bold">{progressEdital}%</span>
+                </div>
+                <div className="w-full h-2 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-violet-500 to-indigo-500 dark:from-violet-400 dark:to-indigo-400 rounded-full transition-all duration-1000"
+                    style={{ width: `${progressEdital}%` }}
+                  ></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="flex items-center gap-4">
           {/* Period selector */}

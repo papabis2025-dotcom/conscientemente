@@ -341,14 +341,14 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
                     </div>
                   </div>
 
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-[8px] font-black uppercase text-zinc-400 tracking-wider">
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between text-[10px] font-black uppercase text-zinc-400 tracking-wider">
                       <span>Progresso do Edital</span>
-                      <span className="text-zinc-950 dark:text-zinc-50">{progress}%</span>
+                      <span className="text-zinc-900 dark:text-zinc-100 font-bold">{progress}%</span>
                     </div>
-                    <div className="w-full h-2 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+                    <div className="w-full h-3 bg-zinc-100 dark:bg-zinc-800/80 rounded-full overflow-hidden shadow-inner border border-zinc-200/20 dark:border-zinc-800/50">
                       <div
-                        className="h-full bg-zinc-900 dark:bg-zinc-700 rounded-full transition-all duration-1000"
+                        className="h-full bg-gradient-to-r from-violet-500 to-indigo-500 dark:from-violet-400 dark:to-indigo-400 rounded-full transition-all duration-1000 shadow-sm"
                         style={{ width: `${progress}%` }}
                       ></div>
                     </div>

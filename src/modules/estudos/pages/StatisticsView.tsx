@@ -138,10 +138,14 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, con
   }, [subjectData, sortBy, sortOrder, weightAcc, weightSubj, weightQtd, weightTime, maxWeight, maxQuestions, maxMinutes]);
 
   const getHeatmapColor = (pct: number) => {
-    if (pct >= 75) return '#be123c'; // rose-700
-    if (pct >= 60) return '#f97316'; // orange-500
-    if (pct >= 40) return '#eab308'; // yellow-500
-    return '#10b981'; // emerald-500
+    if (pct >= 85) return '#9f1239'; // rose-800 - Crítica Extrema
+    if (pct >= 75) return '#be123c'; // rose-700 - Crítica
+    if (pct >= 65) return '#e11d48'; // rose-600 - Alta Urgência
+    if (pct >= 55) return '#f97316'; // orange-500 - Alta
+    if (pct >= 45) return '#facc15'; // yellow-400 - Média Alta
+    if (pct >= 35) return '#eab308'; // yellow-500 - Média
+    if (pct >= 25) return '#84cc16'; // lime-500 - Baixa Média
+    return '#10b981'; // emerald-500 - Baixa
   };
 
   const chartData = useMemo(() => {
@@ -159,6 +163,26 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, con
     }).sort((a, b) => b.value - a.value);
   }, [subjectData, maxWeight, maxQuestions, maxMinutes, weightAcc, weightSubj, weightQtd, weightTime]);
 
+  const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, value, name, color }: any) => {
+    const RADIAN = Math.PI / 180;
+    const radius = innerRadius + (outerRadius - innerRadius) * 0.5 + 40;
+    const x = cx + radius * Math.cos(-midAngle * RADIAN);
+    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+
+    return (
+      <text 
+        x={x} 
+        y={y} 
+        fill="currentColor" 
+        className="text-[10px] font-black uppercase tracking-tight text-zinc-600 dark:text-zinc-350"
+        textAnchor={x > cx ? 'start' : 'end'} 
+        dominantBaseline="central"
+      >
+        {`${name} (${value}%)`}
+      </text>
+    );
+  };
+
   const renderChart = () => {
     if (chartData.length === 0) {
       return (
@@ -170,20 +194,22 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, con
 
     return (
       <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6 md:p-8 rounded-[2rem] shadow-sm space-y-6 animate-in fade-in duration-300">
-        <div className="flex flex-col md:flex-row items-center gap-8 justify-around">
+        <div className="flex flex-col items-center justify-center py-4">
           {/* Gráfico */}
-          <div className="w-full max-w-[300px] h-[300px] relative shrink-0">
+          <div className="w-full max-w-[500px] h-[340px] relative">
             <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
+              <PieChart margin={{ top: 20, right: 30, left: 30, bottom: 20 }}>
                 <Pie
                   data={chartData}
                   cx="50%"
                   cy="50%"
                   innerRadius={60}
-                  outerRadius={105}
+                  outerRadius={95}
                   paddingAngle={3}
                   dataKey="value"
                   animationDuration={600}
+                  label={renderCustomizedLabel}
+                  labelLine={{ stroke: '#a1a1aa', strokeWidth: 1 }}
                 >
                   {chartData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
@@ -194,7 +220,7 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, con
                     if (active && payload && payload.length) {
                       const data = payload[0].payload;
                       return (
-                        <div className="bg-white dark:bg-zinc-950 p-4 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-xl space-y-1">
+                        <div className="bg-white dark:bg-zinc-955 p-4 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-xl space-y-1">
                           <p className="text-xs font-black text-zinc-900 dark:text-white uppercase tracking-tight">{data.name}</p>
                           <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
                             Prioridade: <span className="font-extrabold" style={{ color: data.color }}>{data.value}%</span>
@@ -202,7 +228,7 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, con
                           <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
                             Acertos: <span className="text-zinc-800 dark:text-zinc-200 font-extrabold">{data.accuracy}%</span>
                           </p>
-                          <p className="text-[10px] font-bold text-zinc-555 dark:text-zinc-400 uppercase tracking-widest">
+                          <p className="text-[10px] font-bold text-zinc-555 dark:text-zinc-405 uppercase tracking-widest">
                             Tempo: <span className="text-zinc-800 dark:text-zinc-200 font-extrabold">{data.minutes} min</span>
                           </p>
                         </div>
@@ -218,46 +244,41 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, con
               <span className="text-base font-black text-zinc-800 dark:text-white uppercase tracking-tighter mt-1 leading-none">Calor</span>
             </div>
           </div>
-
-          {/* Legenda de Prioridade */}
-          <div className="flex-1 w-full space-y-4">
-            <h4 className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1">Disciplinas por Prioridade</h4>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {chartData.map((d, index) => (
-                <div 
-                  key={index} 
-                  className="flex items-center gap-3 p-3 bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-150 dark:border-zinc-800 rounded-2xl hover:scale-[1.01] transition-all"
-                >
-                  <div className="w-3 h-3 rounded-full shrink-0 shadow-sm animate-pulse" style={{ backgroundColor: d.color }} />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-bold text-zinc-800 dark:text-zinc-100 truncate">{d.name}</p>
-                    <p className="text-[9px] font-bold text-zinc-450 dark:text-zinc-500 uppercase tracking-wider mt-0.5">
-                      Prioridade: <span className="font-extrabold" style={{ color: d.color }}>{d.value}%</span>
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
         </div>
 
         {/* Barra Informativa de Calor */}
-        <div className="border-t border-zinc-100 dark:border-zinc-800 pt-4 flex flex-wrap justify-center gap-6 text-[10px] font-black uppercase tracking-widest text-zinc-400">
-          <div className="flex items-center gap-2">
-            <div className="w-3.5 h-3.5 rounded-full" style={{ backgroundColor: '#be123c' }} />
-            <span>Crítica (≥ 75%)</span>
+        <div className="border-t border-zinc-100 dark:border-zinc-800 pt-4 flex flex-wrap justify-center gap-5 text-[9px] font-black uppercase tracking-widest text-zinc-400">
+          <div className="flex items-center gap-1.5">
+            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#9f1239' }} />
+            <span>Extrema (≥ 85%)</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3.5 h-3.5 rounded-full" style={{ backgroundColor: '#f97316' }} />
-            <span>Alta (60% - 74%)</span>
+          <div className="flex items-center gap-1.5">
+            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#be123c' }} />
+            <span>Crítica (75% - 84%)</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3.5 h-3.5 rounded-full" style={{ backgroundColor: '#eab308' }} />
-            <span>Média (40% - 59%)</span>
+          <div className="flex items-center gap-1.5">
+            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#e11d48' }} />
+            <span>Alta Urgência (65% - 74%)</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3.5 h-3.5 rounded-full" style={{ backgroundColor: '#10b981' }} />
-            <span>Baixa (&lt; 40%)</span>
+          <div className="flex items-center gap-1.5">
+            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#f97316' }} />
+            <span>Alta (55% - 64%)</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#facc15' }} />
+            <span>Média Alta (45% - 54%)</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#eab308' }} />
+            <span>Média (35% - 44%)</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#84cc16' }} />
+            <span>Baixa Média (25% - 34%)</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#10b981' }} />
+            <span>Baixa (&lt; 25%)</span>
           </div>
         </div>
       </div>

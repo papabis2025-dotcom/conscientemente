@@ -138,14 +138,9 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, con
   }, [subjectData, sortBy, sortOrder, weightAcc, weightSubj, weightQtd, weightTime, maxWeight, maxQuestions, maxMinutes]);
 
   const getHeatmapColor = (pct: number) => {
-    if (pct >= 85) return '#9f1239'; // rose-800 - Crítica Extrema
-    if (pct >= 75) return '#be123c'; // rose-700 - Crítica
-    if (pct >= 65) return '#e11d48'; // rose-600 - Alta Urgência
-    if (pct >= 55) return '#f97316'; // orange-500 - Alta
-    if (pct >= 45) return '#facc15'; // yellow-400 - Média Alta
-    if (pct >= 35) return '#eab308'; // yellow-500 - Média
-    if (pct >= 25) return '#84cc16'; // lime-500 - Baixa Média
-    return '#10b981'; // emerald-500 - Baixa
+    // Gradiente de calor contínuo HSL: pct de 0 a 100 mapeado para matiz de 135 (verde) a 0 (vermelho)
+    const hue = Math.max(0, Math.min(135, Math.round((100 - pct) * 1.35)));
+    return `hsl(${hue}, 85%, 45%)`;
   };
 
   const chartData = useMemo(() => {
@@ -163,9 +158,9 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, con
     }).sort((a, b) => b.value - a.value);
   }, [subjectData, maxWeight, maxQuestions, maxMinutes, weightAcc, weightSubj, weightQtd, weightTime]);
 
-  const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, value, name, color }: any) => {
+  const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, value, name }: any) => {
     const RADIAN = Math.PI / 180;
-    const radius = innerRadius + (outerRadius - innerRadius) * 0.5 + 50;
+    const radius = innerRadius + (outerRadius - innerRadius) * 0.5 + 65;
     const x = cx + radius * Math.cos(-midAngle * RADIAN);
     const y = cy + radius * Math.sin(-midAngle * RADIAN);
 
@@ -173,8 +168,7 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, con
       <text 
         x={x} 
         y={y} 
-        fill="currentColor" 
-        className="text-[10px] font-black uppercase tracking-tight text-zinc-600 dark:text-zinc-350"
+        className="text-[10px] md:text-xs font-black uppercase tracking-tight fill-zinc-800 dark:fill-zinc-100 transition-colors"
         textAnchor={x > cx ? 'start' : 'end'} 
         dominantBaseline="central"
       >
@@ -196,15 +190,15 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, con
       <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6 md:p-8 rounded-[2rem] shadow-sm space-y-6 animate-in fade-in duration-300">
         <div className="flex flex-col items-center justify-center py-4">
           {/* Gráfico */}
-          <div className="w-full max-w-[850px] h-[460px] md:h-[500px] relative">
+          <div className="w-full max-w-[950px] h-[520px] md:h-[580px] relative">
             <ResponsiveContainer width="100%" height="100%">
-              <PieChart margin={{ top: 20, right: 120, left: 120, bottom: 20 }}>
+              <PieChart margin={{ top: 20, right: 180, left: 180, bottom: 20 }}>
                 <Pie
                   data={chartData}
                   cx="50%"
                   cy="50%"
-                  innerRadius={80}
-                  outerRadius={125}
+                  innerRadius={105}
+                  outerRadius={160}
                   paddingAngle={3}
                   dataKey="value"
                   animationDuration={600}
@@ -247,38 +241,13 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, con
         </div>
 
         {/* Barra Informativa de Calor */}
-        <div className="border-t border-zinc-100 dark:border-zinc-800 pt-4 flex flex-wrap justify-center gap-5 text-[9px] font-black uppercase tracking-widest text-zinc-400">
-          <div className="flex items-center gap-1.5">
-            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#9f1239' }} />
-            <span>Extrema (≥ 85%)</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#be123c' }} />
-            <span>Crítica (75% - 84%)</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#e11d48' }} />
-            <span>Alta Urgência (65% - 74%)</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#f97316' }} />
-            <span>Alta (55% - 64%)</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#facc15' }} />
-            <span>Média Alta (45% - 54%)</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#eab308' }} />
-            <span>Média (35% - 44%)</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#84cc16' }} />
-            <span>Baixa Média (25% - 34%)</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#10b981' }} />
-            <span>Baixa (&lt; 25%)</span>
+        <div className="border-t border-zinc-100 dark:border-zinc-800 pt-6 flex flex-col items-center gap-3 w-full max-w-lg mx-auto">
+          <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400 dark:text-zinc-500">Escala de Prioridade (Calor)</span>
+          <div className="w-full h-3 rounded-full shadow-inner border border-zinc-200 dark:border-zinc-800 bg-gradient-to-r from-[#10b981] via-[#84cc16] via-[#eab308] via-[#f97316] to-[#be123c] dark:to-[#9f1239]" />
+          <div className="flex justify-between w-full text-[9px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 px-1 select-none">
+            <span>Baixa (0%)</span>
+            <span>Média (50%)</span>
+            <span>Crítica (100%)</span>
           </div>
         </div>
       </div>

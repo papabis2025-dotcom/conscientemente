@@ -165,7 +165,7 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, con
 
   const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, value, name, color }: any) => {
     const RADIAN = Math.PI / 180;
-    const radius = innerRadius + (outerRadius - innerRadius) * 0.5 + 40;
+    const radius = innerRadius + (outerRadius - innerRadius) * 0.5 + 50;
     const x = cx + radius * Math.cos(-midAngle * RADIAN);
     const y = cy + radius * Math.sin(-midAngle * RADIAN);
 
@@ -196,15 +196,15 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, con
       <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6 md:p-8 rounded-[2rem] shadow-sm space-y-6 animate-in fade-in duration-300">
         <div className="flex flex-col items-center justify-center py-4">
           {/* Gráfico */}
-          <div className="w-full max-w-[500px] h-[340px] relative">
+          <div className="w-full max-w-[850px] h-[460px] md:h-[500px] relative">
             <ResponsiveContainer width="100%" height="100%">
-              <PieChart margin={{ top: 20, right: 30, left: 30, bottom: 20 }}>
+              <PieChart margin={{ top: 20, right: 120, left: 120, bottom: 20 }}>
                 <Pie
                   data={chartData}
                   cx="50%"
                   cy="50%"
-                  innerRadius={60}
-                  outerRadius={95}
+                  innerRadius={80}
+                  outerRadius={125}
                   paddingAngle={3}
                   dataKey="value"
                   animationDuration={600}
@@ -240,8 +240,8 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, con
               </PieChart>
             </ResponsiveContainer>
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-              <span className="text-[9px] font-black text-zinc-450 dark:text-zinc-500 uppercase tracking-widest leading-none">Mapa de</span>
-              <span className="text-base font-black text-zinc-800 dark:text-white uppercase tracking-tighter mt-1 leading-none">Calor</span>
+              <span className="text-[10px] font-black text-zinc-450 dark:text-zinc-500 uppercase tracking-widest leading-none">Mapa de</span>
+              <span className="text-lg font-black text-zinc-800 dark:text-white uppercase tracking-tighter mt-1 leading-none">Calor</span>
             </div>
           </div>
         </div>

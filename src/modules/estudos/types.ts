@@ -90,6 +90,7 @@ export interface ScheduledStudy {
   questionsDone?: number;
   questionsCorrect?: number;
   status?: 'planejado' | 'realizado';
+  generatedByCronograma?: boolean;
 }
 
 export interface DailyGoal {

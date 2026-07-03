@@ -74,6 +74,82 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         window.dispatchEvent(new Event('local-settings-changed'));
     };
 
+    const getActivityTag = useCallback((subjectId: string | undefined, dateStr: string | undefined, topicTitle?: string | undefined): string => {
+        if (!subjectId || !dateStr) return '';
+        
+        let foundConcurso: Concurso | undefined;
+        let foundSubject: Subject | undefined;
+        
+        for (const c of concursos) {
+            const s = (c.subjects || []).find(sub => sub.id === subjectId);
+            if (s) {
+                foundConcurso = c;
+                foundSubject = s;
+                break;
+            }
+        }
+        
+        let concursoPart = 'ESTUDO';
+        if (foundConcurso && foundConcurso.name) {
+            concursoPart = foundConcurso.name
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .replace(/[^a-zA-Z0-9]/g, '')
+                .toUpperCase();
+        }
+        
+        let subjectPart = 'MAT';
+        if (foundSubject && foundSubject.name) {
+            const words = foundSubject.name
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .replace(/[^a-zA-Z0-9\s]/g, '')
+                .split(/\s+/);
+                
+            const ignoreList = ['de', 'do', 'da', 'e', 'em', 'para', 'com', 'por', 'o', 'a', 'os', 'as', 'dos', 'das'];
+            const filteredWords = words.filter(w => w && !ignoreList.includes(w.toLowerCase()));
+            
+            if (filteredWords.length > 1) {
+                subjectPart = filteredWords.map(w => w[0]).join('').toUpperCase();
+            } else if (filteredWords.length === 1) {
+                const singleWord = filteredWords[0];
+                if (singleWord.length <= 3) {
+                    subjectPart = singleWord.toUpperCase();
+                } else {
+                    subjectPart = singleWord.substring(0, 3).toUpperCase();
+                }
+            }
+        }
+        
+        let topicPart = '';
+        if (topicTitle && topicTitle !== 'Geral / Outros') {
+            const cleanedTopic = topicTitle
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .replace(/[^a-zA-Z0-9]/g, '')
+                .toUpperCase();
+            if (cleanedTopic.length > 0) {
+                topicPart = cleanedTopic.substring(0, 3);
+            }
+        }
+        
+        let datePart = '';
+        try {
+            const cleanDate = dateStr.split('T')[0];
+            const parts = cleanDate.split('-');
+            if (parts.length === 3) {
+                const year = parts[0].substring(2);
+                const month = parts[1];
+                const day = parts[2];
+                datePart = `${day}${month}${year}`;
+            }
+        } catch (e) {
+            console.error('Error formatting date for tag:', e);
+        }
+        
+        return `#${concursoPart}${subjectPart}${topicPart}${datePart}`;
+    }, [concursos]);
+
     // Study Plan Tasks State
     const [studyTasks, setStudyTasks] = useState<{ id: string, subjectId: string, subjectName: string, topicId?: string, topicName?: string, done: boolean, date: string }[]>(() => {
         const saved = localStorage.getItem('cp_study_tasks');
@@ -298,8 +374,6 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                 const topicsList = [{ id: 'geral', title: 'Geral / Outros' }, ...(subject.topics || [])];
                 topicsList.forEach(topic => {
                     const isSimuladoSession = (s: StudySession) => s.isSimulado || s.activityType === 'Simulado';
-                    // Also exclude sessions that are themselves reviews — marking a review as done
-                    // must not trigger creation of a new review (avoids duplicate/loop).
                     const isRevisaoSession = (s: StudySession) => {
                         const isRevType = s.activityType && (
                             s.activityType.toLowerCase().includes('revisão') || 
@@ -309,14 +383,11 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                             (s as any).notes.toLowerCase().includes('revisão') || 
                             (s as any).notes.toLowerCase().includes('revisao')
                         );
-                        // Check if this session corresponds to a scheduled review entry (by ID),
-                        // regardless of whether that entry is planejado or realizado.
                         const matchingSched = allSchedule.find(sched => sched.id === s.id);
                         const isRevId = matchingSched && matchingSched.activityType && (
                             matchingSched.activityType.toLowerCase().includes('revisão') || 
                             matchingSched.activityType.toLowerCase().includes('revisao')
                         );
-                        // A completed (realizado) scheduled review entry also counts as a review session
                         const isRevCompleted = matchingSched && 
                             matchingSched.status === 'realizado' &&
                             matchingSched.activityType && (
@@ -334,7 +405,6 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                         !isRevisaoSession(s)
                     );
 
-
                     if (topicSessions.length > 0) {
                         const sorted = [...topicSessions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
                         const latestSession = sorted[0];
@@ -344,16 +414,16 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                             const plannedDate = new Date(lastDate);
                             plannedDate.setDate(plannedDate.getDate() + days);
 
-                            // Do not schedule reviews past the exam date (targetDate)
                             if (concurso.targetDate) {
                                 const examDateStr = concurso.targetDate.split('T')[0];
                                 const plannedDateStr = plannedDate.toISOString().split('T')[0];
-                                if (plannedDateStr > examDateStr) return; // skip this review
+                                if (plannedDateStr > examDateStr) return;
                             }
 
                             const dateStr = plannedDate.toISOString().split('T')[0];
-
                             const reviewId = getDeterministicReviewId(subject.id, topic.id === 'geral' ? undefined : topic.id, latestSession.id, idx);
+                            
+                            const tag = getActivityTag(subject.id, dateStr, topic.id === 'geral' ? undefined : topic.title);
 
                             expectedReviews.push({
                                 id: reviewId,
@@ -361,7 +431,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                                 subjectId: subject.id,
                                 topicId: topic.id === 'geral' ? undefined : topic.id,
                                 activityType: 'Revisão',
-                                notes: `[groupId:rev_${subject.id}_${dateStr}] Revisão automática (${days}d)`,
+                                notes: `[groupId:rev_${subject.id}_${dateStr}] ${tag} - Revisão automática (${days}d)`,
                                 durationInMinutes: 30,
                                 questionsDone: 10,
                                 questionsCorrect: 8,
@@ -375,8 +445,59 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
 
         const expectedIds = new Set(expectedReviews.map(r => r.id));
 
-        // Build a set of IDs that represent reviews already "done" (status realizado in allSchedule)
-        // These must NOT be deleted even if they aren't in expectedIds (they were completed by the user)
+        // Deduplicação ativa por tag de negócio para evitar duplicidade de revisões planejadas
+        const activeReviewTagsFound = new Set<string>();
+        const duplicateReviewsToDelete: ScheduledStudy[] = [];
+
+        allSchedule.forEach(s => {
+            const isReview = s.activityType && (
+                s.activityType.toLowerCase().includes('revisão') || 
+                s.activityType.toLowerCase().includes('revisao')
+            );
+            if (isReview && s.status === 'planejado') {
+                let topicTitle: string | undefined;
+                if (s.topicId) {
+                    const conc = allConcursos.find(c => (c.subjects || []).some(sub => sub.id === s.subjectId));
+                    const subj = conc?.subjects.find(sub => sub.id === s.subjectId);
+                    const top = subj?.topics.find(t => t.id === s.topicId);
+                    topicTitle = top?.title;
+                }
+                const tag = getActivityTag(s.subjectId, s.date, topicTitle);
+                
+                if (tag) {
+                    if (activeReviewTagsFound.has(tag)) {
+                        duplicateReviewsToDelete.push(s);
+                    } else {
+                        activeReviewTagsFound.add(tag);
+                    }
+                }
+            }
+        });
+
+        const uniqueToDeleteMap = new Map<string, ScheduledStudy>();
+        
+        // 1. Adicionar revisões obsoletas (cujo ID determinístico não é mais esperado)
+        allSchedule.forEach(s => {
+            const isObsolete = s.activityType && (
+                s.activityType.toLowerCase().includes('revisão') || 
+                s.activityType.toLowerCase().includes('revisao')
+            ) && 
+            s.status === 'planejado' && 
+            s.id && s.id.split('-')[3]?.startsWith('400') &&
+            !expectedIds.has(s.id);
+            
+            if (isObsolete) {
+                uniqueToDeleteMap.set(s.id, s);
+            }
+        });
+
+        // 2. Adicionar as duplicadas ativas
+        duplicateReviewsToDelete.forEach(s => {
+            uniqueToDeleteMap.set(s.id, s);
+        });
+
+        const reviewsToDelete = Array.from(uniqueToDeleteMap.values());
+
         const completedReviewIds = new Set(
             allSchedule
                 .filter(s => s.status === 'realizado' && s.activityType && (
@@ -395,16 +516,6 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                 .map(s => `${s.subjectId}_${s.topicId || 'geral'}_${s.date}`)
         );
 
-        const reviewsToDelete = allSchedule.filter(s => 
-            s.activityType && (
-                s.activityType.toLowerCase().includes('revisão') || 
-                s.activityType.toLowerCase().includes('revisao')
-            ) && 
-            s.status === 'planejado' && 
-            s.id && s.id.split('-')[3]?.startsWith('400') &&
-            !expectedIds.has(s.id)
-        );
-
         let deletedReviewIds: string[] = [];
         try {
             const savedDeleted = localStorage.getItem('estudos_deleted_review_ids');
@@ -413,17 +524,46 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
             console.error('Error reading deleted review IDs:', e);
         }
 
-        const currentIds = new Set(allSchedule.map(s => s.id));
-        // Never recreate a review that is already completed (status realizado) or explicitly deleted
-        const reviewsToCreate = expectedReviews.filter(r => 
-            !currentIds.has(r.id) && 
-            !deletedReviewIds.includes(r.id) &&
-            !completedReviewIds.has(r.id) &&
-            !completedReviewKeys.has(`${r.subjectId}_${r.topicId || 'geral'}_${r.date}`)
-        );
+        // Tags de revisões planejadas remanescentes que não serão deletadas
+        const remainingPlannedTags = new Set<string>();
+        allSchedule.forEach(s => {
+            const isReview = s.activityType && (
+                s.activityType.toLowerCase().includes('revisão') || 
+                s.activityType.toLowerCase().includes('revisao')
+            );
+            if (isReview && s.status === 'planejado' && !uniqueToDeleteMap.has(s.id)) {
+                let topicTitle: string | undefined;
+                if (s.topicId) {
+                    const conc = allConcursos.find(c => (c.subjects || []).some(sub => sub.id === s.subjectId));
+                    const subj = conc?.subjects.find(sub => sub.id === s.subjectId);
+                    const top = subj?.topics.find(t => t.id === s.topicId);
+                    topicTitle = top?.title;
+                }
+                const tag = getActivityTag(s.subjectId, s.date, topicTitle);
+                if (tag) remainingPlannedTags.add(tag);
+            }
+        });
 
-        // Find existing reviews that need updates (e.g. have legacy notes format or changed dates)
-        // Skip updates for reviews that are already completed
+        const currentIds = new Set(allSchedule.map(s => s.id));
+        
+        // Só criamos a revisão esperada se a tag de negócio planejada correspondente ainda não existir no cronograma
+        const reviewsToCreate = expectedReviews.filter(r => {
+            let expectedTopicTitle: string | undefined;
+            if (r.topicId) {
+                const conc = allConcursos.find(c => (c.subjects || []).some(sub => sub.id === r.subjectId));
+                const subj = conc?.subjects.find(sub => sub.id === r.subjectId);
+                const top = subj?.topics.find(t => t.id === r.topicId);
+                expectedTopicTitle = top?.title;
+            }
+            const expectedTag = getActivityTag(r.subjectId, r.date, expectedTopicTitle);
+
+            return !currentIds.has(r.id) && 
+                   !deletedReviewIds.includes(r.id) &&
+                   !completedReviewIds.has(r.id) &&
+                   !completedReviewKeys.has(`${r.subjectId}_${r.topicId || 'geral'}_${r.date}`) &&
+                   !remainingPlannedTags.has(expectedTag);
+        });
+
         const currentScheduleMap = new Map(allSchedule.map(s => [s.id, s]));
         const reviewsToUpdate: ScheduledStudy[] = [];
         expectedReviews.forEach(expected => {
@@ -438,12 +578,12 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         });
 
         if (reviewsToDelete.length > 0) {
-            console.log('Syncing planned reviews: deleting obsolete reviews:', reviewsToDelete.map(r => r.id));
+            console.log('Syncing planned reviews: deleting obsolete/duplicate reviews:', reviewsToDelete.map(r => r.id));
             for (const r of reviewsToDelete) {
                 try {
                     await api.schedule.delete(r.id);
                 } catch (e) {
-                    console.error('Error deleting obsolete review:', r.id, e);
+                    console.error('Error deleting obsolete/duplicate review:', r.id, e);
                 }
             }
         }
@@ -471,8 +611,6 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         }
 
         if (reviewsToDelete.length > 0 || reviewsToCreate.length > 0 || reviewsToUpdate.length > 0) {
-            // IMPORTANT: Use `prev` (current React state) as the base, NOT `allSchedule` (which may be stale).
-            // Applying incremental changes to `prev` prevents overwriting state updates made by concurrent setScheduledStudies calls.
             const deleteIds = new Set(reviewsToDelete.map(r => r.id));
             const updateMap = new Map(reviewsToUpdate.map(r => [r.id, r]));
             setScheduledStudies(prev => {
@@ -481,7 +619,6 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                     const updated = updateMap.get(s.id);
                     return updated ? { ...s, notes: updated.notes, date: updated.date } : s;
                 });
-                // Only add reviews that are not already in the current state
                 const existingIds = new Set(filtered.map(s => s.id));
                 const toAdd = reviewsToCreate.filter(r => !existingIds.has(r.id));
                 const combined = [...filtered, ...toAdd];
@@ -490,7 +627,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                 return combined;
             });
         }
-    }, []);
+    }, [getActivityTag]);
 
     const syncPlannedReviews = useCallback(async (forceRecalculate: boolean = false) => {
         if (forceRecalculate) {
@@ -1716,6 +1853,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         addScheduledStudiesBatch,
         deleteScheduledStudiesBatch,
         syncPlannedReviews,
+        getActivityTag,
         updateProfile: async (name: string, avatar: string) => {
             if (!currentUser) return;
             const updated = { ...currentUser, name, avatar };

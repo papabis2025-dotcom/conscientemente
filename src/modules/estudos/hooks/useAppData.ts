@@ -641,23 +641,40 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
             }
         }
 
-        if (reviewsToDelete.length > 0 || reviewsToCreate.length > 0 || reviewsToUpdate.length > 0) {
-            const deleteIds = new Set(reviewsToDelete.map(r => r.id));
-            const updateMap = new Map(reviewsToUpdate.map(r => [r.id, r]));
-            setScheduledStudies(prev => {
-                let filtered = prev.filter(s => !deleteIds.has(s.id));
-                filtered = filtered.map(s => {
-                    const updated = updateMap.get(s.id);
-                    return updated ? { ...s, notes: updated.notes, date: updated.date } : s;
-                });
-                const existingIds = new Set(filtered.map(s => s.id));
-                const toAdd = reviewsToCreate.filter(r => !existingIds.has(r.id));
-                const combined = [...filtered, ...toAdd];
-                localStorage.setItem('cp_scheduled_studies', JSON.stringify(combined));
-                window.dispatchEvent(new Event('local-settings-changed'));
-                return combined;
+        const deleteIds = new Set(reviewsToDelete.map(r => r.id));
+        const updateMap = new Map(reviewsToUpdate.map(r => [r.id, r]));
+        setScheduledStudies(prev => {
+            const allScheduleMap = new Map(allSchedule.map(s => [s.id, s]));
+            
+            // 1. Filtrar do prev as tarefas que foram deletadas em allSchedule ou são revisões obsoletas
+            let filtered = prev.filter(s => allScheduleMap.has(s.id) && !deleteIds.has(s.id));
+            
+            // 2. Atualizar no filtered as tarefas com os dados mais recentes de allSchedule e reviewsToUpdate
+            filtered = filtered.map(s => {
+                const updatedFromAll = allScheduleMap.get(s.id);
+                const updatedFromReviews = updateMap.get(s.id);
+                
+                let mergedItem = { ...s };
+                if (updatedFromAll) {
+                    mergedItem = { ...mergedItem, ...updatedFromAll };
+                }
+                if (updatedFromReviews) {
+                    mergedItem = { ...mergedItem, notes: updatedFromReviews.notes, date: updatedFromReviews.date };
+                }
+                return mergedItem;
             });
-        }
+            
+            // 3. Adicionar novas tarefas que foram criadas em allSchedule e reviewsToCreate
+            const existingIds = new Set(filtered.map(s => s.id));
+            
+            const newFromAll = allSchedule.filter(s => !existingIds.has(s.id));
+            const newFromReviews = reviewsToCreate.filter(r => !existingIds.has(r.id));
+            
+            const combined = [...filtered, ...newFromAll, ...newFromReviews];
+            localStorage.setItem('cp_scheduled_studies', JSON.stringify(combined));
+            window.dispatchEvent(new Event('local-settings-changed'));
+            return combined;
+        });
     }, [getActivityTag]);
 
     const syncPlannedReviews = useCallback(async (forceRecalculate: boolean = false) => {

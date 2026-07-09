@@ -74,6 +74,21 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         window.dispatchEvent(new Event('local-settings-changed'));
     };
 
+    const getLocalDateString = (dateStr: string | undefined): string => {
+        if (!dateStr) return '';
+        if (dateStr.length === 10) return dateStr;
+        try {
+            const d = new Date(dateStr);
+            if (isNaN(d.getTime())) return dateStr.split('T')[0];
+            const yyyy = d.getFullYear();
+            const mm = String(d.getMonth() + 1).padStart(2, '0');
+            const dd = String(d.getDate()).padStart(2, '0');
+            return `${yyyy}-${mm}-${dd}`;
+        } catch (e) {
+            return dateStr.split('T')[0];
+        }
+    };
+
     const getActivityTag = useCallback((subjectId: string | undefined, dateStr: string | undefined, topicTitle?: string | undefined): string => {
         if (!subjectId || !dateStr) return '';
         
@@ -89,17 +104,18 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
             }
         }
         
-        let concursoPart = 'ESTUDO';
-        if (foundConcurso && foundConcurso.name) {
-            concursoPart = foundConcurso.name
-                .normalize('NFD')
-                .replace(/[\u0300-\u036f]/g, '')
-                .replace(/[^a-zA-Z0-9]/g, '')
-                .toUpperCase();
+        if (!foundConcurso || !foundSubject) {
+            return '';
         }
         
+        let concursoPart = foundConcurso.name
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^a-zA-Z0-9]/g, '')
+            .toUpperCase();
+        
         let subjectPart = 'MAT';
-        if (foundSubject && foundSubject.name) {
+        if (foundSubject.name) {
             const words = foundSubject.name
                 .normalize('NFD')
                 .replace(/[\u0300-\u036f]/g, '')
@@ -408,19 +424,27 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                     if (topicSessions.length > 0) {
                         const sorted = [...topicSessions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
                         const latestSession = sorted[0];
-                        const lastDate = new Date(latestSession.date);
+                        
+                        const sessionDateStr = getLocalDateString(latestSession.date);
+                        const parts = sessionDateStr.split('-');
+                        const year = parseInt(parts[0], 10);
+                        const month = parseInt(parts[1], 10) - 1;
+                        const day = parseInt(parts[2], 10);
 
                         customReviewDays.forEach((days, idx) => {
-                            const plannedDate = new Date(lastDate);
+                            const plannedDate = new Date(year, month, day);
                             plannedDate.setDate(plannedDate.getDate() + days);
+
+                            const yyyy = plannedDate.getFullYear();
+                            const mm = String(plannedDate.getMonth() + 1).padStart(2, '0');
+                            const dd = String(plannedDate.getDate()).padStart(2, '0');
+                            const dateStr = `${yyyy}-${mm}-${dd}`;
 
                             if (concurso.targetDate) {
                                 const examDateStr = concurso.targetDate.split('T')[0];
-                                const plannedDateStr = plannedDate.toISOString().split('T')[0];
-                                if (plannedDateStr > examDateStr) return;
+                                if (dateStr > examDateStr) return;
                             }
 
-                            const dateStr = plannedDate.toISOString().split('T')[0];
                             const reviewId = getDeterministicReviewId(subject.id, topic.id === 'geral' ? undefined : topic.id, latestSession.id, idx);
                             
                             const tag = getActivityTag(subject.id, dateStr, topic.id === 'geral' ? undefined : topic.title);

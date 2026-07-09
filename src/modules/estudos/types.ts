@@ -60,6 +60,7 @@ export interface StudySession {
   questionsCorrect?: number;
   isSimulado?: boolean;
   activityType?: ActivityType;
+  questionsLink?: string;
 }
 
 export interface SimuladoSubjectResult {
@@ -91,6 +92,7 @@ export interface ScheduledStudy {
   questionsCorrect?: number;
   status?: 'planejado' | 'realizado';
   generatedByCronograma?: boolean;
+  questionsLink?: string;
 }
 
 export interface DailyGoal {

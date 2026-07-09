@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Subject, ScheduledStudy, ActivityType, Topic, StudySession, Simulado } from '../types';
 import { getBadgeStyle } from '../utils/colors';
-import { FileText, Layers, Video, BookOpen, Clipboard, Book, Clock, RefreshCw, Sparkles } from 'lucide-react';
+import { FileText, Layers, Video, BookOpen, Clipboard, Book, Clock, RefreshCw, Sparkles, Plus, Trash2, ExternalLink } from 'lucide-react';
 
 interface CalendarViewProps {
   subjects: Subject[]; // For dropdown (filtered)
@@ -73,7 +73,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     questionsDone: '',
     questionsCorrect: '',
     notes: '',
-    status: 'planejado' as 'planejado' | 'realizado'
+    status: 'planejado' as 'planejado' | 'realizado',
+    questionsLinks: [''] as string[]
   });
 
   const monthNames = [
@@ -102,15 +103,21 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       questionsDone: '',
       questionsCorrect: '',
       notes: '',
-      status: 'planejado'
+      status: 'planejado',
+      questionsLinks: ['']
     });
     setShowModal(true);
   };
 
   const handleSave = async () => {
     if (selectedDayKey === null) return;
+    const filteredLinks = formData.questionsLinks ? formData.questionsLinks.filter(Boolean) : [];
+    const linkPayload = filteredLinks.length > 0 ? JSON.stringify(filteredLinks) : undefined;
     try {
-      await onSaveActivity(editingTask ? editingTask.id : null, formData, selectedDayKey);
+      await onSaveActivity(editingTask ? editingTask.id : null, {
+        ...formData,
+        questionsLink: linkPayload
+      }, selectedDayKey);
       setShowModal(false);
       setEditingTask(null);
       setFormData({
@@ -122,7 +129,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({
         questionsDone: '',
         questionsCorrect: '',
         notes: '',
-        status: 'planejado'
+        status: 'planejado',
+        questionsLinks: ['']
       });
     } catch (e) {
       console.error('Error saving activity:', e);
@@ -168,7 +176,13 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     const nonGrouped: ScheduledStudy[] = [];
 
     dayTasks.forEach(task => {
-      if (task.notes) {
+      const isReview = task.activityType && (
+        task.activityType.toLowerCase().includes('revisão') || 
+        task.activityType.toLowerCase().includes('revisao')
+      );
+      const shouldSkipGrouping = isReview && dayKey >= '2026-07-10';
+
+      if (task.notes && !shouldSkipGrouping) {
         const { groupId } = parseNotesGroup(task.notes);
         if (groupId) {
           if (!groupedMap.has(groupId)) {
@@ -289,6 +303,20 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       }
     }
 
+    let linkList: string[] = [''];
+    if (task.questionsLink) {
+      try {
+        const parsed = JSON.parse(task.questionsLink);
+        if (Array.isArray(parsed)) {
+          linkList = parsed.length > 0 ? parsed : [''];
+        } else if (typeof parsed === 'string') {
+          linkList = [parsed];
+        }
+      } catch (e) {
+        linkList = [task.questionsLink];
+      }
+    }
+
     setFormData({
       subjectId: task.subjectId,
       subjectIds: groupSubjectIds,
@@ -298,7 +326,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       questionsDone: totalQuestionsDone > 0 ? totalQuestionsDone.toString() : '',
       questionsCorrect: totalQuestionsCorrect > 0 ? totalQuestionsCorrect.toString() : '',
       notes: notesText,
-      status: task.status || 'planejado'
+      status: task.status || 'planejado',
+      questionsLinks: linkList
     });
     setShowModal(true);
   };
@@ -419,6 +448,32 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                             <p className="text-[10px] opacity-80 mt-0.5 line-clamp-1 font-medium italic">
                               {sub.topics.find(t => t.id === task.topicId)?.title || 'Assunto não encontrado'}
                             </p>
+                          )}
+                          {task.questionsLink && (
+                            <div className="mt-2 pt-1.5 border-t border-black/10 dark:border-white/10 flex flex-wrap gap-1 shrink-0">
+                              {(() => {
+                                let links: string[] = [];
+                                try {
+                                  const parsed = JSON.parse(task.questionsLink);
+                                  links = Array.isArray(parsed) ? parsed : [parsed];
+                                } catch (e) {
+                                  links = [task.questionsLink];
+                                }
+                                return links.filter(Boolean).map((link, idx) => (
+                                  <a
+                                    key={idx}
+                                    href={link}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="px-1.5 py-0.5 rounded bg-white/20 hover:bg-white/35 text-[8px] font-black tracking-tight text-inherit transition-colors flex items-center gap-0.5 cursor-pointer"
+                                    title={link}
+                                  >
+                                    <ExternalLink size={7} /> Q{idx + 1}
+                                  </a>
+                                ));
+                              })()}
+                            </div>
                           )}
                         </div>
                       );
@@ -976,6 +1031,32 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                     {task.durationInMinutes !== undefined && task.durationInMinutes > 0 && (
                       <p className="text-[9px] text-zinc-400 font-bold">{task.durationInMinutes} min</p>
                     )}
+                    {task.questionsLink && (
+                      <div className="mt-2 pt-2 border-t border-zinc-100 dark:border-zinc-800/80 flex flex-wrap gap-1">
+                        {(() => {
+                          let links: string[] = [];
+                          try {
+                            const parsed = JSON.parse(task.questionsLink);
+                            links = Array.isArray(parsed) ? parsed : [parsed];
+                          } catch (e) {
+                            links = [task.questionsLink];
+                          }
+                          return links.filter(Boolean).map((link, idx) => (
+                            <a
+                              key={idx}
+                              href={link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="px-2 py-0.5 rounded-md text-[8px] font-bold bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-150 dark:hover:bg-indigo-900/40 transition-colors flex items-center gap-1 cursor-pointer"
+                              title={link}
+                            >
+                              <ExternalLink size={8} /> Q{idx + 1}
+                            </a>
+                          ));
+                        })()}
+                      </div>
+                    )}
                   </div>
                 ))}
                 {tasksForSelectedDay.length === 0 && <p className="text-xs text-zinc-400 italic text-center py-10 opacity-40">Vazio</p>}
@@ -1166,6 +1247,52 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                         className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 border rounded-2xl outline-none text-sm dark:text-white"
                       />
                     </div>
+                  </div>
+                )}
+
+                {formData.activityTypes.includes('Questões') && (
+                  <div className="space-y-2 p-4 bg-zinc-55 dark:bg-zinc-800 border rounded-2xl animate-in fade-in slide-in-from-top-2">
+                    <div className="flex justify-between items-center mb-1">
+                      <label className="text-[10px] font-black text-zinc-400 uppercase">Links do Caderno de Questões</label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const current = formData.questionsLinks || [];
+                          setFormData({ ...formData, questionsLinks: [...current, ''] });
+                        }}
+                        className="p-1 text-zinc-500 hover:text-indigo-650 dark:text-zinc-400 dark:hover:text-indigo-400 transition-colors flex items-center gap-1 text-[10px] font-black uppercase cursor-pointer"
+                      >
+                        <Plus size={12} /> Adicionar Link
+                      </button>
+                    </div>
+                    {(formData.questionsLinks || []).map((lnk: string, idx: number) => (
+                      <div key={idx} className="flex gap-2 items-center">
+                        <input
+                          type="url"
+                          placeholder="https://..."
+                          value={lnk}
+                          onChange={(e) => {
+                            const next = [...(formData.questionsLinks || [])];
+                            next[idx] = e.target.value;
+                            setFormData({ ...formData, questionsLinks: next });
+                          }}
+                          className="flex-1 p-2.5 bg-white dark:bg-zinc-900 border rounded-xl outline-none text-sm dark:text-white"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const next = (formData.questionsLinks || []).filter((_: any, i: number) => i !== idx);
+                            setFormData({ ...formData, questionsLinks: next });
+                          }}
+                          className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors cursor-pointer"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    ))}
+                    {(!formData.questionsLinks || formData.questionsLinks.length === 0) && (
+                      <p className="text-[10px] text-zinc-400 font-medium italic">Nenhum link adicionado ainda.</p>
+                    )}
                   </div>
                 )}
 

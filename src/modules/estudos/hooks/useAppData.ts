@@ -459,7 +459,8 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                                 durationInMinutes: 30,
                                 questionsDone: 10,
                                 questionsCorrect: 8,
-                                status: 'planejado'
+                                status: 'planejado',
+                                questionsLink: latestSession.questionsLink
                             });
                         });
                     }
@@ -918,7 +919,8 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                 durationInMinutes: session.durationInMinutes,
                 questionsDone: session.questionsDone,
                 questionsCorrect: session.questionsCorrect,
-                notes: (session as any).notes || existingPlanned.notes
+                notes: (session as any).notes || existingPlanned.notes,
+                questionsLink: session.questionsLink || existingPlanned.questionsLink
             };
         } else {
             newScheduled = {
@@ -931,7 +933,8 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                 questionsDone: session.questionsDone,
                 questionsCorrect: session.questionsCorrect,
                 status: 'realizado',
-                notes: (session as any).notes
+                notes: (session as any).notes,
+                questionsLink: session.questionsLink
             };
         }
 
@@ -970,7 +973,8 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                     durationInMinutes: newScheduled.durationInMinutes,
                     questionsDone: newScheduled.questionsDone,
                     questionsCorrect: newScheduled.questionsCorrect,
-                    notes: newScheduled.notes
+                    notes: newScheduled.notes,
+                    questionsLink: newScheduled.questionsLink
                 });
             } else {
                 const saved = await api.schedule.create(newScheduled);
@@ -1371,7 +1375,8 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                 date: new Date(`${merged.date}T12:00:00`).toISOString(),
                 questionsDone: merged.questionsDone,
                 questionsCorrect: merged.questionsCorrect,
-                activityType: merged.activityType
+                activityType: merged.activityType,
+                questionsLink: merged.questionsLink
             };
 
             if (existingSession) {
@@ -1549,7 +1554,8 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                         questionsDone: itemDone,
                         questionsCorrect: itemCorrect,
                         activityType: activityTypesStr,
-                        notes: notesToSave
+                        notes: notesToSave,
+                        questionsLink: formData.questionsLink
                     } as any);
                 } else {
                     newEntries.push({
@@ -1562,7 +1568,8 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                         durationInMinutes: itemDuration || undefined,
                         questionsDone: itemDone,
                         questionsCorrect: itemCorrect,
-                        status: formData.status
+                        status: formData.status,
+                        questionsLink: formData.questionsLink
                     });
                 }
             }
@@ -1586,7 +1593,8 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                     questionsDone: session.questionsDone,
                     questionsCorrect: session.questionsCorrect,
                     status: 'realizado',
-                    notes: (session as any).notes
+                    notes: (session as any).notes,
+                    questionsLink: session.questionsLink
                 };
             });
 
@@ -1626,7 +1634,8 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                         questionsDone: session.questionsDone,
                         questionsCorrect: session.questionsCorrect,
                         status: 'realizado',
-                        notes: (session as any).notes
+                        notes: (session as any).notes,
+                        questionsLink: session.questionsLink
                     };
                     await api.schedule.create(matchingSchedule);
                 }
@@ -1769,7 +1778,8 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                     date: new Date(`${study.date}T12:00:00`).toISOString(),
                     questionsDone: study.questionsDone,
                     questionsCorrect: study.questionsCorrect,
-                    activityType: study.activityType
+                    activityType: study.activityType,
+                    questionsLink: study.questionsLink
                 };
                 newSessions.push(newSession);
                 // Persist session to study_sessions table
@@ -1783,6 +1793,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                         durationInMinutes: newSession.durationInMinutes,
                         questionsDone: newSession.questionsDone,
                         questionsCorrect: newSession.questionsCorrect,
+                        questionsLink: newSession.questionsLink
                     });
                 } catch(e) {
                     console.error('Error updating schedule on toggle realizado:', study.id, e);

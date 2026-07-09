@@ -21,7 +21,8 @@ import {
   Settings,
   ChevronDown,
   Info,
-  X
+  X,
+  ExternalLink
 } from 'lucide-react';
 
 interface CronogramaViewProps {
@@ -158,6 +159,7 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
   const [actualDuration, setActualDuration] = useState('');
   const [actualDone, setActualDone] = useState('');
   const [actualCorrect, setActualCorrect] = useState('');
+  const [actualLinks, setActualLinks] = useState<string[]>(['']);
 
   // Active Concurso
   const activeConcurso = useMemo(() => {
@@ -425,6 +427,21 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
     setActualDuration(String(task.durationInMinutes || ''));
     setActualDone(String(task.questionsDone || ''));
     setActualCorrect(String(task.questionsCorrect || ''));
+    
+    let linkList: string[] = [''];
+    if (task.questionsLink) {
+      try {
+        const parsed = JSON.parse(task.questionsLink);
+        if (Array.isArray(parsed)) {
+          linkList = parsed.length > 0 ? parsed : [''];
+        } else if (typeof parsed === 'string') {
+          linkList = [parsed];
+        }
+      } catch (e) {
+        linkList = [task.questionsLink];
+      }
+    }
+    setActualLinks(linkList);
   };
 
   const submitCompletion = async () => {
@@ -434,10 +451,14 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
       const correctVal = parseInt(actualCorrect) || 0;
       const durVal = parseInt(actualDuration) || completingTask.durationInMinutes || 0;
 
+      const filteredLinks = actualLinks.filter(Boolean);
+      const linkPayload = filteredLinks.length > 0 ? JSON.stringify(filteredLinks) : undefined;
+
       // Update study properties first
       completingTask.durationInMinutes = durVal;
       completingTask.questionsDone = doneVal;
       completingTask.questionsCorrect = Math.min(correctVal, doneVal); // correct cannot exceed total done
+      completingTask.questionsLink = linkPayload;
 
       // Toggle status inside state/db
       await onToggleScheduledStudyStatus(completingTask.id);
@@ -995,6 +1016,32 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
                               <p className="text-[9px] text-zinc-400 font-bold mt-1.5 flex items-center gap-1 font-mono">
                                 <Clock size={9} /> {act.durationInMinutes} min
                               </p>
+                              {act.questionsLink && (
+                                <div className="mt-2 flex flex-wrap gap-1">
+                                  {(() => {
+                                    let links: string[] = [];
+                                    try {
+                                      const parsed = JSON.parse(act.questionsLink);
+                                      links = Array.isArray(parsed) ? parsed : [parsed];
+                                    } catch (e) {
+                                      links = [act.questionsLink];
+                                    }
+                                    return links.filter(Boolean).map((link, idx) => (
+                                      <a
+                                        key={idx}
+                                        href={link}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="px-2 py-0.5 rounded-md text-[8px] font-bold bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-colors flex items-center gap-1 cursor-pointer"
+                                        title={link}
+                                      >
+                                        <ExternalLink size={8} /> Q{idx + 1}
+                                      </a>
+                                    ));
+                                  })()}
+                                </div>
+                              )}
                             </div>
 
                             <button
@@ -1079,6 +1126,32 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
                         <p className="text-xs text-zinc-400 font-bold mt-2 flex items-center gap-1 font-mono">
                           <Clock size={11} /> {act.durationInMinutes} minutos
                         </p>
+                        {act.questionsLink && (
+                           <div className="mt-2 flex flex-wrap gap-1">
+                             {(() => {
+                               let links: string[] = [];
+                               try {
+                                 const parsed = JSON.parse(act.questionsLink);
+                                 links = Array.isArray(parsed) ? parsed : [parsed];
+                               } catch (e) {
+                                 links = [act.questionsLink];
+                               }
+                               return links.filter(Boolean).map((link, idx) => (
+                                 <a
+                                   key={idx}
+                                   href={link}
+                                   target="_blank"
+                                   rel="noopener noreferrer"
+                                   onClick={(e) => e.stopPropagation()}
+                                   className="px-2 py-1 rounded-md text-[9px] font-bold bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-colors flex items-center gap-1 cursor-pointer"
+                                   title={link}
+                                 >
+                                   <ExternalLink size={9} /> Q{idx + 1}
+                                 </a>
+                               ));
+                             })()}
+                           </div>
+                         )}
                       </div>
 
                       <button
@@ -1218,6 +1291,60 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
                       className="w-full bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 px-4 py-3 rounded-2xl text-sm font-bold text-zinc-855 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     />
                   </div>
+                </div>
+              )}
+
+              {completingTask.activityType && completingTask.activityType.includes('Questões') && (
+                <div className="space-y-2 p-4 bg-zinc-50 dark:bg-zinc-800/30 rounded-2xl border border-dashed border-zinc-200 dark:border-zinc-700 mt-4">
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="text-[9px] font-black uppercase text-zinc-400 tracking-widest">Links do Caderno de Questões</label>
+                    <button
+                      type="button"
+                      onClick={() => setActualLinks([...actualLinks, ''])}
+                      className="text-[9px] font-bold text-indigo-500 hover:text-indigo-650 transition-colors flex items-center gap-1 uppercase cursor-pointer"
+                    >
+                      <Plus size={10} /> Adicionar
+                    </button>
+                  </div>
+                  {actualLinks.map((lnk, idx) => (
+                    <div key={idx} className="flex gap-2 items-center">
+                      <input
+                        type="url"
+                        placeholder="https://..."
+                        value={lnk}
+                        onChange={(e) => {
+                          const next = [...actualLinks];
+                          next[idx] = e.target.value;
+                          setActualLinks(next);
+                        }}
+                        className="flex-1 bg-white dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-750 px-3 py-2 rounded-xl text-xs font-bold text-zinc-800 dark:text-white focus:outline-none"
+                      />
+                      {lnk && (
+                        <a
+                          href={lnk}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-2 text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-xl transition-colors cursor-pointer"
+                          title="Testar Link"
+                        >
+                          <ExternalLink size={12} />
+                        </a>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const next = actualLinks.filter((_, i) => i !== idx);
+                          setActualLinks(next);
+                        }}
+                        className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors cursor-pointer"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                  ))}
+                  {actualLinks.length === 0 && (
+                    <p className="text-[10px] text-zinc-400 italic">Nenhum link adicionado.</p>
+                  )}
                 </div>
               )}
             </div>

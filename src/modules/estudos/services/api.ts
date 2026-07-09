@@ -71,12 +71,18 @@ export const api = {
         list: async () => {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return [];
-            // Try selecting with activity_type; fall back without it if column doesn't exist
+            // Try selecting with questions_link and activity_type; fall back if columns don't exist
             let result = await supabase.from('study_sessions').select('*').eq('user_id', user.id).order('date', { ascending: false });
             if (result.error && result.error.code === '42703') {
                 result = await supabase.from('study_sessions')
-                    .select('id,user_id,subject_id,topic_id,duration_minutes,date,questions_done,questions_correct,is_simulado')
+                    .select('id,user_id,subject_id,topic_id,duration_minutes,date,questions_done,questions_correct,is_simulado,activity_type')
                     .eq('user_id', user.id).order('date', { ascending: false });
+                
+                if (result.error && result.error.code === '42703') {
+                    result = await supabase.from('study_sessions')
+                        .select('id,user_id,subject_id,topic_id,duration_minutes,date,questions_done,questions_correct,is_simulado')
+                        .eq('user_id', user.id).order('date', { ascending: false });
+                }
             }
             const data = result.error ? null : result.data;
             if (result.error && result.error.code !== '42703') {
@@ -92,7 +98,8 @@ export const api = {
                 questionsDone: s.questions_done,
                 questionsCorrect: s.questions_correct,
                 isSimulado: s.is_simulado,
-                activityType: s.activity_type
+                activityType: s.activity_type,
+                questionsLink: s.questions_link || undefined
             }));
         },
         create: async (session: Omit<StudySession, 'id' | 'user_id' | 'created_at'> & { id?: string }) => {
@@ -109,15 +116,22 @@ export const api = {
                 questions_done: session.questionsDone,
                 questions_correct: session.questionsCorrect,
                 is_simulado: session.isSimulado,
-                activity_type: session.activityType || null
+                activity_type: session.activityType || null,
+                questions_link: session.questionsLink || null
             };
 
-            // Try with activity_type first; if column doesn't exist, retry without it
+            // Try with questions_link and activity_type first
             let result = await supabase.from('study_sessions').insert(dbPayload).select().single();
             if (result.error && result.error.code === '42703') {
-                // Column activity_type doesn't exist yet — retry without it
-                const { activity_type, ...payloadWithout } = dbPayload as any;
-                result = await supabase.from('study_sessions').insert(payloadWithout).select().single();
+                // Column questions_link doesn't exist yet — retry without it
+                const { questions_link, ...payloadWithoutLink } = dbPayload as any;
+                result = await supabase.from('study_sessions').insert(payloadWithoutLink).select().single();
+                
+                if (result.error && result.error.code === '42703') {
+                    // activity_type column also doesn't exist yet
+                    const { activity_type, ...payloadWithoutBoth } = payloadWithoutLink;
+                    result = await supabase.from('study_sessions').insert(payloadWithoutBoth).select().single();
+                }
             }
             return handleRequest(Promise.resolve(result));
         },
@@ -133,12 +147,18 @@ export const api = {
             if (updates.activityType !== undefined) {
                 dbPayload.activity_type = updates.activityType;
             }
+            if (updates.questionsLink !== undefined) {
+                dbPayload.questions_link = updates.questionsLink;
+            }
 
             let updateResult = await supabase.from('study_sessions').update(dbPayload).eq('id', id);
             if (updateResult.error && updateResult.error.code === '42703') {
-                // activity_type column doesn't exist yet — retry without it
-                const { activity_type, ...payloadWithout } = dbPayload;
-                updateResult = await supabase.from('study_sessions').update(payloadWithout).eq('id', id);
+                const { questions_link, ...payloadWithoutLink } = dbPayload;
+                updateResult = await supabase.from('study_sessions').update(payloadWithoutLink).eq('id', id);
+                if (updateResult.error && updateResult.error.code === '42703') {
+                    const { activity_type, ...payloadWithoutBoth } = payloadWithoutLink;
+                    updateResult = await supabase.from('study_sessions').update(payloadWithoutBoth).eq('id', id);
+                }
             }
             return handleRequest(Promise.resolve(updateResult));
         },
@@ -235,7 +255,17 @@ export const api = {
         list: async () => {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return [];
-            const data = await handleRequest<any[]>(supabase.from('scheduled_studies').select('*').eq('user_id', user.id).order('date', { ascending: true }));
+            let result = await supabase.from('scheduled_studies').select('*').eq('user_id', user.id).order('date', { ascending: true });
+            if (result.error && result.error.code === '42703') {
+                result = await supabase.from('scheduled_studies')
+                    .select('id,date,subject_id,topic_id,activity_type,notes,duration_minutes,questions_done,questions_correct')
+                    .eq('user_id', user.id).order('date', { ascending: true });
+            }
+            const data = result.error ? null : result.data;
+            if (result.error && result.error.code !== '42703') {
+                console.error('Supabase API Error:', JSON.stringify(result.error, null, 2));
+                throw result.error;
+            }
             return (data || []).map((i: any) => ({
                 id: i.id,
                 date: i.date.split('T')[0], // Ensure YYYY-MM-DD only
@@ -246,17 +276,16 @@ export const api = {
                 durationInMinutes: i.duration_minutes,
                 questionsDone: i.questions_done,
                 questionsCorrect: i.questions_correct,
-                // 'status' column does NOT exist in the DB table.
-                // Status is managed purely on the client side (localStorage).
+                questionsLink: i.questions_link || undefined,
                 status: 'planejado' as const
             }));
         },
-        create: async (item: Omit<ScheduledStudy, 'id' | 'user_id' | 'created_at'> & { id?: string }) => {
+        create: async (item: Omit<ScheduledStudy, 'id' | 'status'> & { id?: string }) => {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) throw new Error('Not authenticated');
 
             // Do NOT send 'status' — that column does not exist in the DB table.
-            const result = await handleRequest<any>(supabase.from('scheduled_studies').insert({
+            const dbPayload = {
                 id: item.id,
                 user_id: user.id,
                 date: item.date,
@@ -266,21 +295,33 @@ export const api = {
                 notes: item.notes,
                 duration_minutes: item.durationInMinutes,
                 questions_done: item.questionsDone,
-                questions_correct: item.questionsCorrect
-            }).select().single());
+                questions_correct: item.questionsCorrect,
+                questions_link: item.questionsLink || null
+            };
+
+            let result = await supabase.from('scheduled_studies').insert(dbPayload).select().single();
+            if (result.error && result.error.code === '42703') {
+                const { questions_link, ...payloadWithout } = dbPayload as any;
+                result = await supabase.from('scheduled_studies').insert(payloadWithout).select().single();
+            }
             
-            if (!result) return null;
+            const rData = result.error ? null : result.data;
+            if (result.error) {
+                console.error('Supabase API Error:', JSON.stringify(result.error, null, 2));
+                throw result.error;
+            }
             
             return {
-                id: result.id,
-                date: result.date.split('T')[0],
-                subjectId: result.subject_id,
-                topicId: result.topic_id,
-                activityType: result.activity_type,
-                notes: result.notes,
-                durationInMinutes: result.duration_minutes,
-                questionsDone: result.questions_done,
-                questionsCorrect: result.questions_correct,
+                id: rData.id,
+                date: rData.date.split('T')[0],
+                subjectId: rData.subject_id,
+                topicId: rData.topic_id,
+                activityType: rData.activity_type,
+                notes: rData.notes,
+                durationInMinutes: rData.duration_minutes,
+                questionsDone: rData.questions_done,
+                questionsCorrect: rData.questions_correct,
+                questionsLink: rData.questions_link || undefined,
                 status: item.status || 'planejado'
             } as ScheduledStudy;
         },
@@ -293,10 +334,17 @@ export const api = {
             if (updates.durationInMinutes !== undefined) dbPayload.duration_minutes = updates.durationInMinutes;
             if (updates.questionsDone !== undefined) dbPayload.questions_done = updates.questionsDone;
             if (updates.questionsCorrect !== undefined) dbPayload.questions_correct = updates.questionsCorrect;
-            // Do NOT send 'status' — column does not exist in DB
             if (updates.date) dbPayload.date = updates.date;
+            if (updates.questionsLink !== undefined) {
+                dbPayload.questions_link = updates.questionsLink;
+            }
 
-            return handleRequest(supabase.from('scheduled_studies').update(dbPayload).eq('id', id));
+            let result = await supabase.from('scheduled_studies').update(dbPayload).eq('id', id);
+            if (result.error && result.error.code === '42703') {
+                const { questions_link, ...payloadWithout } = dbPayload;
+                result = await supabase.from('scheduled_studies').update(payloadWithout).eq('id', id);
+            }
+            return handleRequest(Promise.resolve(result));
         },
         delete: async (id: string) => handleRequest(supabase.from('scheduled_studies').delete().eq('id', id)),
         deleteBySubject: async (subjectId: string) => handleRequest(supabase.from('scheduled_studies').delete().eq('subject_id', subjectId)),
@@ -318,13 +366,23 @@ export const api = {
                 notes: item.notes || null,
                 duration_minutes: item.durationInMinutes || 0,
                 questions_done: item.questionsDone || 0,
-                questions_correct: item.questionsCorrect || 0
+                questions_correct: item.questionsCorrect || 0,
+                questions_link: item.questionsLink || null
             }));
 
-            const result = await handleRequest<any[]>(supabase.from('scheduled_studies').insert(dbPayloads).select());
-            if (!result) return [];
+            let result = await supabase.from('scheduled_studies').insert(dbPayloads).select();
+            if (result.error && result.error.code === '42703') {
+                const payloadsWithout = dbPayloads.map(({ questions_link, ...rest }) => rest);
+                result = await supabase.from('scheduled_studies').insert(payloadsWithout).select();
+            }
+            
+            const rData = result.error ? null : result.data;
+            if (result.error) {
+                console.error('Supabase API Error:', JSON.stringify(result.error, null, 2));
+                throw result.error;
+            }
 
-            return result.map((r: any) => ({
+            return rData.map((r: any) => ({
                 id: r.id,
                 date: r.date.split('T')[0],
                 subjectId: r.subject_id,
@@ -334,6 +392,7 @@ export const api = {
                 durationInMinutes: r.duration_minutes,
                 questionsDone: r.questions_done,
                 questionsCorrect: r.questions_correct,
+                questionsLink: r.questions_link || undefined,
                 status: 'planejado' as const
             }));
         },

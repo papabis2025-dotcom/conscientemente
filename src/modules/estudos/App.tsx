@@ -15,7 +15,7 @@ import CronogramaView from './pages/CronogramaView';
 import { Concurso, ActivityType, StudySession, Topic } from './types';
 import { useAppData } from './hooks/useAppData';
 import { useTimer } from './hooks/useTimer';
-import { Clock, Save, X } from 'lucide-react';
+import { Clock, Save, X, Plus, Trash2 } from 'lucide-react';
 
 interface AppProps {
   theme?: 'light' | 'dark';
@@ -93,7 +93,8 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
     duration: '',
     questionsDone: '',
     questionsCorrect: '',
-    date: new Date().toISOString().split('T')[0]
+    date: new Date().toISOString().split('T')[0],
+    questionsLinks: [''] as string[]
   });
 
   const handleSaveActivity = async () => {
@@ -112,6 +113,9 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
 
     const selectedTopicIds = isAulao ? [] : activityFormData.topicIds;
     const durationVal = parseInt(activityFormData.duration) || 0;
+
+    const filteredLinks = activityFormData.questionsLinks ? activityFormData.questionsLinks.filter(Boolean) : [];
+    const questionsLinkPayload = filteredLinks.length > 0 ? JSON.stringify(filteredLinks) : undefined;
 
     try {
       if (selectedSubjects.length > 1) {
@@ -171,7 +175,8 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
             date: new Date(`${activityFormData.date}T12:00:00`).toISOString(),
             questionsDone: itemDone,
             questionsCorrect: itemCorrect,
-            activityType: selectedTypes.join(', ')
+            activityType: selectedTypes.join(', '),
+            questionsLink: questionsLinkPayload
           });
         }
         await addSessionsBatch(sessionsList);
@@ -187,7 +192,8 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
             date: new Date(`${activityFormData.date}T12:00:00`).toISOString(),
             questionsDone: qDone,
             questionsCorrect: qCorrect,
-            activityType: selectedTypes.join(', ')
+            activityType: selectedTypes.join(', '),
+            questionsLink: questionsLinkPayload
           });
         } else {
           // Split across multiple topics
@@ -216,7 +222,8 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
               date: new Date(`${activityFormData.date}T12:00:00`).toISOString(),
               questionsDone: itemDone,
               questionsCorrect: itemCorrect,
-              activityType: selectedTypes.join(', ')
+              activityType: selectedTypes.join(', '),
+              questionsLink: questionsLinkPayload
             });
           }
           await addSessionsBatch(sessionsList);
@@ -232,7 +239,8 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
         duration: '',
         questionsDone: '',
         questionsCorrect: '',
-        date: new Date().toISOString().split('T')[0]
+        date: new Date().toISOString().split('T')[0],
+        questionsLinks: ['']
       });
     } catch (err) {
       console.error(err);
@@ -479,6 +487,52 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
                         className="w-full p-3 bg-white dark:bg-zinc-900 border-none rounded-xl outline-none text-sm font-bold dark:text-white shadow-sm"
                       />
                     </div>
+                  </div>
+                )}
+
+                {activityFormData.activityTypes.includes('Questões') && (
+                  <div className="space-y-2 p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl border border-dashed border-zinc-200 dark:border-zinc-800 animate-in fade-in slide-in-from-top-2 mt-4">
+                    <div className="flex justify-between items-center mb-1">
+                      <label className="text-[10px] font-bold text-zinc-400 uppercase">Links do Caderno de Questões</label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const current = activityFormData.questionsLinks || [];
+                          setActivityFormData({ ...activityFormData, questionsLinks: [...current, ''] });
+                        }}
+                        className="p-1 text-zinc-500 hover:text-indigo-650 dark:text-zinc-400 dark:hover:text-indigo-400 transition-colors flex items-center gap-1 text-[10px] font-bold uppercase cursor-pointer"
+                      >
+                        <Plus size={12} /> Adicionar Link
+                      </button>
+                    </div>
+                    {(activityFormData.questionsLinks || []).map((lnk: string, idx: number) => (
+                      <div key={idx} className="flex gap-2 items-center">
+                        <input
+                          type="url"
+                          placeholder="https://..."
+                          value={lnk}
+                          onChange={(e) => {
+                            const next = [...(activityFormData.questionsLinks || [])];
+                            next[idx] = e.target.value;
+                            setActivityFormData({ ...activityFormData, questionsLinks: next });
+                          }}
+                          className="flex-1 p-2.5 bg-white dark:bg-zinc-900 border-none rounded-xl outline-none text-sm dark:text-white shadow-sm ring-1 ring-zinc-100 dark:ring-zinc-800 focus:ring-zinc-500"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const next = (activityFormData.questionsLinks || []).filter((_: any, i: number) => i !== idx);
+                            setActivityFormData({ ...activityFormData, questionsLinks: next });
+                          }}
+                          className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors cursor-pointer"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    ))}
+                    {(!activityFormData.questionsLinks || activityFormData.questionsLinks.length === 0) && (
+                      <p className="text-[10px] text-zinc-400 font-medium italic">Nenhum link adicionado ainda.</p>
+                    )}
                   </div>
                 )}
 

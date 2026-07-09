@@ -398,10 +398,6 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                             s.activityType.toLowerCase().includes('revisão') || 
                             s.activityType.toLowerCase().includes('revisao')
                         );
-                        const isRevNotes = (s as any).notes && (
-                            (s as any).notes.toLowerCase().includes('revisão') || 
-                            (s as any).notes.toLowerCase().includes('revisao')
-                        );
                         const matchingSched = allSchedule.find(sched => sched.id === s.id);
                         const isRevId = matchingSched && matchingSched.activityType && (
                             matchingSched.activityType.toLowerCase().includes('revisão') || 
@@ -414,7 +410,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                                 matchingSched.activityType.toLowerCase().includes('revisao')
                             );
                         const isDeterministic = s.id && s.id.split('-')[3]?.startsWith('400');
-                        return !!(isRevType || isRevNotes || isRevId || isRevCompleted || isDeterministic);
+                        return !!(isRevType || isRevId || isRevCompleted || isDeterministic);
                     };
 
                     const topicSessions = allSess.filter(s =>
@@ -1572,7 +1568,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
 
                 if (formData.status === 'realizado') {
                     sessionsList.push({
-                        id: totalCount === 1 && editingTask ? editingTask.id : crypto.randomUUID(),
+                        id: crypto.randomUUID(),
                         subjectId: subId,
                         topicId: topicId,
                         durationInMinutes: itemDuration,

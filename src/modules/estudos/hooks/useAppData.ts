@@ -76,6 +76,9 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
 
     const getLocalDateString = (dateStr: string | undefined): string => {
         if (!dateStr) return '';
+        if (dateStr.includes('T')) {
+            return dateStr.split('T')[0];
+        }
         if (dateStr.length === 10) return dateStr;
         try {
             const d = new Date(dateStr);

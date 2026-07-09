@@ -449,13 +449,19 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                             
                             const tag = getActivityTag(subject.id, dateStr, topic.id === 'geral' ? undefined : topic.title);
 
+                            // A partir de 10/07/2026, revisões originadas de dias de estudos diferentes não se agrupam.
+                            // Para isso, anexamos a data do estudo de origem (sessionDateStr) ao groupId.
+                            const isAfterTargetDate = dateStr >= '2026-07-10';
+                            const groupSuffix = isAfterTargetDate ? `_from_${sessionDateStr}` : '';
+                            const groupId = `rev_${subject.id}_${dateStr}${groupSuffix}`;
+
                             expectedReviews.push({
                                 id: reviewId,
                                 date: dateStr,
                                 subjectId: subject.id,
                                 topicId: topic.id === 'geral' ? undefined : topic.id,
                                 activityType: 'Revisão',
-                                notes: `[groupId:rev_${subject.id}_${dateStr}] ${tag} - Revisão automática (${days}d)`,
+                                notes: `[groupId:${groupId}] ${tag} - Revisão automática (${days}d)`,
                                 durationInMinutes: 30,
                                 questionsDone: 10,
                                 questionsCorrect: 8,

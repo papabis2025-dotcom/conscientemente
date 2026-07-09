@@ -176,13 +176,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     const nonGrouped: ScheduledStudy[] = [];
 
     dayTasks.forEach(task => {
-      const isReview = task.activityType && (
-        task.activityType.toLowerCase().includes('revisão') || 
-        task.activityType.toLowerCase().includes('revisao')
-      );
-      const shouldSkipGrouping = isReview && dayKey >= '2026-07-10';
-
-      if (task.notes && !shouldSkipGrouping) {
+      if (task.notes) {
         const { groupId } = parseNotesGroup(task.notes);
         if (groupId) {
           if (!groupedMap.has(groupId)) {

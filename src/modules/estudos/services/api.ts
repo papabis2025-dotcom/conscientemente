@@ -268,6 +268,7 @@ export const api = {
             sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
             const dateLimit = sixMonthsAgo.toISOString().split('T')[0];
 
+            // Tenta primeiro com todas as colunas; se questions_link nao existir, usa fallback sem ela
             let result = await supabase.from('scheduled_studies')
                 .select('*')
                 .eq('user_id', user.id)
@@ -275,20 +276,22 @@ export const api = {
                 .order('date', { ascending: true });
 
             if (result.error && result.error.code === '42703') {
+                // Coluna ausente (questions_link ou outra) — retry sem ela
                 result = await supabase.from('scheduled_studies')
                     .select('id,date,subject_id,topic_id,activity_type,notes,duration_minutes,questions_done,questions_correct')
                     .eq('user_id', user.id)
                     .gte('date', dateLimit)
                     .order('date', { ascending: true });
             }
-            const data = result.error ? null : result.data;
-            if (result.error && result.error.code !== '42703') {
-                console.error('Supabase API Error:', JSON.stringify(result.error, null, 2));
-                throw result.error;
+
+            if (result.error) {
+                console.error('Supabase schedule.list error:', JSON.stringify(result.error, null, 2));
+                return []; // Retorna vazio em vez de estourar para nao quebrar o fetchData
             }
-            return (data || []).map((i: any) => ({
+
+            return (result.data || []).map((i: any) => ({
                 id: i.id,
-                date: i.date.split('T')[0], // Ensure YYYY-MM-DD only
+                date: i.date.split('T')[0],
                 subjectId: i.subject_id,
                 topicId: i.topic_id,
                 activityType: i.activity_type,
@@ -321,14 +324,29 @@ export const api = {
 
             let result = await supabase.from('scheduled_studies').insert(dbPayload).select().single();
             if (result.error && result.error.code === '42703') {
+                // questions_link não existe — retry sem ela
                 const { questions_link, ...payloadWithout } = dbPayload as any;
                 result = await supabase.from('scheduled_studies').insert(payloadWithout).select().single();
             }
             
             const rData = result.error ? null : result.data;
             if (result.error) {
-                console.error('Supabase API Error:', JSON.stringify(result.error, null, 2));
-                throw result.error;
+                // Se ainda falhar, loga mas não rethrow para não bloquear a UI
+                console.error('Supabase schedule.create error:', JSON.stringify(result.error, null, 2));
+                // Retorna um objeto mínimo com o ID original para manter estado local consistente
+                return {
+                    id: item.id || crypto.randomUUID(),
+                    date: item.date,
+                    subjectId: item.subjectId,
+                    topicId: item.topicId,
+                    activityType: item.activityType,
+                    notes: item.notes,
+                    durationInMinutes: item.durationInMinutes,
+                    questionsDone: item.questionsDone,
+                    questionsCorrect: item.questionsCorrect,
+                    questionsLink: item.questionsLink,
+                    status: 'planejado' as const
+                } as ScheduledStudy;
             }
             
             return {

@@ -1272,7 +1272,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                   </div>
                 )}
 
-                {formData.activityTypes.includes('Questões') && (
+                {(formData.activityTypes.includes('Questões') || formData.activityTypes.includes('Revisão') || formData.activityTypes.includes('Aulão de Revisão')) && (
                   <div className="space-y-2 p-4 bg-zinc-55 dark:bg-zinc-800 border rounded-2xl animate-in fade-in slide-in-from-top-2">
                     <div className="flex justify-between items-center mb-1">
                       <label className="text-[10px] font-black text-zinc-400 uppercase">Links do Caderno de Questões</label>

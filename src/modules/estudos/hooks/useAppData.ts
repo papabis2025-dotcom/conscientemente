@@ -475,8 +475,8 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
 
         const expectedIds = new Set(expectedReviews.map(r => r.id));
 
-        // Deduplicação ativa por tag de negócio para evitar duplicidade de revisões planejadas
-        const activeReviewTagsFound = new Set<string>();
+        // Deduplicação ativa por chave única (disciplina, tópico e data) para evitar duplicidade de revisões planejadas
+        const activeReviewKeysFound = new Set<string>();
         const duplicateReviewsToDelete: ScheduledStudy[] = [];
 
         allSchedule.forEach(s => {
@@ -485,21 +485,11 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                 s.activityType.toLowerCase().includes('revisao')
             );
             if (isReview && s.status === 'planejado') {
-                let topicTitle: string | undefined;
-                if (s.topicId) {
-                    const conc = allConcursos.find(c => (c.subjects || []).some(sub => sub.id === s.subjectId));
-                    const subj = conc?.subjects.find(sub => sub.id === s.subjectId);
-                    const top = subj?.topics.find(t => t.id === s.topicId);
-                    topicTitle = top?.title;
-                }
-                const tag = getActivityTag(s.subjectId, s.date, topicTitle);
-                
-                if (tag) {
-                    if (activeReviewTagsFound.has(tag)) {
-                        duplicateReviewsToDelete.push(s);
-                    } else {
-                        activeReviewTagsFound.add(tag);
-                    }
+                const key = `${s.subjectId}_${s.topicId || 'geral'}_${s.date}`;
+                if (activeReviewKeysFound.has(key)) {
+                    duplicateReviewsToDelete.push(s);
+                } else {
+                    activeReviewKeysFound.add(key);
                 }
             }
         });
@@ -554,44 +544,30 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
             console.error('Error reading deleted review IDs:', e);
         }
 
-        // Tags de revisões planejadas remanescentes que não serão deletadas
-        const remainingPlannedTags = new Set<string>();
+        // Chaves de revisões planejadas remanescentes que não serão deletadas
+        const remainingPlannedKeys = new Set<string>();
         allSchedule.forEach(s => {
             const isReview = s.activityType && (
                 s.activityType.toLowerCase().includes('revisão') || 
                 s.activityType.toLowerCase().includes('revisao')
             );
             if (isReview && s.status === 'planejado' && !uniqueToDeleteMap.has(s.id)) {
-                let topicTitle: string | undefined;
-                if (s.topicId) {
-                    const conc = allConcursos.find(c => (c.subjects || []).some(sub => sub.id === s.subjectId));
-                    const subj = conc?.subjects.find(sub => sub.id === s.subjectId);
-                    const top = subj?.topics.find(t => t.id === s.topicId);
-                    topicTitle = top?.title;
-                }
-                const tag = getActivityTag(s.subjectId, s.date, topicTitle);
-                if (tag) remainingPlannedTags.add(tag);
+                const key = `${s.subjectId}_${s.topicId || 'geral'}_${s.date}`;
+                remainingPlannedKeys.add(key);
             }
         });
 
         const currentIds = new Set(allSchedule.map(s => s.id));
         
-        // Só criamos a revisão esperada se a tag de negócio planejada correspondente ainda não existir no cronograma
+        // Só criamos a revisão esperada se ela ainda não existir no cronograma ativo (usando chaves de IDs)
         const reviewsToCreate = expectedReviews.filter(r => {
-            let expectedTopicTitle: string | undefined;
-            if (r.topicId) {
-                const conc = allConcursos.find(c => (c.subjects || []).some(sub => sub.id === r.subjectId));
-                const subj = conc?.subjects.find(sub => sub.id === r.subjectId);
-                const top = subj?.topics.find(t => t.id === r.topicId);
-                expectedTopicTitle = top?.title;
-            }
-            const expectedTag = getActivityTag(r.subjectId, r.date, expectedTopicTitle);
+            const expectedKey = `${r.subjectId}_${r.topicId || 'geral'}_${r.date}`;
 
             return !currentIds.has(r.id) && 
                    !deletedReviewIds.includes(r.id) &&
                    !completedReviewIds.has(r.id) &&
-                   !completedReviewKeys.has(`${r.subjectId}_${r.topicId || 'geral'}_${r.date}`) &&
-                   !remainingPlannedTags.has(expectedTag);
+                   !completedReviewKeys.has(expectedKey) &&
+                   !remainingPlannedKeys.has(expectedKey);
         });
 
         const currentScheduleMap = new Map(allSchedule.map(s => [s.id, s]));

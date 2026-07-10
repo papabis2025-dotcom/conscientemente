@@ -342,7 +342,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     let totalDuration = task.durationInMinutes || 0;
     let totalQuestionsDone = task.questionsDone || 0;
     let totalQuestionsCorrect = task.questionsCorrect || 0;
-    let notesText = task.notes || '';
+    // Extrai sempre o cleanNotes (sem tag e sem groupId) para preencher o campo de notas no modal
+    let notesText = '';
 
     if (task.notes && !task.isGroupedVirtual) {
       const { groupId, cleanNotes } = parseNotesGroup(task.notes);
@@ -352,6 +353,9 @@ const CalendarView: React.FC<CalendarViewProps> = ({
         totalDuration = groupTasks.reduce((acc, t) => acc + (t.durationInMinutes || 0), 0);
         totalQuestionsDone = groupTasks.reduce((acc, t) => acc + (t.questionsDone || 0), 0);
         totalQuestionsCorrect = groupTasks.reduce((acc, t) => acc + (t.questionsCorrect || 0), 0);
+        notesText = cleanNotes;
+      } else {
+        // Tarefa simples: extrair cleanNotes remove a tag #... e exibe só o texto do usuário
         notesText = cleanNotes;
       }
     }

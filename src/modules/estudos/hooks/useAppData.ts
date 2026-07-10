@@ -1423,15 +1423,18 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         }
 
         const updatedScheduleForSync = scheduledStudies.map(s => s.id === id ? merged : s);
-        await syncPlannedReviewsDb(updatedSessionsForSync, updatedScheduleForSync, concursos);
 
+        // Persistir primeiro no banco (antes da sincronização de revisões)
         try {
-            await api.schedule.update(id, updates);
+            await api.schedule.update(id, merged);
             setLastSaved(new Date().toLocaleTimeString());
         } catch (e) {
             console.error('Error updating scheduled study:', e);
             setSaveError('Erro ao atualizar item na agenda.');
         }
+
+        // Depois de salvo no banco, sincronizar revisões planejadas
+        await syncPlannedReviewsDb(updatedSessionsForSync, updatedScheduleForSync, concursos);
     };
 
     const saveCalendarActivity = async (

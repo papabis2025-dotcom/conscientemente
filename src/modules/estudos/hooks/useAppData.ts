@@ -643,33 +643,27 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         const deleteIds = new Set(reviewsToDelete.map(r => r.id));
         const updateMap = new Map(reviewsToUpdate.map(r => [r.id, r]));
         setScheduledStudies(prev => {
-            const allScheduleMap = new Map(allSchedule.map(s => [s.id, s]));
+            // IMPORTANTE: NÃO filtramos por allScheduleMap.has() pois allSchedule pode ser stale
+            // (capturado antes do React processar setScheduledStudies do caller).
+            // Apenas removemos os IDs explicitamente marcados para deleção.
             
-            // 1. Filtrar do prev as tarefas que foram deletadas em allSchedule ou são revisões obsoletas
-            let filtered = prev.filter(s => allScheduleMap.has(s.id) && !deleteIds.has(s.id));
+            // 1. Remover apenas as revisões obsoletas/duplicadas marcadas explicitamente
+            let filtered = prev.filter(s => !deleteIds.has(s.id));
             
-            // 2. Atualizar no filtered as tarefas com os dados mais recentes de allSchedule e reviewsToUpdate
+            // 2. Atualizar notas/datas de revisões que mudaram
             filtered = filtered.map(s => {
-                const updatedFromAll = allScheduleMap.get(s.id);
                 const updatedFromReviews = updateMap.get(s.id);
-                
-                let mergedItem = { ...s };
-                if (updatedFromAll) {
-                    mergedItem = { ...mergedItem, ...updatedFromAll };
-                }
                 if (updatedFromReviews) {
-                    mergedItem = { ...mergedItem, notes: updatedFromReviews.notes, date: updatedFromReviews.date };
+                    return { ...s, notes: updatedFromReviews.notes, date: updatedFromReviews.date };
                 }
-                return mergedItem;
+                return s;
             });
             
-            // 3. Adicionar novas tarefas que foram criadas em allSchedule e reviewsToCreate
+            // 3. Adicionar novas revisões criadas
             const existingIds = new Set(filtered.map(s => s.id));
-            
-            const newFromAll = allSchedule.filter(s => !existingIds.has(s.id));
             const newFromReviews = reviewsToCreate.filter(r => !existingIds.has(r.id));
             
-            const combined = [...filtered, ...newFromAll, ...newFromReviews];
+            const combined = [...filtered, ...newFromReviews];
             localStorage.setItem('cp_scheduled_studies', JSON.stringify(combined));
             window.dispatchEvent(new Event('local-settings-changed'));
             return combined;
@@ -1789,13 +1783,14 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         });
 
         if (targetStatus === 'planejado') {
-            setSessions(prev => prev.filter(s => !ids.includes(s.id)));
+            const updatedSessions = sessions.filter(s => !ids.includes(s.id));
+            // Atualiza sessions localmente ANTES de chamar sync para evitar stale state
+            setSessions(updatedSessions);
             for (const id of ids) {
                 try { await api.sessions.delete(id); } catch(e) {}
             }
-            // Sync planned reviews immediately (when toggling back to planejado)
-            const updatedSessions = sessions.filter(s => !ids.includes(s.id));
-            const updatedSchedule = scheduledStudies.map(s => ids.includes(s.id) ? { ...s, status: targetStatus } : s);
+            // Sync com o estado já atualizado
+            const updatedSchedule = scheduledStudies.map(s => ids.includes(s.id) ? { ...s, status: 'planejado' as const } : s);
             await syncPlannedReviewsDb(updatedSessions, updatedSchedule, concursos);
         } else {
             const newSessions: StudySession[] = [];
@@ -1805,7 +1800,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                     subjectId: study.subjectId,
                     topicId: study.topicId,
                     durationInMinutes: study.durationInMinutes ?? 0,
-                    date: new Date(`${study.date}T12:00:00`).toISOString(),
+                    date: study.date, // Manter data como YYYY-MM-DD — sem conversão UTC que causa fuso horário
                     questionsDone: study.questionsDone,
                     questionsCorrect: study.questionsCorrect,
                     activityType: study.activityType,
@@ -1816,24 +1811,13 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                 try { await api.sessions.create(newSession); } catch(e) {
                     console.error('Error creating session on toggle:', study.id, e);
                 }
-                // Also persist the updated scheduled_study entry to DB
-                // (update questionsDone, questionsCorrect, durationInMinutes which may have been defaults)
-                try {
-                    await api.schedule.update(study.id, {
-                        durationInMinutes: newSession.durationInMinutes,
-                        questionsDone: newSession.questionsDone,
-                        questionsCorrect: newSession.questionsCorrect,
-                        questionsLink: newSession.questionsLink
-                    });
-                } catch(e) {
-                    console.error('Error updating schedule on toggle realizado:', study.id, e);
-                }
             }
-            setSessions(prev => [...prev, ...newSessions]);
-
-            // Sync planned reviews immediately
             const updatedSessions = [...sessions, ...newSessions];
-            const updatedSchedule = scheduledStudies.map(s => ids.includes(s.id) ? { ...s, status: targetStatus } : s);
+            // Atualiza sessions localmente ANTES de chamar sync para evitar stale state
+            setSessions(updatedSessions);
+
+            // Sync com o estado já atualizado
+            const updatedSchedule = scheduledStudies.map(s => ids.includes(s.id) ? { ...s, status: 'realizado' as const } : s);
             await syncPlannedReviewsDb(updatedSessions, updatedSchedule, concursos);
         }
     };

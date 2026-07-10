@@ -292,11 +292,8 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
       case 'questions_links':
         return <QuestionsNotebooksView
           sessions={sessions}
-          scheduledStudies={scheduledStudies}
           concursos={concursos}
           allSubjects={allSubjects}
-          onUpdateScheduledStudy={updateScheduledStudy}
-          onSaveActivity={saveCalendarActivity}
           setSessions={setSessions}
           onSyncReviews={syncPlannedReviews}
         />;

@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Subject, StudySession, ScheduledStudy, Concurso, Topic, ActivityType } from '../types';
+import { Subject, StudySession, Concurso, Topic } from '../types';
 import { api } from '../services/api';
 import { getColorHex } from '../utils/colors';
 import { 
@@ -7,25 +7,17 @@ import {
   Plus, 
   Trash2, 
   Save, 
-  BookOpen, 
   Search, 
   Calendar, 
   ChevronRight, 
   Clock, 
-  Activity, 
-  FileText, 
-  CheckCircle2,
-  AlertCircle,
-  Sparkles
+  AlertCircle
 } from 'lucide-react';
 
 interface QuestionsNotebooksViewProps {
   sessions: StudySession[];
-  scheduledStudies: ScheduledStudy[];
   concursos: Concurso[];
   allSubjects: Subject[];
-  onUpdateScheduledStudy: (id: string, updates: Partial<ScheduledStudy>) => Promise<void>;
-  onSaveActivity: (editingTaskId: string | null, formData: any, selectedDayKey: string) => Promise<void>;
   setSessions: React.Dispatch<React.SetStateAction<StudySession[]>>;
   onSyncReviews: () => Promise<void>;
 }
@@ -55,18 +47,6 @@ const getLocalDateString = (isoString: string) => {
   return isoString.split('T')[0];
 };
 
-const formatReviewDate = (dateStr: string) => {
-  if (!dateStr) return 'Data pendente';
-  const cleanDate = dateStr.split('T')[0];
-  const parts = cleanDate.split('-');
-  if (parts.length === 3) {
-    const day = parts[2];
-    const month = parts[1];
-    return `${day}/${month}`;
-  }
-  return dateStr;
-};
-
 const formatCardDate = (dateStr: string) => {
   if (!dateStr) return 'Data não informada';
   const cleanDate = dateStr.split('T')[0];
@@ -87,10 +67,8 @@ const formatCardDate = (dateStr: string) => {
 
 export const QuestionsNotebooksView: React.FC<QuestionsNotebooksViewProps> = ({
   sessions,
-  scheduledStudies,
   concursos,
   allSubjects,
-  onUpdateScheduledStudy,
   setSessions,
   onSyncReviews
 }) => {
@@ -102,14 +80,8 @@ export const QuestionsNotebooksView: React.FC<QuestionsNotebooksViewProps> = ({
   const [editingGroupLinks, setEditingGroupLinks] = useState<Record<string, string[]>>({});
   const [savingGroupKey, setSavingGroupKey] = useState<string | null>(null);
 
-  // Estados locais para edição dos links de revisões subsequentes individuais
-  const [editingReviewId, setEditingReviewId] = useState<string | null>(null);
-  const [editingReviewLinks, setEditingReviewLinks] = useState<string[]>([]);
-  const [savingReviewId, setSavingReviewId] = useState<string | null>(null);
-
   // Proteção absoluta contra arrays nulos ou indefinidos vindo das props
   const safeSessions = useMemo(() => sessions || [], [sessions]);
-  const safeScheduledStudies = useMemo(() => scheduledStudies || [], [scheduledStudies]);
   const safeConcursos = useMemo(() => concursos || [], [concursos]);
   const safeAllSubjects = useMemo(() => allSubjects || [], [allSubjects]);
 
@@ -284,66 +256,6 @@ export const QuestionsNotebooksView: React.FC<QuestionsNotebooksViewProps> = ({
     }
   };
 
-  // Coleta as revisões subsequentes planejadas associadas a qualquer uma das sessões do grupo
-  const getGroupSubsequentReviews = (cardSessions: StudySession[]) => {
-    const reviewsMap = new Map<string, ScheduledStudy>();
-    cardSessions.forEach(session => {
-      const sessionDateStr = getLocalDateString(session.date);
-      const related = safeScheduledStudies.filter(s => {
-        const isRev = s.activityType === 'Revisão' || s.activityType === 'Aulão de Revisão';
-        const isPlanejado = s.status === 'planejado';
-        const sameSubject = s.subjectId === session.subjectId;
-        const belongsToOrigin = s.notes && s.notes.includes(`_from_${sessionDateStr}`);
-        const sameTopic = s.topicId === session.topicId;
-        return isRev && isPlanejado && sameSubject && belongsToOrigin && sameTopic;
-      });
-      related.forEach(r => reviewsMap.set(r.id, r));
-    });
-    return Array.from(reviewsMap.values()).sort((a, b) => {
-      const timeA = a.date ? new Date(a.date).getTime() : 0;
-      const timeB = b.date ? new Date(b.date).getTime() : 0;
-      return timeA - timeB;
-    });
-  };
-
-  // Abre gerenciador de links para uma revisão subsequente específica
-  const handleOpenReviewLinkEditor = (review: ScheduledStudy) => {
-    let links: string[] = [];
-    if (review.questionsLink) {
-      try {
-        const parsed = JSON.parse(review.questionsLink);
-        if (Array.isArray(parsed)) {
-          links = parsed;
-        } else {
-          links = [review.questionsLink];
-        }
-      } catch (e) {
-        links = [review.questionsLink];
-      }
-    }
-    setEditingReviewLinks(links.length > 0 ? links : ['']);
-    setEditingReviewId(review.id);
-  };
-
-  // Salvar links de uma revisão subsequente de forma customizada e isolada
-  const handleSaveReviewLinks = async () => {
-    if (!editingReviewId) return;
-    setSavingReviewId(editingReviewId);
-    const filtered = editingReviewLinks.filter(Boolean);
-    const payload = filtered.length > 0 ? JSON.stringify(filtered) : null;
-
-    try {
-      await onUpdateScheduledStudy(editingReviewId, { questionsLink: payload });
-      setEditingReviewId(null);
-      setEditingReviewLinks([]);
-    } catch (e) {
-      console.error('Error saving review links:', e);
-      alert('Erro ao salvar os links da revisão.');
-    } finally {
-      setSavingReviewId(null);
-    }
-  };
-
   return (
     <div className="flex-1 p-6 space-y-6 overflow-y-auto max-h-screen custom-scrollbar bg-zinc-50 dark:bg-zinc-950">
       
@@ -386,7 +298,7 @@ export const QuestionsNotebooksView: React.FC<QuestionsNotebooksViewProps> = ({
           <select 
             value={selectedSubjectId} 
             onChange={(e) => setSelectedSubjectId(e.target.value)}
-            className="w-full p-2.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl outline-none text-sm text-zinc-700 dark:text-white"
+            className="w-full p-2.5 bg-zinc-50 dark:bg-zinc-850 border border-zinc-200 dark:border-zinc-700 rounded-xl outline-none text-sm text-zinc-700 dark:text-white"
           >
             <option value="all">Todas as Disciplinas</option>
             {activeSubjects.map(s => (
@@ -416,7 +328,7 @@ export const QuestionsNotebooksView: React.FC<QuestionsNotebooksViewProps> = ({
       <div className="space-y-6">
         {groupedCards.length === 0 ? (
           <div className="flex flex-col items-center justify-center p-12 bg-white dark:bg-zinc-900 rounded-3xl border border-dashed border-zinc-350 dark:border-zinc-800 text-center animate-in fade-in">
-            <AlertCircle className="text-zinc-400 dark:text-zinc-600 mb-3" size={32} />
+            <AlertCircle className="text-zinc-400 dark:text-zinc-650 mb-3" size={32} />
             <h3 className="text-sm font-black text-zinc-700 dark:text-zinc-300 uppercase tracking-wider">Nenhum estudo encontrado</h3>
             <p className="text-xs text-zinc-450 dark:text-zinc-500 max-w-sm mt-1">
               Realize novos estudos no Planner ou revise seus filtros de busca para visualizar e gerenciar cadernos.
@@ -453,8 +365,6 @@ export const QuestionsNotebooksView: React.FC<QuestionsNotebooksViewProps> = ({
             const links = getGroupLinks(cardKey, card.sessions);
             const isEditing = editingGroupLinks[cardKey] !== undefined;
             const linksToDisplay = isEditing ? editingGroupLinks[cardKey] : links;
-
-            const subsequentReviews = getGroupSubsequentReviews(card.sessions);
 
             const formattedDate = formatCardDate(card.dateStr);
 
@@ -515,46 +425,9 @@ export const QuestionsNotebooksView: React.FC<QuestionsNotebooksViewProps> = ({
                       ))}
                     </div>
                   </div>
-
-                  {/* Seção das Revisões Subsequentes Consolidadas do Grupo */}
-                  {subsequentReviews.length > 0 && (
-                    <div className="pt-3 border-t border-zinc-100 dark:border-zinc-800/80 space-y-2">
-                      <h5 className="text-[9px] font-black text-zinc-400 uppercase tracking-widest flex items-center gap-1">
-                        <Sparkles size={11} className="text-amber-500" /> Revisões Planejadas Geradas
-                      </h5>
-                      <div className="flex flex-wrap gap-2">
-                        {subsequentReviews.map(rev => {
-                          const revDayMatch = rev.notes?.match(/Revisão automática \((\d+d)\)/);
-                          const revLabel = revDayMatch ? revDayMatch[1] : 'Revisão';
-                          const revFormattedDate = formatReviewDate(rev.date);
-
-                          // Verifica se a revisão específica tem link próprio diferente das sessões de origem
-                          const firstSession = card.sessions[0];
-                          const hasOwnLink = rev.questionsLink && rev.questionsLink !== firstSession?.questionsLink;
-
-                          return (
-                            <button
-                              key={rev.id}
-                              onClick={() => handleOpenReviewLinkEditor(rev)}
-                              className={`text-[10px] font-bold py-1.5 px-3 rounded-xl border flex items-center gap-1.5 transition-all hover:scale-102 ${
-                                hasOwnLink
-                                  ? 'bg-amber-50/60 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900 text-amber-700 dark:text-amber-400 shadow-xs'
-                                  : 'bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-800 text-zinc-650 dark:text-zinc-300'
-                              }`}
-                              title={hasOwnLink ? "Esta revisão possui um link personalizado diferente do caderno consolidado" : "Esta revisão herda o link consolidado"}
-                            >
-                              <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: hexColor }} />
-                              {revLabel} ({revFormattedDate})
-                              <Link2 size={12} className="opacity-60" />
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
                 </div>
 
-                {/* Coluna 2: Gerenciamento de Links Unificado (Caixa de Links de Alto Contraste e Alta Visibilidade) */}
+                {/* Coluna 2: Gerenciamento de Links Unificado */}
                 <div className="w-full lg:w-96 flex flex-col justify-between p-4 bg-zinc-50 dark:bg-zinc-950 border-2 border-zinc-250 dark:border-zinc-800 rounded-3xl gap-3 shadow-xs">
                   <div className="space-y-2">
                     <div className="flex justify-between items-center">
@@ -635,85 +508,6 @@ export const QuestionsNotebooksView: React.FC<QuestionsNotebooksViewProps> = ({
           })
         )}
       </div>
-
-      {/* Modal Compacto para Customizar Link de Revisão Subsequente */}
-      {editingReviewId && (
-        <div className="fixed inset-0 z-50 bg-zinc-950/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 animate-in zoom-in duration-150">
-            
-            <div className="flex justify-between items-center">
-              <h3 className="text-xs font-black uppercase text-zinc-500 tracking-wider flex items-center gap-1.5">
-                <Link2 size={14} className="text-indigo-500" /> Customizar Links de Revisão
-              </h3>
-              <button 
-                onClick={() => {
-                  setEditingReviewId(null);
-                  setEditingReviewLinks([]);
-                }} 
-                className="text-zinc-400 hover:text-zinc-650 dark:hover:text-zinc-200 text-sm"
-              >
-                ✕
-              </button>
-            </div>
-
-            <p className="text-[11px] text-zinc-400 dark:text-zinc-500 font-medium">
-              Altere os links desta revisão se deseja desvinculá-la do caderno consolidado padrão da disciplina.
-            </p>
-
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-[10px] font-black uppercase text-zinc-400 tracking-wider">Links da Revisão</span>
-                <button
-                  type="button"
-                  onClick={() => setEditingReviewLinks(prev => [...prev, ''])}
-                  className="text-[9px] font-black uppercase px-2 py-1 bg-zinc-50 dark:bg-zinc-800 border rounded-lg text-indigo-500 flex items-center gap-0.5 hover:bg-zinc-100 transition-all cursor-pointer"
-                >
-                  <Plus size={9} /> Adicionar Link
-                </button>
-              </div>
-
-              <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                {editingReviewLinks.length === 0 ? (
-                  <p className="text-[10px] text-zinc-400 font-medium italic mt-1 pl-1">Nenhum link adicionado ainda.</p>
-                ) : (
-                  editingReviewLinks.map((lnk, idx) => (
-                    <div key={idx} className="flex gap-2 items-center">
-                      <input
-                        type="url"
-                        placeholder="https://..."
-                        value={lnk || ''}
-                        onChange={(e) => {
-                          const next = [...editingReviewLinks];
-                          next[idx] = e.target.value;
-                          setEditingReviewLinks(next);
-                        }}
-                        className="flex-1 p-2 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl outline-none text-xs dark:text-white"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setEditingReviewLinks(prev => prev.filter((_, i) => i !== idx))}
-                        className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-lg transition-colors cursor-pointer"
-                      >
-                        <Trash2 size={12} />
-                      </button>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-
-            <button
-              type="button"
-              disabled={savingReviewId === editingReviewId}
-              onClick={handleSaveReviewLinks}
-              className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-[10px] font-black uppercase shadow-lg disabled:opacity-40 flex items-center justify-center gap-1.5 transition-all"
-            >
-              <Save size={13} /> {savingReviewId === editingReviewId ? 'Gravando...' : 'Salvar Customizações'}
-            </button>
-
-          </div>
-        </div>
-      )}
 
     </div>
   );

@@ -26,7 +26,8 @@ import {
   LayoutTemplate,
   Menu,
   Percent,
-  CalendarRange
+  CalendarRange,
+  Link
 } from 'lucide-react';
 import logoImg from '../assets/logo.png';
 
@@ -74,6 +75,7 @@ const DEFAULT_MENU_ITEMS: MenuItem[] = [
   { id: 'cronograma', label: 'Cronograma', icon: CalendarRange },
   { id: 'simulados', label: 'Simulados', icon: FileSpreadsheet },
   { id: 'calendar', label: 'Planner', icon: Calendar },
+  { id: 'questions_links', label: 'Cadernos de Questões', icon: Link },
 ];
 
 const Sidebar: React.FC<SidebarProps> = ({

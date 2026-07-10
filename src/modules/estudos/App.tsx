@@ -12,6 +12,7 @@ import LogView from './pages/LogView';
 import StatisticsView from './pages/StatisticsView';
 import LoginView from './pages/LoginView';
 import CronogramaView from './pages/CronogramaView';
+import QuestionsNotebooksView from './pages/QuestionsNotebooksView';
 import { Concurso, ActivityType, StudySession, Topic } from './types';
 import { useAppData } from './hooks/useAppData';
 import { useTimer } from './hooks/useTimer';
@@ -288,6 +289,17 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
           simulados={simulados}
           onSyncReviews={syncPlannedReviews}
         />;
+      case 'questions_links':
+        return <QuestionsNotebooksView
+          sessions={sessions}
+          scheduledStudies={scheduledStudies}
+          concursos={concursos}
+          allSubjects={allSubjects}
+          onUpdateScheduledStudy={updateScheduledStudy}
+          onSaveActivity={saveCalendarActivity}
+          setSessions={setSessions}
+          onSyncReviews={syncPlannedReviews}
+        />;
       case 'study_plan':
         return <StudyPlan
           subjects={filteredSubjects}
@@ -490,51 +502,7 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
                   </div>
                 )}
 
-                {activityFormData.activityTypes.includes('Questões') && (
-                  <div className="space-y-2 p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl border border-dashed border-zinc-200 dark:border-zinc-800 animate-in fade-in slide-in-from-top-2 mt-4">
-                    <div className="flex justify-between items-center mb-1">
-                      <label className="text-[10px] font-bold text-zinc-400 uppercase">Links do Caderno de Questões</label>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const current = activityFormData.questionsLinks || [];
-                          setActivityFormData({ ...activityFormData, questionsLinks: [...current, ''] });
-                        }}
-                        className="p-1 text-zinc-500 hover:text-indigo-650 dark:text-zinc-400 dark:hover:text-indigo-400 transition-colors flex items-center gap-1 text-[10px] font-bold uppercase cursor-pointer"
-                      >
-                        <Plus size={12} /> Adicionar Link
-                      </button>
-                    </div>
-                    {(activityFormData.questionsLinks || []).map((lnk: string, idx: number) => (
-                      <div key={idx} className="flex gap-2 items-center">
-                        <input
-                          type="url"
-                          placeholder="https://..."
-                          value={lnk}
-                          onChange={(e) => {
-                            const next = [...(activityFormData.questionsLinks || [])];
-                            next[idx] = e.target.value;
-                            setActivityFormData({ ...activityFormData, questionsLinks: next });
-                          }}
-                          className="flex-1 p-2.5 bg-white dark:bg-zinc-900 border-none rounded-xl outline-none text-sm dark:text-white shadow-sm ring-1 ring-zinc-100 dark:ring-zinc-800 focus:ring-zinc-500"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const next = (activityFormData.questionsLinks || []).filter((_: any, i: number) => i !== idx);
-                            setActivityFormData({ ...activityFormData, questionsLinks: next });
-                          }}
-                          className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors cursor-pointer"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    ))}
-                    {(!activityFormData.questionsLinks || activityFormData.questionsLinks.length === 0) && (
-                      <p className="text-[10px] text-zinc-400 font-medium italic">Nenhum link adicionado ainda.</p>
-                    )}
-                  </div>
-                )}
+
 
               <button
                 onClick={handleSaveActivity}

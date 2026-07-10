@@ -25,11 +25,25 @@ const getDeterministicReviewId = (subId: string, topicId: string | undefined, la
 
 
 const parseNotesGroup = (notes: string) => {
-    const match = notes?.match(/^\[groupId:([^\]]+)\](.*)/s);
-    if (match) {
-        return { groupId: match[1], cleanNotes: match[2].trim() };
+    let currentNotes = notes || '';
+    let groupId = null;
+    let tag = null;
+
+    // 1. Extrair groupId se houver
+    const groupMatch = currentNotes.match(/^\[groupId:([^\]]+)\](.*)/s);
+    if (groupMatch) {
+        groupId = groupMatch[1];
+        currentNotes = groupMatch[2].trim();
     }
-    return { groupId: null, cleanNotes: notes || '' };
+
+    // 2. Extrair tag se houver (ex: #OAB47DPCON080726 - Texto ou #OAB47DPCON080726 Texto)
+    const tagMatch = currentNotes.match(/^(#[A-Za-z0-9_]+)(?:\s*-\s*|\s+)(.*)/s) || currentNotes.match(/^(#[A-Za-z0-9_]+)$/s);
+    if (tagMatch) {
+        tag = tagMatch[1];
+        currentNotes = tagMatch[2] ? tagMatch[2].trim() : '';
+    }
+
+    return { groupId, tag, cleanNotes: currentNotes };
 };
 
 export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme?: () => void) => {
@@ -1432,6 +1446,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
             questionsCorrect: string;
             notes: string;
             status: 'planejado' | 'realizado';
+            questionsLink?: string;
         },
         selectedDayKey: string
     ) => {
@@ -1460,16 +1475,30 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         if (editingTask && !isAulao && selectedSubjects.length === 1 && topicIdsToSave.length === 1 && !(editingTask as any).isGroupedVirtual) {
             const subId = selectedSubjects[0];
             const topicId = topicIdsToSave[0];
+            
+            // Gerar a tag de negócio própria para a atividade de estudo
+            let topicTitle: string | undefined;
+            if (topicId) {
+                const conc = concursos.find(c => (c.subjects || []).some(sub => sub.id === subId));
+                const subj = conc?.subjects.find(sub => sub.id === subId);
+                const top = subj?.topics.find(t => t.id === topicId);
+                topicTitle = top?.title;
+            }
+            const itemTag = getActivityTag(subId, selectedDayKey, topicTitle);
+            const { cleanNotes } = parseNotesGroup(formData.notes);
+            const itemNotes = itemTag ? `${itemTag} - ${cleanNotes}` : cleanNotes;
+
             const updates: Partial<ScheduledStudy> = {
                 date: selectedDayKey,
                 subjectId: subId,
                 topicId: topicId,
                 activityType: activityTypesStr,
-                notes: formData.notes,
+                notes: itemNotes,
                 durationInMinutes: durationVal || undefined,
                 questionsDone: questionsDoneVal,
                 questionsCorrect: questionsCorrectVal,
-                status: formData.status
+                status: formData.status,
+                questionsLink: formData.questionsLink // Salva o link nas edições!
             };
             await updateScheduledStudy(editingTask.id, updates);
             return;
@@ -1489,7 +1518,6 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
 
         // 3. Build new entries
         const newGroupId = (selectedSubjects.length > 1 || topicIdsToSave.length > 1) ? crypto.randomUUID() : null;
-        const notesToSave = newGroupId ? `[groupId:${newGroupId}] ${formData.notes}`.trim() : formData.notes;
 
         const totalCount = selectedSubjects.length * topicIdsToSave.length;
         const baseDuration = Math.floor(durationVal / totalCount);
@@ -1543,6 +1571,21 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                 const itemCorrect = itemCorrects[itemIndex];
                 itemIndex++;
 
+                // Gerar a tag de negócio própria para cada atividade de estudo individual
+                let topicTitle: string | undefined;
+                if (topicId) {
+                    const conc = concursos.find(c => (c.subjects || []).some(sub => sub.id === subId));
+                    const subj = conc?.subjects.find(sub => sub.id === subId);
+                    const top = subj?.topics.find(t => t.id === topicId);
+                    topicTitle = top?.title;
+                }
+                const itemTag = getActivityTag(subId, selectedDayKey, topicTitle);
+                const { cleanNotes } = parseNotesGroup(formData.notes);
+                let itemNotes = itemTag ? `${itemTag} - ${cleanNotes}` : cleanNotes;
+                if (newGroupId) {
+                    itemNotes = `[groupId:${newGroupId}] ${itemNotes}`;
+                }
+
                 if (formData.status === 'realizado') {
                     sessionsList.push({
                         id: crypto.randomUUID(),
@@ -1553,7 +1596,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                         questionsDone: itemDone,
                         questionsCorrect: itemCorrect,
                         activityType: activityTypesStr,
-                        notes: notesToSave,
+                        notes: itemNotes,
                         questionsLink: formData.questionsLink
                     } as any);
                 } else {
@@ -1563,7 +1606,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                         subjectId: subId,
                         topicId: topicId,
                         activityType: activityTypesStr,
-                        notes: notesToSave,
+                        notes: itemNotes,
                         durationInMinutes: itemDuration || undefined,
                         questionsDone: itemDone,
                         questionsCorrect: itemCorrect,

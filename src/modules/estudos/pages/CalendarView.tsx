@@ -19,11 +19,25 @@ type ViewMode = 'semanal' | 'mensal' | 'anual' | 'lista';
 type ListGroupBy = 'dia' | 'semana' | 'mes' | 'ano';
 
 const parseNotesGroup = (notes: string) => {
-  const match = notes?.match(/^\[groupId:([^\]]+)\](.*)/s);
-  if (match) {
-    return { groupId: match[1], cleanNotes: match[2].trim() };
+  let currentNotes = notes || '';
+  let groupId = null;
+  let tag = null;
+
+  // 1. Extrair groupId se houver
+  const groupMatch = currentNotes.match(/^\[groupId:([^\]]+)\](.*)/s);
+  if (groupMatch) {
+    groupId = groupMatch[1];
+    currentNotes = groupMatch[2].trim();
   }
-  return { groupId: null, cleanNotes: notes || '' };
+
+  // 2. Extrair tag se houver (ex: #OAB47DPCON080726 - Texto ou #OAB47DPCON080726 Texto)
+  const tagMatch = currentNotes.match(/^(#[A-Za-z0-9_]+)(?:\s*-\s*|\s+)(.*)/s) || currentNotes.match(/^(#[A-Za-z0-9_]+)$/s);
+  if (tagMatch) {
+    tag = tagMatch[1];
+    currentNotes = tagMatch[2] ? tagMatch[2].trim() : '';
+  }
+
+  return { groupId, tag, cleanNotes: currentNotes };
 };
 
 const CalendarView: React.FC<CalendarViewProps> = ({ 
@@ -238,11 +252,13 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       results: sim.results
     }));
 
-    // Ordenacao deterministica para evitar que tarefas troquem de posicao entre renders:
-    // 1. Simulados primeiro (sao eventos fixos do dia)
+    // Ordenacao deterministica estável para evitar que tarefas troquem de posicao:
+    // 1. Simulados por último
     // 2. Planejadas antes das realizadas
-    // 3. Por tipo de atividade (alfabetico)
-    // 4. Por ID (UUID fixo e imutavel) — garante estabilidade absoluta
+    // 3. Por tipo de atividade
+    // 4. Por Disciplina (estável e imutável pelo ID da disciplina)
+    // 5. Por Tópico (estável e imutável pelo título do tópico)
+    // 6. Desempate final pelo ID
     const ACTIVITY_ORDER: Record<string, number> = {
       'Aula': 0, 'Leitura': 1, 'Questões': 2, 'Flashcards': 3,
       'Revisão': 4, 'Aulão de Revisão': 5, 'Simulado': 6
@@ -262,7 +278,22 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       const aOrder = getActivityOrder(a.activityType);
       const bOrder = getActivityOrder(b.activityType);
       if (aOrder !== bOrder) return aOrder - bOrder;
-      // Desempate final pelo ID (estável e imutável)
+      
+      // Desempate estável por Disciplina (Subject)
+      const subA = allSubjects?.find(s => s.id === a.subjectId);
+      const subB = allSubjects?.find(s => s.id === b.subjectId);
+      const subCompare = (subA?.name || '').localeCompare(subB?.name || '');
+      if (subCompare !== 0) return subCompare;
+
+      // Desempate estável por Tópico (se houver)
+      const topAId = a.topicId || (a.topicIds && a.topicIds[0]);
+      const topBId = b.topicId || (b.topicIds && b.topicIds[0]);
+      const topA = subA?.topics?.find(t => t.id === topAId);
+      const topB = subB?.topics?.find(t => t.id === topBId);
+      const topCompare = (topA?.title || '').localeCompare(topB?.title || '');
+      if (topCompare !== 0) return topCompare;
+
+      // Desempate final estável por ID caso todos os metadados sejam idênticos
       return (a.id || '').localeCompare(b.id || '');
     };
 

@@ -448,9 +448,9 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                             
                             const tag = getActivityTag(subject.id, dateStr, topic.id === 'geral' ? undefined : topic.title);
 
-                            // A partir de 10/07/2026, revisões originadas de dias de estudos diferentes não se agrupam.
+                            // A partir de 08/07/2026, revisões originadas de dias de estudos diferentes não se agrupam.
                             // Para isso, anexamos a data do estudo de origem (sessionDateStr) ao groupId.
-                            const isAfterTargetDate = dateStr >= '2026-07-10';
+                            const isAfterTargetDate = dateStr >= '2026-07-08';
                             const groupSuffix = isAfterTargetDate ? `_from_${sessionDateStr}` : '';
                             const groupId = `rev_${subject.id}_${dateStr}${groupSuffix}`;
 

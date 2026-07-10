@@ -106,13 +106,20 @@ export const api = {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) throw new Error('Not authenticated');
 
+            const rawDate = session.date;
+            // Normaliza para ISO string com hora fixa (meio-dia UTC) para evitar ambiguidade de fuso horario.
+            // Se ja e ISO completo (tem 'T'), usa diretamente; se e so data (YYYY-MM-DD), adiciona T12:00:00Z.
+            const normalizedDate = rawDate.includes('T')
+                ? rawDate
+                : `${rawDate}T12:00:00.000Z`;
+
             const dbPayload = {
                 id: session.id, // Allow explicit ID
                 user_id: user.id,
                 subject_id: session.subjectId,
                 topic_id: session.topicId,
                 duration_minutes: session.durationInMinutes,
-                date: session.date,
+                date: normalizedDate,
                 questions_done: session.questionsDone,
                 questions_correct: session.questionsCorrect,
                 is_simulado: session.isSimulado,

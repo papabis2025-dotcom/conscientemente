@@ -715,21 +715,16 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                 const localRaw = localStorage.getItem('cp_scheduled_studies');
                 const localStudies: ScheduledStudy[] = localRaw ? JSON.parse(localRaw) : [];
                 const localStatusMap = new Map(localStudies.map(s => [s.id, s.status]));
+                // sessionIds: IDs de sessoes realmente gravadas no banco — unica fonte confiavel de status 'realizado'
                 const sessionIds = new Set(sessionsData?.map(s => s.id) || []);
-                
-                // Mapeia também a existência de sessões realizadas por data, disciplina e assunto para fins de redundância e tolerância a falhas
-                const sessionKeys = new Set(sessionsData?.map(s => {
-                    const sDate = s.date.includes('T') ? s.date.split('T')[0] : s.date;
-                    return `${sDate}_${s.subjectId}_${s.topicId || 'geral'}`;
-                }) || []);
 
                 finalSchedule = scheduleData.map(s => {
                     let status: 'planejado' | 'realizado' = 'planejado';
-                    const sKey = `${s.date}_${s.subjectId}_${s.topicId || 'geral'}`;
-                    
-                    if (sessionIds.has(s.id) || sessionKeys.has(sKey)) {
+                    if (sessionIds.has(s.id)) {
+                        // Sessao com mesmo ID existe: task foi realizada
                         status = 'realizado';
                     } else if (localStatusMap.has(s.id)) {
+                        // Fallback: usar status salvo no localStorage (pode ter sido marcado offline)
                         status = localStatusMap.get(s.id) as 'planejado' | 'realizado';
                     }
                     return {
@@ -1023,8 +1018,14 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
             });
         } catch (e) { /* non-critical */ }
 
-        // Sync planned reviews immediately
-        await syncPlannedReviewsDb([...sessions, session], [...scheduledStudies, newScheduled], concursos);
+        // Sync planned reviews — usa o estado atualizado via functional updater para evitar stale state
+        setScheduledStudies(prevSchedule => {
+            const updatedForSync = prevSchedule; // prevSchedule ja tem o newScheduled adicionado
+            // Dispara sync de forma assíncrona sem bloquear o render
+            syncPlannedReviewsDb([...sessions, session], updatedForSync, concursos)
+                .catch(e => console.error('Error syncing reviews after addSession:', e));
+            return prevSchedule; // Retorna sem alterar — sync atualiza via seu próprio setScheduledStudies
+        });
 
         setLastSaved(new Date().toLocaleTimeString());
     };

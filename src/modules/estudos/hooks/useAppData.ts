@@ -586,12 +586,19 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         const reviewsToUpdate: ScheduledStudy[] = [];
         expectedReviews.forEach(expected => {
             const current = currentScheduleMap.get(expected.id);
-            if (current && current.status !== 'realizado' && (current.notes !== expected.notes || current.date !== expected.date)) {
-                reviewsToUpdate.push({
-                    ...current,
-                    notes: expected.notes,
-                    date: expected.date
-                });
+            if (current && current.status !== 'realizado') {
+                const notesChanged = current.notes !== expected.notes;
+                const dateChanged = current.date !== expected.date;
+                const linkChanged = current.questionsLink !== expected.questionsLink;
+
+                if (notesChanged || dateChanged || linkChanged) {
+                    reviewsToUpdate.push({
+                        ...current,
+                        notes: expected.notes,
+                        date: expected.date,
+                        questionsLink: expected.questionsLink
+                    });
+                }
             }
         });
 
@@ -618,12 +625,16 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         }
 
         if (reviewsToUpdate.length > 0) {
-            console.log('Syncing planned reviews: updating review notes/dates:', reviewsToUpdate.map(r => r.id));
+            console.log('Syncing planned reviews: updating review notes/dates/links:', reviewsToUpdate.map(r => r.id));
             for (const r of reviewsToUpdate) {
                 try {
-                    await api.schedule.update(r.id, { notes: r.notes, date: r.date });
+                    await api.schedule.update(r.id, { 
+                        notes: r.notes, 
+                        date: r.date,
+                        questionsLink: r.questionsLink
+                    });
                 } catch (e) {
-                    console.error('Error updating review notes/date:', r.id, e);
+                    console.error('Error updating review notes/date/link:', r.id, e);
                 }
             }
         }
@@ -638,11 +649,16 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
             // 1. Remover apenas as revisões obsoletas/duplicadas marcadas explicitamente
             let filtered = prev.filter(s => !deleteIds.has(s.id));
             
-            // 2. Atualizar notas/datas de revisões que mudaram
+            // 2. Atualizar notas/datas/links de revisões que mudaram
             filtered = filtered.map(s => {
                 const updatedFromReviews = updateMap.get(s.id);
                 if (updatedFromReviews) {
-                    return { ...s, notes: updatedFromReviews.notes, date: updatedFromReviews.date };
+                    return { 
+                        ...s, 
+                        notes: updatedFromReviews.notes, 
+                        date: updatedFromReviews.date,
+                        questionsLink: updatedFromReviews.questionsLink
+                    };
                 }
                 return s;
             });
@@ -1477,7 +1493,9 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         const editingTask = editingTaskId ? scheduledStudies.find(s => s.id === editingTaskId) : null;
         const editingGroupId = editingTask && editingTask.notes ? parseNotesGroup(editingTask.notes).groupId : null;
 
-        if (editingTask && !isAulao && selectedSubjects.length === 1 && topicIdsToSave.length === 1 && !(editingTask as any).isGroupedVirtual && !editingGroupId) {
+        const isDeterministicReview = editingTask && editingTask.id.startsWith('review-');
+
+        if (editingTask && !isAulao && selectedSubjects.length === 1 && topicIdsToSave.length === 1 && !(editingTask as any).isGroupedVirtual && !editingGroupId && !isDeterministicReview) {
             const subId = selectedSubjects[0];
             const topicId = topicIdsToSave[0];
             

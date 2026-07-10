@@ -1847,7 +1847,33 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         setIsSaving(true);
         setSaveError(null);
         try {
-            const savedItems = await api.schedule.createBatch(items);
+            const itemsWithTags = items.map(item => {
+                let topicTitle: string | undefined;
+                if (item.topicId) {
+                    const conc = concursos.find(c => (c.subjects || []).some(sub => sub.id === item.subjectId));
+                    const subj = conc?.subjects.find(sub => sub.id === item.subjectId);
+                    const top = subj?.topics.find(t => t.id === item.topicId);
+                    topicTitle = top?.title;
+                }
+                const itemTag = getActivityTag(item.subjectId, item.date, topicTitle);
+                
+                // Extrai notas limpas se a tag já existir para não duplicar, senão usa notes original
+                const parsed = parseNotesGroup(item.notes || '');
+                const cleanNotesText = parsed.cleanNotes || item.notes || '';
+                
+                // Monta a nota com a tag gerada
+                let finalNotes = itemTag ? `${itemTag} - ${cleanNotesText}` : cleanNotesText;
+                if (parsed.groupId) {
+                    finalNotes = `[groupId:${parsed.groupId}] ${finalNotes}`;
+                }
+                
+                return {
+                    ...item,
+                    notes: finalNotes
+                };
+            });
+
+            const savedItems = await api.schedule.createBatch(itemsWithTags);
             setScheduledStudies(prev => {
                 const combined = [...prev, ...savedItems];
                 localStorage.setItem('cp_scheduled_studies', JSON.stringify(combined));
@@ -1861,7 +1887,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         } finally {
             setIsSaving(false);
         }
-    }, [api.schedule]);
+    }, [api.schedule, concursos, getActivityTag]);
 
     const deleteScheduledStudiesBatch = useCallback(async (ids: string[]) => {
         if (ids.length === 0) return;

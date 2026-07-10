@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Subject, StudySession, ScheduledStudy, Concurso, Topic, ActivityType } from '../types';
 import { api } from '../services/api';
+import { getColorHex } from '../utils/colors';
 import { 
   Link2, 
   Plus, 
@@ -359,18 +360,18 @@ export const QuestionsNotebooksView: React.FC<QuestionsNotebooksViewProps> = ({
       </div>
 
       {/* Painel de Filtros e Busca */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-white/60 dark:bg-zinc-900/60 backdrop-blur-md p-4 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-xs">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-4 rounded-3xl shadow-xs">
         
         {/* Filtro de Concurso */}
         <div>
-          <label className="text-[10px] font-black text-zinc-400 uppercase mb-2 block">Concurso</label>
+          <label className="text-[10px] font-black text-zinc-400 dark:text-zinc-500 uppercase mb-2 block">Concurso</label>
           <select 
             value={selectedConcursoId} 
             onChange={(e) => {
               setSelectedConcursoId(e.target.value);
               setSelectedSubjectId('all'); // Reset disciplina
             }}
-            className="w-full p-2.5 bg-zinc-50 dark:bg-zinc-850 border border-zinc-200 dark:border-zinc-700 rounded-xl outline-none text-sm dark:text-white"
+            className="w-full p-2.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl outline-none text-sm text-zinc-700 dark:text-white"
           >
             <option value="all">Todos os Cursos</option>
             {filteredConcursos.map(c => (
@@ -381,11 +382,11 @@ export const QuestionsNotebooksView: React.FC<QuestionsNotebooksViewProps> = ({
 
         {/* Filtro de Disciplina */}
         <div>
-          <label className="text-[10px] font-black text-zinc-400 uppercase mb-2 block">Disciplina</label>
+          <label className="text-[10px] font-black text-zinc-400 dark:text-zinc-500 uppercase mb-2 block">Disciplina</label>
           <select 
             value={selectedSubjectId} 
             onChange={(e) => setSelectedSubjectId(e.target.value)}
-            className="w-full p-2.5 bg-zinc-50 dark:bg-zinc-850 border border-zinc-200 dark:border-zinc-700 rounded-xl outline-none text-sm dark:text-white"
+            className="w-full p-2.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl outline-none text-sm text-zinc-700 dark:text-white"
           >
             <option value="all">Todas as Disciplinas</option>
             {activeSubjects.map(s => (
@@ -396,7 +397,7 @@ export const QuestionsNotebooksView: React.FC<QuestionsNotebooksViewProps> = ({
 
         {/* Campo de Busca por texto */}
         <div>
-          <label className="text-[10px] font-black text-zinc-400 uppercase mb-2 block">Buscar por Código ou Assunto</label>
+          <label className="text-[10px] font-black text-zinc-400 dark:text-zinc-500 uppercase mb-2 block">Buscar por Código ou Assunto</label>
           <div className="relative">
             <Search className="absolute left-3 top-3 text-zinc-400" size={16} />
             <input 
@@ -404,7 +405,7 @@ export const QuestionsNotebooksView: React.FC<QuestionsNotebooksViewProps> = ({
               placeholder="Ex: #OAB47DPC ou Inquérito..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2.5 bg-zinc-50 dark:bg-zinc-850 border border-zinc-200 dark:border-zinc-700 rounded-xl outline-none text-sm dark:text-white"
+              className="w-full pl-9 pr-4 py-2.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl outline-none text-sm text-zinc-700 dark:text-white"
             />
           </div>
         </div>
@@ -414,8 +415,8 @@ export const QuestionsNotebooksView: React.FC<QuestionsNotebooksViewProps> = ({
       {/* Listagem de Cadernos por Grupos Consolidados */}
       <div className="space-y-6">
         {groupedCards.length === 0 ? (
-          <div className="flex flex-col items-center justify-center p-12 bg-white/40 dark:bg-zinc-900/40 rounded-3xl border border-dashed border-zinc-300 dark:border-zinc-800 text-center animate-in fade-in">
-            <AlertCircle className="text-zinc-400 dark:text-zinc-650 mb-3" size={32} />
+          <div className="flex flex-col items-center justify-center p-12 bg-white dark:bg-zinc-900 rounded-3xl border border-dashed border-zinc-350 dark:border-zinc-800 text-center animate-in fade-in">
+            <AlertCircle className="text-zinc-400 dark:text-zinc-600 mb-3" size={32} />
             <h3 className="text-sm font-black text-zinc-700 dark:text-zinc-300 uppercase tracking-wider">Nenhum estudo encontrado</h3>
             <p className="text-xs text-zinc-450 dark:text-zinc-500 max-w-sm mt-1">
               Realize novos estudos no Planner ou revise seus filtros de busca para visualizar e gerenciar cadernos.
@@ -424,7 +425,8 @@ export const QuestionsNotebooksView: React.FC<QuestionsNotebooksViewProps> = ({
         ) : (
           groupedCards.map(card => {
             const subject = safeAllSubjects.find(sub => sub.id === card.subjectId);
-            
+            const hexColor = getColorHex(subject?.color || 'bg-indigo-500');
+
             // Reúne todos os tópicos e tags estudados no grupo
             const topicsList: string[] = [];
             const tagsList: string[] = [];
@@ -461,13 +463,22 @@ export const QuestionsNotebooksView: React.FC<QuestionsNotebooksViewProps> = ({
                 key={cardKey} 
                 className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-5 shadow-xs transition-all hover:shadow-md flex flex-col lg:flex-row gap-6 relative overflow-hidden"
               >
-                {/* Indicador lateral */}
-                <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-indigo-500" />
+                {/* Indicador lateral acompanhando a cor da disciplina */}
+                <div 
+                  className="absolute left-0 top-0 bottom-0 w-1.5" 
+                  style={{ backgroundColor: hexColor }} 
+                />
 
                 {/* Coluna 1: Informações do Grupo de Estudos */}
                 <div className="flex-1 space-y-3">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-[9px] font-bold uppercase tracking-wider px-2.5 py-1 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 rounded-lg flex items-center gap-1">
+                    <span 
+                      className="text-[9px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg flex items-center gap-1"
+                      style={{ 
+                        backgroundColor: `${hexColor}15`, 
+                        color: hexColor 
+                      }}
+                    >
                       <Calendar size={10} /> {formattedDate}
                     </span>
                     <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 rounded-lg flex items-center gap-1">
@@ -479,7 +490,11 @@ export const QuestionsNotebooksView: React.FC<QuestionsNotebooksViewProps> = ({
                   </div>
 
                   <div>
-                    <h4 className="text-xs font-black uppercase text-zinc-400 tracking-wider">
+                    {/* Título da Disciplina com a cor correspondente */}
+                    <h4 
+                      className="text-xs font-black uppercase tracking-wider"
+                      style={{ color: hexColor }}
+                    >
                       {subject?.name || 'Disciplina não encontrada'}
                     </h4>
                     
@@ -487,7 +502,7 @@ export const QuestionsNotebooksView: React.FC<QuestionsNotebooksViewProps> = ({
                     <div className="mt-2 space-y-1.5">
                       {topicsList.map((topicTitle, idx) => (
                         <div key={idx} className="flex flex-wrap items-center gap-2">
-                          <ChevronRight size={12} className="text-indigo-500 shrink-0" />
+                          <ChevronRight size={12} className="shrink-0" style={{ color: hexColor }} />
                           <span className="text-sm font-black text-zinc-800 dark:text-zinc-100">
                             {topicTitle}
                           </span>
@@ -528,7 +543,7 @@ export const QuestionsNotebooksView: React.FC<QuestionsNotebooksViewProps> = ({
                               }`}
                               title={hasOwnLink ? "Esta revisão possui um link personalizado diferente do caderno consolidado" : "Esta revisão herda o link consolidado"}
                             >
-                              <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+                              <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: hexColor }} />
                               {revLabel} ({revFormattedDate})
                               <Link2 size={12} className="opacity-60" />
                             </button>
@@ -539,17 +554,17 @@ export const QuestionsNotebooksView: React.FC<QuestionsNotebooksViewProps> = ({
                   )}
                 </div>
 
-                {/* Coluna 2: Gerenciamento de Links Unificado para o Grupo */}
-                <div className="w-full lg:w-96 flex flex-col justify-between p-4 bg-zinc-50/50 dark:bg-zinc-850/20 border border-zinc-200/60 dark:border-zinc-800/40 rounded-2xl gap-3">
+                {/* Coluna 2: Gerenciamento de Links Unificado (Caixa de Links de Alto Contraste e Alta Visibilidade) */}
+                <div className="w-full lg:w-96 flex flex-col justify-between p-4 bg-zinc-50 dark:bg-zinc-950 border-2 border-zinc-250 dark:border-zinc-800 rounded-3xl gap-3 shadow-xs">
                   <div className="space-y-2">
                     <div className="flex justify-between items-center">
-                      <span className="text-[10px] font-black uppercase text-zinc-400 tracking-wider">
+                      <span className="text-[10px] font-black uppercase text-zinc-500 dark:text-zinc-400 tracking-wider">
                         Links Consolidados
                       </span>
                       <button
                         type="button"
                         onClick={() => handleAddGroupLinkField(cardKey, linksToDisplay)}
-                        className="text-[9px] font-black uppercase px-2 py-1 bg-white dark:bg-zinc-800 border rounded-lg text-indigo-500 flex items-center gap-1 hover:bg-zinc-50 transition-all cursor-pointer shadow-xs"
+                        className="text-[9px] font-black uppercase px-2.5 py-1.5 bg-indigo-50 dark:bg-indigo-950/70 border border-indigo-200 dark:border-indigo-900 text-indigo-650 dark:text-indigo-400 rounded-xl flex items-center gap-1 hover:bg-indigo-100 dark:hover:bg-indigo-900 transition-all cursor-pointer shadow-xs"
                       >
                         <Plus size={10} /> Adicionar Link
                       </button>
@@ -572,14 +587,14 @@ export const QuestionsNotebooksView: React.FC<QuestionsNotebooksViewProps> = ({
                                 const current = isEditing ? linksToDisplay : [...links];
                                 handleUpdateGroupLinkValue(cardKey, idx, e.target.value, current);
                               }}
-                              className="flex-1 p-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl outline-none text-xs dark:text-white"
+                              className="flex-1 p-2.5 bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 rounded-xl outline-none text-xs text-zinc-900 dark:text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
                             />
                             {lnk && !isEditing && (
                               <a
                                 href={lnk}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="p-1.5 bg-zinc-100 hover:bg-zinc-255 dark:bg-zinc-850 dark:hover:bg-zinc-800 rounded-lg text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200 transition-colors"
+                                className="p-2 bg-white hover:bg-zinc-100 dark:bg-zinc-800 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700 rounded-xl text-indigo-600 hover:text-indigo-755 dark:text-indigo-400 transition-colors shadow-xs"
                                 title="Abrir Link"
                               >
                                 <Link2 size={12} />
@@ -591,7 +606,7 @@ export const QuestionsNotebooksView: React.FC<QuestionsNotebooksViewProps> = ({
                                 const current = isEditing ? linksToDisplay : [...links];
                                 handleRemoveGroupLinkField(cardKey, idx, current);
                               }}
-                              className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-lg transition-colors cursor-pointer"
+                              className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-xl transition-colors cursor-pointer"
                             >
                               <Trash2 size={12} />
                             </button>
@@ -607,7 +622,7 @@ export const QuestionsNotebooksView: React.FC<QuestionsNotebooksViewProps> = ({
                       type="button"
                       disabled={savingGroupKey === cardKey}
                       onClick={() => handleSaveGroupLinks(cardKey, card.sessions, linksToDisplay)}
-                      className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[10px] font-black uppercase shadow-xs flex items-center justify-center gap-1.5 transition-all disabled:opacity-40"
+                      className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-[10px] font-black uppercase shadow-md shadow-indigo-600/15 flex items-center justify-center gap-1.5 transition-all disabled:opacity-40"
                     >
                       <Save size={13} /> 
                       {savingGroupKey === cardKey ? 'Gravando...' : 'Salvar Alterações'}

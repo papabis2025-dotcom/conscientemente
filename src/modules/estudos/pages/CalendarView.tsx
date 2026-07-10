@@ -238,7 +238,35 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       results: sim.results
     }));
 
-    return [...groupedVirtualTasks, ...nonGrouped, ...virtualSims] as any[];
+    // Ordenacao deterministica para evitar que tarefas troquem de posicao entre renders:
+    // 1. Simulados primeiro (sao eventos fixos do dia)
+    // 2. Planejadas antes das realizadas
+    // 3. Por tipo de atividade (alfabetico)
+    // 4. Por ID (UUID fixo e imutavel) — garante estabilidade absoluta
+    const ACTIVITY_ORDER: Record<string, number> = {
+      'Aula': 0, 'Leitura': 1, 'Questões': 2, 'Flashcards': 3,
+      'Revisão': 4, 'Aulão de Revisão': 5, 'Simulado': 6
+    };
+    const getActivityOrder = (type?: string) =>
+      type && ACTIVITY_ORDER[type] !== undefined ? ACTIVITY_ORDER[type] : 99;
+
+    const sortTasks = (a: any, b: any) => {
+      // Simulados virtuais sempre por último (já são separados)
+      if (a.isSimuladoVirtual && !b.isSimuladoVirtual) return 1;
+      if (!a.isSimuladoVirtual && b.isSimuladoVirtual) return -1;
+      // Planejadas antes das realizadas
+      if (a.status !== b.status) {
+        return a.status === 'planejado' ? -1 : 1;
+      }
+      // Por tipo de atividade
+      const aOrder = getActivityOrder(a.activityType);
+      const bOrder = getActivityOrder(b.activityType);
+      if (aOrder !== bOrder) return aOrder - bOrder;
+      // Desempate final pelo ID (estável e imutável)
+      return (a.id || '').localeCompare(b.id || '');
+    };
+
+    return [...groupedVirtualTasks, ...nonGrouped, ...virtualSims].sort(sortTasks) as any[];
   };
 
   const tasksForSelectedDay = getDailyTasks(selectedDayKey || '');

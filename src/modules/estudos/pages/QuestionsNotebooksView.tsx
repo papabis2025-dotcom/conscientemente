@@ -54,6 +54,36 @@ const getLocalDateString = (isoString: string) => {
   return isoString.split('T')[0];
 };
 
+const formatReviewDate = (dateStr: string) => {
+  if (!dateStr) return 'Data pendente';
+  const cleanDate = dateStr.split('T')[0];
+  const parts = cleanDate.split('-');
+  if (parts.length === 3) {
+    const day = parts[2];
+    const month = parts[1];
+    return `${day}/${month}`;
+  }
+  return dateStr;
+};
+
+const formatCardDate = (dateStr: string) => {
+  if (!dateStr) return 'Data não informada';
+  const cleanDate = dateStr.split('T')[0];
+  const parts = cleanDate.split('-');
+  if (parts.length === 3) {
+    const year = parts[0];
+    const monthIndex = parseInt(parts[1], 10) - 1;
+    const day = parts[2];
+    const months = [
+      'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
+      'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'
+    ];
+    const monthName = months[monthIndex] || '';
+    return `${day} de ${monthName} de ${year}`;
+  }
+  return dateStr;
+};
+
 export const QuestionsNotebooksView: React.FC<QuestionsNotebooksViewProps> = ({
   sessions,
   scheduledStudies,
@@ -154,8 +184,8 @@ export const QuestionsNotebooksView: React.FC<QuestionsNotebooksViewProps> = ({
     });
 
     return Array.from(cardsMap.values()).sort((a, b) => {
-      // Mais recente primeiro
-      const dateCompare = new Date(b.dateStr).getTime() - new Date(a.dateStr).getTime();
+      // Mais recente primeiro (ordenando alfanumericamente por ISO string de data)
+      const dateCompare = b.dateStr.localeCompare(a.dateStr);
       if (dateCompare !== 0) return dateCompare;
       // Desempate por nome de disciplina
       const subA = allSubjects.find(s => s.id === a.subjectId);
@@ -396,7 +426,7 @@ export const QuestionsNotebooksView: React.FC<QuestionsNotebooksViewProps> = ({
                 tagsList.push(parsed.tag);
               }
               
-              totalDuration += s.durationInMinutes;
+              totalDuration += (s.durationInMinutes || 0);
               if (s.activityType) activityTypes.add(s.activityType);
             });
 
@@ -407,11 +437,7 @@ export const QuestionsNotebooksView: React.FC<QuestionsNotebooksViewProps> = ({
 
             const subsequentReviews = getGroupSubsequentReviews(card.sessions);
 
-            const formattedDate = new Date(card.dateStr + 'T12:00:00').toLocaleDateString('pt-BR', {
-              day: '2-digit',
-              month: 'long',
-              year: 'numeric'
-            });
+            const formattedDate = formatCardDate(card.dateStr);
 
             return (
               <div 
@@ -468,14 +494,11 @@ export const QuestionsNotebooksView: React.FC<QuestionsNotebooksViewProps> = ({
                         {subsequentReviews.map(rev => {
                           const revDayMatch = rev.notes?.match(/Revisão automática \((\d+d)\)/);
                           const revLabel = revDayMatch ? revDayMatch[1] : 'Revisão';
-                          const revFormattedDate = new Date(rev.date + 'T12:00:00').toLocaleDateString('pt-BR', {
-                            day: '2-digit',
-                            month: '2-digit'
-                          });
+                          const revFormattedDate = formatReviewDate(rev.date);
 
                           // Verifica se a revisão específica tem link próprio diferente das sessões de origem
                           const firstSession = card.sessions[0];
-                          const hasOwnLink = rev.questionsLink && rev.questionsLink !== firstSession.questionsLink;
+                          const hasOwnLink = rev.questionsLink && rev.questionsLink !== firstSession?.questionsLink;
 
                           return (
                             <button
@@ -527,7 +550,7 @@ export const QuestionsNotebooksView: React.FC<QuestionsNotebooksViewProps> = ({
                             <input
                               type="url"
                               placeholder="https://..."
-                              value={lnk}
+                              value={lnk || ''}
                               onChange={(e) => {
                                 const current = isEditing ? linksToDisplay : [...links];
                                 handleUpdateGroupLinkValue(cardKey, idx, e.target.value, current);
@@ -626,7 +649,7 @@ export const QuestionsNotebooksView: React.FC<QuestionsNotebooksViewProps> = ({
                       <input
                         type="url"
                         placeholder="https://..."
-                        value={lnk}
+                        value={lnk || ''}
                         onChange={(e) => {
                           const next = [...editingReviewLinks];
                           next[idx] = e.target.value;

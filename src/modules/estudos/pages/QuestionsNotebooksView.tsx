@@ -106,26 +106,39 @@ export const QuestionsNotebooksView: React.FC<QuestionsNotebooksViewProps> = ({
   const [editingReviewLinks, setEditingReviewLinks] = useState<string[]>([]);
   const [savingReviewId, setSavingReviewId] = useState<string | null>(null);
 
+  // Proteção absoluta contra arrays nulos ou indefinidos vindo das props
+  const safeSessions = useMemo(() => sessions || [], [sessions]);
+  const safeScheduledStudies = useMemo(() => scheduledStudies || [], [scheduledStudies]);
+  const safeConcursos = useMemo(() => concursos || [], [concursos]);
+  const safeAllSubjects = useMemo(() => allSubjects || [], [allSubjects]);
+
+  // Filtro de Concursos
+  const filteredConcursos = safeConcursos;
+
   // Filtro de Disciplinas associadas ao Concurso selecionado
   const activeSubjects = useMemo(() => {
     if (selectedConcursoId === 'all') {
-      return allSubjects;
+      return safeAllSubjects;
     }
-    const conc = concursos.find(c => c.id === selectedConcursoId);
+    const conc = safeConcursos.find(c => c.id === selectedConcursoId);
     return conc ? conc.subjects || [] : [];
-  }, [selectedConcursoId, allSubjects, concursos]);
+  }, [selectedConcursoId, safeAllSubjects, safeConcursos]);
 
   // Lista de sessões de estudo realizadas (estudos de origem, sem contar revisões e simulados)
   const originSessions = useMemo(() => {
-    return sessions.filter(s => {
+    return safeSessions.filter(s => {
       const isSim = s.isSimulado || s.activityType === 'Simulado';
       const isRev = s.activityType && (
         s.activityType.toLowerCase().includes('revisão') || 
         s.activityType.toLowerCase().includes('revisao')
       );
       return !isSim && !isRev;
-    }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [sessions]);
+    }).sort((a, b) => {
+      const timeA = a.date ? new Date(a.date).getTime() : 0;
+      const timeB = b.date ? new Date(b.date).getTime() : 0;
+      return timeB - timeA;
+    });
+  }, [safeSessions]);
 
   // Mapeamento e filtragem das sessões de estudo realizadas
   const filteredSessions = useMemo(() => {
@@ -145,10 +158,10 @@ export const QuestionsNotebooksView: React.FC<QuestionsNotebooksViewProps> = ({
       if (searchQuery.trim() !== '') {
         const query = searchQuery.toLowerCase();
         const parsed = parseNotesGroup(s.notes || '');
-        const subject = allSubjects.find(sub => sub.id === s.subjectId);
+        const subject = safeAllSubjects.find(sub => sub.id === s.subjectId);
         const topic = subject?.topics?.find(t => t.id === s.topicId);
 
-        const matchTag = parsed.tag && parsed.tag.toLowerCase().includes(query);
+        const matchTag = !!(parsed.tag && parsed.tag.toLowerCase().includes(query));
         const matchTopic = (topic?.title || 'geral').toLowerCase().includes(query);
         const matchSubject = (subject?.name || '').toLowerCase().includes(query);
         const matchNotes = parsed.cleanNotes.toLowerCase().includes(query);
@@ -160,7 +173,7 @@ export const QuestionsNotebooksView: React.FC<QuestionsNotebooksViewProps> = ({
 
       return true;
     });
-  }, [originSessions, selectedConcursoId, selectedSubjectId, searchQuery, activeSubjects, allSubjects]);
+  }, [originSessions, selectedConcursoId, selectedSubjectId, searchQuery, activeSubjects, safeAllSubjects]);
 
   // Agrupamento de sessões filtradas por DATA e DISCIPLINA (card/grupo único)
   const groupedCards = useMemo(() => {
@@ -188,11 +201,11 @@ export const QuestionsNotebooksView: React.FC<QuestionsNotebooksViewProps> = ({
       const dateCompare = b.dateStr.localeCompare(a.dateStr);
       if (dateCompare !== 0) return dateCompare;
       // Desempate por nome de disciplina
-      const subA = allSubjects.find(s => s.id === a.subjectId);
-      const subB = allSubjects.find(s => s.id === b.subjectId);
+      const subA = safeAllSubjects.find(s => s.id === a.subjectId);
+      const subB = safeAllSubjects.find(s => s.id === b.subjectId);
       return (subA?.name || '').localeCompare(subB?.name || '', 'pt-BR');
     });
-  }, [filteredSessions, allSubjects]);
+  }, [filteredSessions, safeAllSubjects]);
 
   // Inicializa ou obtém a lista de links para um grupo
   const getGroupLinks = (cardKey: string, cardSessions: StudySession[]) => {
@@ -275,7 +288,7 @@ export const QuestionsNotebooksView: React.FC<QuestionsNotebooksViewProps> = ({
     const reviewsMap = new Map<string, ScheduledStudy>();
     cardSessions.forEach(session => {
       const sessionDateStr = getLocalDateString(session.date);
-      const related = scheduledStudies.filter(s => {
+      const related = safeScheduledStudies.filter(s => {
         const isRev = s.activityType === 'Revisão' || s.activityType === 'Aulão de Revisão';
         const isPlanejado = s.status === 'planejado';
         const sameSubject = s.subjectId === session.subjectId;
@@ -285,7 +298,11 @@ export const QuestionsNotebooksView: React.FC<QuestionsNotebooksViewProps> = ({
       });
       related.forEach(r => reviewsMap.set(r.id, r));
     });
-    return Array.from(reviewsMap.values()).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    return Array.from(reviewsMap.values()).sort((a, b) => {
+      const timeA = a.date ? new Date(a.date).getTime() : 0;
+      const timeB = b.date ? new Date(b.date).getTime() : 0;
+      return timeA - timeB;
+    });
   };
 
   // Abre gerenciador de links para uma revisão subsequente específica
@@ -353,7 +370,7 @@ export const QuestionsNotebooksView: React.FC<QuestionsNotebooksViewProps> = ({
               setSelectedConcursoId(e.target.value);
               setSelectedSubjectId('all'); // Reset disciplina
             }}
-            className="w-full p-2.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl outline-none text-sm dark:text-white"
+            className="w-full p-2.5 bg-zinc-50 dark:bg-zinc-850 border border-zinc-200 dark:border-zinc-700 rounded-xl outline-none text-sm dark:text-white"
           >
             <option value="all">Todos os Cursos</option>
             {filteredConcursos.map(c => (
@@ -368,7 +385,7 @@ export const QuestionsNotebooksView: React.FC<QuestionsNotebooksViewProps> = ({
           <select 
             value={selectedSubjectId} 
             onChange={(e) => setSelectedSubjectId(e.target.value)}
-            className="w-full p-2.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl outline-none text-sm dark:text-white"
+            className="w-full p-2.5 bg-zinc-50 dark:bg-zinc-850 border border-zinc-200 dark:border-zinc-700 rounded-xl outline-none text-sm dark:text-white"
           >
             <option value="all">Todas as Disciplinas</option>
             {activeSubjects.map(s => (
@@ -387,7 +404,7 @@ export const QuestionsNotebooksView: React.FC<QuestionsNotebooksViewProps> = ({
               placeholder="Ex: #OAB47DPC ou Inquérito..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl outline-none text-sm dark:text-white"
+              className="w-full pl-9 pr-4 py-2.5 bg-zinc-50 dark:bg-zinc-850 border border-zinc-200 dark:border-zinc-700 rounded-xl outline-none text-sm dark:text-white"
             />
           </div>
         </div>
@@ -406,7 +423,7 @@ export const QuestionsNotebooksView: React.FC<QuestionsNotebooksViewProps> = ({
           </div>
         ) : (
           groupedCards.map(card => {
-            const subject = allSubjects.find(sub => sub.id === card.subjectId);
+            const subject = safeAllSubjects.find(sub => sub.id === card.subjectId);
             
             // Reúne todos os tópicos e tags estudados no grupo
             const topicsList: string[] = [];
@@ -523,7 +540,7 @@ export const QuestionsNotebooksView: React.FC<QuestionsNotebooksViewProps> = ({
                 </div>
 
                 {/* Coluna 2: Gerenciamento de Links Unificado para o Grupo */}
-                <div className="w-full lg:w-96 flex flex-col justify-between p-4 bg-zinc-50/50 dark:bg-zinc-800/20 border border-zinc-200/60 dark:border-zinc-800/40 rounded-2xl gap-3">
+                <div className="w-full lg:w-96 flex flex-col justify-between p-4 bg-zinc-50/50 dark:bg-zinc-850/20 border border-zinc-200/60 dark:border-zinc-800/40 rounded-2xl gap-3">
                   <div className="space-y-2">
                     <div className="flex justify-between items-center">
                       <span className="text-[10px] font-black uppercase text-zinc-400 tracking-wider">
@@ -562,7 +579,7 @@ export const QuestionsNotebooksView: React.FC<QuestionsNotebooksViewProps> = ({
                                 href={lnk}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="p-1.5 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-850 dark:hover:bg-zinc-800 rounded-lg text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200 transition-colors"
+                                className="p-1.5 bg-zinc-100 hover:bg-zinc-255 dark:bg-zinc-850 dark:hover:bg-zinc-800 rounded-lg text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200 transition-colors"
                                 title="Abrir Link"
                               >
                                 <Link2 size={12} />
@@ -618,7 +635,7 @@ export const QuestionsNotebooksView: React.FC<QuestionsNotebooksViewProps> = ({
                   setEditingReviewId(null);
                   setEditingReviewLinks([]);
                 }} 
-                className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 text-sm"
+                className="text-zinc-400 hover:text-zinc-650 dark:hover:text-zinc-200 text-sm"
               >
                 ✕
               </button>

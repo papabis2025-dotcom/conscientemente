@@ -722,10 +722,18 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                 const localStudies: ScheduledStudy[] = localRaw ? JSON.parse(localRaw) : [];
                 const localStatusMap = new Map(localStudies.map(s => [s.id, s.status]));
                 const sessionIds = new Set(sessionsData?.map(s => s.id) || []);
+                
+                // Mapeia também a existência de sessões realizadas por data, disciplina e assunto para fins de redundância e tolerância a falhas
+                const sessionKeys = new Set(sessionsData?.map(s => {
+                    const sDate = s.date.includes('T') ? s.date.split('T')[0] : s.date;
+                    return `${sDate}_${s.subjectId}_${s.topicId || 'geral'}`;
+                }) || []);
 
                 finalSchedule = scheduleData.map(s => {
                     let status: 'planejado' | 'realizado' = 'planejado';
-                    if (sessionIds.has(s.id)) {
+                    const sKey = `${s.date}_${s.subjectId}_${s.topicId || 'geral'}`;
+                    
+                    if (sessionIds.has(s.id) || sessionKeys.has(sKey)) {
                         status = 'realizado';
                     } else if (localStatusMap.has(s.id)) {
                         status = localStatusMap.get(s.id) as 'planejado' | 'realizado';

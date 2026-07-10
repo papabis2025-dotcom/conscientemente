@@ -1449,7 +1449,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
             questionsCorrect: string;
             notes: string;
             status: 'planejado' | 'realizado';
-            questionsLink?: string;
+            questionsLink?: string | null;
         },
         selectedDayKey: string
     ) => {

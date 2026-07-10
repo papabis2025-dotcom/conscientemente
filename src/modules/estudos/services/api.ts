@@ -373,8 +373,9 @@ export const api = {
             if (updates.questionsDone !== undefined) dbPayload.questions_done = updates.questionsDone;
             if (updates.questionsCorrect !== undefined) dbPayload.questions_correct = updates.questionsCorrect;
             if (updates.date) dbPayload.date = updates.date;
-            if (updates.questionsLink !== undefined) {
-                dbPayload.questions_link = updates.questionsLink;
+            // Sempre inclui questionsLink no payload: null limpa o campo, string salva o valor
+            if ('questionsLink' in updates) {
+                dbPayload.questions_link = updates.questionsLink ?? null;
             }
 
             let result = await supabase.from('scheduled_studies').update(dbPayload).eq('id', id);

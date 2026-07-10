@@ -126,7 +126,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   const handleSave = async () => {
     if (selectedDayKey === null) return;
     const filteredLinks = formData.questionsLinks ? formData.questionsLinks.filter(Boolean) : [];
-    const linkPayload = filteredLinks.length > 0 ? JSON.stringify(filteredLinks) : undefined;
+    const linkPayload = filteredLinks.length > 0 ? JSON.stringify(filteredLinks) : null;
     try {
       await onSaveActivity(editingTask ? editingTask.id : null, {
         ...formData,
@@ -180,12 +180,11 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   const visibleScheduledStudies = scheduledStudies.filter(s => !(s.activityType === 'Simulado' && s.status === 'realizado'));
 
   // A helper to get the tasks for a given day (date string YYYY-MM-DD)
-  // including both visibleScheduledStudies and the grouped virtual simulados.
   const getDailyTasks = (dayKey: string) => {
     const dayTasks = visibleScheduledStudies.filter(s => s.date && (s.date === dayKey || s.date.split('T')[0] === dayKey));
     const daySims = (simulados || []).filter(sim => sim.date && (sim.date === dayKey || sim.date.split('T')[0] === dayKey));
 
-    // Grouping logic
+    // Grouping logic: agrupar tasks que compartilham o mesmo groupId
     const groupedMap = new Map<string, ScheduledStudy[]>();
     const nonGrouped: ScheduledStudy[] = [];
 
@@ -232,7 +231,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({
         status: firstTask.status,
         isGroupedVirtual: true,
         groupId: groupId,
-        taskIds: tasks.map(t => t.id)
+        taskIds: tasks.map(t => t.id),
+        questionsLink: firstTask.questionsLink  // propaga o link da primeira task do grupo
       };
     });
 
@@ -252,13 +252,13 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       results: sim.results
     }));
 
-    // Ordenacao deterministica estável para evitar que tarefas troquem de posicao:
-    // 1. Simulados por último
-    // 2. Planejadas antes das realizadas
-    // 3. Por tipo de atividade
-    // 4. Por Disciplina (estável e imutável pelo ID da disciplina)
-    // 5. Por Tópico (estável e imutável pelo título do tópico)
-    // 6. Desempate final pelo ID
+    // Ordenação determinística e estável:
+    // 1. Simulados virtuais sempre por último
+    // 2. Status: planejado antes de realizado
+    // 3. Tipo de atividade (ordem fixa e pré-definida)
+    // 4. Nome da Disciplina (alfabético - estável)
+    // 5. Título do Tópico (alfabético - estável)
+    // 6. ID como desempate final absoluto
     const ACTIVITY_ORDER: Record<string, number> = {
       'Aula': 0, 'Leitura': 1, 'Questões': 2, 'Flashcards': 3,
       'Revisão': 4, 'Aulão de Revisão': 5, 'Simulado': 6
@@ -266,38 +266,37 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     const getActivityOrder = (type?: string) =>
       type && ACTIVITY_ORDER[type] !== undefined ? ACTIVITY_ORDER[type] : 99;
 
-    const sortTasks = (a: any, b: any) => {
-      // Simulados virtuais sempre por último (já são separados)
+    const allTasks = [...groupedVirtualTasks, ...nonGrouped, ...virtualSims];
+
+    allTasks.sort((a: any, b: any) => {
+      // Simulados sempre por último
       if (a.isSimuladoVirtual && !b.isSimuladoVirtual) return 1;
       if (!a.isSimuladoVirtual && b.isSimuladoVirtual) return -1;
       // Planejadas antes das realizadas
       if (a.status !== b.status) {
         return a.status === 'planejado' ? -1 : 1;
       }
-      // Por tipo de atividade
+      // Por tipo de atividade (índice numérico fixo)
       const aOrder = getActivityOrder(a.activityType);
       const bOrder = getActivityOrder(b.activityType);
       if (aOrder !== bOrder) return aOrder - bOrder;
-      
-      // Desempate estável por Disciplina (Subject)
-      const subA = allSubjects?.find(s => s.id === a.subjectId);
-      const subB = allSubjects?.find(s => s.id === b.subjectId);
-      const subCompare = (subA?.name || '').localeCompare(subB?.name || '');
+      // Por nome da disciplina (usando lookupSubjects — nunca undefined)
+      const subA = lookupSubjects.find((s: Subject) => s.id === a.subjectId);
+      const subB = lookupSubjects.find((s: Subject) => s.id === b.subjectId);
+      const subCompare = (subA?.name || '').localeCompare(subB?.name || '', 'pt-BR');
       if (subCompare !== 0) return subCompare;
-
-      // Desempate estável por Tópico (se houver)
+      // Por título do tópico (estável e imutável)
       const topAId = a.topicId || (a.topicIds && a.topicIds[0]);
       const topBId = b.topicId || (b.topicIds && b.topicIds[0]);
-      const topA = subA?.topics?.find(t => t.id === topAId);
-      const topB = subB?.topics?.find(t => t.id === topBId);
-      const topCompare = (topA?.title || '').localeCompare(topB?.title || '');
+      const topA = subA?.topics?.find((t: Topic) => t.id === topAId);
+      const topB = subB?.topics?.find((t: Topic) => t.id === topBId);
+      const topCompare = (topA?.title || '').localeCompare(topB?.title || '', 'pt-BR');
       if (topCompare !== 0) return topCompare;
-
-      // Desempate final estável por ID caso todos os metadados sejam idênticos
+      // Desempate final por ID (UUID é estável e nunca muda para a mesma tarefa)
       return (a.id || '').localeCompare(b.id || '');
-    };
+    });
 
-    return [...groupedVirtualTasks, ...nonGrouped, ...virtualSims].sort(sortTasks) as any[];
+    return allTasks as any[];
   };
 
   const tasksForSelectedDay = getDailyTasks(selectedDayKey || '');
@@ -1141,7 +1140,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                       questionsDone: '',
                       questionsCorrect: '',
                       notes: '',
-                      status: 'planejado'
+                      status: 'planejado',
+                      questionsLinks: ['']  // garante reset correto do campo de links
                     });
                   }}
                   className="text-xs font-black uppercase tracking-wider text-blue-500 hover:text-blue-600 mb-4 block"

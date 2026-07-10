@@ -1475,7 +1475,9 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
 
         // 1. In-place update for simple single-topic tasks (to prevent duplication)
         const editingTask = editingTaskId ? scheduledStudies.find(s => s.id === editingTaskId) : null;
-        if (editingTask && !isAulao && selectedSubjects.length === 1 && topicIdsToSave.length === 1 && !(editingTask as any).isGroupedVirtual) {
+        const editingGroupId = editingTask && editingTask.notes ? parseNotesGroup(editingTask.notes).groupId : null;
+
+        if (editingTask && !isAulao && selectedSubjects.length === 1 && topicIdsToSave.length === 1 && !(editingTask as any).isGroupedVirtual && !editingGroupId) {
             const subId = selectedSubjects[0];
             const topicId = topicIdsToSave[0];
             
@@ -1510,7 +1512,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         // 2. Determine which old tasks to delete
         const tasksToDeleteIds: string[] = [];
         if (editingTask) {
-            const gId = (editingTask as any).groupId || (editingTask.notes ? parseNotesGroup(editingTask.notes).groupId : null);
+            const gId = editingGroupId || (editingTask as any).groupId;
             if (gId) {
                 const groupTasks = scheduledStudies.filter(t => t.notes && parseNotesGroup(t.notes).groupId === gId);
                 tasksToDeleteIds.push(...groupTasks.map(t => t.id));
@@ -1519,8 +1521,8 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
             }
         }
 
-        // 3. Build new entries
-        const newGroupId = (selectedSubjects.length > 1 || topicIdsToSave.length > 1) ? crypto.randomUUID() : null;
+        // 3. Build new entries: preserva o groupId original se ele já existir para não perder o vinculo
+        const newGroupId = editingGroupId || ((selectedSubjects.length > 1 || topicIdsToSave.length > 1) ? crypto.randomUUID() : null);
 
         const totalCount = selectedSubjects.length * topicIdsToSave.length;
         const baseDuration = Math.floor(durationVal / totalCount);

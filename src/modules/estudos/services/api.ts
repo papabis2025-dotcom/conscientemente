@@ -255,11 +255,24 @@ export const api = {
         list: async () => {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return [];
-            let result = await supabase.from('scheduled_studies').select('*').eq('user_id', user.id).order('date', { ascending: true });
+
+            // Limit to scheduled studies from 6 months ago to optimize Supabase Egress
+            const sixMonthsAgo = new Date();
+            sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+            const dateLimit = sixMonthsAgo.toISOString().split('T')[0];
+
+            let result = await supabase.from('scheduled_studies')
+                .select('*')
+                .eq('user_id', user.id)
+                .gte('date', dateLimit)
+                .order('date', { ascending: true });
+
             if (result.error && result.error.code === '42703') {
                 result = await supabase.from('scheduled_studies')
                     .select('id,date,subject_id,topic_id,activity_type,notes,duration_minutes,questions_done,questions_correct')
-                    .eq('user_id', user.id).order('date', { ascending: true });
+                    .eq('user_id', user.id)
+                    .gte('date', dateLimit)
+                    .order('date', { ascending: true });
             }
             const data = result.error ? null : result.data;
             if (result.error && result.error.code !== '42703') {

@@ -16,7 +16,7 @@ import {
 
 interface QuestionsNotebooksViewProps {
   sessions: StudySession[];
-  concursos: Concurso[];
+  activeConcurso: Concurso | null;
   allSubjects: Subject[];
   setSessions: React.Dispatch<React.SetStateAction<StudySession[]>>;
   onSyncReviews: () => Promise<void>;
@@ -67,12 +67,11 @@ const formatCardDate = (dateStr: string) => {
 
 export const QuestionsNotebooksView: React.FC<QuestionsNotebooksViewProps> = ({
   sessions,
-  concursos,
+  activeConcurso,
   allSubjects,
   setSessions,
   onSyncReviews
 }) => {
-  const [selectedConcursoId, setSelectedConcursoId] = useState<string>('all');
   const [selectedSubjectId, setSelectedSubjectId] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
@@ -82,20 +81,12 @@ export const QuestionsNotebooksView: React.FC<QuestionsNotebooksViewProps> = ({
 
   // Proteção absoluta contra arrays nulos ou indefinidos vindo das props
   const safeSessions = useMemo(() => sessions || [], [sessions]);
-  const safeConcursos = useMemo(() => concursos || [], [concursos]);
   const safeAllSubjects = useMemo(() => allSubjects || [], [allSubjects]);
 
-  // Filtro de Concursos
-  const filteredConcursos = safeConcursos;
-
-  // Filtro de Disciplinas associadas ao Concurso selecionado
+  // Filtro de Disciplinas associadas ao Concurso focado no momento
   const activeSubjects = useMemo(() => {
-    if (selectedConcursoId === 'all') {
-      return safeAllSubjects;
-    }
-    const conc = safeConcursos.find(c => c.id === selectedConcursoId);
-    return conc ? conc.subjects || [] : [];
-  }, [selectedConcursoId, safeAllSubjects, safeConcursos]);
+    return activeConcurso ? activeConcurso.subjects || [] : [];
+  }, [activeConcurso]);
 
   // Lista de sessões de estudo realizadas (estudos de origem, sem contar revisões e simulados)
   const originSessions = useMemo(() => {
@@ -116,11 +107,9 @@ export const QuestionsNotebooksView: React.FC<QuestionsNotebooksViewProps> = ({
   // Mapeamento e filtragem das sessões de estudo realizadas
   const filteredSessions = useMemo(() => {
     return originSessions.filter(s => {
-      // Filtro por Concurso
-      if (selectedConcursoId !== 'all') {
-        const hasSub = activeSubjects.some(sub => sub.id === s.subjectId);
-        if (!hasSub) return false;
-      }
+      // Garante que só mostramos sessões cujas disciplinas pertencem ao concurso focado no momento
+      const hasSub = activeSubjects.some(sub => sub.id === s.subjectId);
+      if (!hasSub) return false;
 
       // Filtro por Disciplina
       if (selectedSubjectId !== 'all' && s.subjectId !== selectedSubjectId) {
@@ -146,7 +135,7 @@ export const QuestionsNotebooksView: React.FC<QuestionsNotebooksViewProps> = ({
 
       return true;
     });
-  }, [originSessions, selectedConcursoId, selectedSubjectId, searchQuery, activeSubjects, safeAllSubjects]);
+  }, [originSessions, selectedSubjectId, searchQuery, activeSubjects, safeAllSubjects]);
 
   // Agrupamento de sessões filtradas por DATA e DISCIPLINA (card/grupo único)
   const groupedCards = useMemo(() => {
@@ -272,33 +261,15 @@ export const QuestionsNotebooksView: React.FC<QuestionsNotebooksViewProps> = ({
       </div>
 
       {/* Painel de Filtros e Busca */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-4 rounded-3xl shadow-xs">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-4 rounded-3xl shadow-xs">
         
-        {/* Filtro de Concurso */}
-        <div>
-          <label className="text-[10px] font-black text-zinc-400 dark:text-zinc-500 uppercase mb-2 block">Concurso</label>
-          <select 
-            value={selectedConcursoId} 
-            onChange={(e) => {
-              setSelectedConcursoId(e.target.value);
-              setSelectedSubjectId('all'); // Reset disciplina
-            }}
-            className="w-full p-2.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl outline-none text-sm text-zinc-700 dark:text-white"
-          >
-            <option value="all">Todos os Cursos</option>
-            {filteredConcursos.map(c => (
-              <option key={c.id} value={c.id}>{c.name}</option>
-            ))}
-          </select>
-        </div>
-
         {/* Filtro de Disciplina */}
         <div>
           <label className="text-[10px] font-black text-zinc-400 dark:text-zinc-500 uppercase mb-2 block">Disciplina</label>
           <select 
             value={selectedSubjectId} 
             onChange={(e) => setSelectedSubjectId(e.target.value)}
-            className="w-full p-2.5 bg-zinc-50 dark:bg-zinc-850 border border-zinc-200 dark:border-zinc-700 rounded-xl outline-none text-sm text-zinc-700 dark:text-white"
+            className="w-full p-2.5 bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 rounded-xl outline-none text-sm text-zinc-900 dark:text-zinc-100 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all cursor-pointer shadow-sm"
           >
             <option value="all">Todas as Disciplinas</option>
             {activeSubjects.map(s => (

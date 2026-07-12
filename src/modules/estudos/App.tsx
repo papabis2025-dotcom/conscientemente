@@ -292,7 +292,7 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
       case 'questions_links':
         return <QuestionsNotebooksView
           sessions={sessions}
-          concursos={concursos}
+          activeConcurso={activeConcurso || null}
           allSubjects={allSubjects}
           setSessions={setSessions}
           onSyncReviews={syncPlannedReviews}

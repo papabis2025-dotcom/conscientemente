@@ -715,35 +715,6 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
             let finalSessions = sessionsData || [];
             let finalScheduleRaw = scheduleData || [];
 
-            // Executa a remoção em lote de todos os links uma única vez para limpar o histórico antigo
-            const isCleared = localStorage.getItem('cp_planner_links_cleared_v1') === 'true';
-            if (!isCleared) {
-                console.log('REMOÇÃO EM LOTE DE TODOS OS LINKS DO PLANNER INICIADA...');
-                try {
-                    // Limpar links das sessões realizadas no banco
-                    const sessToClear = finalSessions.filter(s => s.questionsLink);
-                    if (sessToClear.length > 0) {
-                        await Promise.all(sessToClear.map(async s => {
-                            await api.sessions.update(s.id, { questionsLink: null });
-                        }));
-                        finalSessions = finalSessions.map(s => s.questionsLink ? { ...s, questionsLink: undefined } : s);
-                    }
-
-                    // Limpar links das tarefas agendadas (planner) no banco
-                    const schedToClear = finalScheduleRaw.filter(s => s.questionsLink);
-                    if (schedToClear.length > 0) {
-                        await Promise.all(schedToClear.map(async s => {
-                            await api.schedule.update(s.id, { questionsLink: null });
-                        }));
-                        finalScheduleRaw = finalScheduleRaw.map(s => s.questionsLink ? { ...s, questionsLink: undefined } : s);
-                    }
-
-                    localStorage.setItem('cp_planner_links_cleared_v1', 'true');
-                    console.log('REMOÇÃO EM LOTE CONCLUÍDA COM SUCESSO.');
-                } catch (err) {
-                    console.error('Erro na remoção em lote de links:', err);
-                }
-            }
 
             if (sessionsData) setSessions(finalSessions);
             if (simuladosData) setSimulados(simuladosData);

@@ -5,6 +5,7 @@ import {
   ChevronLeft, ChevronRight, Moon, Sun, LayoutGrid, CheckCircle2,
   LayoutTemplate, Menu
 } from 'lucide-react';
+import { api } from '../modules/estudos/services/api';
 
 interface Habit {
   id: string;
@@ -102,6 +103,38 @@ export default function HabitosHub({ onBack, theme, toggleTheme, userName }: Hab
     };
   }, []);
 
+  // Fetch from Supabase on mount
+  useEffect(() => {
+    const loadFromCloud = async () => {
+      try {
+        const cloudHabits = await api.habits.list();
+        if (cloudHabits && cloudHabits.length > 0) {
+          const mappedHabits = cloudHabits.map(h => ({
+            id: h.id,
+            name: h.name,
+            createdAt: new Date(h.created_at).getTime()
+          }));
+          setHabits(mappedHabits);
+          localStorage.setItem('cn_habits', JSON.stringify(mappedHabits));
+        }
+
+        const cloudLogs = await api.habits.getAllLogs();
+        if (cloudLogs) {
+          const newHistory: Record<string, string[]> = {};
+          cloudLogs.forEach(log => {
+            if (!newHistory[log.logged_date]) newHistory[log.logged_date] = [];
+            newHistory[log.logged_date].push(log.habit_id);
+          });
+          setHabitHistory(newHistory);
+          localStorage.setItem('cn_habit_history', JSON.stringify(newHistory));
+        }
+      } catch (err) {
+        console.error('Error loading habits from cloud:', err);
+      }
+    };
+    loadFromCloud();
+  }, []);
+
   // Dispatch sync event helper
   const triggerSyncEvent = () => {
     window.dispatchEvent(new Event('local-storage-sync'));
@@ -116,18 +149,25 @@ export default function HabitosHub({ onBack, theme, toggleTheme, userName }: Hab
 
   // Mutators
   const toggleHabit = (habitId: string, dateStr: string = selectedDate) => {
+    let isCompleted = false;
     setHabitHistory(prev => {
       const dayLogs = prev[dateStr] || [];
       let newDayLogs: string[];
       if (dayLogs.includes(habitId)) {
         newDayLogs = dayLogs.filter(id => id !== habitId);
+        isCompleted = false;
       } else {
         newDayLogs = [...dayLogs, habitId];
+        isCompleted = true;
       }
       const updated = { ...prev, [dateStr]: newDayLogs };
       localStorage.setItem('cn_habit_history', JSON.stringify(updated));
       return updated;
     });
+    
+    // Sync to cloud
+    api.habits.toggleLog(habitId, dateStr, isCompleted).catch(err => console.error('Error toggling habit log in cloud:', err));
+
     // Trigger sync
     setTimeout(triggerSyncEvent, 50);
   };
@@ -136,24 +176,32 @@ export default function HabitosHub({ onBack, theme, toggleTheme, userName }: Hab
     toggleHabit(habitId, dateStr);
   };
 
-  const addHabit = (e: React.FormEvent) => {
+  const addHabit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newHabitName.trim()) return;
 
-    const newHabit: Habit = {
-      id: `habit_${Date.now()}`,
-      name: newHabitName.trim(),
-      createdAt: Date.now()
-    };
+    const newHabitNameTrimmed = newHabitName.trim();
+    setNewHabitName(''); // Clear input optimistically
 
-    setHabits(prev => {
-      const updated = [...prev, newHabit];
-      localStorage.setItem('cn_habits', JSON.stringify(updated));
-      return updated;
-    });
+    try {
+      const cloudHabit = await api.habits.upsert({ name: newHabitNameTrimmed });
+      if (cloudHabit) {
+        const newHabit: Habit = {
+          id: cloudHabit.id,
+          name: cloudHabit.name,
+          createdAt: new Date(cloudHabit.created_at).getTime()
+        };
 
-    setNewHabitName('');
-    setTimeout(triggerSyncEvent, 50);
+        setHabits(prev => {
+          const updated = [...prev, newHabit];
+          localStorage.setItem('cn_habits', JSON.stringify(updated));
+          return updated;
+        });
+        setTimeout(triggerSyncEvent, 50);
+      }
+    } catch (err) {
+      console.error('Error adding habit to cloud:', err);
+    }
   };
 
   const deleteHabit = (habitId: string) => {
@@ -187,6 +235,9 @@ export default function HabitosHub({ onBack, theme, toggleTheme, userName }: Hab
     } catch {
       localStorage.setItem('cn_deleted_habit_ids', JSON.stringify([habitId]));
     }
+
+    // Sync to cloud
+    api.habits.delete(habitId).catch(err => console.error('Error deleting habit in cloud:', err));
 
     setTimeout(triggerSyncEvent, 50);
   };

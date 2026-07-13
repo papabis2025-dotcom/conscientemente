@@ -18,6 +18,7 @@ export interface Profile {
   name: string;
   avatar: string;
   updated_at?: string;
+  metadata?: any;
 }
 
 export interface Concurso {

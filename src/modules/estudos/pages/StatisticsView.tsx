@@ -1,6 +1,7 @@
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Subject, StudySession, Concurso } from '../types';
+import { api } from '../services/api';
 import { ChevronDown, ChevronRight, Trophy, PieChart as PieChartIcon, Table } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 
@@ -54,12 +55,29 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, sim
     return saved !== null ? parseInt(saved) : 10;
   });
 
+  // Sync with Supabase on mount
+  useEffect(() => {
+    api.settings.get().then(meta => {
+      if (meta && meta.estudos_weights) {
+        setWeightAcc(meta.estudos_weights.acc ?? weightAcc);
+        setWeightSubj(meta.estudos_weights.subj ?? weightSubj);
+        setWeightQtd(meta.estudos_weights.qtd ?? weightQtd);
+        setWeightTime(meta.estudos_weights.time ?? weightTime);
+      }
+    }).catch(err => console.error('Error loading weights from DB:', err));
+  }, []);
+
+  const saveWeightsToDb = (newWeights: any) => {
+    api.settings.update({ estudos_weights: newWeights }).catch(err => console.error('Error saving weights to DB:', err));
+  };
+
   const handleWeightAccChange = (val: number) => {
     const safeVal = Math.max(0, Math.min(100, val));
     const sumOthers = weightSubj + weightQtd + weightTime;
     const finalVal = safeVal + sumOthers > 100 ? 100 - sumOthers : safeVal;
     setWeightAcc(finalVal);
     localStorage.setItem('estudos_weight_acc', String(finalVal));
+    saveWeightsToDb({ acc: finalVal, subj: weightSubj, qtd: weightQtd, time: weightTime });
   };
 
   const handleWeightSubjChange = (val: number) => {
@@ -68,6 +86,7 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, sim
     const finalVal = safeVal + sumOthers > 100 ? 100 - sumOthers : safeVal;
     setWeightSubj(finalVal);
     localStorage.setItem('estudos_weight_subj', String(finalVal));
+    saveWeightsToDb({ acc: weightAcc, subj: finalVal, qtd: weightQtd, time: weightTime });
   };
 
   const handleWeightQtdChange = (val: number) => {
@@ -76,6 +95,7 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, sim
     const finalVal = safeVal + sumOthers > 100 ? 100 - sumOthers : safeVal;
     setWeightQtd(finalVal);
     localStorage.setItem('estudos_weight_qtd', String(finalVal));
+    saveWeightsToDb({ acc: weightAcc, subj: weightSubj, qtd: finalVal, time: weightTime });
   };
 
   const handleWeightTimeChange = (val: number) => {
@@ -84,6 +104,7 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, sim
     const finalVal = safeVal + sumOthers > 100 ? 100 - sumOthers : safeVal;
     setWeightTime(finalVal);
     localStorage.setItem('estudos_weight_time', String(finalVal));
+    saveWeightsToDb({ acc: weightAcc, subj: weightSubj, qtd: weightQtd, time: finalVal });
   };
 
   const subjectData = useMemo(() => {

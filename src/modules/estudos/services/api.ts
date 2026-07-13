@@ -22,6 +22,24 @@ export const api = {
         update: async (updates: Partial<Profile>) => handleRequest(supabase.from('profiles').update(updates).eq('id', (await supabase.auth.getUser()).data.user?.id)),
     },
 
+    // Settings (stored in profiles.metadata)
+    settings: {
+        get: async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return null;
+            const profile = await handleRequest<any>(supabase.from('profiles').select('metadata').eq('id', user.id).single());
+            return profile?.metadata || {};
+        },
+        update: async (metadataUpdates: any) => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return null;
+            const profile = await handleRequest<any>(supabase.from('profiles').select('metadata').eq('id', user.id).single());
+            const currentMetadata = profile?.metadata || {};
+            const newMetadata = { ...currentMetadata, ...metadataUpdates };
+            return handleRequest(supabase.from('profiles').update({ metadata: newMetadata }).eq('id', user.id));
+        }
+    },
+
     // Concursos
     concursos: {
         list: async () => {
@@ -35,7 +53,8 @@ export const api = {
                 startDate: c.start_date,
                 targetDate: c.target_date,
                 subjects: c.subjects || [],
-                categoryId: c.category_id
+                categoryId: c.category_id,
+                imageUrl: c.image_url
             }));
         },
         upsert: async (concurso: Concurso) => {
@@ -53,11 +72,17 @@ export const api = {
                 start_date: concurso.startDate || null,
                 target_date: concurso.targetDate || null,
                 category_id: concurso.categoryId,
+                image_url: concurso.imageUrl || null,
                 subjects: concurso.subjects || [] // JSONB supported directly, default to empty array
             };
 
             console.log('Upserting concurso to DB:', { id: dbPayload.id, name: dbPayload.name, subjectsCount: concurso.subjects?.length });
-            return handleRequest<Concurso>(supabase.from('concursos').upsert(dbPayload).select().single());
+            let result = await supabase.from('concursos').upsert(dbPayload).select().single();
+            if (result.error && result.error.code === '42703') {
+                const { image_url, ...payloadWithoutImage } = dbPayload as any;
+                result = await supabase.from('concursos').upsert(payloadWithoutImage).select().single();
+            }
+            return handleRequest<Concurso>(Promise.resolve(result));
         },
         delete: async (id: string) => handleRequest(supabase.from('concursos').delete().eq('id', id)),
         deleteAll: async () => {
@@ -465,6 +490,47 @@ export const api = {
         deleteAll: async () => {
             const { data: { user } } = await supabase.auth.getUser();
             if (user) return handleRequest(supabase.from('daily_goals').delete().eq('user_id', user.id));
+        }
+    },
+
+    // Hábitos
+    habits: {
+        list: async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return [];
+            return handleRequest<any[]>(supabase.from('habits').select('*').eq('user_id', user.id).order('created_at', { ascending: true }));
+        },
+        upsert: async (habit: any) => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return null;
+            
+            const dbPayload = {
+                id: (habit.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(habit.id)) ? habit.id : undefined,
+                user_id: user.id,
+                name: habit.name
+            };
+            return handleRequest<any>(supabase.from('habits').upsert(dbPayload).select().single());
+        },
+        delete: async (id: string) => handleRequest(supabase.from('habits').delete().eq('id', id)),
+        
+        getLogs: async (dateStr: string) => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return [];
+            return handleRequest<any[]>(supabase.from('habit_logs').select('*').eq('user_id', user.id).eq('logged_date', dateStr));
+        },
+        getAllLogs: async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return [];
+            return handleRequest<any[]>(supabase.from('habit_logs').select('*').eq('user_id', user.id));
+        },
+        toggleLog: async (habitId: string, dateStr: string, isCompleted: boolean) => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return null;
+            if (isCompleted) {
+                return handleRequest(supabase.from('habit_logs').upsert({ user_id: user.id, habit_id: habitId, logged_date: dateStr }));
+            } else {
+                return handleRequest(supabase.from('habit_logs').delete().eq('user_id', user.id).eq('habit_id', habitId).eq('logged_date', dateStr));
+            }
         }
     },
 

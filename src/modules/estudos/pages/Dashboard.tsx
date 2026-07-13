@@ -310,15 +310,7 @@ const Dashboard: React.FC<DashboardProps> = ({
           stats[sub.name].correct += (res.correct || 0);
         }
       });
-      if (sim.durationInMinutes && sim.results.length > 0) {
-        const share = Math.round(sim.durationInMinutes / sim.results.length);
-        sim.results.forEach(res => {
-          const sub = subjects.find(s => s.id === res.subjectId);
-          if (sub && stats[sub.name]) {
-            stats[sub.name].minutes += share;
-          }
-        });
-      }
+      // Não computa o tempo de simulados no widget de análise estatística / disciplina, conforme regra
     });
 
     const list = Object.values(stats)
@@ -486,7 +478,7 @@ const Dashboard: React.FC<DashboardProps> = ({
         if (match) {
           const simDone = (s.results || []).reduce((a, r) => a + r.done, 0);
           const simCorrect = (s.results || []).reduce((a, r) => a + r.correct, 0);
-          match.h += (Number(s.durationInMinutes) || 0) / 60;
+          // match.h += (Number(s.durationInMinutes) || 0) / 60; // Não computar tempo de simulado
           match.q += simDone;
           match.correct += simCorrect;
           match.done += simDone;
@@ -545,7 +537,7 @@ const Dashboard: React.FC<DashboardProps> = ({
           if (weekIndex < weeksInMonth) {
             const simDone = (s.results || []).reduce((a, r) => a + r.done, 0);
             const simCorrect = (s.results || []).reduce((a, r) => a + r.correct, 0);
-            dataMap[weekIndex].h += (Number(s.durationInMinutes) || 0) / 60;
+            // dataMap[weekIndex].h += (Number(s.durationInMinutes) || 0) / 60; // Não computar tempo de simulado
             dataMap[weekIndex].q += simDone;
             dataMap[weekIndex].correct += simCorrect;
             dataMap[weekIndex].done += simDone;
@@ -590,7 +582,7 @@ const Dashboard: React.FC<DashboardProps> = ({
           const monthIdx = sMonth - 1;
           const simDone = (s.results || []).reduce((a, r) => a + r.done, 0);
           const simCorrect = (s.results || []).reduce((a, r) => a + r.correct, 0);
-          dataMap[monthIdx].h += (Number(s.durationInMinutes) || 0) / 60;
+          // dataMap[monthIdx].h += (Number(s.durationInMinutes) || 0) / 60; // Não computar tempo de simulado
           dataMap[monthIdx].q += simDone;
           dataMap[monthIdx].correct += simCorrect;
           dataMap[monthIdx].done += simDone;
@@ -656,7 +648,7 @@ const Dashboard: React.FC<DashboardProps> = ({
         if (match) {
           const simDone = (s.results || []).reduce((a, r) => a + r.done, 0);
           const simCorrect = (s.results || []).reduce((a, r) => a + r.correct, 0);
-          match.h += (Number(s.durationInMinutes) || 0) / 60;
+          // match.h += (Number(s.durationInMinutes) || 0) / 60; // Não computar tempo de simulado
           match.q += simDone;
           match.correct += simCorrect;
           match.done += simDone;

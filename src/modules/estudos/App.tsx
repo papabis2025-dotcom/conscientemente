@@ -305,7 +305,7 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
           onUpdateTasks={setStudyTasks}
         />;
       case 'statistics':
-        return <StatisticsView subjects={filteredSubjects} sessions={sessions} concursos={concursos} selectedConcursoId={selectedConcursoId} onSelectConcursoId={setSelectedConcursoId} />;
+        return <StatisticsView subjects={filteredSubjects} sessions={sessions} simulados={simulados} concursos={concursos} selectedConcursoId={selectedConcursoId} onSelectConcursoId={setSelectedConcursoId} />;
       case 'settings':
         return <SettingsView currentUserEmail={currentUser?.email || ''} />;
       default: return null;

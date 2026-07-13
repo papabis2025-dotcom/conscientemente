@@ -7,6 +7,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 interface StatisticsViewProps {
   subjects: Subject[];
   sessions: StudySession[];
+  simulados?: import('../types').Simulado[];
   concursos?: Concurso[];
   selectedConcursoId?: string | 'all';
   onSelectConcursoId?: (id: string | 'all') => void;
@@ -29,7 +30,7 @@ function getAccuracyText(accuracy: number, hasData: boolean): string {
   return 'text-emerald-700 dark:text-emerald-300 font-bold';
 }
 
-const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, concursos, selectedConcursoId, onSelectConcursoId }) => {
+const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, simulados, concursos, selectedConcursoId, onSelectConcursoId }) => {
   const [sortBy, setSortBy] = useState<'name' | 'questions' | 'correct' | 'questionsGoal' | 'time' | 'accuracy' | 'weight' | 'priority'>('priority');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [showTopics, setShowTopics] = useState(false);
@@ -88,16 +89,29 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, con
   const subjectData = useMemo(() => {
     return subjects.map(sub => {
       const subSessions = sessions.filter(s => s.subjectId === sub.id);
-      const questions = subSessions.reduce((acc, s) => acc + (s.questionsDone || 0), 0);
-      const correct = subSessions.reduce((acc, s) => acc + (s.questionsCorrect || 0), 0);
+      let questions = subSessions.reduce((acc, s) => acc + (s.questionsDone || 0), 0);
+      let correct = subSessions.reduce((acc, s) => acc + (s.questionsCorrect || 0), 0);
+      const minutes = subSessions.reduce((acc, s) => acc + (s.durationInMinutes || 0), 0);
+
+      // Adicionar aproveitamento dos simulados (mas sem computar o tempo, conforme regra)
+      if (simulados) {
+        simulados.forEach(sim => {
+          (sim.results || []).forEach(res => {
+            if (res.subjectId === sub.id) {
+              questions += (res.done || 0);
+              correct += (res.correct || 0);
+            }
+          });
+        });
+      }
+
       const accuracy = questions > 0 ? Math.min(100, Math.round((correct / questions) * 100)) : 0;
       const weight = sub.weight || 1;
       const questionsGoal = sub.questionsGoal || 0;
-      const minutes = subSessions.reduce((acc, s) => acc + (s.durationInMinutes || 0), 0);
 
       return { sub, questions, correct, accuracy, weight, questionsGoal, minutes };
     });
-  }, [subjects, sessions]);
+  }, [subjects, sessions, simulados]);
 
 
   const maxWeight = useMemo(() => Math.max(1, ...subjectData.map(d => d.weight)), [subjectData]);

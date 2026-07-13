@@ -11,7 +11,8 @@ import {
   Calendar, 
   ChevronRight, 
   Clock, 
-  AlertCircle
+  AlertCircle,
+  X
 } from 'lucide-react';
 
 interface QuestionsNotebooksViewProps {
@@ -281,15 +282,24 @@ export const QuestionsNotebooksView: React.FC<QuestionsNotebooksViewProps> = ({
         {/* Campo de Busca por texto */}
         <div>
           <label className="text-[10px] font-black text-zinc-400 dark:text-zinc-500 uppercase mb-2 block">Buscar por Código ou Assunto</label>
-          <div className="relative">
-            <Search className="absolute left-3 top-3 text-zinc-400" size={16} />
+          <div className="relative flex items-center">
+            <Search className="absolute left-3 text-zinc-400" size={16} />
             <input 
               type="text" 
               placeholder="Ex: #OAB47DPC ou Inquérito..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl outline-none text-sm text-zinc-700 dark:text-white"
+              className="w-full pl-9 pr-10 py-2.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl outline-none text-sm text-zinc-700 dark:text-white"
             />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 p-1 rounded-full text-zinc-400 hover:text-zinc-600 hover:bg-zinc-200 dark:hover:text-zinc-300 dark:hover:bg-zinc-700 transition-colors"
+                title="Limpar busca"
+              >
+                <X size={14} />
+              </button>
+            )}
           </div>
         </div>
 

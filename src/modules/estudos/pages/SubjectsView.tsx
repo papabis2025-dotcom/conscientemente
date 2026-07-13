@@ -88,6 +88,13 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
     return saved ? JSON.parse(saved) : [7, 30, 90, 15, 45];
   });
 
+  const sortedReviewIndices = React.useMemo(() => {
+    return customReviewDays
+      .map((val, idx) => ({ val, idx }))
+      .sort((a, b) => a.val - b.val)
+      .map(x => x.idx);
+  }, [customReviewDays]);
+
   const [reviewsDisabled, setReviewsDisabled] = useState(() => {
     if (selectedConcursoId && selectedConcursoId !== 'all') {
       return localStorage.getItem('estudos_disabled_reviews_' + selectedConcursoId) === 'true';
@@ -849,18 +856,21 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                                   <th className="py-1.5 text-[10px] uppercase font-bold cursor-pointer text-emerald-600 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/20 px-2.5 rounded-t-xl" onClick={() => { setTopicSortBy('firstStudy'); setTopicSortOrder(o => o === 'desc' ? 'asc' : 'desc'); }}>
                                     Primeira {topicSortBy === 'firstStudy' && (topicSortOrder === 'desc' ? '↓' : '↑')}
                                   </th>
-                                  {customReviewDays.map((days, idx) => (
-                                    <th
-                                      key={idx}
-                                      className={`py-1.5 text-[10px] uppercase font-bold cursor-pointer hover:text-zinc-900 dark:text-zinc-300 whitespace-nowrap ${topicSortBy === `review${idx + 1}` ? 'text-zinc-900 dark:text-zinc-100 font-black' : 'text-zinc-400'}`}
-                                      onClick={() => {
-                                        setTopicSortBy(`review${idx + 1}` as any);
-                                        setTopicSortOrder(o => o === 'desc' ? 'asc' : 'desc');
-                                      }}
-                                    >
-                                      Rev.{idx + 1} ({days}d) {topicSortBy === `review${idx + 1}` && (topicSortOrder === 'desc' ? '↓' : '↑')}
-                                    </th>
-                                  ))}
+                                  {sortedReviewIndices.map((origIdx, displayIdx) => {
+                                    const days = customReviewDays[origIdx];
+                                    return (
+                                      <th
+                                        key={origIdx}
+                                        className={`py-1.5 text-[10px] uppercase font-bold cursor-pointer hover:text-zinc-900 dark:text-zinc-300 whitespace-nowrap ${topicSortBy === `review${origIdx + 1}` ? 'text-zinc-900 dark:text-zinc-100 font-black' : 'text-zinc-400'}`}
+                                        onClick={() => {
+                                          setTopicSortBy(`review${origIdx + 1}` as any);
+                                          setTopicSortOrder(o => o === 'desc' ? 'asc' : 'desc');
+                                        }}
+                                      >
+                                        Rev.{displayIdx + 1} ({days}d) {topicSortBy === `review${origIdx + 1}` && (topicSortOrder === 'desc' ? '↓' : '↑')}
+                                      </th>
+                                    );
+                                  })}
                                   <th className="py-1.5 text-[10px] uppercase font-bold cursor-pointer text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 bg-red-50 dark:bg-red-950/20 px-2.5 rounded-t-xl" onClick={() => { setTopicSortBy('lastStudy'); setTopicSortOrder(o => o === 'desc' ? 'asc' : 'desc'); }}>
                                     Último {topicSortBy === 'lastStudy' && (topicSortOrder === 'desc' ? '↓' : '↑')}
                                   </th>
@@ -878,7 +888,8 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                                         Geral / Outros <span className="text-[10px] font-normal opacity-60 ml-1 text-zinc-500">revisão geral</span>
                                       </td>
                                       <td className="py-1.5 text-emerald-700/80 dark:text-emerald-300/80 text-xs bg-emerald-50/30 dark:bg-emerald-950/10 px-2.5 font-medium">{stats.firstStudyDate || '—'}</td>
-                                      {stats.customReviewDates.map((item, idx) => {
+                                      {sortedReviewIndices.map((origIdx) => {
+                                        const item = stats.customReviewDates[origIdx];
                                         const dateVal = typeof item === 'string' ? item : item.dateStr;
                                         const statusVal = typeof item === 'string' ? 'none' : item.status;
                                         let className = "py-1.5 text-xs font-medium ";
@@ -890,7 +901,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                                           className += "text-zinc-400";
                                         }
                                         return (
-                                          <td key={idx} className={className}>
+                                          <td key={origIdx} className={className}>
                                             {dateVal || '—'}
                                           </td>
                                         );
@@ -1036,7 +1047,8 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                                         <td className="py-1.5 text-emerald-700/80 dark:text-emerald-350/80 text-xs bg-emerald-50/30 dark:bg-emerald-950/10 px-2.5 font-medium">
                                           {tStats.firstStudyDate || '-'}
                                         </td>
-                                        {tStats.customReviewDates.map((item, idx) => {
+                                        {sortedReviewIndices.map((origIdx) => {
+                                          const item = tStats.customReviewDates[origIdx];
                                           const dateVal = typeof item === 'string' ? item : item.dateStr;
                                           const statusVal = typeof item === 'string' ? 'none' : item.status;
                                           let className = "py-1.5 text-xs font-medium ";
@@ -1048,7 +1060,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                                             className += "text-zinc-400";
                                           }
                                           return (
-                                            <td key={idx} className={className}>
+                                            <td key={origIdx} className={className}>
                                               {dateVal || '—'}
                                             </td>
                                           );

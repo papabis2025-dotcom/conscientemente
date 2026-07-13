@@ -460,11 +460,13 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
 
                             const reviewId = getDeterministicReviewId(subject.id, topic.id === 'geral' ? undefined : topic.id, latestSession.id, idx);
                             
-                            const tag = getActivityTag(subject.id, dateStr, topic.id === 'geral' ? undefined : topic.title);
+                            const tag = getActivityTag(subject.id, sessionDateStr, topic.id === 'geral' ? undefined : topic.title);
 
                             // Agrupamos as revisões com base na data do estudo de origem (sessionDateStr)
                             // anexando-a ao groupId de forma universal.
                             const groupId = `rev_${subject.id}_${dateStr}_from_${sessionDateStr}`;
+                            
+                            const originText = `${parts[2]} ${['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'][parseInt(parts[1], 10) - 1]} ${parts[0].substring(2)}`;
 
                             expectedReviews.push({
                                 id: reviewId,
@@ -472,7 +474,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                                 subjectId: subject.id,
                                 topicId: topic.id === 'geral' ? undefined : topic.id,
                                 activityType: 'Revisão',
-                                notes: `[groupId:${groupId}] ${tag} - Revisão automática (${days}d)`,
+                                notes: `[groupId:${groupId}] ${tag} - Revisão automática (${days}d) | Origem: ${originText}`,
                                 durationInMinutes: 30,
                                 questionsDone: 10,
                                 questionsCorrect: 8,

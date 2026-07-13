@@ -125,6 +125,12 @@ const CalendarView: React.FC<CalendarViewProps> = ({
 
   const handleSave = async () => {
     if (selectedDayKey === null) return;
+    
+    if (formData.duration && parseInt(formData.duration) <= 0) {
+      alert('A duração deve ser maior que 0 minutos.');
+      return;
+    }
+
     const filteredLinks = formData.questionsLinks ? formData.questionsLinks.filter(Boolean) : [];
     const linkPayload = filteredLinks.length > 0 ? JSON.stringify(filteredLinks) : null;
     try {

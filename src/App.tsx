@@ -46,7 +46,11 @@ const SYNC_KEYS = [
   'cn_saude_sleep_logs',
   'cn_home_cards_layout',
   'cn_global_alignment',
-  'cn_home_widgets_order'
+  'cn_home_widgets_order',
+  'cp_selected_concurso_id',
+  'cp_global_daily_goal',
+  'estudos_deleted_review_ids',
+  'cp_menu_order'
 ];
 
 function mergeLists<T extends { id: string }>(listA: T[], listB: T[]): T[] {
@@ -239,7 +243,8 @@ function mergeSettings(
       key === 'cn_deleted_habit_ids' ||
       key === 'cn_deleted_note_ids' ||
       key === 'cn_deleted_folder_ids' ||
-      key === 'cp_deleted_study_task_ids'
+      key === 'cp_deleted_study_task_ids' ||
+      key === 'estudos_deleted_review_ids'
     ) {
       try {
         const localList = JSON.parse(localVal);

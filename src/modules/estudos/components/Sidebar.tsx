@@ -250,9 +250,9 @@ const Sidebar: React.FC<SidebarProps> = ({
               } ${isReorderMode ? 'cursor-move' : ''} ${draggedIndex === index ? 'opacity-50 scale-95' : ''}`}
           >
             {isReorderMode && !isCollapsed && <GripVertical size={14} className="opacity-50" />}
-            <span className={`${isCollapsed ? '' : ''}`}><item.icon size={20} /></span>
+            <span className="flex-shrink-0 flex items-center justify-center"><item.icon size={20} /></span>
             {!isCollapsed && (
-              <span className="text-sm flex items-center gap-2">
+              <span className="text-sm flex items-center gap-2 select-none truncate">
                 {item.label}
                 {item.id === 'study_plan' && (studyTasks || []).some(t => {
                   const today = new Date().toISOString().split('T')[0];

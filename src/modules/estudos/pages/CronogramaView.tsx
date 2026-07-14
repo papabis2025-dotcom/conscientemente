@@ -718,7 +718,7 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
                 </div>
               </div>
 
-              <div className="border-t border-zinc-150 dark:border-zinc-800 pt-8 flex justify-center gap-4">
+              <div className="border-t border-zinc-150 dark:border-zinc-800 pt-8 flex justify-center flex-wrap gap-4">
                 <button
                   type="button"
                   onClick={handleSavePreferences}
@@ -736,6 +736,15 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
                 >
                   {isGenerating ? 'Gerando Planejamento...' : 'Gerar Cronograma'}
                   <Zap size={14} className="fill-white" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleResetAll}
+                  className="bg-white hover:bg-rose-50 border border-rose-200 text-rose-500 font-black uppercase tracking-widest text-xs px-8 py-4 rounded-[2rem] shadow-sm hover:shadow-md transition-all flex items-center gap-2 active:scale-95"
+                >
+                  <Trash2 size={14} />
+                  Zerar Cronograma
                 </button>
               </div>
             </div>

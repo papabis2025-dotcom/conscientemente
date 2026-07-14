@@ -475,9 +475,6 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                                 topicId: topic.id === 'geral' ? undefined : topic.id,
                                 activityType: 'Revisão',
                                 notes: `[groupId:${groupId}] ${tag} - Revisão automática (${days}d) | Origem: ${originText}`,
-                                durationInMinutes: 30,
-                                questionsDone: 10,
-                                questionsCorrect: 8,
                                 status: 'planejado',
                                 questionsLink: latestSession.questionsLink
                             });
@@ -591,14 +588,16 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
             if (current && current.status !== 'realizado') {
                 const notesChanged = current.notes !== expected.notes;
                 const dateChanged = current.date !== expected.date;
-                const linkChanged = current.questionsLink !== expected.questionsLink;
+                // Não compara questionsLink para evitar atualizações desnecessárias
+                // que causam re-renderização e reordenação das tarefas no planner
 
-                if (notesChanged || dateChanged || linkChanged) {
+                if (notesChanged || dateChanged) {
                     reviewsToUpdate.push({
                         ...current,
                         notes: expected.notes,
-                        date: expected.date,
-                        questionsLink: expected.questionsLink
+                        date: expected.date
+                        // Preserva questionsLink, durationInMinutes, questionsDone, questionsCorrect
+                        // que possam ter sido preenchidos pelo usuário
                     });
                 }
             }
@@ -627,16 +626,17 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         }
 
         if (reviewsToUpdate.length > 0) {
-            console.log('Syncing planned reviews: updating review notes/dates/links:', reviewsToUpdate.map(r => r.id));
+            console.log('Syncing planned reviews: updating review notes/dates:', reviewsToUpdate.map(r => r.id));
             for (const r of reviewsToUpdate) {
                 try {
                     await api.schedule.update(r.id, { 
                         notes: r.notes, 
-                        date: r.date,
-                        questionsLink: r.questionsLink
+                        date: r.date
+                        // Não atualiza questionsLink, durationInMinutes, questionsDone, questionsCorrect
+                        // para preservar dados preenchidos pelo usuário
                     });
                 } catch (e) {
-                    console.error('Error updating review notes/date/link:', r.id, e);
+                    console.error('Error updating review notes/date:', r.id, e);
                 }
             }
         }
@@ -651,15 +651,16 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
             // 1. Remover apenas as revisões obsoletas/duplicadas marcadas explicitamente
             let filtered = prev.filter(s => !deleteIds.has(s.id));
             
-            // 2. Atualizar notas/datas/links de revisões que mudaram
+            // 2. Atualizar notas/datas de revisões que mudaram
+            // Preservar questionsLink, durationInMinutes, questionsDone, questionsCorrect
+            // que possam ter sido preenchidos pelo usuário
             filtered = filtered.map(s => {
                 const updatedFromReviews = updateMap.get(s.id);
                 if (updatedFromReviews) {
                     return { 
                         ...s, 
                         notes: updatedFromReviews.notes, 
-                        date: updatedFromReviews.date,
-                        questionsLink: updatedFromReviews.questionsLink
+                        date: updatedFromReviews.date
                     };
                 }
                 return s;

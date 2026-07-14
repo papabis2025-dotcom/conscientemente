@@ -693,9 +693,9 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
     }, [syncPlannedReviews]);
 
     // Initial Data Fetch
-    const fetchData = useCallback(async () => {
+    const fetchData = useCallback(async (silent: boolean = false) => {
         if (!currentUser) return;
-        setIsLoading(true);
+        if (!silent) setIsLoading(true);
         try {
             const [concursosData, sessionsData, simuladosData, scheduleData, goalsData, logsData] = await Promise.all([
                 api.concursos.list(),
@@ -759,7 +759,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         } catch (error) {
             console.error('Failed to fetch data:', error);
         } finally {
-            setIsLoading(false);
+            if (!silent) setIsLoading(false);
         }
     }, [currentUser, syncSimuladoSessions, syncPlannedReviewsDb]);
 
@@ -817,11 +817,18 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         };
     }, []);
 
-    // Trigger Fetch on User Change
+    // Trigger Fetch on User Change and Window Focus
     useEffect(() => {
-        if (currentUser) {
-            fetchData();
-        }
+        if (!currentUser) return;
+        
+        fetchData();
+
+        const handleFocus = () => {
+            console.log('Window focused: fetching latest studies data silently...');
+            fetchData(true);
+        };
+        window.addEventListener('focus', handleFocus);
+        return () => window.removeEventListener('focus', handleFocus);
     }, [currentUser, fetchData]);
 
 
@@ -1941,6 +1948,55 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         }
     }, [api.schedule]);
 
+    const resetConcursoSchedule = useCallback(async (concursoId: string) => {
+        if (!concursoId || concursoId === 'all') return;
+        const concurso = concursos.find(c => c.id === concursoId);
+        if (!concurso) return;
+
+        const subjectIds = new Set((concurso.subjects || []).map(s => s.id));
+        setIsSaving(true);
+        setSaveError(null);
+
+        // 1. Update local states
+        setSessions(prev => {
+            const updated = prev.filter(s => !subjectIds.has(s.subjectId));
+            return updated;
+        });
+        setScheduledStudies(prev => {
+            const updated = prev.filter(s => !subjectIds.has(s.subjectId));
+            localStorage.setItem('cp_scheduled_studies', JSON.stringify(updated));
+            return updated;
+        });
+
+        // 2. Perform DB operations
+        try {
+            for (const subId of Array.from(subjectIds)) {
+                await api.sessions.deleteBySubject(subId);
+                await api.schedule.deleteBySubject(subId);
+            }
+            
+            // Also delete simulados where results are only for this concurso
+            const simsToDelete = simulados.filter(sim => 
+                sim.results && sim.results.some(r => subjectIds.has(r.subjectId))
+            );
+            for (const sim of simsToDelete) {
+                await api.simulados.delete(sim.id);
+            }
+            setSimulados(prev => prev.filter(sim => !simsToDelete.some(s => s.id === sim.id)));
+
+            addLog({
+                message: `Cronograma e histórico de "${concurso.name}" limpos com sucesso`,
+                type: 'info'
+            });
+            setLastSaved(new Date().toLocaleTimeString());
+        } catch (e) {
+            console.error('Error resetting concurso schedule:', e);
+            setSaveError('Erro ao zerar o cronograma no banco de dados.');
+        } finally {
+            setIsSaving(false);
+        }
+    }, [concursos, simulados, addLog]);
+
     return {
         currentUser, setCurrentUser,
         users, setUsers: updateUser,
@@ -1974,6 +2030,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         toggleScheduledStudyStatus,
         addScheduledStudiesBatch,
         deleteScheduledStudiesBatch,
+        resetConcursoSchedule,
         syncPlannedReviews,
         getActivityTag,
         updateProfile: async (name: string, avatar: string) => {

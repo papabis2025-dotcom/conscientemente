@@ -99,7 +99,8 @@ function mergeSettings(
       key === 'cp_dashboard_layout_v20' ||
       key === 'cp_scheduled_studies' ||
       key === 'cn_saude_dashboard_layout' ||
-      key === 'cn_home_cards_layout'
+      key === 'cn_home_cards_layout' ||
+      key === 'cn_saude_sleep_logs'
     ) {
       try {
         const localList = JSON.parse(localVal);

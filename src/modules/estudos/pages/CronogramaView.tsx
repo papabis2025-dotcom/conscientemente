@@ -35,6 +35,7 @@ interface CronogramaViewProps {
   onAddScheduledStudiesBatch: (items: (Omit<ScheduledStudy, 'id' | 'status'> & { id?: string })[]) => Promise<void>;
   onDeleteScheduledStudiesBatch: (ids: string[]) => Promise<void>;
   onToggleScheduledStudyStatus: (id: string) => Promise<void>;
+  onResetConcursoSchedule?: (concursoId: string) => Promise<void>;
 }
 
 const WEEKDAYS = [
@@ -56,7 +57,8 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
   scheduledStudies,
   onAddScheduledStudiesBatch,
   onDeleteScheduledStudiesBatch,
-  onToggleScheduledStudyStatus
+  onToggleScheduledStudyStatus,
+  onResetConcursoSchedule
 }) => {
   // UI States
   const [viewMode, setViewMode] = useState<'day' | 'week' | 'month'>('week');
@@ -287,11 +289,18 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
 
       // 3. Generate items day by day
       const items: (Omit<ScheduledStudy, 'id' | 'status'> & { id?: string })[] = [];
+      const weeklyStudiedSubjects: Set<string> = new Set();
 
       for (let dayOffset = 0; dayOffset < totalDays; dayOffset++) {
         const currentDate = new Date(start);
         currentDate.setDate(start.getDate() + dayOffset);
         const dateStr = currentDate.toISOString().split('T')[0];
+
+        // Reset weekly studied subjects on Mondays
+        const dayOfWeekStr = currentDate.toLocaleDateString('en-US', { weekday: 'long' });
+        if (dayOfWeekStr === 'Monday') {
+          weeklyStudiedSubjects.clear();
+        }
 
         // Se este dia já tem alguma atividade cadastrada, pular a geração automática
         const hasExistingActivity = (scheduledStudies || []).some(s => {
@@ -334,35 +343,21 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
           const totalMinutesPerTopic = Math.round((dailyHours * 60) / totalTopicsCount);
 
           todaysSubjects.forEach(profile => {
+            weeklyStudiedSubjects.add(profile.subject.name);
             for (let tIdx = 0; tIdx < topicsPerSubjectPerDay; tIdx++) {
               const topic = profile.queue[profile.queueIndex % profile.queue.length];
               if (topic) {
                 profile.queueIndex++;
               }
 
-              // Split into theory and practice
-              const readingTime = Math.round(totalMinutesPerTopic * 0.4);
-              const questionsTime = totalMinutesPerTopic - readingTime;
-
+              // Group reading and questions into a single planner task
               items.push({
                 date: dateStr,
                 subjectId: profile.subject.id,
                 topicId: topic?.id,
-                activityType: 'Leitura',
-                notes: `Leitura do material: ${topic?.title || 'Conteúdo geral'}`,
-                durationInMinutes: readingTime,
-                questionsDone: 0,
-                questionsCorrect: 0,
-                generatedByCronograma: true
-              });
-
-              items.push({
-                date: dateStr,
-                subjectId: profile.subject.id,
-                topicId: topic?.id,
-                activityType: 'Questões',
-                notes: `Resolução de questões: ${topic?.title || 'Conteúdo geral'}`,
-                durationInMinutes: questionsTime,
+                activityType: 'Leitura, Questões',
+                notes: `Leitura e Questões: ${topic?.title || 'Conteúdo geral'}`,
+                durationInMinutes: totalMinutesPerTopic,
                 questionsDone: 10,
                 questionsCorrect: 7,
                 generatedByCronograma: true
@@ -386,13 +381,17 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
             });
           }
         } else {
-          // Off-day / Sunday: schedule a Simulado session (300 min)
-          const fallbackSubject = subjects[0];
+          // Off-day / Sunday: schedule a Simulado session including only subjects studied during the week
+          const fallbackSubject = subjects[0] || { id: '' };
+          const studiedListStr = weeklyStudiedSubjects.size > 0 
+            ? Array.from(weeklyStudiedSubjects).join(', ') 
+            : 'Matérias do edital';
+
           items.push({
             date: dateStr,
             subjectId: fallbackSubject.id,
             activityType: 'Simulado',
-            notes: `Simulado Geral do Edital (CEISC)`,
+            notes: `Simulado Semanal: ${studiedListStr}`,
             durationInMinutes: 300,
             questionsDone: 60,
             questionsCorrect: 42,
@@ -411,7 +410,18 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
     }
   };
 
-  // Clear / Delete schedule
+  // Reset/Clear all schedule & history
+  const handleResetAll = async () => {
+    if (!selectedConcursoId || selectedConcursoId === 'all') return;
+    if (confirm('ATENÇÃO: Esta ação irá excluir definitivamente todas as atividades (planejadas e realizadas) no Planner deste concurso, e também limpará todo o histórico de sessões e simulados deste concurso. Deseja continuar?')) {
+      if (onResetConcursoSchedule) {
+        await onResetConcursoSchedule(selectedConcursoId);
+        alert('Cronograma e histórico limpos com sucesso!');
+      }
+    }
+  };
+
+  // Clear / Delete schedule (only uncompleted)
   const handleClearSchedule = async () => {
     if (confirm('Tem certeza de que deseja apagar todo o cronograma de estudos planejado? Esta ação não afetará as sessões de estudo já concluídas ou revisões agendadas.')) {
       const ids = cronogramaStudies
@@ -837,9 +847,17 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
             type="button"
             onClick={handleClearSchedule}
             className="text-zinc-400 hover:text-rose-500 transition-colors p-2 text-xs font-black uppercase tracking-widest flex items-center gap-1.5"
-            title="Apagar Cronograma"
+            title="Apagar Cronograma Planejado"
           >
             <Trash2 size={14} /> Limpar
+          </button>
+          <button
+            type="button"
+            onClick={handleResetAll}
+            className="text-rose-500 hover:text-rose-600 transition-colors p-2 text-xs font-black uppercase tracking-widest flex items-center gap-1.5 border border-rose-500/20 rounded-xl px-3 hover:bg-rose-500/5"
+            title="Zerar Cronograma e Histórico"
+          >
+            <Trash2 size={14} /> Zerar Cronograma
           </button>
         </div>
       </header>

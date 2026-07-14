@@ -13,6 +13,7 @@ import StatisticsView from './pages/StatisticsView';
 import LoginView from './pages/LoginView';
 import CronogramaView from './pages/CronogramaView';
 import QuestionsNotebooksView from './pages/QuestionsNotebooksView';
+import AtividadesView from './pages/AtividadesView';
 import { Concurso, ActivityType, StudySession, Topic } from './types';
 import { useAppData } from './hooks/useAppData';
 import { useTimer } from './hooks/useTimer';
@@ -48,7 +49,7 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
     deleteSimulado, deleteSession, clearLogs, deleteLog, updateProfile,
     globalDailyGoal, studyTasks, setStudyTasks, toggleScheduledStudyStatus, updateScheduledStudy, saveCalendarActivity,
     resetStudyHubDataOnly, syncPlannedReviews,
-    addScheduledStudiesBatch, deleteScheduledStudiesBatch
+    addScheduledStudiesBatch, deleteScheduledStudiesBatch, resetConcursoSchedule
   } = useAppData(extTheme, extToggleTheme);
 
   const {
@@ -264,7 +265,7 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
       case 'questions':
         return <QuestionsView subjects={filteredSubjects} sessions={sessions} dailyGoals={dailyGoals} onUpdateDailyGoals={setDailyGoals} onAddSession={addSession} onDeleteSession={deleteSession} />;
       case 'simulados':
-        return <SimuladosView subjects={filteredSubjects} simulados={simulados} onAddSimulado={addSimulado} onDeleteSimulado={deleteSimulado} onUpdateSimulado={updateSimulado} />;
+        return <SimuladosView subjects={filteredSubjects} simulados={simulados} sessions={sessions} onAddSimulado={addSimulado} onDeleteSimulado={deleteSimulado} onUpdateSimulado={updateSimulado} />;
       case 'cronograma':
         return <CronogramaView
           subjects={filteredSubjects}
@@ -276,6 +277,7 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
           onAddScheduledStudiesBatch={addScheduledStudiesBatch}
           onDeleteScheduledStudiesBatch={deleteScheduledStudiesBatch}
           onToggleScheduledStudyStatus={toggleScheduledStudyStatus}
+          onResetConcursoSchedule={resetConcursoSchedule}
         />;
       case 'calendar':
         return <CalendarView
@@ -296,6 +298,12 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
           allSubjects={allSubjects}
           setSessions={setSessions}
           onSyncReviews={syncPlannedReviews}
+        />;
+      case 'atividades':
+        return <AtividadesView
+          subjects={filteredSubjects}
+          sessions={sessions}
+          scheduledStudies={scheduledStudies}
         />;
       case 'study_plan':
         return <StudyPlan

@@ -5,12 +5,13 @@ import { Edit2, Trash2, Clock, TrendingDown, Trophy, Award, Activity, HelpCircle
 interface SimuladosViewProps {
   subjects: Subject[];
   simulados: Simulado[];
+  sessions?: StudySession[];
   onAddSimulado: (sim: Simulado) => void;
   onDeleteSimulado: (id: string) => void;
   onUpdateSimulado: (id: string, sim: Simulado) => void;
 }
 
-const SimuladosView: React.FC<SimuladosViewProps> = ({ subjects, simulados, onAddSimulado, onDeleteSimulado, onUpdateSimulado }) => {
+const SimuladosView: React.FC<SimuladosViewProps> = ({ subjects, simulados, sessions, onAddSimulado, onDeleteSimulado, onUpdateSimulado }) => {
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [name, setName] = useState('');
@@ -84,6 +85,42 @@ const SimuladosView: React.FC<SimuladosViewProps> = ({ subjects, simulados, onAd
       done: 0,
       correct: 0
     }));
+    setResults(newResults);
+  };
+
+  const handlePrepopulateWithWeeklySubjects = () => {
+    if (subjects.length === 0) {
+      alert("Nenhuma disciplina cadastrada na guia de disciplinas.");
+      return;
+    }
+    if (!sessions || sessions.length === 0) {
+      alert("Nenhuma atividade de estudo registrada no histórico.");
+      return;
+    }
+
+    // Filter sessions in the last 7 days (or current week)
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    
+    const studiedSubjectIds = new Set(
+      sessions
+        .filter(s => new Date(s.date) >= sevenDaysAgo)
+        .map(s => s.subjectId)
+    );
+
+    if (studiedSubjectIds.size === 0) {
+      alert("Nenhum assunto estudado nos últimos 7 dias.");
+      return;
+    }
+
+    const newResults: SimuladoSubjectResult[] = subjects
+      .filter(s => studiedSubjectIds.has(s.id))
+      .map(s => ({
+        subjectId: s.id,
+        done: 0,
+        correct: 0
+      }));
+
     setResults(newResults);
   };
 
@@ -181,13 +218,22 @@ const SimuladosView: React.FC<SimuladosViewProps> = ({ subjects, simulados, onAd
           <div className="bg-zinc-50 dark:bg-zinc-800/50 p-6 rounded-3xl border border-zinc-200 dark:border-zinc-700 mb-8">
             <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 mb-4">
               <h4 className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Detalhamento por Disciplina</h4>
-              <button 
-                type="button"
-                onClick={handlePrepopulateWithMySubjects}
-                className="text-[9px] font-black uppercase tracking-wider px-3 py-1.5 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-200/50 dark:border-indigo-900 hover:bg-indigo-600 hover:text-white transition-all rounded-xl"
-              >
-                Preencher com minhas matérias
-              </button>
+              <div className="flex flex-wrap gap-2">
+                <button 
+                  type="button"
+                  onClick={handlePrepopulateWithMySubjects}
+                  className="text-[9px] font-black uppercase tracking-wider px-3 py-1.5 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-200/50 dark:border-indigo-900/30 hover:bg-indigo-600 hover:text-white transition-all rounded-xl shadow-sm"
+                >
+                  Preencher com todas as matérias
+                </button>
+                <button 
+                  type="button"
+                  onClick={handlePrepopulateWithWeeklySubjects}
+                  className="text-[9px] font-black uppercase tracking-wider px-3 py-1.5 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200/50 dark:border-emerald-900/30 hover:bg-emerald-600 hover:text-white transition-all rounded-xl shadow-sm"
+                >
+                  Preencher com as estudadas na semana
+                </button>
+              </div>
             </div>
             <div className="flex flex-wrap gap-3 mb-6">
               <select

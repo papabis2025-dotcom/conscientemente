@@ -31,6 +31,7 @@ export const MonitoramentoSono: React.FC<MonitoramentoSonoProps> = ({ onUpdateSl
     }
     // Dispatch local sync event
     window.dispatchEvent(new Event('local-storage-sync'));
+    window.dispatchEvent(new Event('local-settings-changed'));
   }, [sleepLogs]);
 
   // Form states

@@ -424,7 +424,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
     const subject = subjects.find(s => s.id === subjectId);
     if (!subject) return;
 
-    const sortedTopics = [...subject.topics].sort((a, b) => (a.order ?? 9999) - (b.order ?? 9999));
+    const sortedTopics = [...(subject.topics || [])].sort((a, b) => (a.order ?? 9999) - (b.order ?? 9999));
     const sourceIdx = sortedTopics.findIndex(t => t.id === sourceTopicId);
     const targetIdx = sortedTopics.findIndex(t => t.id === targetTopicId);
     if (sourceIdx === -1 || targetIdx === -1) return;
@@ -489,14 +489,14 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
       priority: newTopicPriority,
       order: nextOrder
     };
-    onUpdateSubjects(subjects.map(s => s.id === subjectId ? { ...s, topics: [...s.topics, newTopic] } : s));
+    onUpdateSubjects(subjects.map(s => s.id === subjectId ? { ...s, topics: [...(s.topics || []), newTopic] } : s));
     setNewTopicTitle('');
   };
 
   const updateTopicOrder = (subjectId: string, topicId: string, newOrder: number) => {
     onUpdateSubjects(subjects.map(s => s.id === subjectId ? {
       ...s,
-      topics: s.topics.map(t => t.id === topicId ? { ...t, order: newOrder } : t)
+      topics: (s.topics || []).map(t => t.id === topicId ? { ...t, order: newOrder } : t)
     } : s));
     setEditingTopicOrderId(null);
   };
@@ -514,7 +514,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
 
     onUpdateSubjects(subjects.map(s => s.id === subjectId ? {
       ...s,
-      topics: s.topics.map(t => t.id === topicId ? { ...t, isCompleted: nextVal } : t)
+      topics: (s.topics || []).map(t => t.id === topicId ? { ...t, isCompleted: nextVal } : t)
     } : s));
 
     const topicReviews = (scheduledStudies || []).filter(sched =>
@@ -540,7 +540,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
   const deleteTopic = (subjectId: string, topicId: string) => {
     onUpdateSubjects(subjects.map(s => s.id === subjectId ? {
       ...s,
-      topics: s.topics.filter(t => t.id !== topicId)
+      topics: (s.topics || []).filter(t => t.id !== topicId)
     } : s));
   };
 
@@ -553,7 +553,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
     if (!editTopicTitle.trim()) return;
     onUpdateSubjects(subjects.map(s => s.id === subjectId ? {
       ...s,
-      topics: s.topics.map(t => t.id === topicId ? { ...t, title: editTopicTitle } : t)
+      topics: (s.topics || []).map(t => t.id === topicId ? { ...t, title: editTopicTitle } : t)
     } : s));
     setEditingTopicId(null);
     setEditTopicTitle('');

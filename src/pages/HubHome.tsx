@@ -541,10 +541,18 @@ const HubHome: React.FC<HubHomeProps> = ({
     const endOfMonth = `${year}-${String(month + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
 
     try {
+      // Janela de data: 2 meses antes e 2 meses depois do mês sendo visualizado
+      const windowStart = new Date(year, month - 2, 1);
+      const windowEnd = new Date(year, month + 3, 0); // último dia do 2º mês seguinte
+      const windowStartStr = windowStart.toISOString().split('T')[0];
+      const windowEndStr = windowEnd.toISOString().split('T')[0];
+
       const { data: dbTasks } = await supabase
         .from('tarefas')
         .select('id, text, due_date, completed, due_time, category')
-        .eq('user_id', user.id);
+        .eq('user_id', user.id)
+        .gte('due_date', windowStartStr)
+        .lte('due_date', windowEndStr);
 
       const { data: dbWorkouts } = await supabase
         .from('saude_treinos')
@@ -564,7 +572,7 @@ const HubHome: React.FC<HubHomeProps> = ({
 
       const { data: dbConcursos } = await supabase
         .from('concursos')
-        .select('*')
+        .select('id, name, banca, target_date, subjects, category_id')
         .eq('user_id', user.id);
 
       const { data: dbSimulados } = await supabase
@@ -594,7 +602,9 @@ const HubHome: React.FC<HubHomeProps> = ({
       const { data: dbScheduled } = await supabase
         .from('scheduled_studies')
         .select('id, date, subject_id, topic_id, activity_type, notes, duration_minutes, questions_done, questions_correct')
-        .eq('user_id', user.id);
+        .eq('user_id', user.id)
+        .gte('date', windowStartStr)
+        .lte('date', windowEndStr);
 
       const { data: dbSessions } = await supabase
         .from('study_sessions')
@@ -1421,6 +1431,10 @@ const HubHome: React.FC<HubHomeProps> = ({
   }, []);
 
   useEffect(() => {
+    // Debounce de 2s: evita disparar fetchCalendarData múltiplas vezes quando vários
+    // eventos local-storage-sync chegam em cascata (ex: ao voltar para o hub).
+    let syncDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+
     const handleSync = () => {
       try {
         const savedHabits = localStorage.getItem('cn_habits');
@@ -1437,10 +1451,14 @@ const HubHome: React.FC<HubHomeProps> = ({
         }
         const savedPush = localStorage.getItem('cn_push_notifications_enabled') === 'true';
         setPushEnabled(savedPush);
-
-        // Sync calendar events from local changes
-        fetchCalendarData(calendarMonth).catch(console.error);
         loadSleepLogs();
+
+        // Debounce: só faz fetch do calendário 2s após o último evento de sync,
+        // evitando múltiplas queries quando vários eventos chegam juntos.
+        if (syncDebounceTimer) clearTimeout(syncDebounceTimer);
+        syncDebounceTimer = setTimeout(() => {
+          fetchCalendarData(calendarMonth).catch(console.error);
+        }, 2000);
       } catch (e) {
         console.error('Error reloading local storage states on sync event:', e);
       }
@@ -1452,6 +1470,7 @@ const HubHome: React.FC<HubHomeProps> = ({
     window.addEventListener('local-settings-changed', handleSync);
     window.addEventListener('storage', handleSync);
     return () => {
+      if (syncDebounceTimer) clearTimeout(syncDebounceTimer);
       window.removeEventListener('local-storage-sync', handleSync);
       window.removeEventListener('local-settings-changed', handleSync);
       window.removeEventListener('storage', handleSync);
@@ -1546,9 +1565,8 @@ const HubHome: React.FC<HubHomeProps> = ({
       balance: calculatedBalance,
       pendingFinance: (pendingFinanceTx || []) as { id: string; name: string; amount: number; type: string }[]
     });
-
-    // Sync calendar events from database fetch
-    fetchCalendarData(calendarMonth).catch(console.error);
+    // Nota: fetchCalendarData é gerenciado pelo próprio useEffect que observa calendarMonth.
+    // Não é necessário chamá-lo aqui para evitar queries duplicadas.
   }, [calendarMonth, fetchCalendarData]);
 
   // Fetch initial data and sync when day changes
@@ -1556,11 +1574,11 @@ const HubHome: React.FC<HubHomeProps> = ({
     fetchCloudData().catch(err => console.error('Error fetching hub data:', err));
   }, [todayStr, fetchCloudData]);
 
-  // Periodic poll of cloud data (every 30 seconds)
+  // Periodic poll of cloud data (every 5 minutes — reduzido de 30s para economizar egress do Supabase)
   useEffect(() => {
     const interval = setInterval(() => {
       fetchCloudData().catch(err => console.error('Error polling hub data:', err));
-    }, 30000);
+    }, 300000); // 5 minutos = 300.000 ms
     return () => clearInterval(interval);
   }, [fetchCloudData]);
 
@@ -1592,56 +1610,71 @@ const HubHome: React.FC<HubHomeProps> = ({
     return () => window.removeEventListener('local-settings-changed', handleEstudosChange);
   }, []);
 
-  // Task limit checker running periodically
+  // Task limit checker running periodically — carrega tarefas 1x por dia, verifica em memória a cada 30s
   useEffect(() => {
     if (!pushEnabled || !('Notification' in window) || Notification.permission !== 'granted') return;
 
-    const checkLimitTasks = async () => {
+    // Cache das tarefas de hoje com horário — carregado apenas 1x por dia
+    let cachedTodayTasks: { id: string; text: string; due_time: string }[] = [];
+    let cachedDayStr = '';
+
+    const loadTodayTasksIfNeeded = async () => {
+      const now = new Date();
+      const localTodayStr = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().split('T')[0];
+
+      // Só faz query ao Supabase se o dia mudou ou se ainda não carregou
+      if (cachedDayStr === localTodayStr) return;
+
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const now = new Date();
-      // Format as YYYY-MM-DD
-      const localTodayStr = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().split('T')[0];
-      const currentHourMin = now.toTimeString().slice(0, 5); // HH:MM
-
-      const { data: todayTasks } = await supabase
+      const { data } = await supabase
         .from('tarefas')
-        .select('id, text, due_date, due_time')
+        .select('id, text, due_time')
         .eq('user_id', user.id)
         .eq('completed', false)
-        .eq('due_date', localTodayStr);
+        .eq('due_date', localTodayStr)
+        .neq('due_time', '');
 
-      if (todayTasks && todayTasks.length > 0) {
-        let notifiedIdsList: string[] = [];
-        try {
-          const saved = localStorage.getItem('cn_notified_task_ids');
-          notifiedIdsList = saved ? JSON.parse(saved) : [];
-        } catch {}
+      // Filtra apenas as que têm horário definido (não vazias)
+      cachedTodayTasks = (data || []).filter((t: any) => t.due_time && !t.due_time.startsWith('range:'));
+      cachedDayStr = localTodayStr;
+    };
 
-        let updated = false;
-        todayTasks.forEach(task => {
-          if (!task.due_time) return;
-          
-          // Check if the current time has reached/passed the due_time, and we haven't notified yet
-          if (task.due_time <= currentHourMin && !notifiedIdsList.includes(task.id)) {
-            triggerLocalNotification(
-              'Tarefa no Limite! ⏰',
-              `A tarefa "${task.text}" chegou ao horário limite (${task.due_time}).`
-            );
-            notifiedIdsList.push(task.id);
-            updated = true;
-          }
-        });
+    const checkLimitTasks = async () => {
+      // Carrega do Supabase só se necessário (mudança de dia ou primeiro acesso)
+      await loadTodayTasksIfNeeded();
+      if (cachedTodayTasks.length === 0) return;
 
-        if (updated) {
-          localStorage.setItem('cn_notified_task_ids', JSON.stringify(notifiedIdsList));
-          setNotifiedTaskIds(notifiedIdsList);
+      const now = new Date();
+      const currentHourMin = now.toTimeString().slice(0, 5); // HH:MM
+
+      let notifiedIdsList: string[] = [];
+      try {
+        const saved = localStorage.getItem('cn_notified_task_ids');
+        notifiedIdsList = saved ? JSON.parse(saved) : [];
+      } catch {}
+
+      let updated = false;
+      cachedTodayTasks.forEach(task => {
+        // Verifica em memória — sem nova query ao Supabase
+        if (task.due_time <= currentHourMin && !notifiedIdsList.includes(task.id)) {
+          triggerLocalNotification(
+            'Tarefa no Limite! ⏰',
+            `A tarefa "${task.text}" chegou ao horário limite (${task.due_time}).`
+          );
+          notifiedIdsList.push(task.id);
+          updated = true;
         }
+      });
+
+      if (updated) {
+        localStorage.setItem('cn_notified_task_ids', JSON.stringify(notifiedIdsList));
+        setNotifiedTaskIds(notifiedIdsList);
       }
     };
 
-    // Run check immediately on mount/update, then every 30 seconds
+    // Executa imediatamente e depois a cada 30 segundos (verificação em memória — sem query)
     const initialTimeout = setTimeout(checkLimitTasks, 3000);
     const interval = setInterval(checkLimitTasks, 30000);
 
@@ -1650,6 +1683,7 @@ const HubHome: React.FC<HubHomeProps> = ({
       clearInterval(interval);
     };
   }, [pushEnabled]);
+
 
   const timeStr = currentTime.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
   const dateStr = currentTime.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });

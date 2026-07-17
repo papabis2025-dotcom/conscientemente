@@ -17,7 +17,12 @@ export const tarefasApi = {
   list: async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return [];
-    const { data, error } = await supabase.from('tarefas').select('*').eq('user_id', user.id);
+    // Sem filtro de data pois tarefas recorrentes são geradas dinamicamente
+    // e podem ter datas passadas ou futuras que precisam ser lidas para calcular recorrência
+    const { data, error } = await supabase
+      .from('tarefas')
+      .select('id, text, completed, due_date, due_time, category, created_at, recurrence_type, recurrence_value')
+      .eq('user_id', user.id);
     if (error) throw error;
     return (data || []).map(t => {
       let endDate: string | undefined = undefined;
@@ -40,6 +45,7 @@ export const tarefasApi = {
       };
     }) as Task[];
   },
+
   
   create: async (task: Task) => {
     const { data: { user } } = await supabase.auth.getUser();

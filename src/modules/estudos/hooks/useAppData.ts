@@ -823,7 +823,18 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         
         fetchData();
 
+        // Throttle: só refaz fetch ao focar a janela se passaram mais de 5 minutos
+        // desde o último fetch. Evita centenas de queries desnecessárias por dia.
+        let lastFocusFetchAt = Date.now();
+        const FOCUS_THROTTLE_MS = 5 * 60 * 1000; // 5 minutos
+
         const handleFocus = () => {
+            const now = Date.now();
+            if (now - lastFocusFetchAt < FOCUS_THROTTLE_MS) {
+                console.log('Window focused: throttled, skipping fetch (last fetch was less than 5 min ago).');
+                return;
+            }
+            lastFocusFetchAt = now;
             console.log('Window focused: fetching latest studies data silently...');
             fetchData(true);
         };

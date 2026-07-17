@@ -22,7 +22,15 @@ export const financasApi = {
   listTransactions: async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return [];
-    const { data, error } = await supabase.from('financas_transacoes').select('*').eq('user_id', user.id);
+    // Limita ao ultimo ano para reduzir egress do Supabase
+    const oneYearAgo = new Date();
+    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+    const dateLimit = oneYearAgo.toISOString().split('T')[0];
+    const { data, error } = await supabase
+      .from('financas_transacoes')
+      .select('id, type, date, day_only, name, amount, category, payment_method, pending')
+      .eq('user_id', user.id)
+      .gte('date', dateLimit);
     if (error) throw error;
     return (data || []).map(t => ({
       id: t.id,
@@ -36,6 +44,7 @@ export const financasApi = {
       pending: t.pending
     })) as Transaction[];
   },
+
   
   createTransaction: async (t: Transaction) => {
     const { data: { user } } = await supabase.auth.getUser();

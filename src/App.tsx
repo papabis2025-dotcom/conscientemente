@@ -605,7 +605,18 @@ const App: React.FC = () => {
   useEffect(() => {
     if (!session || !isPrefsLoaded) return;
 
+    // Throttle: só executa o pull remoto se passaram mais de 3 minutos desde a última execução.
+    // Evita uma query + potencial upsert a cada alt-tab ou troca de tela.
+    let lastPullAt = 0;
+    const PULL_THROTTLE_MS = 3 * 60 * 1000; // 3 minutos
+
     const pullAndMerge = async () => {
+      const now = Date.now();
+      if (now - lastPullAt < PULL_THROTTLE_MS) {
+        return; // Throttled silently
+      }
+      lastPullAt = now;
+
       try {
         const { data: prefs } = await supabase
           .from('user_preferences')

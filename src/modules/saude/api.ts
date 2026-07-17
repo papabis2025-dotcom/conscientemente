@@ -5,7 +5,15 @@ export const saudeApi = {
   list: async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return [];
-    const { data, error } = await supabase.from('saude_treinos').select('*').eq('user_id', user.id);
+    // Limita aos ultimos 6 meses para reduzir egress do Supabase
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+    const dateLimit = sixMonthsAgo.toISOString().split('T')[0];
+    const { data, error } = await supabase
+      .from('saude_treinos')
+      .select('id, type, date, time_in_minutes, status, distance_km, cardio_level, muscles')
+      .eq('user_id', user.id)
+      .gte('date', dateLimit);
     if (error) throw error;
     return (data || []).map(t => ({
       id: t.id,
@@ -18,6 +26,7 @@ export const saudeApi = {
       muscles: t.muscles
     })) as HealthActivity[];
   },
+
   
   create: async (activity: HealthActivity) => {
     const { data: { user } } = await supabase.auth.getUser();

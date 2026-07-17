@@ -96,17 +96,21 @@ export const api = {
         list: async () => {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return [];
+            // Limita aos ultimos 6 meses para reduzir o egress do Supabase
+            const sixMonthsAgo = new Date();
+            sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+            const dateLimit = sixMonthsAgo.toISOString().split('T')[0];
             // Try selecting with questions_link and activity_type; fall back if columns don't exist
-            let result = await supabase.from('study_sessions').select('*').eq('user_id', user.id).order('date', { ascending: false });
+            let result = await supabase.from('study_sessions').select('id,user_id,subject_id,topic_id,duration_minutes,date,questions_done,questions_correct,is_simulado,activity_type,questions_link').eq('user_id', user.id).gte('date', dateLimit).order('date', { ascending: false });
             if (result.error && result.error.code === '42703') {
-                result = await supabase.from('study_sessions')
+                result = (await supabase.from('study_sessions')
                     .select('id,user_id,subject_id,topic_id,duration_minutes,date,questions_done,questions_correct,is_simulado,activity_type')
-                    .eq('user_id', user.id).order('date', { ascending: false });
-                
+                    .eq('user_id', user.id).gte('date', dateLimit).order('date', { ascending: false })) as any;
+
                 if (result.error && result.error.code === '42703') {
-                    result = await supabase.from('study_sessions')
+                    result = (await supabase.from('study_sessions')
                         .select('id,user_id,subject_id,topic_id,duration_minutes,date,questions_done,questions_correct,is_simulado')
-                        .eq('user_id', user.id).order('date', { ascending: false });
+                        .eq('user_id', user.id).gte('date', dateLimit).order('date', { ascending: false })) as any;
                 }
             }
             const data = result.error ? null : result.data;
@@ -155,10 +159,10 @@ export const api = {
             // Try with questions_link and activity_type first
             let result = await supabase.from('study_sessions').insert(dbPayload).select().single();
             if (result.error && result.error.code === '42703') {
-                // Column questions_link doesn't exist yet — retry without it
+                // Column questions_link doesn't exist yet -- retry without it
                 const { questions_link, ...payloadWithoutLink } = dbPayload as any;
                 result = await supabase.from('study_sessions').insert(payloadWithoutLink).select().single();
-                
+
                 if (result.error && result.error.code === '42703') {
                     // activity_type column also doesn't exist yet
                     const { activity_type, ...payloadWithoutBoth } = payloadWithoutLink;
@@ -207,17 +211,21 @@ export const api = {
         list: async () => {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return [];
-            const data = await handleRequest<any[]>(supabase.from('simulados').select('*').eq('user_id', user.id).order('date', { ascending: false }));
+            // Limita aos ultimos 12 meses para reduzir egress do Supabase
+            const oneYearAgo = new Date();
+            oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+            const dateLimit = oneYearAgo.toISOString().split('T')[0];
+            const data = await handleRequest<any[]>(supabase.from('simulados').select('id, name, date, total_questions, results').eq('user_id', user.id).gte('date', dateLimit).order('date', { ascending: false }));
             return (data || []).map((s: any) => {
                 let durationInMinutes = 0;
                 let results = s.results;
-                
+
                 // Se results for um objeto com a estrutura nova
                 if (s.results && !Array.isArray(s.results) && typeof s.results === 'object') {
                     durationInMinutes = s.results.durationInMinutes || 0;
                     results = s.results.subjectResults || [];
                 }
-                
+
                 return {
                     id: s.id,
                     name: s.name,
@@ -301,7 +309,7 @@ export const api = {
                 .order('date', { ascending: true });
 
             if (result.error && result.error.code === '42703') {
-                // Coluna ausente (questions_link ou outra) — retry sem ela
+                // Coluna ausente (questions_link ou outra) -- retry sem ela
                 result = await supabase.from('scheduled_studies')
                     .select('id,date,subject_id,topic_id,activity_type,notes,duration_minutes,questions_done,questions_correct')
                     .eq('user_id', user.id)
@@ -332,7 +340,7 @@ export const api = {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) throw new Error('Not authenticated');
 
-            // Do NOT send 'status' — that column does not exist in the DB table.
+            // Do NOT send 'status' -- that column does not exist in the DB table.
             const dbPayload = {
                 id: item.id,
                 user_id: user.id,
@@ -349,16 +357,16 @@ export const api = {
 
             let result = await supabase.from('scheduled_studies').insert(dbPayload).select().single();
             if (result.error && result.error.code === '42703') {
-                // questions_link não existe — retry sem ela
+                // questions_link nao existe -- retry sem ela
                 const { questions_link, ...payloadWithout } = dbPayload as any;
                 result = await supabase.from('scheduled_studies').insert(payloadWithout).select().single();
             }
-            
+
             const rData = result.error ? null : result.data;
             if (result.error) {
-                // Se ainda falhar, loga mas não rethrow para não bloquear a UI
+                // Se ainda falhar, loga mas nao rethrow para nao bloquear a UI
                 console.error('Supabase schedule.create error:', JSON.stringify(result.error, null, 2));
-                // Retorna um objeto mínimo com o ID original para manter estado local consistente
+                // Retorna um objeto minimo com o ID original para manter estado local consistente
                 return {
                     id: item.id || crypto.randomUUID(),
                     date: item.date,
@@ -373,7 +381,7 @@ export const api = {
                     status: 'planejado' as const
                 } as ScheduledStudy;
             }
-            
+
             return {
                 id: rData.id,
                 date: rData.date.split('T')[0],
@@ -385,7 +393,7 @@ export const api = {
                 questionsDone: rData.questions_done,
                 questionsCorrect: rData.questions_correct,
                 questionsLink: rData.questions_link || undefined,
-                status: item.status || 'planejado'
+                status: (item as any).status || 'planejado'
             } as ScheduledStudy;
         },
         update: async (id: string, updates: Partial<ScheduledStudy>) => {
@@ -439,14 +447,14 @@ export const api = {
                 const payloadsWithout = dbPayloads.map(({ questions_link, ...rest }) => rest);
                 result = await supabase.from('scheduled_studies').insert(payloadsWithout).select();
             }
-            
+
             const rData = result.error ? null : result.data;
             if (result.error) {
                 console.error('Supabase API Error:', JSON.stringify(result.error, null, 2));
                 throw result.error;
             }
 
-            return rData.map((r: any) => ({
+            return rData!.map((r: any) => ({
                 id: r.id,
                 date: r.date.split('T')[0],
                 subjectId: r.subject_id,
@@ -471,7 +479,11 @@ export const api = {
         list: async () => {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return [];
-            const data = await handleRequest<any[]>(supabase.from('daily_goals').select('*').eq('user_id', user.id).order('date', { ascending: false }));
+            // Limita ao mes atual + mes anterior para reduzir egress do Supabase
+            const twoMonthsAgo = new Date();
+            twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
+            const dateLimit = twoMonthsAgo.toISOString().split('T')[0];
+            const data = await handleRequest<any[]>(supabase.from('daily_goals').select('date,questions_target').eq('user_id', user.id).gte('date', dateLimit).order('date', { ascending: false }));
             return (data || []).map((g: any) => ({
                 date: g.date,
                 questionsTarget: g.questions_target
@@ -493,7 +505,7 @@ export const api = {
         }
     },
 
-    // Hábitos
+    // Habitos
     habits: {
         list: async () => {
             const { data: { user } } = await supabase.auth.getUser();
@@ -503,7 +515,7 @@ export const api = {
         upsert: async (habit: any) => {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return null;
-            
+
             const dbPayload = {
                 id: (habit.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(habit.id)) ? habit.id : undefined,
                 user_id: user.id,
@@ -512,7 +524,7 @@ export const api = {
             return handleRequest<any>(supabase.from('habits').upsert(dbPayload).select().single());
         },
         delete: async (id: string) => handleRequest(supabase.from('habits').delete().eq('id', id)),
-        
+
         getLogs: async (dateStr: string) => {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return [];
@@ -521,7 +533,11 @@ export const api = {
         getAllLogs: async () => {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return [];
-            return handleRequest<any[]>(supabase.from('habit_logs').select('*').eq('user_id', user.id));
+            // Limita aos ultimos 180 dias (suficiente para streaks e graficos de habitos)
+            const sixMonthsAgo = new Date();
+            sixMonthsAgo.setDate(sixMonthsAgo.getDate() - 180);
+            const dateLimit = sixMonthsAgo.toISOString().split('T')[0];
+            return handleRequest<any[]>(supabase.from('habit_logs').select('habit_id, logged_date').eq('user_id', user.id).gte('logged_date', dateLimit));
         },
         toggleLog: async (habitId: string, dateStr: string, isCompleted: boolean) => {
             const { data: { user } } = await supabase.auth.getUser();

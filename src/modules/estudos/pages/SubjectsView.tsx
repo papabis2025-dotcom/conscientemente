@@ -94,13 +94,14 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
       .sort((a, b) => a.val - b.val)
       .map(x => x.idx);
   }, [customReviewDays]);
-
   const [reviewsDisabled, setReviewsDisabled] = useState(() => {
     if (selectedConcursoId && selectedConcursoId !== 'all') {
       return localStorage.getItem('estudos_disabled_reviews_' + selectedConcursoId) === 'true';
     }
     return false;
   });
+
+  const [localTopicWeights, setLocalTopicWeights] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (selectedConcursoId && selectedConcursoId !== 'all') {
@@ -110,6 +111,17 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
     }
   }, [selectedConcursoId]);
 
+  useEffect(() => {
+    const weights: Record<string, string> = {};
+    subjects.forEach(sub => {
+      (sub.topics || []).forEach(topic => {
+        if (topic.weight !== undefined) {
+          weights[topic.id] = topic.weight.toString().replace('.', ',');
+        }
+      });
+    });
+    setLocalTopicWeights(weights);
+  }, [subjects]);
   // Topic editing state
   const [editingTopicId, setEditingTopicId] = useState<string | null>(null);
   const [editTopicTitle, setEditTopicTitle] = useState('');
@@ -627,10 +639,55 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
 
             <button
               onClick={() => {
+                // 1. Validar a soma dos pesos de cada disciplina
+                for (const sub of subjects) {
+                  let subWeightSum = 0;
+                  const topics = sub.topics || [];
+                  for (const topic of topics) {
+                    const localWeightStr = localTopicWeights[topic.id];
+                    let w: number | undefined = undefined;
+                    if (localWeightStr !== undefined && localWeightStr.trim() !== '') {
+                      w = parseFloat(localWeightStr.replace(',', '.'));
+                    } else if (localWeightStr === undefined) {
+                      w = topic.weight;
+                    }
+                    if (w !== undefined && !isNaN(w)) {
+                      subWeightSum += w;
+                    }
+                  }
+
+                  if (subWeightSum > 100.005) {
+                    alert(`A soma dos pesos dos assuntos da disciplina "${sub.name}" excede 100% (atual: ${subWeightSum.toFixed(2).replace('.', ',')}%). Por favor, ajuste os pesos.`);
+                    return;
+                  }
+                }
+
+                // 2. Montar a lista de disciplinas atualizada com os novos pesos
+                const updatedSubjects = subjects.map(sub => {
+                  const updatedTopics = (sub.topics || []).map(topic => {
+                    const localWeightStr = localTopicWeights[topic.id];
+                    let newWeight: number | undefined = undefined;
+                    if (localWeightStr !== undefined && localWeightStr.trim() !== '') {
+                      newWeight = parseFloat(localWeightStr.replace(',', '.'));
+                    } else if (localWeightStr === undefined) {
+                      newWeight = topic.weight;
+                    }
+                    
+                    const { weight, ...restTopic } = topic;
+                    if (newWeight !== undefined && !isNaN(newWeight)) {
+                      return { ...restTopic, weight: newWeight };
+                    }
+                    return restTopic;
+                  });
+                  return { ...sub, topics: updatedTopics };
+                });
+
+                // 3. Salvar no Supabase e localStorage
+                onUpdateSubjects(updatedSubjects);
                 localStorage.setItem('estudos_custom_review_days', JSON.stringify(customReviewDays));
                 window.dispatchEvent(new Event('local-reviews-toggled'));
                 window.dispatchEvent(new Event('local-settings-changed'));
-                alert('Intervalos de revisão salvos com sucesso!');
+                alert('Configurações e pesos dos assuntos salvos com sucesso!');
               }}
               disabled={reviewsDisabled}
               className="px-4 py-1.5 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-xl text-xs font-bold hover:opacity-90 disabled:opacity-50 transition-all cursor-pointer"
@@ -819,12 +876,12 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                       </td>
                     </tr>
 
-                    {isExpanded && (
+{isExpanded && (
                       <tr>
                         <td colSpan={3} className="px-0 py-0 bg-zinc-50/30 dark:bg-zinc-800/10 border-b border-zinc-100 dark:border-zinc-800">
                           <div className="pl-10 pr-4 py-2">
 
-                            <table className="w-full text-left text-sm">
+                             <table className="w-full text-left text-sm">
                               <thead>
                                 <tr className="text-zinc-400 border-b border-zinc-100 dark:border-zinc-800">
                                   <th className="w-16 py-1.5 pl-3 pr-1 text-[10px] uppercase font-bold text-zinc-400 text-center">#</th>
@@ -853,6 +910,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                                       </button>
                                     )}
                                   </th>
+                                  <th className="py-1.5 px-2 text-[10px] uppercase font-bold text-center w-24">Peso (%)</th>
                                   <th className="py-1.5 text-[10px] uppercase font-bold cursor-pointer text-emerald-600 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/20 px-2.5 rounded-t-xl" onClick={() => { setTopicSortBy('firstStudy'); setTopicSortOrder(o => o === 'desc' ? 'asc' : 'desc'); }}>
                                     Primeira {topicSortBy === 'firstStudy' && (topicSortOrder === 'desc' ? '↓' : '↑')}
                                   </th>
@@ -887,7 +945,9 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                                       <td className="py-1.5 font-semibold pl-2 text-xs" style={{ color: getColorHex(subject.color) }}>
                                         Geral / Outros <span className="text-[10px] font-normal opacity-60 ml-1 text-zinc-500">revisão geral</span>
                                       </td>
+                                      <td className="py-1.5 px-2" />
                                       <td className="py-1.5 text-emerald-700/80 dark:text-emerald-300/80 text-xs bg-emerald-50/30 dark:bg-emerald-950/10 px-2.5 font-medium">{stats.firstStudyDate || '—'}</td>
+
                                       {sortedReviewIndices.map((origIdx) => {
                                         const item = stats.customReviewDates[origIdx];
                                         const dateVal = typeof item === 'string' ? item : item.dateStr;
@@ -1044,7 +1104,24 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                                             </span>
                                           )}
                                         </td>
-                                        <td className="py-1.5 text-emerald-700/80 dark:text-emerald-350/80 text-xs bg-emerald-50/30 dark:bg-emerald-950/10 px-2.5 font-medium">
+                                        <td className="py-1.5 px-2 text-center" onClick={e => e.stopPropagation()}>
+                                          <input
+                                            type="text"
+                                            placeholder="—"
+                                            value={localTopicWeights[topic.id] !== undefined ? localTopicWeights[topic.id] : (topic.weight !== undefined ? topic.weight.toString().replace('.', ',') : '')}
+                                            onChange={(e) => {
+                                              const val = e.target.value;
+                                              if (/^[0-9]*[.,]?[0-9]{0,2}$/.test(val) || val === '') {
+                                                setLocalTopicWeights(prev => ({
+                                                  ...prev,
+                                                  [topic.id]: val
+                                                }));
+                                              }
+                                            }}
+                                            className="w-16 px-1.5 py-0.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded text-center text-xs font-mono font-bold text-zinc-800 dark:text-white outline-none focus:ring-1 focus:ring-zinc-400"
+                                          />
+                                        </td>
+                                        <td className="py-1.5 text-emerald-700/80 dark:text-emerald-300/80 text-xs bg-emerald-50/30 dark:bg-emerald-950/10 px-2.5 font-medium">
                                           {tStats.firstStudyDate || '-'}
                                         </td>
                                         {sortedReviewIndices.map((origIdx) => {
@@ -1083,7 +1160,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                                   })}
                                 {(subject.topics || []).length === 0 && (
                                   <tr>
-                                    <td colSpan={8} className="py-4 text-center text-xs text-zinc-400 italic">
+                                    <td colSpan={12} className="py-4 text-center text-xs text-zinc-400 italic">
                                       Nenhum tópico cadastrado para esta disciplina.
                                     </td>
                                   </tr>

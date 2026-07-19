@@ -48,6 +48,7 @@ export interface Topic {
   isCompleted: boolean;
   priority: 'Baixa' | 'Média' | 'Alta';
   order?: number;
+  weight?: number; // Peso percentual do assunto
 }
 
 

@@ -1,0 +1,31 @@
+src/App.tsx(906,9): error TS2322: Type '{ userName: any; theme: "light" | "dark"; toggleTheme: () => void; onLogout: () => Promise<void>; bgType: "default" | "color" | "image"; setBgType: Dispatch<SetStateAction<"default" | "color" | "image">>; ... 7 more ...; setIsHomeEditMode: Dispatch<...>; }' is not assignable to type 'IntrinsicAttributes & HubHomeProps'.
+  Property 'setBgType' does not exist on type 'IntrinsicAttributes & HubHomeProps'. Did you mean 'bgType'?
+src/modules/estudos/hooks/useAppData.ts(1548,17): error TS2322: Type 'string | null | undefined' is not assignable to type 'string | undefined'.
+  Type 'null' is not assignable to type 'string | undefined'.
+src/modules/estudos/hooks/useAppData.ts(1661,25): error TS2322: Type 'string | null | undefined' is not assignable to type 'string | undefined'.
+  Type 'null' is not assignable to type 'string | undefined'.
+src/modules/estudos/pages/AtividadesView.tsx(40,92): error TS2339: Property 'notes' does not exist on type 'StudySession'.
+src/modules/estudos/pages/AtividadesView.tsx(210,117): error TS2339: Property 'notes' does not exist on type 'StudySession'.
+src/modules/estudos/pages/AtividadesView.tsx(211,28): error TS2339: Property 'notes' does not exist on type 'StudySession'.
+src/modules/estudos/pages/CalendarView.tsx(1043,35): error TS2345: Argument of type '{ subjectId: any; subjectIds: string[]; topicIds: any; activityTypes: any; duration: any; questionsDone: any; questionsCorrect: any; notes: any; status: any; }' is not assignable to parameter of type 'SetStateAction<{ subjectId: string; subjectIds: string[]; topicIds: string[]; activityTypes: string[]; duration: string; questionsDone: string; questionsCorrect: string; notes: string; status: "planejado" | "realizado"; questionsLinks: string[]; }>'.
+  Property 'questionsLinks' is missing in type '{ subjectId: any; subjectIds: string[]; topicIds: any; activityTypes: any; duration: any; questionsDone: any; questionsCorrect: any; notes: any; status: any; }' but required in type '{ subjectId: string; subjectIds: string[]; topicIds: string[]; activityTypes: string[]; duration: string; questionsDone: string; questionsCorrect: string; notes: string; status: "planejado" | "realizado"; questionsLinks: string[]; }'.
+src/modules/estudos/pages/QuestionsNotebooksView.tsx(123,42): error TS2339: Property 'notes' does not exist on type 'StudySession'.
+src/modules/estudos/pages/QuestionsNotebooksView.tsx(225,49): error TS2322: Type 'string | null' is not assignable to type 'string | undefined'.
+  Type 'null' is not assignable to type 'string | undefined'.
+src/modules/estudos/pages/QuestionsNotebooksView.tsx(230,19): error TS2345: Argument of type '(prev: StudySession[]) => (StudySession | { questionsLink: string | null; id: string; subjectId: string; topicId?: string | undefined; durationInMinutes: number; ... 4 more ...; activityType?: string | undefined; })[]' is not assignable to parameter of type 'SetStateAction<StudySession[]>'.
+  Type '(prev: StudySession[]) => (StudySession | { questionsLink: string | null; id: string; subjectId: string; topicId?: string | undefined; durationInMinutes: number; ... 4 more ...; activityType?: string | undefined; })[]' is not assignable to type '(prevState: StudySession[]) => StudySession[]'.
+    Type '(StudySession | { questionsLink: string | null; id: string; subjectId: string; topicId?: string | undefined; durationInMinutes: number; date: string; questionsDone?: number | undefined; questionsCorrect?: number | undefined; isSimulado?: boolean | undefined; activityType?: string | undefined; })[]' is not assignable to type 'StudySession[]'.
+      Type 'StudySession | { questionsLink: string | null; id: string; subjectId: string; topicId?: string | undefined; durationInMinutes: number; date: string; questionsDone?: number | undefined; questionsCorrect?: number | undefined; isSimulado?: boolean | undefined; activityType?: string | undefined; }' is not assignable to type 'StudySession'.
+        Type '{ questionsLink: string | null; id: string; subjectId: string; topicId?: string; durationInMinutes: number; date: string; questionsDone?: number; questionsCorrect?: number; isSimulado?: boolean; activityType?: ActivityType; }' is not assignable to type 'StudySession'.
+          Types of property 'questionsLink' are incompatible.
+            Type 'string | null' is not assignable to type 'string | undefined'.
+              Type 'null' is not assignable to type 'string | undefined'.
+src/modules/estudos/pages/QuestionsNotebooksView.tsx(336,48): error TS2339: Property 'notes' does not exist on type 'StudySession'.
+src/modules/estudos/pages/SimuladosView.tsx(8,14): error TS2304: Cannot find name 'StudySession'.
+src/pages/HubHome.tsx(1258,15): error TS2304: Cannot find name 'setLogs'.
+src/pages/HubHome.tsx(1263,5): error TS2304: Cannot find name 'setLogs'.
+src/pages/HubHome.tsx(1267,5): error TS2304: Cannot find name 'setLogs'.
+src/pages/HubHome.tsx(1267,13): error TS7006: Parameter 'prev' implicitly has an 'any' type.
+src/pages/HubHome.tsx(1267,33): error TS7006: Parameter 'l' implicitly has an 'any' type.
+src/pages/HubHome.tsx(1884,18): error TS2304: Cannot find name 'last30DaysList'.
+src/pages/HubHome.tsx(1884,37): error TS7006: Parameter 'day' implicitly has an 'any' type.

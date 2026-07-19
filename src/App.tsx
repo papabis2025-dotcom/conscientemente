@@ -47,10 +47,7 @@ const SYNC_KEYS = [
   'cn_home_cards_layout',
   'cn_global_alignment',
   'cn_home_widgets_order',
-  'cp_selected_concurso_id',
-  'cp_global_daily_goal',
   'estudos_deleted_review_ids',
-  'cp_menu_order'
 ];
 
 function mergeLists<T extends { id: string }>(listA: T[], listB: T[]): T[] {
@@ -385,6 +382,21 @@ const App: React.FC = () => {
   const prefsLoadedForUserRef = useRef<string | null>(null);
   const initialBgRef = useRef({ bgType: 'default', bgColor: '#ffffff' });
 
+  // useRef para o throttle do pullAndMerge — persiste entre re-execuções do useEffect,
+  // ao contrário de uma variável local que seria zerada a cada re-render do efeito.
+  const lastPullAtRef = useRef<number>(0);
+
+  // Refs para bgType/bgColor/lastSyncTime usados no pullAndMerge — evitam a necessidade
+  // de listá-los como dependências do useEffect, estabilizando os listeners focus/hashchange.
+  const bgTypeRef = useRef(bgType);
+  const bgColorRef = useRef(bgColor);
+  const lastSyncTimeRef = useRef(lastSyncTime);
+
+  // Manter refs sincronizados com os estados
+  useEffect(() => { bgTypeRef.current = bgType; }, [bgType]);
+  useEffect(() => { bgColorRef.current = bgColor; }, [bgColor]);
+  useEffect(() => { lastSyncTimeRef.current = lastSyncTime; }, [lastSyncTime]);
+
   useEffect(() => {
     if (!session) {
       setIsPrefsLoaded(false);
@@ -606,16 +618,16 @@ const App: React.FC = () => {
     if (!session || !isPrefsLoaded) return;
 
     // Throttle: só executa o pull remoto se passaram mais de 3 minutos desde a última execução.
-    // Evita uma query + potencial upsert a cada alt-tab ou troca de tela.
-    let lastPullAt = 0;
+    // lastPullAtRef é um useRef (não variável local) para que persista entre re-execuções
+    // do efeito sem zerar o contador, garantindo que o throttle funcione de verdade.
     const PULL_THROTTLE_MS = 3 * 60 * 1000; // 3 minutos
 
     const pullAndMerge = async () => {
       const now = Date.now();
-      if (now - lastPullAt < PULL_THROTTLE_MS) {
+      if (now - lastPullAtRef.current < PULL_THROTTLE_MS) {
         return; // Throttled silently
       }
-      lastPullAt = now;
+      lastPullAtRef.current = now;
 
       try {
         const { data: prefs } = await supabase
@@ -632,7 +644,8 @@ const App: React.FC = () => {
             console.error('Failed to parse remote settings JSON on focus:', e);
           }
 
-          if (remotePayload && remotePayload.updatedAt > lastSyncTime) {
+          // Usa lastSyncTimeRef.current para não precisar de lastSyncTime como dep do efeito
+          if (remotePayload && remotePayload.updatedAt > lastSyncTimeRef.current) {
             const localSettings: Record<string, string | null> = {};
             SYNC_KEYS.forEach(key => {
               localSettings[key] = localStorage.getItem(key);
@@ -675,10 +688,11 @@ const App: React.FC = () => {
               return;
             }
 
+            // Usa bgTypeRef.current e bgColorRef.current para não precisar de bgType/bgColor como deps
             supabase.from('user_preferences').upsert({
               user_id: session.user.id,
-              hub_bg_type: bgType,
-              hub_bg_color: bgColor,
+              hub_bg_type: bgTypeRef.current,
+              hub_bg_color: bgColorRef.current,
               hub_bg_image_url: payloadJson
             }, { onConflict: 'user_id' }).then(({ error }) => {
               if (error) console.error('pullAndMerge upsert failed:', error);
@@ -697,7 +711,10 @@ const App: React.FC = () => {
       window.removeEventListener('focus', pullAndMerge);
       window.removeEventListener('hashchange', pullAndMerge);
     };
-  }, [session, isPrefsLoaded, lastSyncTime, bgType, bgColor]);
+    // Dependências mínimas: apenas session e isPrefsLoaded.
+    // bgType, bgColor e lastSyncTime foram removidos — usamos refs para eles,
+    // evitando a recriação dos listeners a cada sync e o consequente reset do throttle.
+  }, [session, isPrefsLoaded]);
 
   // Listen for local settings changes to save immediately to Supabase
   useEffect(() => {
@@ -761,39 +778,28 @@ const App: React.FC = () => {
   // Auth state listener
   useEffect(() => {
     let subscription: any = null;
-    let finished = false;
 
     // Safety timeout for loading state to prevent hanging on offline Supabase
     const safetyTimeout = setTimeout(() => {
-      if (!finished) {
-        console.warn('supabase.auth.getSession() timed out. Proceeding.');
-        setLoading(false);
-      }
+      console.warn('Auth listener timeout. Proceeding without session.');
+      setLoading(false);
     }, 4000);
 
-    // Get initial session on mount to ensure we load the session immediately
-    supabase.auth.getSession()
-      .then(({ data }) => {
-        finished = true;
-        clearTimeout(safetyTimeout);
-        setSession(data?.session || null);
-        setLoading(false);
-      })
-      .catch(err => {
-        finished = true;
-        clearTimeout(safetyTimeout);
-        console.error('Error getting initial session:', err);
-        setLoading(false);
-      });
-
+    // O onAuthStateChange do Supabase JS v2 emite automaticamente um evento INITIAL_SESSION
+    // com a sessão atual imediatamente após o subscribe. Não é necessário chamar
+    // getSession() manualmente — isso geraria dois round-trips de auth e duas chamadas
+    // a setSession(), duplicando o auth egress em todo cold start.
     try {
       const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+        clearTimeout(safetyTimeout);
         setSession(session);
         setLoading(false);
       });
       subscription = data?.subscription;
     } catch (err) {
       console.error('Error setting up auth state listener:', err);
+      clearTimeout(safetyTimeout);
+      setLoading(false);
     }
 
     const handleHashChange = () => {
@@ -802,6 +808,7 @@ const App: React.FC = () => {
     window.addEventListener('hashchange', handleHashChange);
 
     return () => {
+      clearTimeout(safetyTimeout);
       if (subscription) {
         subscription.unsubscribe();
       }
@@ -903,13 +910,6 @@ const App: React.FC = () => {
         toggleTheme={toggleTheme}
         onLogout={handleLogout}
         bgType={bgType}
-        setBgType={setBgType}
-        bgColor={bgColor}
-        setBgColor={setBgColor}
-        bgImage={bgImage}
-        setBgImage={setBgImage}
-        bgImageStyle={bgImageStyle}
-        setBgImageStyle={setBgImageStyle}
         isHomeEditMode={isHomeEditMode}
         setIsHomeEditMode={setIsHomeEditMode}
       />

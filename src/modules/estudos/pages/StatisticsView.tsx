@@ -126,7 +126,64 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, sim
         });
       }
 
-      const accuracy = questions > 0 ? Math.min(100, Math.round((correct / questions) * 100)) : 0;
+      let accuracy = 0;
+      if (questions > 0) {
+        const subTopics = sub.topics || [];
+        const hasTopicWeights = subTopics.some(t => t.weight !== undefined && t.weight > 0);
+
+        if (hasTopicWeights) {
+          let weightedSum = 0;
+          let weightTotal = 0;
+          let unweightedQuestions = 0;
+          let unweightedCorrect = 0;
+
+          subTopics.forEach(topic => {
+            const topicSessions = subSessions.filter(s => s.topicId === topic.id);
+            const tDone = topicSessions.reduce((acc, s) => acc + (s.questionsDone || 0), 0);
+            const tCorrect = topicSessions.reduce((acc, s) => acc + (s.questionsCorrect || 0), 0);
+
+            if (tDone > 0) {
+              const tAcc = tCorrect / tDone;
+              if (topic.weight !== undefined && topic.weight > 0) {
+                weightedSum += tAcc * topic.weight;
+                weightTotal += topic.weight;
+              } else {
+                unweightedQuestions += tDone;
+                unweightedCorrect += tCorrect;
+              }
+            }
+          });
+
+          // Questões genéricas ou simulados (não associadas a tópicos específicos)
+          const genericDone = questions - subTopics.reduce((acc, topic) => {
+            const topicSessions = subSessions.filter(s => s.topicId === topic.id);
+            return acc + topicSessions.reduce((sum, s) => sum + (s.questionsDone || 0), 0);
+          }, 0);
+          const genericCorrect = correct - subTopics.reduce((acc, topic) => {
+            const topicSessions = subSessions.filter(s => s.topicId === topic.id);
+            return acc + topicSessions.reduce((sum, s) => sum + (s.questionsCorrect || 0), 0);
+          }, 0);
+
+          if (genericDone > 0) {
+            unweightedQuestions += genericDone;
+            unweightedCorrect += genericCorrect;
+          }
+
+          if (weightTotal > 0) {
+            if (unweightedQuestions > 0) {
+              const remainingWeight = Math.max(0, 100 - weightTotal);
+              const unweightedAcc = unweightedCorrect / unweightedQuestions;
+              weightedSum += unweightedAcc * remainingWeight;
+              weightTotal += remainingWeight;
+            }
+            accuracy = Math.min(100, Math.round((weightedSum / weightTotal) * 100));
+          } else {
+            accuracy = Math.round((correct / questions) * 100);
+          }
+        } else {
+          accuracy = Math.round((correct / questions) * 100);
+        }
+      }
       const weight = sub.weight || 1;
       const questionsGoal = sub.questionsGoal || 0;
 
@@ -462,7 +519,9 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, sim
                                   {tHasData ? `${tAccuracy}%` : '-'}
                                 </span>
                               </td>
-                              <td className="px-4 py-2.5 text-right text-zinc-400 dark:text-zinc-550">-</td>
+                              <td className="px-4 py-2.5 text-right text-zinc-400 dark:text-zinc-500 font-mono">
+                                {topic.weight !== undefined ? `${topic.weight.toFixed(2).replace('.', ',')}%` : '—'}
+                              </td>
                               <td className="px-4 py-2.5 text-right font-mono">
                                 <span className={`px-2 py-0.5 rounded-md font-bold ${
                                   topic.priority === 'Alta' ? 'bg-rose-50 text-rose-600 border border-rose-100 dark:bg-rose-950/20 dark:text-rose-450 dark:border-rose-900/30'

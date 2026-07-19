@@ -483,8 +483,32 @@ const TarefasApp: React.FC = () => {
         }
         return t.dueDate === dateStr;
       });
-      const hasRangeTask = dayTasks.some(t => !!t.endDate);
-      return { day, dateStr, dayTasks, hasRangeTask };
+
+      // Ordenação estável das tarefas dentro do mesmo dia
+      const sortedDayTasks = [...dayTasks].sort((a, b) => {
+        // 1. Tarefas com horário definido aparecem primeiro, em ordem cronológica
+        if (a.dueTime && b.dueTime) {
+          return a.dueTime.localeCompare(b.dueTime);
+        }
+        if (a.dueTime) return -1;
+        if (b.dueTime) return 1;
+
+        // 2. Ordenação por categoria/prioridade
+        const priorityMap: Record<string, number> = { 'Urgente': 1, 'Importante': 2, 'Tarefa': 3 };
+        const pA = priorityMap[a.category] || 4;
+        const pB = priorityMap[b.category] || 4;
+        if (pA !== pB) return pA - pB;
+
+        // 3. Ordenação alfabética pelo texto para garantir estabilidade absoluta
+        const textCompare = a.text.localeCompare(b.text);
+        if (textCompare !== 0) return textCompare;
+
+        // 4. Fallback pelo timestamp de criação
+        return (b.createdAt || 0) - (a.createdAt || 0);
+      });
+
+      const hasRangeTask = sortedDayTasks.some(t => !!t.endDate);
+      return { day, dateStr, dayTasks: sortedDayTasks, hasRangeTask };
     });
   }, [tasks, year, month, daysInCalendarMonth]);
 

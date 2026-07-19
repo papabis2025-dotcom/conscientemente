@@ -4,7 +4,6 @@ import { MODULES } from '../constants';
 import { Module } from '../types';
 import { LogEntry } from '../modules/estudos/types';
 import { LogOut, Sun, Moon, ArrowUpRight, Lock, BookOpen, Wallet, ListTodo, Brain, ChevronRight, ChevronLeft, ChevronDown, ChevronUp, Sliders, Activity, TrendingUp, Settings, User, X, HeartPulse, Bell, Plus, Trash2, Check, ClipboardList, BarChart3, Calendar, Award, CheckCircle2, StickyNote, Flame, Clock, DollarSign, Database, Cloud, AlertTriangle, FileText, CalendarDays, Menu, Trophy, AlertCircle } from 'lucide-react';
-import LogView from '../modules/estudos/pages/LogView';
 import { api } from '../modules/estudos/services/api';
 import { supabase } from '../modules/estudos/services/supabase';
 import { playSound } from '../utils/audio';
@@ -350,13 +349,17 @@ const HubHome: React.FC<HubHomeProps> = ({
     }
     setWidgetsOrder(newOrder);
     localStorage.setItem('cn_home_widgets_order', JSON.stringify(newOrder));
-    window.dispatchEvent(new Event('local-settings-changed'));
+    // Usa 'local-layout-changed' (não 'local-settings-changed') para não disparar
+    // refetch de dados do calendário — mudança de layout não requer queries ao Supabase.
+    window.dispatchEvent(new Event('local-layout-changed'));
   };
 
   const handleSetAlignment = (align: 'left' | 'center' | 'right') => {
     setAlignment(align);
     localStorage.setItem('cn_global_alignment', align);
-    window.dispatchEvent(new Event('local-settings-changed'));
+    // Usa 'local-layout-changed' (não 'local-settings-changed') para não disparar
+    // refetch de dados do calendário — mudança de alinhamento não requer queries ao Supabase.
+    window.dispatchEvent(new Event('local-layout-changed'));
   };
 
   useEffect(() => {
@@ -372,12 +375,15 @@ const HubHome: React.FC<HubHomeProps> = ({
         console.error('Error parsing cn_home_widgets_order on sync:', e);
       }
     };
+    // Escuta ambos os eventos: 'local-layout-changed' (layout/alinhamento) e
+    // 'local-storage-sync' (sync remoto). 'local-settings-changed' foi intencionalmente
+    // removido aqui para evitar re-renders em cascata desnecessários.
     window.addEventListener('local-storage-sync', handleSettingsChange);
-    window.addEventListener('local-settings-changed', handleSettingsChange);
+    window.addEventListener('local-layout-changed', handleSettingsChange);
     window.addEventListener('storage', handleSettingsChange);
     return () => {
       window.removeEventListener('local-storage-sync', handleSettingsChange);
-      window.removeEventListener('local-settings-changed', handleSettingsChange);
+      window.removeEventListener('local-layout-changed', handleSettingsChange);
       window.removeEventListener('storage', handleSettingsChange);
     };
   }, []);
@@ -552,7 +558,9 @@ const HubHome: React.FC<HubHomeProps> = ({
         .select('id, text, due_date, completed, due_time, category')
         .eq('user_id', user.id)
         .gte('due_date', windowStartStr)
-        .lte('due_date', windowEndStr);
+        .lte('due_date', windowEndStr)
+        .order('due_date', { ascending: true })
+        .order('id', { ascending: true });
 
       const { data: dbWorkouts } = await supabase
         .from('saude_treinos')
@@ -604,7 +612,9 @@ const HubHome: React.FC<HubHomeProps> = ({
         .select('id, date, subject_id, topic_id, activity_type, notes, duration_minutes, questions_done, questions_correct')
         .eq('user_id', user.id)
         .gte('date', windowStartStr)
-        .lte('date', windowEndStr);
+        .lte('date', windowEndStr)
+        .order('date', { ascending: true })
+        .order('id', { ascending: true });
 
       const { data: dbSessions } = await supabase
         .from('study_sessions')
@@ -640,7 +650,10 @@ const HubHome: React.FC<HubHomeProps> = ({
             status
           };
         });
-        localStorage.setItem('cp_scheduled_studies', JSON.stringify(scheduledStudiesFiltered));
+        // IMPORTANTE: Não gravar no localStorage aqui dentro do fetchCalendarData.
+        // Escrever no localStorage dispararia o evento 'storage', que acionaria o
+        // handleSync, que chamaria fetchCalendarData novamente — criando um loop infinito.
+        // O localStorage de cp_scheduled_studies é atualizado pelo módulo de estudos.
       } else {
         scheduledStudiesFiltered = JSON.parse(localStorage.getItem('cp_scheduled_studies') || '[]');
       }
@@ -1253,19 +1266,7 @@ const HubHome: React.FC<HubHomeProps> = ({
   const [newEmail, setNewEmail] = useState('');
   const [emailMessage, setEmailMessage] = useState('');
 
-  const fetchLogs = async () => {
-    const data = await api.logs.list();
-    if (data) setLogs(data);
-  };
 
-  const handleClearLogs = async () => {
-    await api.logs.clear();
-    setLogs([]);
-  };
-
-  const handleDeleteLog = async (id: string) => {
-    setLogs(prev => prev.filter(l => l.id !== id));
-  };
 
   const handleExport = async () => {
     setIsExporting(true);
@@ -1431,10 +1432,6 @@ const HubHome: React.FC<HubHomeProps> = ({
   }, []);
 
   useEffect(() => {
-    // Debounce de 2s: evita disparar fetchCalendarData múltiplas vezes quando vários
-    // eventos local-storage-sync chegam em cascata (ex: ao voltar para o hub).
-    let syncDebounceTimer: ReturnType<typeof setTimeout> | null = null;
-
     const handleSync = () => {
       try {
         const savedHabits = localStorage.getItem('cn_habits');
@@ -1452,30 +1449,27 @@ const HubHome: React.FC<HubHomeProps> = ({
         const savedPush = localStorage.getItem('cn_push_notifications_enabled') === 'true';
         setPushEnabled(savedPush);
         loadSleepLogs();
-
-        // Debounce: só faz fetch do calendário 2s após o último evento de sync,
-        // evitando múltiplas queries quando vários eventos chegam juntos.
-        if (syncDebounceTimer) clearTimeout(syncDebounceTimer);
-        syncDebounceTimer = setTimeout(() => {
-          fetchCalendarData(calendarMonth).catch(console.error);
-        }, 2000);
+        // IMPORTANTE: fetchCalendarData foi removido daqui.
+        // O refetch do calendário é gerenciado exclusivamente pelo useEffect dedicado
+        // que observa 'calendarMonth' (linha ~811). Chamar fetchCalendarData aqui
+        // criava um segundo ciclo de 8 queries por evento de sync, multiplicando o egress.
       } catch (e) {
         console.error('Error reloading local storage states on sync event:', e);
       }
     };
-    // 'local-storage-sync'  → fired by GlobalSidebar and other modules
-    // 'local-settings-changed' → fired by the estudos module (useAppData.ts) when
-    //   scheduled studies, status, or other planner data changes
+    // 'local-storage-sync' → disparado pelo GlobalSidebar e outros módulos
+    // 'local-settings-changed' → disparado pelo módulo de estudos ao mudar status
+    // Nota: 'local-layout-changed' (moveWidget, handleSetAlignment) é intencionalmente
+    // excluído deste handler — mudanças de layout não requerem refetch de dados do Supabase.
     window.addEventListener('local-storage-sync', handleSync);
     window.addEventListener('local-settings-changed', handleSync);
     window.addEventListener('storage', handleSync);
     return () => {
-      if (syncDebounceTimer) clearTimeout(syncDebounceTimer);
       window.removeEventListener('local-storage-sync', handleSync);
       window.removeEventListener('local-settings-changed', handleSync);
       window.removeEventListener('storage', handleSync);
     };
-  }, [calendarMonth, fetchCalendarData]);
+  }, [loadSleepLogs]);
 
   const fetchCloudData = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -1567,7 +1561,11 @@ const HubHome: React.FC<HubHomeProps> = ({
     });
     // Nota: fetchCalendarData é gerenciado pelo próprio useEffect que observa calendarMonth.
     // Não é necessário chamá-lo aqui para evitar queries duplicadas.
-  }, [calendarMonth, fetchCalendarData]);
+    // IMPORTANTE: calendarMonth e fetchCalendarData foram removidos das dependências.
+    // fetchCloudData busca dados do dashboard (pendências, notificações) e não deve
+    // recriar sua referência a cada navegação de mês do calendário — isso causava
+    // re-disparo desnecessário do useEffect abaixo (linha ~1573) com 5 queries extras.
+  }, []);
 
   // Fetch initial data and sync when day changes
   useEffect(() => {
@@ -1760,7 +1758,9 @@ const HubHome: React.FC<HubHomeProps> = ({
     }
     return list;
   };
-    return (
+  const last30DaysList = getDaysInMonthList();
+
+  return (
     <div className={`flex-1 h-screen overflow-y-auto flex flex-col transition-all duration-300 ${
       alignment === 'left' ? 'items-start px-4 sm:px-6 md:px-12' :
       alignment === 'right' ? 'items-end px-4 sm:px-6 md:px-12' :
@@ -2261,16 +2261,30 @@ const HubHome: React.FC<HubHomeProps> = ({
                           })()}
                         </span>
                       </div>
-
                       <div className="flex-1 overflow-y-auto pr-1 space-y-1.5 flex flex-col">
                         {(() => {
-                          const dayTasks = calendarEvents.tasks.filter(t => {
+                          const dayTasks = [...calendarEvents.tasks.filter(t => {
                             if (t.endDate) {
                               return t.due_date <= selectedCalendarDate && selectedCalendarDate <= t.endDate;
                             }
                             return t.due_date === selectedCalendarDate;
+                          })].sort((a, b) => {
+                            const isCompA = a.completed === true || String(a.completed).toLowerCase() === 'true';
+                            const isCompB = b.completed === true || String(b.completed).toLowerCase() === 'true';
+                            if (isCompA !== isCompB) return isCompA ? 1 : -1;
+                            if (a.due_time && b.due_time) return a.due_time.localeCompare(b.due_time);
+                            if (a.due_time) return -1;
+                            if (b.due_time) return 1;
+                            const priorityMap: Record<string, number> = { 'Urgente': 1, 'Importante': 2, 'Tarefa': 3 };
+                            const pA = priorityMap[a.category] || 4;
+                            const pB = priorityMap[b.category] || 4;
+                            if (pA !== pB) return pA - pB;
+                            return a.text.localeCompare(b.text);
                           });
-                          const dayStudies = calendarEvents.studies.filter(s => s.date === selectedCalendarDate);
+                          const dayStudies = [...calendarEvents.studies.filter(s => s.date === selectedCalendarDate)].sort((a, b) => {
+                            if (a.completed !== b.completed) return a.completed ? 1 : -1;
+                            return (a.text || '').localeCompare(b.text || '');
+                          });
                           const dayWorkouts = calendarEvents.workouts.filter(w => w.date === selectedCalendarDate);
                           const dayFinances = calendarEvents.finances.filter(f => f.date === selectedCalendarDate);
 

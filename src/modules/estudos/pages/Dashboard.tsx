@@ -1081,21 +1081,28 @@ const Dashboard: React.FC<DashboardProps> = ({
               ) : activeWeeklyTab === 'questions' ? (
                 weeklyQuestionsData.some(d => d.q > 0) ? (
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={weeklyQuestionsData} margin={{ top: 20, right: 0, bottom: 10, left: 0 }}>
+                    <AreaChart data={weeklyQuestionsData} margin={{ top: 20, right: 10, bottom: 10, left: 0 }}>
+                      <defs>
+                        <linearGradient id="colorQ" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#a855f7" stopOpacity={0.3} />
+                          <stop offset="95%" stopColor="#a855f7" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
                       <XAxis dataKey="n" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 600, fill: chartTextColor }} />
                       <YAxis width={30} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: chartTextColor }} />
                       <Tooltip contentStyle={{ fontSize: '11px', borderRadius: '12px', border: 'none', backgroundColor: isDarkMode ? '#0f172a' : '#fff', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }} formatter={(val: any) => `${val} q`} />
-                      <Bar dataKey="q" fill="#a855f7" radius={[4, 4, 0, 0]} barSize={20}>
+                      <Area type="monotone" dataKey="q" stroke="#a855f7" fill="url(#colorQ)" strokeWidth={3}>
                         <LabelList
                           dataKey="q"
                           position="top"
-                          offset={5}
-                          fill={isDarkMode ? '#e2e8f0' : '#64748b'}
+                          offset={8}
+                          formatter={(val: any) => (Number(val) > 0 ? `${val}` : '')}
+                          fill={isDarkMode ? '#c084fc' : '#7e22ce'}
                           style={{ fontSize: '10px', fontWeight: 'bold' }}
                         />
-                      </Bar>
-                    </BarChart>
+                      </Area>
+                    </AreaChart>
                   </ResponsiveContainer>
                 ) : <div className="h-full flex items-center justify-center text-xs text-zinc-400">Sem questões feitas</div>
               ) : (

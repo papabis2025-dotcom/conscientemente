@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Subject, StudySession, Concurso, ScheduledStudy, Simulado, ActivityType } from '../types';
 import {
   CalendarDays,
@@ -168,53 +168,76 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
   const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
   const toggleExpandTask = (id: string) => setExpandedTaskId(prev => prev === id ? null : id);
 
-  // Mapa de links do Caderno de Questões agrupado por disciplina+tópico.
-  // Chave = "subjectId_topicId" (topicId vazio = "geral"), assim revisões futuras
-  // de um mesmo assunto encontram os links do estudo de origem, independente da data.
-  const notebookLinksMap = useMemo(() => {
-    const map = new Map<string, string[]>();
-    (sessions || []).forEach(s => {
-      if (!s.questionsLink || !s.subjectId) return;
-      // Excluir sessões que são simulados ou revisões (só indexar estudos de origem)
-      const isSim = s.isSimulado || s.activityType === 'Simulado';
-      const isRev = s.activityType && (
-        s.activityType.toLowerCase().includes('revisão') ||
-        s.activityType.toLowerCase().includes('revisao')
-      );
-      if (isSim || isRev) return;
+  // Helper universal de extração e resolução de links para qualquer tarefa no Planner.
+  // Combina links diretos da tarefa + links do Caderno de Questões (da disciplina/tópico/data).
+  const getTaskAllLinks = useCallback((act: ScheduledStudy): string[] => {
+    const linksSet = new Set<string>();
 
-      let links: string[] = [];
+    const parseAndAdd = (linkData: string | undefined) => {
+      if (!linkData) return;
       try {
-        const parsed = JSON.parse(s.questionsLink);
-        links = Array.isArray(parsed) ? parsed.filter(Boolean) : (parsed ? [parsed] : []);
+        const parsed = JSON.parse(linkData);
+        if (Array.isArray(parsed)) {
+          parsed.filter(Boolean).forEach(l => {
+            if (typeof l === 'string' && l.trim()) linksSet.add(l.trim());
+          });
+        } else if (typeof parsed === 'string' && parsed.trim()) {
+          linksSet.add(parsed.trim());
+        }
       } catch {
-        links = [s.questionsLink];
+        if (typeof linkData === 'string' && linkData.trim()) {
+          linksSet.add(linkData.trim());
+        }
       }
-      if (links.length === 0) return;
+    };
 
-      // Chave por disciplina + tópico (sem data, para abranger todas as revisões futuras)
-      const topicKey = s.topicId || 'geral';
-      const key = `${s.subjectId}_${topicKey}`;
-      const existing = map.get(key) || [];
-      const merged = Array.from(new Set([...existing, ...links]));
-      map.set(key, merged);
+    // 1. Links diretos na própria tarefa agendada
+    parseAndAdd(act.questionsLink);
+
+    // 2. Links do Caderno de Questões (sessões de estudo da mesma disciplina / tópico / data)
+    (sessions || []).forEach(s => {
+      if (!s.questionsLink || !s.subjectId || s.subjectId !== act.subjectId) return;
+      const sameTopic = !act.topicId || !s.topicId || act.topicId === s.topicId;
+      const sameDate = s.date && s.date.split('T')[0] === act.date;
+      if (sameTopic || sameDate) {
+        parseAndAdd(s.questionsLink);
+      }
     });
-    return map;
-  }, [sessions]);
+
+    // 3. Fallback 1: se nenhum link por tópico/data for encontrado, buscar qualquer link da mesma disciplina no Caderno
+    if (linksSet.size === 0 && act.subjectId) {
+      (sessions || []).forEach(s => {
+        if (s.subjectId === act.subjectId && s.questionsLink) {
+          parseAndAdd(s.questionsLink);
+        }
+      });
+    }
+
+    // 4. Fallback 2: buscar em scheduledStudies da mesma disciplina
+    if (linksSet.size === 0 && act.subjectId) {
+      (scheduledStudies || []).forEach(s => {
+        if (s.subjectId === act.subjectId && s.questionsLink) {
+          parseAndAdd(s.questionsLink);
+        }
+      });
+    }
+
+    return Array.from(linksSet);
+  }, [sessions, scheduledStudies]);
 
   // Active Concurso
   const activeConcurso = useMemo(() => {
     return concursos.find(c => c.id === selectedConcursoId);
   }, [concursos, selectedConcursoId]);
 
-  // Filter scheduled studies related to subjects of active concurso
+  // Filter scheduled studies related to subjects of active concurso (includes cronograma & planned reviews)
   const activeConcursoSubjectIds = useMemo(() => {
     return new Set((subjects || []).map(s => s.id));
   }, [subjects]);
 
   const cronogramaStudies = useMemo(() => {
     return (scheduledStudies || []).filter(s => 
-      s.generatedByCronograma && 
+      (s.generatedByCronograma || (s.activityType && (s.activityType.toLowerCase().includes('revis') || s.activityType.toLowerCase().includes('simulado')))) && 
       (activeConcursoSubjectIds.has(s.subjectId) || s.activityType === 'Simulado')
     );
   }, [scheduledStudies, activeConcursoSubjectIds]);
@@ -1051,19 +1074,16 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
                         const sub = subjects.find(s => s.id === act.subjectId);
                         const topic = sub?.topics?.find(t => t.id === act.topicId);
                         
-                        const nbKey = `${act.subjectId}_${act.topicId || 'geral'}`;
-                        const nbLinks = notebookLinksMap.get(nbKey) || [];
+                        const taskLinks = getTaskAllLinks(act);
                         const isExpanded = expandedTaskId === act.id;
 
                         return (
                           <div key={act.id} className="space-y-0">
                             <div
                               style={{ borderLeftColor: sub?.color || '#10B981' }}
-                              onClick={() => { if (nbLinks.length > 0) toggleExpandTask(act.id); }}
-                              className={`p-3.5 rounded-2xl border-l-4 bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200/50 dark:border-zinc-700/50 flex justify-between items-center transition-all ${
+                              onClick={() => toggleExpandTask(act.id)}
+                              className={`p-3.5 rounded-2xl border-l-4 bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200/50 dark:border-zinc-700/50 flex justify-between items-center transition-all cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800/70 ${
                                 isDone ? 'opacity-40 hover:opacity-60' : ''
-                              } ${
-                                nbLinks.length > 0 ? 'cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800/70' : ''
                               } ${
                                 isExpanded ? 'rounded-b-none border-b-0' : ''
                               }`}
@@ -1084,9 +1104,13 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
                                   {sub && (
                                     <span className="text-[8px] font-black uppercase tracking-widest text-zinc-400 truncate max-w-[100px]">{sub.name}</span>
                                   )}
-                                  {nbLinks.length > 0 && (
-                                    <span className="text-[7px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 flex items-center gap-0.5 border border-amber-200/60 dark:border-amber-800/40">
-                                      <BookMarked size={7} /> {nbLinks.length}
+                                  {taskLinks.length > 0 && (
+                                    <span className={`text-[7px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md flex items-center gap-0.5 border ${
+                                      isExpanded 
+                                        ? 'bg-amber-200 dark:bg-amber-900/60 text-amber-800 dark:text-amber-200 border-amber-400 dark:border-amber-700'
+                                        : 'bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border-amber-300/60 dark:border-amber-800/40'
+                                    }`}>
+                                      <BookMarked size={7} /> {taskLinks.length} {taskLinks.length === 1 ? 'link' : 'links'}
                                     </span>
                                   )}
                                 </div>
@@ -1096,32 +1120,6 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
                                 <p className="text-[9px] text-zinc-400 font-bold mt-1.5 flex items-center gap-1 font-mono">
                                   <Clock size={9} /> {act.durationInMinutes} min
                                 </p>
-                                {act.questionsLink && (
-                                  <div className="mt-2 flex flex-wrap gap-1">
-                                    {(() => {
-                                      let links: string[] = [];
-                                      try {
-                                        const parsed = JSON.parse(act.questionsLink);
-                                        links = Array.isArray(parsed) ? parsed : [parsed];
-                                      } catch (e) {
-                                        links = [act.questionsLink];
-                                      }
-                                      return links.filter(Boolean).map((link, idx) => (
-                                        <a
-                                          key={idx}
-                                          href={link}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          onClick={(e) => e.stopPropagation()}
-                                          className="px-2 py-0.5 rounded-md text-[8px] font-bold bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-colors flex items-center gap-1 cursor-pointer"
-                                          title={link}
-                                        >
-                                          <ExternalLink size={8} /> Q{idx + 1}
-                                        </a>
-                                      ));
-                                    })()}
-                                  </div>
-                                )}
                               </div>
 
                               <button
@@ -1145,29 +1143,35 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
                             </div>
 
                             {/* Painel colapsável de links do Caderno de Questões */}
-                            {isExpanded && nbLinks.length > 0 && (
+                            {isExpanded && (
                               <div
                                 style={{ borderLeftColor: sub?.color || '#10B981' }}
-                                className="border-l-4 border border-t-0 border-amber-200/70 dark:border-amber-800/40 bg-amber-50/80 dark:bg-amber-950/20 rounded-b-2xl px-3 pb-2.5 pt-2"
+                                className="border-l-4 border border-t-0 border-amber-300/70 dark:border-amber-800/50 bg-amber-50/90 dark:bg-amber-950/30 rounded-b-2xl px-3 pb-3 pt-2.5 space-y-1.5 animate-in fade-in duration-150"
                               >
-                                <p className="text-[7px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400 flex items-center gap-1 mb-1.5">
-                                  <BookMarked size={7} /> Caderno de Questões
+                                <p className="text-[8px] font-black uppercase tracking-widest text-amber-700 dark:text-amber-300 flex items-center gap-1">
+                                  <BookMarked size={9} /> Caderno de Questões / Links ({taskLinks.length})
                                 </p>
-                                <div className="flex flex-wrap gap-1">
-                                  {nbLinks.map((link, idx) => (
-                                    <a
-                                      key={idx}
-                                      href={link}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      onClick={(e) => e.stopPropagation()}
-                                      className="px-2 py-0.5 rounded-md text-[8px] font-bold bg-white dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-800/40 transition-colors flex items-center gap-1 cursor-pointer border border-amber-300/60 dark:border-amber-700/40 shadow-xs"
-                                      title={link}
-                                    >
-                                      <BookMarked size={8} /> C{idx + 1}
-                                    </a>
-                                  ))}
-                                </div>
+                                {taskLinks.length > 0 ? (
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {taskLinks.map((link: string, idx: number) => (
+                                      <a
+                                        key={idx}
+                                        href={link}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="px-2.5 py-1 rounded-lg text-[9px] font-bold bg-white dark:bg-zinc-800 text-amber-800 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-all flex items-center gap-1 cursor-pointer border border-amber-300/60 dark:border-amber-700/50 shadow-xs hover:shadow-sm"
+                                        title={link}
+                                      >
+                                        <ExternalLink size={9} /> Link {idx + 1}
+                                      </a>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <p className="text-[9px] font-medium text-amber-700/70 dark:text-amber-400/80 italic">
+                                    Nenhum link cadastrado ainda no Caderno de Questões para esta disciplina.
+                                  </p>
+                                )}
                               </div>
                             )}
                           </div>
@@ -1204,19 +1208,16 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
                   const sub = subjects.find(s => s.id === act.subjectId);
                   const topic = sub?.topics?.find(t => t.id === act.topicId);
 
-                  const nbKey = `${act.subjectId}_${act.topicId || 'geral'}`;
-                  const nbLinks = notebookLinksMap.get(nbKey) || [];
+                  const taskLinks = getTaskAllLinks(act);
                   const isExpanded = expandedTaskId === act.id;
 
                   return (
                     <div key={act.id} className="space-y-0">
                       <div
                         style={{ borderLeftColor: sub?.color || '#10B981' }}
-                        onClick={() => { if (nbLinks.length > 0) toggleExpandTask(act.id); }}
-                        className={`p-4 border-l-4 bg-zinc-50 dark:bg-zinc-800/20 border border-zinc-200/50 dark:border-zinc-700/50 flex justify-between items-start gap-4 transition-all ${
+                        onClick={() => toggleExpandTask(act.id)}
+                        className={`p-4 border-l-4 bg-zinc-50 dark:bg-zinc-800/20 border border-zinc-200/50 dark:border-zinc-700/50 flex justify-between items-start gap-4 transition-all cursor-pointer hover:bg-zinc-100/80 dark:hover:bg-zinc-800/50 ${
                           isDone ? 'opacity-40' : ''
-                        } ${
-                          nbLinks.length > 0 ? 'cursor-pointer hover:bg-zinc-100/80 dark:hover:bg-zinc-800/50' : ''
                         } ${
                           isExpanded ? 'rounded-t-3xl border-b-0' : 'rounded-3xl'
                         }`}
@@ -1237,14 +1238,14 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
                             {sub && (
                               <span className="text-[9px] font-black uppercase tracking-wider text-zinc-400">{sub.name}</span>
                             )}
-                            {nbLinks.length > 0 && (
+                            {taskLinks.length > 0 && (
                               <span className={`text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded-lg flex items-center gap-1 border transition-colors ${
                                 isExpanded
-                                  ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 border-amber-300/70 dark:border-amber-700/50'
+                                  ? 'bg-amber-200 dark:bg-amber-900/60 text-amber-800 dark:text-amber-200 border-amber-400 dark:border-amber-700'
                                   : 'bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 border-amber-200/60 dark:border-amber-800/40'
                               }`}>
-                                <BookMarked size={8} />
-                                {nbLinks.length} {nbLinks.length === 1 ? 'caderno' : 'cadernos'}
+                                <BookMarked size={9} />
+                                {taskLinks.length} {taskLinks.length === 1 ? 'link' : 'links'}
                               </span>
                             )}
                           </div>
@@ -1253,32 +1254,6 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
                           <p className="text-xs text-zinc-400 font-bold mt-2 flex items-center gap-1 font-mono">
                             <Clock size={11} /> {act.durationInMinutes} minutos
                           </p>
-                          {act.questionsLink && (
-                            <div className="mt-2 flex flex-wrap gap-1">
-                              {(() => {
-                                let links: string[] = [];
-                                try {
-                                  const parsed = JSON.parse(act.questionsLink);
-                                  links = Array.isArray(parsed) ? parsed : [parsed];
-                                } catch (e) {
-                                  links = [act.questionsLink];
-                                }
-                                return links.filter(Boolean).map((link, idx) => (
-                                  <a
-                                    key={idx}
-                                    href={link}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    onClick={(e) => e.stopPropagation()}
-                                    className="px-2 py-1 rounded-md text-[9px] font-bold bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-colors flex items-center gap-1 cursor-pointer"
-                                    title={link}
-                                  >
-                                    <ExternalLink size={9} /> Q{idx + 1}
-                                  </a>
-                                ));
-                              })()}
-                            </div>
-                          )}
                         </div>
 
                         <button
@@ -1308,29 +1283,35 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
                       </div>
 
                       {/* Painel colapsável de links do Caderno de Questões */}
-                      {isExpanded && nbLinks.length > 0 && (
+                      {isExpanded && (
                         <div
                           style={{ borderLeftColor: sub?.color || '#10B981' }}
-                          className="border-l-4 border border-t-0 border-amber-200/70 dark:border-amber-800/40 bg-amber-50/70 dark:bg-amber-950/15 rounded-b-3xl px-5 pb-4 pt-3"
+                          className="border-l-4 border border-t-0 border-amber-300/70 dark:border-amber-800/50 bg-amber-50/80 dark:bg-amber-950/20 rounded-b-3xl px-5 pb-4 pt-3 space-y-2 animate-in fade-in duration-150"
                         >
-                          <p className="text-[8px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400 flex items-center gap-1.5 mb-2">
-                            <BookMarked size={8} /> Caderno de Questões
+                          <p className="text-[9px] font-black uppercase tracking-widest text-amber-700 dark:text-amber-300 flex items-center gap-1.5">
+                            <BookMarked size={10} /> Caderno de Questões / Links ({taskLinks.length})
                           </p>
-                          <div className="flex flex-wrap gap-2">
-                            {nbLinks.map((link, idx) => (
-                              <a
-                                key={idx}
-                                href={link}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                onClick={(e) => e.stopPropagation()}
-                                className="px-3 py-1.5 rounded-xl text-xs font-bold bg-white dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-800/50 transition-all flex items-center gap-1.5 cursor-pointer border border-amber-300/60 dark:border-amber-700/40 shadow-xs hover:shadow-sm"
-                                title={link}
-                              >
-                                <BookMarked size={11} /> Caderno {idx + 1}
-                              </a>
-                            ))}
-                          </div>
+                          {taskLinks.length > 0 ? (
+                            <div className="flex flex-wrap gap-2">
+                              {taskLinks.map((link: string, idx: number) => (
+                                <a
+                                  key={idx}
+                                  href={link}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-white dark:bg-zinc-800 text-amber-800 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-all flex items-center gap-1.5 cursor-pointer border border-amber-300/60 dark:border-amber-700/50 shadow-xs hover:shadow-sm"
+                                  title={link}
+                                >
+                                  <ExternalLink size={11} /> Link {idx + 1}
+                                </a>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-xs font-medium text-amber-700/70 dark:text-amber-400/80 italic">
+                              Nenhum link cadastrado ainda no Caderno de Questões para esta disciplina.
+                            </p>
+                          )}
                         </div>
                       )}
                     </div>

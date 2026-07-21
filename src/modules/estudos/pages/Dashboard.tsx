@@ -1054,7 +1054,7 @@ const Dashboard: React.FC<DashboardProps> = ({
               {activeWeeklyTab === 'hours' ? (
                 weeklyData.some(d => d.h > 0) ? (
                   <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={weeklyData} margin={{ top: 5, right: 0, bottom: 10, left: 0 }}>
+                    <AreaChart data={weeklyData} margin={{ top: 20, right: 10, bottom: 10, left: 0 }}>
                       <defs>
                         <linearGradient id="colorH" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
@@ -1065,7 +1065,16 @@ const Dashboard: React.FC<DashboardProps> = ({
                       <XAxis dataKey="n" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 600, fill: chartTextColor }} />
                       <YAxis width={30} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: chartTextColor }} />
                       <Tooltip contentStyle={{ fontSize: '11px', borderRadius: '12px', border: 'none', backgroundColor: isDarkMode ? '#0f172a' : '#fff', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }} formatter={(val: any) => `${val}h`} />
-                      <Area type="monotone" dataKey="h" stroke="#3b82f6" fill="url(#colorH)" strokeWidth={3} />
+                      <Area type="monotone" dataKey="h" stroke="#3b82f6" fill="url(#colorH)" strokeWidth={3}>
+                        <LabelList
+                          dataKey="h"
+                          position="top"
+                          offset={8}
+                          formatter={(val: any) => (Number(val) > 0 ? `${val}h` : '')}
+                          fill={isDarkMode ? '#93c5fd' : '#2563eb'}
+                          style={{ fontSize: '10px', fontWeight: 'bold' }}
+                        />
+                      </Area>
                     </AreaChart>
                   </ResponsiveContainer>
                 ) : <div className="h-full flex items-center justify-center text-xs text-zinc-400">Sem dados de tempo</div>
@@ -1092,7 +1101,7 @@ const Dashboard: React.FC<DashboardProps> = ({
               ) : (
                 weeklyAccuracyData.some(d => d.acc > 0) ? (
                   <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={weeklyAccuracyData} margin={{ top: 5, right: 0, bottom: 10, left: 0 }}>
+                    <AreaChart data={weeklyAccuracyData} margin={{ top: 20, right: 10, bottom: 10, left: 0 }}>
                       <defs>
                         <linearGradient id="colorAcc" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
@@ -1103,7 +1112,20 @@ const Dashboard: React.FC<DashboardProps> = ({
                       <XAxis dataKey="n" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 600, fill: chartTextColor }} />
                       <YAxis width={30} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: chartTextColor }} domain={[0, 100]} />
                       <Tooltip contentStyle={{ fontSize: '11px', borderRadius: '12px', border: 'none', backgroundColor: isDarkMode ? '#0f172a' : '#fff', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }} formatter={(val: any) => `${val}%`} />
-                      <Area type="monotone" dataKey="acc" stroke="#10b981" fill="url(#colorAcc)" strokeWidth={3} />
+                      <Area type="monotone" dataKey="acc" stroke="#10b981" fill="url(#colorAcc)" strokeWidth={3}>
+                        <LabelList
+                          dataKey="acc"
+                          position="top"
+                          offset={8}
+                          formatter={(val: any, entry: any) => {
+                            const payload = entry?.payload || {};
+                            if (payload.done > 0) return `${val}%`;
+                            return Number(val) > 0 ? `${val}%` : '';
+                          }}
+                          fill={isDarkMode ? '#6ee7b7' : '#059669'}
+                          style={{ fontSize: '10px', fontWeight: 'bold' }}
+                        />
+                      </Area>
                     </AreaChart>
                   </ResponsiveContainer>
                 ) : <div className="h-full flex items-center justify-center text-xs text-zinc-400">Sem dados de desempenho</div>

@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Subject, Simulado, SimuladoSubjectResult } from '../types';
+import { Subject, Simulado, SimuladoSubjectResult, StudySession } from '../types';
 import { Edit2, Trash2, Clock, TrendingDown, Trophy, Award, Activity, HelpCircle } from 'lucide-react';
 
 interface SimuladosViewProps {

@@ -537,7 +537,8 @@ const HubHome: React.FC<HubHomeProps> = ({
   };
 
   const fetchCalendarData = useCallback(async (date: Date) => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { session } } = await supabase.auth.getSession();
+    const user = session?.user;
     if (!user) return;
 
     const year = date.getFullYear();
@@ -1346,7 +1347,8 @@ const HubHome: React.FC<HubHomeProps> = ({
     if (confirm('TEM CERTEZA? Isso apagará TODOS os seus dados permanentemente.') &&
         confirm('Último aviso: Essa ação não pode ser desfeita. Confirmar reset total?')) {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { session } } = await supabase.auth.getSession();
+        const user = session?.user;
         if (user) {
           await Promise.all([
             supabase.from('concursos').delete().eq('user_id', user.id),
@@ -1472,7 +1474,8 @@ const HubHome: React.FC<HubHomeProps> = ({
   }, [loadSleepLogs]);
 
   const fetchCloudData = useCallback(async () => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { session } } = await supabase.auth.getSession();
+    const user = session?.user;
     if (!user) return;
 
     const now = new Date();
@@ -1623,7 +1626,8 @@ const HubHome: React.FC<HubHomeProps> = ({
       // Só faz query ao Supabase se o dia mudou ou se ainda não carregou
       if (cachedDayStr === localTodayStr) return;
 
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { session } } = await supabase.auth.getSession();
+      const user = session?.user;
       if (!user) return;
 
       const { data } = await supabase

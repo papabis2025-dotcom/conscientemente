@@ -1,6 +1,12 @@
 import { supabase } from './supabase';
 import { Concurso, StudySession, Simulado, ScheduledStudy, DailyGoal, LogEntry, Profile } from '../types';
 
+// Generic helper to get user from local session cache without HTTP network requests
+const getAuthUser = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.user || null;
+};
+
 // Generic helper for error handling
 const handleRequest = async <T>(request: PromiseLike<{ data: T | null; error: any }> | any): Promise<T | null> => {
     const { data, error } = await request;
@@ -15,23 +21,23 @@ export const api = {
     // Profiles
     profiles: {
         get: async () => {
-            const { data: { user } } = await supabase.auth.getUser();
+            const user = await getAuthUser();
             if (!user) return null;
-            return handleRequest(supabase.from('profiles').select('*').eq('id', user.id).single());
+            return handleRequest(supabase.from('profiles').select('id, name, metadata, avatar').eq('id', user.id).single());
         },
-        update: async (updates: Partial<Profile>) => handleRequest(supabase.from('profiles').update(updates).eq('id', (await supabase.auth.getUser()).data.user?.id)),
+        update: async (updates: Partial<Profile>) => handleRequest(supabase.from('profiles').update(updates).eq('id', (await getAuthUser())?.id)),
     },
 
     // Settings (stored in profiles.metadata)
     settings: {
         get: async () => {
-            const { data: { user } } = await supabase.auth.getUser();
+            const user = await getAuthUser();
             if (!user) return null;
             const profile = await handleRequest<any>(supabase.from('profiles').select('metadata').eq('id', user.id).single());
             return profile?.metadata || {};
         },
         update: async (metadataUpdates: any) => {
-            const { data: { user } } = await supabase.auth.getUser();
+            const user = await getAuthUser();
             if (!user) return null;
             const profile = await handleRequest<any>(supabase.from('profiles').select('metadata').eq('id', user.id).single());
             const currentMetadata = profile?.metadata || {};
@@ -43,9 +49,9 @@ export const api = {
     // Concursos
     concursos: {
         list: async () => {
-            const { data: { user } } = await supabase.auth.getUser();
+            const user = await getAuthUser();
             if (!user) return [];
-            const data = await handleRequest<any[]>(supabase.from('concursos').select('*').eq('user_id', user.id).order('created_at', { ascending: false }));
+            const data = await handleRequest<any[]>(supabase.from('concursos').select('id, name, banca, start_date, target_date, subjects, category_id, image_url').eq('user_id', user.id).order('created_at', { ascending: false }));
             return (data || []).map((c: any) => ({
                 id: c.id,
                 name: c.name,
@@ -58,7 +64,7 @@ export const api = {
             }));
         },
         upsert: async (concurso: Concurso) => {
-            const { data: { user } } = await supabase.auth.getUser();
+            const user = await getAuthUser();
             if (!user) throw new Error('Not authenticated');
 
             // Map camelCase to snake_case for DB
@@ -86,7 +92,7 @@ export const api = {
         },
         delete: async (id: string) => handleRequest(supabase.from('concursos').delete().eq('id', id)),
         deleteAll: async () => {
-            const { data: { user } } = await supabase.auth.getUser();
+            const user = await getAuthUser();
             if (user) return handleRequest(supabase.from('concursos').delete().eq('user_id', user.id));
         },
     },
@@ -94,7 +100,7 @@ export const api = {
     // Study Sessions
     sessions: {
         list: async () => {
-            const { data: { user } } = await supabase.auth.getUser();
+            const user = await getAuthUser();
             if (!user) return [];
             // Limita aos ultimos 6 meses para reduzir o egress do Supabase
             const sixMonthsAgo = new Date();
@@ -132,7 +138,7 @@ export const api = {
             }));
         },
         create: async (session: Omit<StudySession, 'id' | 'user_id' | 'created_at'> & { id?: string }) => {
-            const { data: { user } } = await supabase.auth.getUser();
+            const user = await getAuthUser();
             if (!user) throw new Error('Not authenticated');
 
             const rawDate = session.date;
@@ -201,7 +207,7 @@ export const api = {
         delete: async (id: string) => handleRequest(supabase.from('study_sessions').delete().eq('id', id)),
         deleteBySubject: async (subjectId: string) => handleRequest(supabase.from('study_sessions').delete().eq('subject_id', subjectId)),
         deleteAll: async () => {
-            const { data: { user } } = await supabase.auth.getUser();
+            const user = await getAuthUser();
             if (user) return handleRequest(supabase.from('study_sessions').delete().eq('user_id', user.id));
         },
     },
@@ -209,7 +215,7 @@ export const api = {
     // Simulados
     simulados: {
         list: async () => {
-            const { data: { user } } = await supabase.auth.getUser();
+            const user = await getAuthUser();
             if (!user) return [];
             // Limita aos ultimos 12 meses para reduzir egress do Supabase
             const oneYearAgo = new Date();
@@ -237,7 +243,7 @@ export const api = {
             });
         },
         create: async (simulado: Omit<Simulado, 'user_id' | 'created_at'> & { id?: string }) => {
-            const { data: { user } } = await supabase.auth.getUser();
+            const user = await getAuthUser();
             if (!user) throw new Error('Not authenticated');
 
             const payloadResults = {
@@ -266,7 +272,7 @@ export const api = {
             } as any;
         },
         update: async (id: string, simulado: Simulado) => {
-            const { data: { user } } = await supabase.auth.getUser();
+            const user = await getAuthUser();
             if (!user) throw new Error('Not authenticated');
 
             const payloadResults = {
@@ -283,7 +289,7 @@ export const api = {
         },
         delete: async (id: string) => handleRequest(supabase.from('simulados').delete().eq('id', id)),
         deleteAll: async () => {
-            const { data: { user } } = await supabase.auth.getUser();
+            const user = await getAuthUser();
             if (user) return handleRequest(supabase.from('simulados').delete().eq('user_id', user.id));
         },
         // Note: Simulados effectively embed subjects in JSON 'results', so we can't simple delete by subject_id column
@@ -293,7 +299,7 @@ export const api = {
     // Scheduled Studies
     schedule: {
         list: async () => {
-            const { data: { user } } = await supabase.auth.getUser();
+            const user = await getAuthUser();
             if (!user) return [];
 
             // Limit to scheduled studies from 6 months ago to optimize Supabase Egress
@@ -302,8 +308,8 @@ export const api = {
             const dateLimit = sixMonthsAgo.toISOString().split('T')[0];
 
             // Tenta primeiro com todas as colunas; se questions_link nao existir, usa fallback sem ela
-            let result = await supabase.from('scheduled_studies')
-                .select('*')
+            let result: any = await supabase.from('scheduled_studies')
+                .select('id,date,subject_id,topic_id,activity_type,notes,duration_minutes,questions_done,questions_correct,questions_link')
                 .eq('user_id', user.id)
                 .gte('date', dateLimit)
                 .order('date', { ascending: true });
@@ -337,7 +343,7 @@ export const api = {
             }));
         },
         create: async (item: Omit<ScheduledStudy, 'id' | 'status'> & { id?: string }) => {
-            const { data: { user } } = await supabase.auth.getUser();
+            const user = await getAuthUser();
             if (!user) throw new Error('Not authenticated');
 
             // Do NOT send 'status' -- that column does not exist in the DB table.
@@ -421,11 +427,11 @@ export const api = {
         delete: async (id: string) => handleRequest(supabase.from('scheduled_studies').delete().eq('id', id)),
         deleteBySubject: async (subjectId: string) => handleRequest(supabase.from('scheduled_studies').delete().eq('subject_id', subjectId)),
         deleteAll: async () => {
-            const { data: { user } } = await supabase.auth.getUser();
+            const user = await getAuthUser();
             if (user) return handleRequest(supabase.from('scheduled_studies').delete().eq('user_id', user.id));
         },
         createBatch: async (items: (Omit<ScheduledStudy, 'id' | 'status'> & { id?: string })[]) => {
-            const { data: { user } } = await supabase.auth.getUser();
+            const user = await getAuthUser();
             if (!user) throw new Error('Not authenticated');
 
             const dbPayloads = items.map(item => ({
@@ -477,7 +483,7 @@ export const api = {
     // Daily Goals
     dailyGoals: {
         list: async () => {
-            const { data: { user } } = await supabase.auth.getUser();
+            const user = await getAuthUser();
             if (!user) return [];
             // Limita ao mes atual + mes anterior para reduzir egress do Supabase
             const twoMonthsAgo = new Date();
@@ -490,7 +496,7 @@ export const api = {
             }));
         },
         upsert: async (goal: DailyGoal) => {
-            const { data: { user } } = await supabase.auth.getUser();
+            const user = await getAuthUser();
             if (!user) throw new Error('Not authenticated');
 
             return handleRequest(supabase.from('daily_goals').upsert({
@@ -500,7 +506,7 @@ export const api = {
             }, { onConflict: 'user_id, date' }));
         },
         deleteAll: async () => {
-            const { data: { user } } = await supabase.auth.getUser();
+            const user = await getAuthUser();
             if (user) return handleRequest(supabase.from('daily_goals').delete().eq('user_id', user.id));
         }
     },
@@ -508,12 +514,12 @@ export const api = {
     // Habitos
     habits: {
         list: async () => {
-            const { data: { user } } = await supabase.auth.getUser();
+            const user = await getAuthUser();
             if (!user) return [];
-            return handleRequest<any[]>(supabase.from('habits').select('*').eq('user_id', user.id).order('created_at', { ascending: true }));
+            return handleRequest<any[]>(supabase.from('habits').select('id, name, created_at').eq('user_id', user.id).order('created_at', { ascending: true }));
         },
         upsert: async (habit: any) => {
-            const { data: { user } } = await supabase.auth.getUser();
+            const user = await getAuthUser();
             if (!user) return null;
 
             const dbPayload = {
@@ -526,12 +532,12 @@ export const api = {
         delete: async (id: string) => handleRequest(supabase.from('habits').delete().eq('id', id)),
 
         getLogs: async (dateStr: string) => {
-            const { data: { user } } = await supabase.auth.getUser();
+            const user = await getAuthUser();
             if (!user) return [];
-            return handleRequest<any[]>(supabase.from('habit_logs').select('*').eq('user_id', user.id).eq('logged_date', dateStr));
+            return handleRequest<any[]>(supabase.from('habit_logs').select('habit_id, logged_date').eq('user_id', user.id).eq('logged_date', dateStr));
         },
         getAllLogs: async () => {
-            const { data: { user } } = await supabase.auth.getUser();
+            const user = await getAuthUser();
             if (!user) return [];
             // Limita aos ultimos 180 dias (suficiente para streaks e graficos de habitos)
             const sixMonthsAgo = new Date();
@@ -540,7 +546,7 @@ export const api = {
             return handleRequest<any[]>(supabase.from('habit_logs').select('habit_id, logged_date').eq('user_id', user.id).gte('logged_date', dateLimit));
         },
         toggleLog: async (habitId: string, dateStr: string, isCompleted: boolean) => {
-            const { data: { user } } = await supabase.auth.getUser();
+            const user = await getAuthUser();
             if (!user) return null;
             if (isCompleted) {
                 return handleRequest(supabase.from('habit_logs').upsert({ user_id: user.id, habit_id: habitId, logged_date: dateStr }));
@@ -553,12 +559,12 @@ export const api = {
     // Logs
     logs: {
         list: async () => {
-            const { data: { user } } = await supabase.auth.getUser();
+            const user = await getAuthUser();
             if (!user) return [];
-            return handleRequest<LogEntry[]>(supabase.from('logs').select('*').eq('user_id', user.id).order('timestamp', { ascending: false }).limit(50));
+            return handleRequest<LogEntry[]>(supabase.from('logs').select('id, message, type, timestamp').eq('user_id', user.id).order('timestamp', { ascending: false }).limit(50));
         },
         create: async (log: LogEntry) => {
-            const { data: { user } } = await supabase.auth.getUser();
+            const user = await getAuthUser();
             if (!user) return null; // Silent fail if no user
 
             return handleRequest(supabase.from('logs').insert({
@@ -568,7 +574,7 @@ export const api = {
             }));
         },
         clear: async () => {
-            const { data: { user } } = await supabase.auth.getUser();
+            const user = await getAuthUser();
             if (!user) return;
             return handleRequest(supabase.from('logs').delete().eq('user_id', user.id));
         }

@@ -297,7 +297,8 @@ const GlobalSidebar: React.FC<GlobalSidebarProps> = ({
     if (confirm('TEM CERTEZA? Isso apagará TODOS os seus dados permanentemente.') &&
         confirm('Último aviso: Essa ação não pode ser desfeita. Confirmar reset total?')) {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { session } } = await supabase.auth.getSession();
+        const user = session?.user;
         if (user) {
           await Promise.all([
             supabase.from('concursos').delete().eq('user_id', user.id),

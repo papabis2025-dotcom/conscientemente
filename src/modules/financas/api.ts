@@ -1,5 +1,10 @@
 import { supabase } from '../estudos/services/supabase';
 
+const getAuthUser = async () => {
+  const { data: { session } } = await supabase.auth.getSession();
+  return session?.user || null;
+};
+
 export interface FinCategoria {
   id: string;
   name: string;
@@ -20,7 +25,7 @@ export interface Transaction {
 
 export const financasApi = {
   listTransactions: async () => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getAuthUser();
     if (!user) return [];
     // Limita ao ultimo ano para reduzir egress do Supabase
     const oneYearAgo = new Date();
@@ -47,7 +52,7 @@ export const financasApi = {
 
   
   createTransaction: async (t: Transaction) => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getAuthUser();
     if (!user) throw new Error('Not authenticated');
 
     const { error } = await supabase.from('financas_transacoes').insert({
@@ -86,7 +91,7 @@ export const financasApi = {
   },
 
   loadConfig: async () => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getAuthUser();
     if (!user) return null;
 
     const { data, error } = await supabase
@@ -104,7 +109,7 @@ export const financasApi = {
     fin_out_categories?: FinCategoria[];
     fin_payment_methods?: FinCategoria[];
   }) => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getAuthUser();
     if (!user) return;
 
     const { error } = await supabase.from('user_preferences').upsert({

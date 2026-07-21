@@ -1,5 +1,10 @@
 import { supabase } from '../estudos/services/supabase';
 
+const getAuthUser = async () => {
+  const { data: { session } } = await supabase.auth.getSession();
+  return session?.user || null;
+};
+
 export interface Task {
   id: string;
   text: string;
@@ -15,7 +20,7 @@ export interface Task {
 
 export const tarefasApi = {
   list: async () => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getAuthUser();
     if (!user) return [];
     // Sem filtro de data pois tarefas recorrentes são geradas dinamicamente
     // e podem ter datas passadas ou futuras que precisam ser lidas para calcular recorrência
@@ -48,7 +53,7 @@ export const tarefasApi = {
 
   
   create: async (task: Task) => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getAuthUser();
     if (!user) throw new Error('Not authenticated');
 
     const { error } = await supabase.from('tarefas').insert({
@@ -86,7 +91,7 @@ export const tarefasApi = {
   },
 
   clearCompleted: async () => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getAuthUser();
     if (!user) return;
     const { error } = await supabase.from('tarefas').delete().eq('user_id', user.id).eq('completed', true);
     if (error) throw error;

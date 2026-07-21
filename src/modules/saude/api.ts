@@ -1,9 +1,14 @@
 import { supabase } from '../estudos/services/supabase';
 import { HealthActivity } from './App';
 
+const getAuthUser = async () => {
+  const { data: { session } } = await supabase.auth.getSession();
+  return session?.user || null;
+};
+
 export const saudeApi = {
   list: async () => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getAuthUser();
     if (!user) return [];
     // Limita aos ultimos 6 meses para reduzir egress do Supabase
     const sixMonthsAgo = new Date();
@@ -29,7 +34,7 @@ export const saudeApi = {
 
   
   create: async (activity: HealthActivity) => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getAuthUser();
     if (!user) throw new Error('Not authenticated');
 
     const { error } = await supabase.from('saude_treinos').insert({

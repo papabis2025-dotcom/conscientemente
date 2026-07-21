@@ -22,7 +22,8 @@ import {
   ChevronDown,
   Info,
   X,
-  ExternalLink
+  ExternalLink,
+  BookMarked
 } from 'lucide-react';
 
 interface CronogramaViewProps {
@@ -162,6 +163,34 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
   const [actualDone, setActualDone] = useState('');
   const [actualCorrect, setActualCorrect] = useState('');
   const [actualLinks, setActualLinks] = useState<string[]>(['']);
+
+  // Tarefa expandida (exibe links do caderno de questões ao clicar)
+  const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
+  const toggleExpandTask = (id: string) => setExpandedTaskId(prev => prev === id ? null : id);
+
+  // Mapa de links do Caderno de Questões: chave = "subjectId_dateStr" -> string[] de links
+  const notebookLinksMap = useMemo(() => {
+    const map = new Map<string, string[]>();
+    (sessions || []).forEach(s => {
+      if (!s.questionsLink) return;
+      const dateStr = s.date ? s.date.split('T')[0] : '';
+      if (!dateStr || !s.subjectId) return;
+      const key = `${s.subjectId}_${dateStr}`;
+      let links: string[] = [];
+      try {
+        const parsed = JSON.parse(s.questionsLink);
+        links = Array.isArray(parsed) ? parsed.filter(Boolean) : (parsed ? [parsed] : []);
+      } catch {
+        links = [s.questionsLink];
+      }
+      if (links.length === 0) return;
+      // Mescla links existentes sem duplicatas
+      const existing = map.get(key) || [];
+      const merged = Array.from(new Set([...existing, ...links]));
+      map.set(key, merged);
+    });
+    return map;
+  }, [sessions]);
 
   // Active Concurso
   const activeConcurso = useMemo(() => {
@@ -1012,83 +1041,125 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
                         const sub = subjects.find(s => s.id === act.subjectId);
                         const topic = sub?.topics?.find(t => t.id === act.topicId);
                         
-                        return (
-                          <div
-                            key={act.id}
-                            style={{ borderLeftColor: sub?.color || '#10B981' }}
-                            className={`p-3.5 rounded-2xl border-l-4 bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200/50 dark:border-zinc-700/50 flex justify-between items-center transition-all ${
-                              isDone ? 'opacity-40 hover:opacity-60' : ''
-                            }`}
-                          >
-                            <div className="min-w-0 flex-1 pr-3">
-                              <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
-                                <span className={`inline-block px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${
-                                  act.activityType === 'Simulado'
-                                    ? 'bg-purple-100 text-purple-700 dark:bg-purple-950/20 dark:text-purple-400'
-                                    : act.activityType === 'Leitura'
-                                      ? 'bg-blue-100 text-blue-700 dark:bg-blue-950/20 dark:text-blue-400'
-                                      : act.activityType === 'Questões'
-                                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-400'
-                                        : 'bg-zinc-200 text-zinc-700 dark:bg-zinc-700 dark:text-zinc-300'
-                                }`}>
-                                  {act.activityType}
-                                </span>
-                                {sub && (
-                                  <span className="text-[8px] font-black uppercase tracking-widest text-zinc-400 truncate max-w-[100px]">{sub.name}</span>
-                                )}
-                              </div>
-                              <h5 className={`text-xs font-black text-zinc-755 dark:text-white leading-tight ${isDone ? 'line-through' : ''}`}>
-                                {topic ? topic.title : act.notes}
-                              </h5>
-                              <p className="text-[9px] text-zinc-400 font-bold mt-1.5 flex items-center gap-1 font-mono">
-                                <Clock size={9} /> {act.durationInMinutes} min
-                              </p>
-                              {act.questionsLink && (
-                                <div className="mt-2 flex flex-wrap gap-1">
-                                  {(() => {
-                                    let links: string[] = [];
-                                    try {
-                                      const parsed = JSON.parse(act.questionsLink);
-                                      links = Array.isArray(parsed) ? parsed : [parsed];
-                                    } catch (e) {
-                                      links = [act.questionsLink];
-                                    }
-                                    return links.filter(Boolean).map((link, idx) => (
-                                      <a
-                                        key={idx}
-                                        href={link}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        onClick={(e) => e.stopPropagation()}
-                                        className="px-2 py-0.5 rounded-md text-[8px] font-bold bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-colors flex items-center gap-1 cursor-pointer"
-                                        title={link}
-                                      >
-                                        <ExternalLink size={8} /> Q{idx + 1}
-                                      </a>
-                                    ));
-                                  })()}
-                                </div>
-                              )}
-                            </div>
+                        const nbKey = `${act.subjectId}_${act.date}`;
+                        const nbLinks = notebookLinksMap.get(nbKey) || [];
+                        const isExpanded = expandedTaskId === act.id;
 
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (isDone) {
-                                  onToggleScheduledStudyStatus(act.id);
-                                } else {
-                                  handleCompleteClick(act);
-                                }
-                              }}
-                              className={`shrink-0 transition-colors p-1.5 rounded-full ${
-                                isDone
-                                  ? 'text-emerald-500 hover:text-zinc-400 dark:hover:text-zinc-500'
-                                  : 'text-zinc-350 hover:text-emerald-500 dark:text-zinc-650'
+                        return (
+                          <div key={act.id} className="space-y-0">
+                            <div
+                              style={{ borderLeftColor: sub?.color || '#10B981' }}
+                              onClick={() => { if (nbLinks.length > 0) toggleExpandTask(act.id); }}
+                              className={`p-3.5 rounded-2xl border-l-4 bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200/50 dark:border-zinc-700/50 flex justify-between items-center transition-all ${
+                                isDone ? 'opacity-40 hover:opacity-60' : ''
+                              } ${
+                                nbLinks.length > 0 ? 'cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800/70' : ''
+                              } ${
+                                isExpanded ? 'rounded-b-none border-b-0' : ''
                               }`}
                             >
-                              {isDone ? <CheckCircle2 size={18} /> : <Circle size={18} />}
-                            </button>
+                              <div className="min-w-0 flex-1 pr-3">
+                                <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
+                                  <span className={`inline-block px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${
+                                    act.activityType === 'Simulado'
+                                      ? 'bg-purple-100 text-purple-700 dark:bg-purple-950/20 dark:text-purple-400'
+                                      : act.activityType === 'Leitura'
+                                        ? 'bg-blue-100 text-blue-700 dark:bg-blue-950/20 dark:text-blue-400'
+                                        : act.activityType === 'Questões'
+                                          ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-400'
+                                          : 'bg-zinc-200 text-zinc-700 dark:bg-zinc-700 dark:text-zinc-300'
+                                  }`}>
+                                    {act.activityType}
+                                  </span>
+                                  {sub && (
+                                    <span className="text-[8px] font-black uppercase tracking-widest text-zinc-400 truncate max-w-[100px]">{sub.name}</span>
+                                  )}
+                                  {nbLinks.length > 0 && (
+                                    <span className="text-[7px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 flex items-center gap-0.5 border border-amber-200/60 dark:border-amber-800/40">
+                                      <BookMarked size={7} /> {nbLinks.length}
+                                    </span>
+                                  )}
+                                </div>
+                                <h5 className={`text-xs font-black text-zinc-755 dark:text-white leading-tight ${isDone ? 'line-through' : ''}`}>
+                                  {topic ? topic.title : act.notes}
+                                </h5>
+                                <p className="text-[9px] text-zinc-400 font-bold mt-1.5 flex items-center gap-1 font-mono">
+                                  <Clock size={9} /> {act.durationInMinutes} min
+                                </p>
+                                {act.questionsLink && (
+                                  <div className="mt-2 flex flex-wrap gap-1">
+                                    {(() => {
+                                      let links: string[] = [];
+                                      try {
+                                        const parsed = JSON.parse(act.questionsLink);
+                                        links = Array.isArray(parsed) ? parsed : [parsed];
+                                      } catch (e) {
+                                        links = [act.questionsLink];
+                                      }
+                                      return links.filter(Boolean).map((link, idx) => (
+                                        <a
+                                          key={idx}
+                                          href={link}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          onClick={(e) => e.stopPropagation()}
+                                          className="px-2 py-0.5 rounded-md text-[8px] font-bold bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-colors flex items-center gap-1 cursor-pointer"
+                                          title={link}
+                                        >
+                                          <ExternalLink size={8} /> Q{idx + 1}
+                                        </a>
+                                      ));
+                                    })()}
+                                  </div>
+                                )}
+                              </div>
+
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (isDone) {
+                                    onToggleScheduledStudyStatus(act.id);
+                                  } else {
+                                    handleCompleteClick(act);
+                                  }
+                                }}
+                                className={`shrink-0 transition-colors p-1.5 rounded-full ${
+                                  isDone
+                                    ? 'text-emerald-500 hover:text-zinc-400 dark:hover:text-zinc-500'
+                                    : 'text-zinc-350 hover:text-emerald-500 dark:text-zinc-650'
+                                }`}
+                              >
+                                {isDone ? <CheckCircle2 size={18} /> : <Circle size={18} />}
+                              </button>
+                            </div>
+
+                            {/* Painel colapsável de links do Caderno de Questões */}
+                            {isExpanded && nbLinks.length > 0 && (
+                              <div
+                                style={{ borderLeftColor: sub?.color || '#10B981' }}
+                                className="border-l-4 border border-t-0 border-amber-200/70 dark:border-amber-800/40 bg-amber-50/80 dark:bg-amber-950/20 rounded-b-2xl px-3 pb-2.5 pt-2"
+                              >
+                                <p className="text-[7px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400 flex items-center gap-1 mb-1.5">
+                                  <BookMarked size={7} /> Caderno de Questões
+                                </p>
+                                <div className="flex flex-wrap gap-1">
+                                  {nbLinks.map((link, idx) => (
+                                    <a
+                                      key={idx}
+                                      href={link}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      onClick={(e) => e.stopPropagation()}
+                                      className="px-2 py-0.5 rounded-md text-[8px] font-bold bg-white dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-800/40 transition-colors flex items-center gap-1 cursor-pointer border border-amber-300/60 dark:border-amber-700/40 shadow-xs"
+                                      title={link}
+                                    >
+                                      <BookMarked size={8} /> C{idx + 1}
+                                    </a>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
                           </div>
                         );
                       })}
@@ -1123,87 +1194,135 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
                   const sub = subjects.find(s => s.id === act.subjectId);
                   const topic = sub?.topics?.find(t => t.id === act.topicId);
 
-                  return (
-                    <div
-                      key={act.id}
-                      style={{ borderLeftColor: sub?.color || '#10B981' }}
-                      className={`p-4 rounded-3xl border-l-4 bg-zinc-50 dark:bg-zinc-800/20 border border-zinc-200/50 dark:border-zinc-700/50 flex justify-between items-center ${
-                        isDone ? 'opacity-40' : ''
-                      }`}
-                    >
-                      <div className="min-w-0 flex-1 pr-4">
-                        <div className="flex items-center gap-2 mb-2 flex-wrap">
-                          <span className={`inline-block px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${
-                            act.activityType === 'Simulado'
-                              ? 'bg-purple-100 text-purple-755 dark:bg-purple-950/20 dark:text-purple-400'
-                              : act.activityType === 'Leitura'
-                                ? 'bg-blue-100 text-blue-755 dark:bg-blue-950/20 dark:text-blue-400'
-                                : act.activityType === 'Questões'
-                                  ? 'bg-emerald-100 text-emerald-755 dark:bg-emerald-950/20 dark:text-emerald-400'
-                                  : 'bg-zinc-200 text-zinc-700 dark:bg-zinc-700 dark:text-zinc-300'
-                          }`}>
-                            {act.activityType}
-                          </span>
-                          {sub && (
-                            <span className="text-[9px] font-black uppercase tracking-wider text-zinc-400">{sub.name}</span>
-                          )}
-                        </div>
-                        <h4 className="text-sm font-black text-zinc-800 dark:text-white leading-tight">{topic ? topic.title : act.notes}</h4>
-                        {topic && act.notes && <p className="text-xs text-zinc-400 mt-1 font-semibold">{act.notes}</p>}
-                        <p className="text-xs text-zinc-400 font-bold mt-2 flex items-center gap-1 font-mono">
-                          <Clock size={11} /> {act.durationInMinutes} minutos
-                        </p>
-                        {act.questionsLink && (
-                           <div className="mt-2 flex flex-wrap gap-1">
-                             {(() => {
-                               let links: string[] = [];
-                               try {
-                                 const parsed = JSON.parse(act.questionsLink);
-                                 links = Array.isArray(parsed) ? parsed : [parsed];
-                               } catch (e) {
-                                 links = [act.questionsLink];
-                               }
-                               return links.filter(Boolean).map((link, idx) => (
-                                 <a
-                                   key={idx}
-                                   href={link}
-                                   target="_blank"
-                                   rel="noopener noreferrer"
-                                   onClick={(e) => e.stopPropagation()}
-                                   className="px-2 py-1 rounded-md text-[9px] font-bold bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-colors flex items-center gap-1 cursor-pointer"
-                                   title={link}
-                                 >
-                                   <ExternalLink size={9} /> Q{idx + 1}
-                                 </a>
-                               ));
-                             })()}
-                           </div>
-                         )}
-                      </div>
+                  const nbKey = `${act.subjectId}_${act.date}`;
+                  const nbLinks = notebookLinksMap.get(nbKey) || [];
+                  const isExpanded = expandedTaskId === act.id;
 
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (isDone) {
-                            onToggleScheduledStudyStatus(act.id);
-                          } else {
-                            handleCompleteClick(act);
-                          }
-                        }}
-                        className={`px-4 py-2.5 rounded-2xl border transition-all text-xs font-black uppercase tracking-wider flex items-center gap-1.5 active:scale-95 ${
-                          isDone
-                            ? 'bg-emerald-50 border-emerald-200 text-emerald-600 dark:bg-emerald-950/20 dark:border-emerald-900/30'
-                            : 'bg-white border-zinc-200 hover:border-emerald-500 hover:text-emerald-500 dark:bg-zinc-800 dark:border-zinc-700 text-zinc-555 dark:text-zinc-400'
+                  return (
+                    <div key={act.id} className="space-y-0">
+                      <div
+                        style={{ borderLeftColor: sub?.color || '#10B981' }}
+                        onClick={() => { if (nbLinks.length > 0) toggleExpandTask(act.id); }}
+                        className={`p-4 border-l-4 bg-zinc-50 dark:bg-zinc-800/20 border border-zinc-200/50 dark:border-zinc-700/50 flex justify-between items-start gap-4 transition-all ${
+                          isDone ? 'opacity-40' : ''
+                        } ${
+                          nbLinks.length > 0 ? 'cursor-pointer hover:bg-zinc-100/80 dark:hover:bg-zinc-800/50' : ''
+                        } ${
+                          isExpanded ? 'rounded-t-3xl border-b-0' : 'rounded-3xl'
                         }`}
                       >
-                        {isDone ? (
-                          <>
-                            <Check size={12} strokeWidth={3} /> Concluído
-                          </>
-                        ) : (
-                          'Marcar feito'
-                        )}
-                      </button>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 mb-2 flex-wrap">
+                            <span className={`inline-block px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${
+                              act.activityType === 'Simulado'
+                                ? 'bg-purple-100 text-purple-755 dark:bg-purple-950/20 dark:text-purple-400'
+                                : act.activityType === 'Leitura'
+                                  ? 'bg-blue-100 text-blue-755 dark:bg-blue-950/20 dark:text-blue-400'
+                                  : act.activityType === 'Questões'
+                                    ? 'bg-emerald-100 text-emerald-755 dark:bg-emerald-950/20 dark:text-emerald-400'
+                                    : 'bg-zinc-200 text-zinc-700 dark:bg-zinc-700 dark:text-zinc-300'
+                            }`}>
+                              {act.activityType}
+                            </span>
+                            {sub && (
+                              <span className="text-[9px] font-black uppercase tracking-wider text-zinc-400">{sub.name}</span>
+                            )}
+                            {nbLinks.length > 0 && (
+                              <span className={`text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded-lg flex items-center gap-1 border transition-colors ${
+                                isExpanded
+                                  ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 border-amber-300/70 dark:border-amber-700/50'
+                                  : 'bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 border-amber-200/60 dark:border-amber-800/40'
+                              }`}>
+                                <BookMarked size={8} />
+                                {nbLinks.length} {nbLinks.length === 1 ? 'caderno' : 'cadernos'}
+                              </span>
+                            )}
+                          </div>
+                          <h4 className="text-sm font-black text-zinc-800 dark:text-white leading-tight">{topic ? topic.title : act.notes}</h4>
+                          {topic && act.notes && <p className="text-xs text-zinc-400 mt-1 font-semibold">{act.notes}</p>}
+                          <p className="text-xs text-zinc-400 font-bold mt-2 flex items-center gap-1 font-mono">
+                            <Clock size={11} /> {act.durationInMinutes} minutos
+                          </p>
+                          {act.questionsLink && (
+                            <div className="mt-2 flex flex-wrap gap-1">
+                              {(() => {
+                                let links: string[] = [];
+                                try {
+                                  const parsed = JSON.parse(act.questionsLink);
+                                  links = Array.isArray(parsed) ? parsed : [parsed];
+                                } catch (e) {
+                                  links = [act.questionsLink];
+                                }
+                                return links.filter(Boolean).map((link, idx) => (
+                                  <a
+                                    key={idx}
+                                    href={link}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="px-2 py-1 rounded-md text-[9px] font-bold bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-colors flex items-center gap-1 cursor-pointer"
+                                    title={link}
+                                  >
+                                    <ExternalLink size={9} /> Q{idx + 1}
+                                  </a>
+                                ));
+                              })()}
+                            </div>
+                          )}
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (isDone) {
+                              onToggleScheduledStudyStatus(act.id);
+                            } else {
+                              handleCompleteClick(act);
+                            }
+                          }}
+                          className={`shrink-0 px-4 py-2.5 rounded-2xl border transition-all text-xs font-black uppercase tracking-wider flex items-center gap-1.5 active:scale-95 ${
+                            isDone
+                              ? 'bg-emerald-50 border-emerald-200 text-emerald-600 dark:bg-emerald-950/20 dark:border-emerald-900/30'
+                              : 'bg-white border-zinc-200 hover:border-emerald-500 hover:text-emerald-500 dark:bg-zinc-800 dark:border-zinc-700 text-zinc-555 dark:text-zinc-400'
+                          }`}
+                        >
+                          {isDone ? (
+                            <>
+                              <Check size={12} strokeWidth={3} /> Concluído
+                            </>
+                          ) : (
+                            'Marcar feito'
+                          )}
+                        </button>
+                      </div>
+
+                      {/* Painel colapsável de links do Caderno de Questões */}
+                      {isExpanded && nbLinks.length > 0 && (
+                        <div
+                          style={{ borderLeftColor: sub?.color || '#10B981' }}
+                          className="border-l-4 border border-t-0 border-amber-200/70 dark:border-amber-800/40 bg-amber-50/70 dark:bg-amber-950/15 rounded-b-3xl px-5 pb-4 pt-3"
+                        >
+                          <p className="text-[8px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400 flex items-center gap-1.5 mb-2">
+                            <BookMarked size={8} /> Caderno de Questões
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            {nbLinks.map((link, idx) => (
+                              <a
+                                key={idx}
+                                href={link}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                className="px-3 py-1.5 rounded-xl text-xs font-bold bg-white dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-800/50 transition-all flex items-center gap-1.5 cursor-pointer border border-amber-300/60 dark:border-amber-700/40 shadow-xs hover:shadow-sm"
+                                title={link}
+                              >
+                                <BookMarked size={11} /> Caderno {idx + 1}
+                              </a>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   );
                 })}

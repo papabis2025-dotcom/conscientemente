@@ -729,7 +729,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                 // sessionIds: IDs de sessoes realmente gravadas no banco — unica fonte confiavel de status 'realizado'
                 const sessionIds = new Set(finalSessions.map(s => s.id));
 
-                finalSchedule = finalScheduleRaw.map(s => {
+                finalSchedule = finalScheduleRaw.map((s: any) => {
                     let status: 'planejado' | 'realizado' = 'planejado';
                     if (sessionIds.has(s.id)) {
                         status = 'realizado';
@@ -767,35 +767,18 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
     useEffect(() => {
         let subscription: any = null;
 
-        supabase.auth.getSession()
-            .then(({ data }) => {
-                const session = data?.session;
-                if (session?.user) {
-                    setCurrentUser({
-                        id: session.user.id,
-                        name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Estudante',
-                        password: '',
-                        avatar: session.user.user_metadata?.avatar || 'student',
-                        email: session.user.email
-                    });
-                } else {
-                    setIsLoading(false);
-                }
-            })
-            .catch(err => {
-                console.error('Error in studies getSession:', err);
-                setIsLoading(false);
-            });
-
         try {
             const { data } = supabase.auth.onAuthStateChange((_event, session) => {
                 if (session?.user) {
-                    setCurrentUser({
-                        id: session.user.id,
-                        name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Estudante',
-                        password: '',
-                        avatar: session.user.user_metadata?.avatar || 'student',
-                        email: session.user.email
+                    setCurrentUser(prev => {
+                        if (prev?.id === session.user.id) return prev;
+                        return {
+                            id: session.user.id,
+                            name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Estudante',
+                            password: '',
+                            avatar: session.user.user_metadata?.avatar || 'student',
+                            email: session.user.email
+                        };
                     });
                 } else {
                     setCurrentUser(null);
@@ -808,6 +791,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
             subscription = data?.subscription;
         } catch (err) {
             console.error('Error in studies onAuthStateChange:', err);
+            setIsLoading(false);
         }
 
         return () => {

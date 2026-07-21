@@ -716,45 +716,54 @@ const App: React.FC = () => {
     // evitando a recriação dos listeners a cada sync e o consequente reset do throttle.
   }, [session, isPrefsLoaded]);
 
-  // Listen for local settings changes to save immediately to Supabase
+  // Listen for local settings changes to save to Supabase with debounce
   useEffect(() => {
     if (!session || !isPrefsLoaded) return;
 
-    const triggerImmediateSync = async () => {
-      const localSettings: Record<string, string | null> = {};
-      SYNC_KEYS.forEach(key => {
-        localSettings[key] = localStorage.getItem(key);
-      });
+    let timeoutId: NodeJS.Timeout | null = null;
 
-      const currentSerialized = JSON.stringify(localSettings);
-      if (currentSerialized !== lastKnownSettings) {
-        const updatedTime = Date.now();
-        const payload: SyncedPayload = {
-          updatedAt: updatedTime,
-          settings: localSettings
-        };
+    const triggerImmediateSync = () => {
+      if (timeoutId) clearTimeout(timeoutId);
 
-        const payloadJson = JSON.stringify(payload);
-        if (payloadJson.length > 500_000) return;
+      timeoutId = setTimeout(async () => {
+        const localSettings: Record<string, string | null> = {};
+        SYNC_KEYS.forEach(key => {
+          localSettings[key] = localStorage.getItem(key);
+        });
 
-        try {
-          await supabase.from('user_preferences').upsert({
-            user_id: session.user.id,
-            hub_bg_type: bgType,
-            hub_bg_color: bgColor,
-            hub_bg_image_url: payloadJson
-          }, { onConflict: 'user_id' });
+        const currentSerialized = JSON.stringify(localSettings);
+        if (currentSerialized !== lastKnownSettings) {
+          const updatedTime = Date.now();
+          const payload: SyncedPayload = {
+            updatedAt: updatedTime,
+            settings: localSettings
+          };
 
-          setLastKnownSettings(currentSerialized);
-          setLastSyncTime(updatedTime);
-        } catch (err) {
-          console.error('Failed to immediately sync settings:', err);
+          const payloadJson = JSON.stringify(payload);
+          if (payloadJson.length > 500_000) return;
+
+          try {
+            await supabase.from('user_preferences').upsert({
+              user_id: session.user.id,
+              hub_bg_type: bgType,
+              hub_bg_color: bgColor,
+              hub_bg_image_url: payloadJson
+            }, { onConflict: 'user_id' });
+
+            setLastKnownSettings(currentSerialized);
+            setLastSyncTime(updatedTime);
+          } catch (err) {
+            console.error('Failed to sync settings:', err);
+          }
         }
-      }
+      }, 2000); // 2 seconds debounce
     };
 
     window.addEventListener('local-settings-changed', triggerImmediateSync);
-    return () => window.removeEventListener('local-settings-changed', triggerImmediateSync);
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      window.removeEventListener('local-settings-changed', triggerImmediateSync);
+    };
   }, [session, isPrefsLoaded, lastKnownSettings, bgType, bgColor, lastSyncTime]);
 
   // Apply theme to <html>
@@ -786,9 +795,7 @@ const App: React.FC = () => {
     }, 4000);
 
     // O onAuthStateChange do Supabase JS v2 emite automaticamente um evento INITIAL_SESSION
-    // com a sessão atual imediatamente após o subscribe. Não é necessário chamar
-    // getSession() manualmente — isso geraria dois round-trips de auth e duas chamadas
-    // a setSession(), duplicando o auth egress em todo cold start.
+    // com a sessão atual imediatamente após o subscribe.
     try {
       const { data } = supabase.auth.onAuthStateChange((_event, session) => {
         clearTimeout(safetyTimeout);
@@ -816,13 +823,7 @@ const App: React.FC = () => {
     };
   }, []);
 
-  const handleLoginSuccess = async () => {
-    try {
-      const { data } = await supabase.auth.getSession();
-      setSession(data?.session || null);
-    } catch (err) {
-      console.error('Error on handleLoginSuccess:', err);
-    }
+  const handleLoginSuccess = () => {
     setLoading(false);
   };
 

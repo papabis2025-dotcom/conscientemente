@@ -168,14 +168,21 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
   const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
   const toggleExpandTask = (id: string) => setExpandedTaskId(prev => prev === id ? null : id);
 
-  // Mapa de links do Caderno de Questões: chave = "subjectId_dateStr" -> string[] de links
+  // Mapa de links do Caderno de Questões agrupado por disciplina+tópico.
+  // Chave = "subjectId_topicId" (topicId vazio = "geral"), assim revisões futuras
+  // de um mesmo assunto encontram os links do estudo de origem, independente da data.
   const notebookLinksMap = useMemo(() => {
     const map = new Map<string, string[]>();
     (sessions || []).forEach(s => {
-      if (!s.questionsLink) return;
-      const dateStr = s.date ? s.date.split('T')[0] : '';
-      if (!dateStr || !s.subjectId) return;
-      const key = `${s.subjectId}_${dateStr}`;
+      if (!s.questionsLink || !s.subjectId) return;
+      // Excluir sessões que são simulados ou revisões (só indexar estudos de origem)
+      const isSim = s.isSimulado || s.activityType === 'Simulado';
+      const isRev = s.activityType && (
+        s.activityType.toLowerCase().includes('revisão') ||
+        s.activityType.toLowerCase().includes('revisao')
+      );
+      if (isSim || isRev) return;
+
       let links: string[] = [];
       try {
         const parsed = JSON.parse(s.questionsLink);
@@ -184,7 +191,10 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
         links = [s.questionsLink];
       }
       if (links.length === 0) return;
-      // Mescla links existentes sem duplicatas
+
+      // Chave por disciplina + tópico (sem data, para abranger todas as revisões futuras)
+      const topicKey = s.topicId || 'geral';
+      const key = `${s.subjectId}_${topicKey}`;
       const existing = map.get(key) || [];
       const merged = Array.from(new Set([...existing, ...links]));
       map.set(key, merged);
@@ -1041,7 +1051,7 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
                         const sub = subjects.find(s => s.id === act.subjectId);
                         const topic = sub?.topics?.find(t => t.id === act.topicId);
                         
-                        const nbKey = `${act.subjectId}_${act.date}`;
+                        const nbKey = `${act.subjectId}_${act.topicId || 'geral'}`;
                         const nbLinks = notebookLinksMap.get(nbKey) || [];
                         const isExpanded = expandedTaskId === act.id;
 
@@ -1194,7 +1204,7 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
                   const sub = subjects.find(s => s.id === act.subjectId);
                   const topic = sub?.topics?.find(t => t.id === act.topicId);
 
-                  const nbKey = `${act.subjectId}_${act.date}`;
+                  const nbKey = `${act.subjectId}_${act.topicId || 'geral'}`;
                   const nbLinks = notebookLinksMap.get(nbKey) || [];
                   const isExpanded = expandedTaskId === act.id;
 

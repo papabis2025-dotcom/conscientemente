@@ -66,7 +66,15 @@ const DEFAULT_SAIDA_CATEGORIES: FinCategoria[] = [
 const DEFAULT_PAYMENT_METHODS: FinCategoria[] = ['Pix / Dinheiro', 'Inter', 'Banrisul', 'Mercado Pago', 'Caixa Econômica'].map((c, i) => ({ id: `pay_${i}`, name: c, color: CHART_COLORS[i % CHART_COLORS.length] }));
 
 const FinancasApp: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'anual' | 'recorrencia' | 'imposto' | 'ajustes'>('dashboard');
+  const [activeTab, setActiveTabState] = useState<'dashboard' | 'anual' | 'recorrencia' | 'imposto' | 'ajustes'>(() => {
+    return (localStorage.getItem('financas_active_tab') as any) || 'dashboard';
+  });
+
+  const setActiveTab = (tab: 'dashboard' | 'anual' | 'recorrencia' | 'imposto' | 'ajustes') => {
+    setActiveTabState(tab);
+    localStorage.setItem('financas_active_tab', tab);
+    window.dispatchEvent(new Event('local-settings-changed'));
+  };
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
     return localStorage.getItem('isSidebarCollapsed_financas') !== 'false';
   });

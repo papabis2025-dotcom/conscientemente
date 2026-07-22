@@ -1049,7 +1049,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                         questionsDone: totalQuestionsDone > 0 ? totalQuestionsDone.toString() : '',
                         questionsCorrect: totalQuestionsCorrect > 0 ? totalQuestionsCorrect.toString() : '',
                         notes: notesText,
-                        status: task.status || 'planejado'
+                        status: task.status || 'planejado',
+                        questionsLinks: (task as any).questionsLinks || []
                       });
                     }}
                     className={`p-4 rounded-[1.5rem] border cursor-pointer transition-all hover:scale-[1.02] active:scale-95 group relative ${

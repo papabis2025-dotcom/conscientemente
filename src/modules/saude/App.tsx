@@ -49,7 +49,15 @@ const hexToRgba = (hex: string, alpha: number) => {
 };
 
 const SaudeApp: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'atividades' | 'sono' | 'planner' | 'gerenciador'>('dashboard');
+  const [activeTab, setActiveTabState] = useState<'dashboard' | 'atividades' | 'sono' | 'planner' | 'gerenciador'>(() => {
+    return (localStorage.getItem('saude_active_tab') as any) || 'dashboard';
+  });
+
+  const setActiveTab = (tab: 'dashboard' | 'atividades' | 'sono' | 'planner' | 'gerenciador') => {
+    setActiveTabState(tab);
+    localStorage.setItem('saude_active_tab', tab);
+    window.dispatchEvent(new Event('local-settings-changed'));
+  };
   const [alignment, setAlignment] = useState<'left' | 'center' | 'right'>(() => {
     return (localStorage.getItem('cn_global_alignment') as any) || 'center';
   });

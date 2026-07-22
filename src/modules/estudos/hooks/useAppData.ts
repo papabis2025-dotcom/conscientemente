@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Subject, StudySession, Concurso, ScheduledStudy, DailyGoal, LogEntry, User, Simulado, ActivityType } from '../types';
 import { supabase } from '../services/supabase';
 import { api } from '../services/api';
@@ -60,6 +60,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
     const setSelectedConcursoId = (id: string | 'all') => {
         setSelectedConcursoIdState(id);
         localStorage.setItem('cp_selected_concurso_id', id);
+        window.dispatchEvent(new Event('local-storage-sync'));
         window.dispatchEvent(new Event('local-settings-changed'));
     };
     const [sessions, setSessions] = useState<StudySession[]>([]);
@@ -641,40 +642,36 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
             }
         }
 
-        const deleteIds = new Set(reviewsToDelete.map(r => r.id));
-        const updateMap = new Map(reviewsToUpdate.map(r => [r.id, r]));
-        setScheduledStudies(prev => {
-            // IMPORTANTE: NÃO filtramos por allScheduleMap.has() pois allSchedule pode ser stale
-            // (capturado antes do React processar setScheduledStudies do caller).
-            // Apenas removemos os IDs explicitamente marcados para deleção.
-            
-            // 1. Remover apenas as revisões obsoletas/duplicadas marcadas explicitamente
-            let filtered = prev.filter(s => !deleteIds.has(s.id));
-            
-            // 2. Atualizar notas/datas de revisões que mudaram
-            // Preservar questionsLink, durationInMinutes, questionsDone, questionsCorrect
-            // que possam ter sido preenchidos pelo usuário
-            filtered = filtered.map(s => {
-                const updatedFromReviews = updateMap.get(s.id);
-                if (updatedFromReviews) {
-                    return { 
-                        ...s, 
-                        notes: updatedFromReviews.notes, 
-                        date: updatedFromReviews.date
-                    };
-                }
-                return s;
+        if (reviewsToDelete.length > 0 || reviewsToCreate.length > 0 || reviewsToUpdate.length > 0) {
+            const deleteIds = new Set(reviewsToDelete.map(r => r.id));
+            const updateMap = new Map(reviewsToUpdate.map(r => [r.id, r]));
+            setScheduledStudies(prev => {
+                // 1. Remover apenas as revisões obsoletas/duplicadas marcadas explicitamente
+                let filtered = prev.filter(s => !deleteIds.has(s.id));
+                
+                // 2. Atualizar notas/datas de revisões que mudaram
+                filtered = filtered.map(s => {
+                    const updatedFromReviews = updateMap.get(s.id);
+                    if (updatedFromReviews) {
+                        return { 
+                            ...s, 
+                            notes: updatedFromReviews.notes, 
+                            date: updatedFromReviews.date
+                        };
+                    }
+                    return s;
+                });
+                
+                // 3. Adicionar novas revisões criadas
+                const existingIds = new Set(filtered.map(s => s.id));
+                const newFromReviews = reviewsToCreate.filter(r => !existingIds.has(r.id));
+                
+                const combined = [...filtered, ...newFromReviews];
+                localStorage.setItem('cp_scheduled_studies', JSON.stringify(combined));
+                window.dispatchEvent(new Event('local-settings-changed'));
+                return combined;
             });
-            
-            // 3. Adicionar novas revisões criadas
-            const existingIds = new Set(filtered.map(s => s.id));
-            const newFromReviews = reviewsToCreate.filter(r => !existingIds.has(r.id));
-            
-            const combined = [...filtered, ...newFromReviews];
-            localStorage.setItem('cp_scheduled_studies', JSON.stringify(combined));
-            window.dispatchEvent(new Event('local-settings-changed'));
-            return combined;
-        });
+        }
     }, [getActivityTag]);
 
     const syncPlannedReviews = useCallback(async (forceRecalculate: boolean = false) => {
@@ -801,11 +798,18 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         };
     }, []);
 
+    const fetchDataRef = useRef(fetchData);
+    useEffect(() => {
+        fetchDataRef.current = fetchData;
+    });
+
+    const userId = currentUser?.id;
+
     // Trigger Fetch on User Change and Window Focus
     useEffect(() => {
-        if (!currentUser) return;
+        if (!userId) return;
         
-        fetchData();
+        fetchDataRef.current();
 
         // Throttle: só refaz fetch ao focar a janela se passaram mais de 5 minutos
         // desde o último fetch. Evita centenas de queries desnecessárias por dia.
@@ -820,11 +824,11 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
             }
             lastFocusFetchAt = now;
             console.log('Window focused: fetching latest studies data silently...');
-            fetchData(true);
+            fetchDataRef.current(true);
         };
         window.addEventListener('focus', handleFocus);
         return () => window.removeEventListener('focus', handleFocus);
-    }, [currentUser, fetchData]);
+    }, [userId]);
 
 
     // Wrapper for legacy compatibility in UI (handleManualSave was used for everything)
@@ -1529,7 +1533,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                 questionsDone: questionsDoneVal,
                 questionsCorrect: questionsCorrectVal,
                 status: formData.status,
-                questionsLink: formData.questionsLink // Salva o link nas edições!
+                questionsLink: formData.questionsLink || undefined // Salva o link nas edições!
             };
             await updateScheduledStudy(editingTask.id, updates);
             return;
@@ -1642,7 +1646,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                         questionsDone: itemDone,
                         questionsCorrect: itemCorrect,
                         status: formData.status,
-                        questionsLink: formData.questionsLink
+                        questionsLink: formData.questionsLink || undefined
                     });
                 }
             }

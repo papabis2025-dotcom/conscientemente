@@ -45,10 +45,25 @@ const SYNC_KEYS = [
   'cn_saude_dashboard_layout',
   'cn_saude_sleep_logs',
   'cn_home_cards_layout',
-  'cn_global_alignment',
   'cn_home_widgets_order',
   'estudos_deleted_review_ids',
+  'cp_active_tab_estudos',
+  'financas_active_tab',
+  'saude_active_tab',
+  'tarefas_active_tab',
 ];
+
+function getSanitizedLocalSettings(): Record<string, string | null> {
+  const localSettings: Record<string, string | null> = {};
+  SYNC_KEYS.forEach(key => {
+    let val = localStorage.getItem(key);
+    if (key === 'cn_custom_bg_image' && val && val.startsWith('data:image/') && val.length > 50_000) {
+      val = null;
+    }
+    localSettings[key] = val;
+  });
+  return localSettings;
+}
 
 function mergeLists<T extends { id: string }>(listA: T[], listB: T[]): T[] {
   const mergedMap = new Map<string, T>();
@@ -434,10 +449,7 @@ const App: React.FC = () => {
           setBgColor(loadedBgColor);
           initialBgRef.current = { bgType: loadedBgType, bgColor: loadedBgColor };
 
-          const localSettings: Record<string, string | null> = {};
-          SYNC_KEYS.forEach(key => {
-            localSettings[key] = localStorage.getItem(key);
-          });
+          const localSettings = getSanitizedLocalSettings();
 
           let remotePayload: SyncedPayload | null = null;
           if (prefs.hub_bg_image_url) {
@@ -498,10 +510,7 @@ const App: React.FC = () => {
         } else {
           // Initialize DB row with local settings
           initialBgRef.current = { bgType, bgColor };
-          const localSettings: Record<string, string | null> = {};
-          SYNC_KEYS.forEach(key => {
-            localSettings[key] = localStorage.getItem(key);
-          });
+          const localSettings = getSanitizedLocalSettings();
 
           const updatedTime = Date.now();
           setLastSyncTime(updatedTime);
@@ -543,10 +552,7 @@ const App: React.FC = () => {
     }
 
     const savePrefs = async () => {
-      const localSettings: Record<string, string | null> = {};
-      SYNC_KEYS.forEach(key => {
-        localSettings[key] = localStorage.getItem(key);
-      });
+      const localSettings = getSanitizedLocalSettings();
       const payload: SyncedPayload = {
         updatedAt: lastSyncTime || Date.now(),
         settings: localSettings
@@ -569,10 +575,7 @@ const App: React.FC = () => {
     if (!session || !isPrefsLoaded) return;
 
     const interval = setInterval(async () => {
-      const localSettings: Record<string, string | null> = {};
-      SYNC_KEYS.forEach(key => {
-        localSettings[key] = localStorage.getItem(key);
-      });
+      const localSettings = getSanitizedLocalSettings();
 
       const currentSerialized = JSON.stringify(localSettings);
       if (currentSerialized !== lastKnownSettings) {
@@ -646,10 +649,7 @@ const App: React.FC = () => {
 
           // Usa lastSyncTimeRef.current para não precisar de lastSyncTime como dep do efeito
           if (remotePayload && remotePayload.updatedAt > lastSyncTimeRef.current) {
-            const localSettings: Record<string, string | null> = {};
-            SYNC_KEYS.forEach(key => {
-              localSettings[key] = localStorage.getItem(key);
-            });
+            const localSettings = getSanitizedLocalSettings();
 
             const merged = mergeSettings(localSettings, remotePayload.settings, true);
 
@@ -723,13 +723,14 @@ const App: React.FC = () => {
     let timeoutId: NodeJS.Timeout | null = null;
 
     const triggerImmediateSync = () => {
+      const now = Date.now();
+      lastSyncTimeRef.current = now;
+      setLastSyncTime(now);
+
       if (timeoutId) clearTimeout(timeoutId);
 
       timeoutId = setTimeout(async () => {
-        const localSettings: Record<string, string | null> = {};
-        SYNC_KEYS.forEach(key => {
-          localSettings[key] = localStorage.getItem(key);
-        });
+        const localSettings = getSanitizedLocalSettings();
 
         const currentSerialized = JSON.stringify(localSettings);
         if (currentSerialized !== lastKnownSettings) {
@@ -752,6 +753,7 @@ const App: React.FC = () => {
 
             setLastKnownSettings(currentSerialized);
             setLastSyncTime(updatedTime);
+            lastSyncTimeRef.current = updatedTime;
           } catch (err) {
             console.error('Failed to sync settings:', err);
           }

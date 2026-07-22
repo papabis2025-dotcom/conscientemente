@@ -63,6 +63,7 @@ export interface StudySession {
   isSimulado?: boolean;
   activityType?: ActivityType;
   questionsLink?: string;
+  notes?: string;
 }
 
 export interface SimuladoSubjectResult {

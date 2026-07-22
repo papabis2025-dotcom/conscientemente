@@ -222,12 +222,12 @@ export const QuestionsNotebooksView: React.FC<QuestionsNotebooksViewProps> = ({
     try {
       // 1. Atualizar todas as sessões do grupo de forma paralela no banco
       await Promise.all(cardSessions.map(async session => {
-        await api.sessions.update(session.id, { questionsLink: payload });
+        await api.sessions.update(session.id, { questionsLink: payload || undefined });
       }));
 
       // 2. Atualizar no estado local do React de uma vez só
       const sessionIds = new Set(cardSessions.map(s => s.id));
-      setSessions(prev => prev.map(s => sessionIds.has(s.id) ? { ...s, questionsLink: payload } : s));
+      setSessions(prev => prev.map(s => sessionIds.has(s.id) ? { ...s, questionsLink: payload || undefined } : s));
 
       // 3. Forçar sincronização automática para propagar para as revisões subsequentes geradas de todos os tópicos
       await onSyncReviews();

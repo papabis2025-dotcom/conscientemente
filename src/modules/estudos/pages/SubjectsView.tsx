@@ -138,6 +138,63 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
 
   const colorPickerRef = useRef<HTMLDivElement>(null);
 
+  const handleSaveAllSettings = (showToast = true) => {
+    // 1. Validar a soma dos pesos de cada disciplina
+    for (const sub of subjects) {
+      let subWeightSum = 0;
+      const topics = sub.topics || [];
+      for (const topic of topics) {
+        const localWeightStr = localTopicWeights[topic.id];
+        let w: number | undefined = undefined;
+        if (localWeightStr !== undefined && localWeightStr.trim() !== '') {
+          w = parseFloat(localWeightStr.replace(',', '.'));
+        } else if (localWeightStr === undefined) {
+          w = topic.weight;
+        }
+        if (w !== undefined && !isNaN(w)) {
+          subWeightSum += w;
+        }
+      }
+
+      if (subWeightSum > 100.005) {
+        if (showToast) {
+          alert(`A soma dos pesos dos assuntos da disciplina "${sub.name}" excede 100% (atual: ${subWeightSum.toFixed(2).replace('.', ',')}%). Por favor, ajuste os pesos.`);
+        }
+        return false;
+      }
+    }
+
+    // 2. Montar a lista de disciplinas atualizada com os novos pesos
+    const updatedSubjects = subjects.map(sub => {
+      const updatedTopics = (sub.topics || []).map(topic => {
+        const localWeightStr = localTopicWeights[topic.id];
+        let newWeight: number | undefined = undefined;
+        if (localWeightStr !== undefined && localWeightStr.trim() !== '') {
+          newWeight = parseFloat(localWeightStr.replace(',', '.'));
+        } else if (localWeightStr === undefined) {
+          newWeight = topic.weight;
+        }
+        
+        const { weight, ...restTopic } = topic;
+        if (newWeight !== undefined && !isNaN(newWeight)) {
+          return { ...restTopic, weight: newWeight };
+        }
+        return restTopic;
+      });
+      return { ...sub, topics: updatedTopics };
+    });
+
+    // 3. Salvar no Supabase e localStorage
+    onUpdateSubjects(updatedSubjects);
+    localStorage.setItem('estudos_custom_review_days', JSON.stringify(customReviewDays));
+    window.dispatchEvent(new Event('local-reviews-toggled'));
+    window.dispatchEvent(new Event('local-settings-changed'));
+    if (showToast) {
+      alert('Configurações e pesos dos assuntos salvos com sucesso!');
+    }
+    return true;
+  };
+
   useEffect(() => {
     if (!showColorPicker) return;
     const handler = (e: MouseEvent) => {
@@ -638,59 +695,8 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
             ))}
 
             <button
-              onClick={() => {
-                // 1. Validar a soma dos pesos de cada disciplina
-                for (const sub of subjects) {
-                  let subWeightSum = 0;
-                  const topics = sub.topics || [];
-                  for (const topic of topics) {
-                    const localWeightStr = localTopicWeights[topic.id];
-                    let w: number | undefined = undefined;
-                    if (localWeightStr !== undefined && localWeightStr.trim() !== '') {
-                      w = parseFloat(localWeightStr.replace(',', '.'));
-                    } else if (localWeightStr === undefined) {
-                      w = topic.weight;
-                    }
-                    if (w !== undefined && !isNaN(w)) {
-                      subWeightSum += w;
-                    }
-                  }
-
-                  if (subWeightSum > 100.005) {
-                    alert(`A soma dos pesos dos assuntos da disciplina "${sub.name}" excede 100% (atual: ${subWeightSum.toFixed(2).replace('.', ',')}%). Por favor, ajuste os pesos.`);
-                    return;
-                  }
-                }
-
-                // 2. Montar a lista de disciplinas atualizada com os novos pesos
-                const updatedSubjects = subjects.map(sub => {
-                  const updatedTopics = (sub.topics || []).map(topic => {
-                    const localWeightStr = localTopicWeights[topic.id];
-                    let newWeight: number | undefined = undefined;
-                    if (localWeightStr !== undefined && localWeightStr.trim() !== '') {
-                      newWeight = parseFloat(localWeightStr.replace(',', '.'));
-                    } else if (localWeightStr === undefined) {
-                      newWeight = topic.weight;
-                    }
-                    
-                    const { weight, ...restTopic } = topic;
-                    if (newWeight !== undefined && !isNaN(newWeight)) {
-                      return { ...restTopic, weight: newWeight };
-                    }
-                    return restTopic;
-                  });
-                  return { ...sub, topics: updatedTopics };
-                });
-
-                // 3. Salvar no Supabase e localStorage
-                onUpdateSubjects(updatedSubjects);
-                localStorage.setItem('estudos_custom_review_days', JSON.stringify(customReviewDays));
-                window.dispatchEvent(new Event('local-reviews-toggled'));
-                window.dispatchEvent(new Event('local-settings-changed'));
-                alert('Configurações e pesos dos assuntos salvos com sucesso!');
-              }}
-              disabled={reviewsDisabled}
-              className="px-4 py-1.5 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-xl text-xs font-bold hover:opacity-90 disabled:opacity-50 transition-all cursor-pointer"
+              onClick={() => handleSaveAllSettings(true)}
+              className="px-4 py-1.5 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-xl text-xs font-bold hover:opacity-90 transition-all cursor-pointer"
             >
               Salvar
             </button>
@@ -1116,6 +1122,14 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                                                   ...prev,
                                                   [topic.id]: val
                                                 }));
+                                              }
+                                            }}
+                                            onBlur={() => {
+                                              handleSaveAllSettings(false);
+                                            }}
+                                            onKeyDown={(e) => {
+                                              if (e.key === 'Enter') {
+                                                (e.target as HTMLInputElement).blur();
                                               }
                                             }}
                                             className="w-16 px-1.5 py-0.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded text-center text-xs font-mono font-bold text-zinc-800 dark:text-white outline-none focus:ring-1 focus:ring-zinc-400"

@@ -5,7 +5,15 @@ import { tarefasApi, Task } from './api';
 import { playSound } from '../../utils/audio';
 
 const TarefasApp: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'ativas' | 'arquivo' | 'calendario'>('ativas');
+  const [activeTab, setActiveTabState] = useState<'ativas' | 'arquivo' | 'calendario'>(() => {
+    return (localStorage.getItem('tarefas_active_tab') as any) || 'ativas';
+  });
+
+  const setActiveTab = (tab: 'ativas' | 'arquivo' | 'calendario') => {
+    setActiveTabState(tab);
+    localStorage.setItem('tarefas_active_tab', tab);
+    window.dispatchEvent(new Event('local-settings-changed'));
+  };
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
     return localStorage.getItem('isSidebarCollapsed_tarefas') !== 'false';
   });

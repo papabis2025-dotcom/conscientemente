@@ -184,7 +184,16 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, sim
           accuracy = Math.round((correct / questions) * 100);
         }
       }
-      const weight = sub.weight || 1;
+      
+      const subTopics = sub.topics || [];
+      const topicWeightsSum = subTopics.reduce((acc, t) => acc + (t.weight || 0), 0);
+      const baseSubjectWeight = sub.weight !== undefined && sub.weight > 0 ? sub.weight : 1;
+
+      // Se a disciplina possui assuntos com pesos configurados, o Peso por Disciplina considera os assuntos
+      const weight = topicWeightsSum > 0
+        ? parseFloat((baseSubjectWeight * (topicWeightsSum / 100)).toFixed(2))
+        : baseSubjectWeight;
+
       const questionsGoal = sub.questionsGoal || 0;
 
       return { sub, questions, correct, accuracy, weight, questionsGoal, minutes };
@@ -429,7 +438,7 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, sim
           </label>
           
           <label className="flex items-center gap-1 text-xs font-bold text-zinc-600 dark:text-zinc-300">
-            Peso Discip.
+            Peso
             <input type="number" min="0" max="100" value={weightSubj} onChange={e => handleWeightSubjChange(Number(e.target.value))} className="w-14 bg-zinc-100 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded p-1 text-center font-mono dark:text-white" />
           </label>
 
@@ -496,44 +505,73 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, sim
 
                     {showTopics && sub.topics && sub.topics.length > 0 && (
                       <>
-                        {sub.topics.map(topic => {
-                          const topicSessions = sessions.filter(s => s.subjectId === sub.id && s.topicId === topic.id);
-                          const tDone = topicSessions.reduce((acc, s) => acc + (s.questionsDone || 0), 0);
-                          const tCorrect = topicSessions.reduce((acc, s) => acc + (s.questionsCorrect || 0), 0);
-                          const tAccuracy = tDone > 0 ? Math.min(100, Math.round((tCorrect / tDone) * 100)) : 0;
-                          const tMinutes = topicSessions.reduce((acc, s) => acc + (s.durationInMinutes || 0), 0);
-                          const tHasData = tDone > 0;
+                        {[...sub.topics]
+                          .map(topic => {
+                            const topicSessions = sessions.filter(s => s.subjectId === sub.id && s.topicId === topic.id);
+                            const tDone = topicSessions.reduce((acc, s) => acc + (s.questionsDone || 0), 0);
+                            const tCorrect = topicSessions.reduce((acc, s) => acc + (s.questionsCorrect || 0), 0);
+                            const tAccuracy = tDone > 0 ? Math.min(100, Math.round((tCorrect / tDone) * 100)) : 0;
+                            const tMinutes = topicSessions.reduce((acc, s) => acc + (s.durationInMinutes || 0), 0);
+                            const tHasData = tDone > 0;
 
-                          return (
-                            <tr key={topic.id} className="bg-zinc-50/30 dark:bg-zinc-900/10 text-xs border-b border-zinc-100/50 dark:border-zinc-850/50 font-medium">
-                              <td className="px-8 py-2.5 text-zinc-500 dark:text-zinc-400 pl-12 flex items-center gap-1.5">
-                                <span className="w-1.5 h-1.5 rounded-full bg-zinc-300 dark:bg-zinc-700 shrink-0" />
-                                {topic.title}
-                              </td>
-                              <td className="px-4 py-2.5 text-right text-zinc-400 dark:text-zinc-500 font-mono">{tDone}</td>
-                              <td className="px-4 py-2.5 text-right text-zinc-400 dark:text-zinc-500 font-mono">{tCorrect}</td>
-                              <td className="px-4 py-2.5 text-right text-zinc-400 dark:text-zinc-500 font-mono">-</td>
-                              <td className="px-4 py-2.5 text-right text-zinc-400 dark:text-zinc-500 font-mono">{tMinutes}m</td>
-                              <td className={`px-4 py-2.5 text-right font-mono ${getAccuracyText(tAccuracy, tHasData)}`}>
-                                <span className={`px-2 py-0.5 rounded-md ${getAccuracyBg(tAccuracy, tHasData)}`}>
-                                  {tHasData ? `${tAccuracy}%` : '-'}
-                                </span>
-                              </td>
-                              <td className="px-4 py-2.5 text-right text-zinc-400 dark:text-zinc-500 font-mono">
-                                {topic.weight !== undefined ? `${topic.weight.toFixed(2).replace('.', ',')}%` : '—'}
-                              </td>
-                              <td className="px-4 py-2.5 text-right font-mono">
-                                <span className={`px-2 py-0.5 rounded-md font-bold ${
-                                  topic.priority === 'Alta' ? 'bg-rose-50 text-rose-600 border border-rose-100 dark:bg-rose-950/20 dark:text-rose-450 dark:border-rose-900/30'
-                                  : topic.priority === 'Média' ? 'bg-amber-50 text-amber-600 border border-amber-100 dark:bg-amber-950/20 dark:text-amber-450 dark:border-amber-900/30'
-                                  : 'bg-zinc-150/50 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400'
-                                }`}>
-                                  {topic.priority}
-                                </span>
-                              </td>
-                            </tr>
-                          );
-                        })}
+                            const baseSubjW = sub.weight !== undefined && sub.weight > 0 ? sub.weight : 1;
+                            const tEffectiveWeight = topic.weight !== undefined && topic.weight > 0
+                              ? baseSubjW * (topic.weight / 100)
+                              : baseSubjW / Math.max(1, sub.topics.length);
+
+                            const tPriorityPct = Math.round(getPriority(tEffectiveWeight, tAccuracy, tDone, tMinutes) * 100);
+                            const tWeight = topic.weight !== undefined ? topic.weight : 0;
+
+                            return { topic, tDone, tCorrect, tAccuracy, tMinutes, tHasData, tEffectiveWeight, tPriorityPct, tWeight };
+                          })
+                          .sort((a, b) => {
+                            let diff = 0;
+                            if (sortBy === 'name') diff = a.topic.title.localeCompare(b.topic.title);
+                            else if (sortBy === 'questions') diff = a.tDone - b.tDone;
+                            else if (sortBy === 'correct') diff = a.tCorrect - b.tCorrect;
+                            else if (sortBy === 'questionsGoal') diff = 0;
+                            else if (sortBy === 'time') diff = a.tMinutes - b.tMinutes;
+                            else if (sortBy === 'accuracy') diff = a.tAccuracy - b.tAccuracy;
+                            else if (sortBy === 'weight') diff = a.tWeight - b.tWeight;
+                            else diff = a.tPriorityPct - b.tPriorityPct;
+
+                            return sortOrder === 'desc' ? -diff : diff;
+                          })
+                          .map(({ topic, tDone, tCorrect, tAccuracy, tMinutes, tHasData, tPriorityPct }) => {
+                            return (
+                              <tr key={topic.id} className="bg-zinc-50/30 dark:bg-zinc-900/10 text-xs border-b border-zinc-100/50 dark:border-zinc-850/50 font-medium">
+                                <td className="px-8 py-2.5 text-zinc-500 dark:text-zinc-400 pl-12 flex items-center gap-1.5">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-zinc-300 dark:bg-zinc-700 shrink-0" />
+                                  {topic.title}
+                                </td>
+                                <td className="px-4 py-2.5 text-right text-zinc-400 dark:text-zinc-500 font-mono">{tDone}</td>
+                                <td className="px-4 py-2.5 text-right text-zinc-400 dark:text-zinc-500 font-mono">{tCorrect}</td>
+                                <td className="px-4 py-2.5 text-right text-zinc-400 dark:text-zinc-500 font-mono">-</td>
+                                <td className="px-4 py-2.5 text-right text-zinc-400 dark:text-zinc-500 font-mono">{tMinutes}m</td>
+                                <td className={`px-4 py-2.5 text-right font-mono ${getAccuracyText(tAccuracy, tHasData)}`}>
+                                  <span className={`px-2 py-0.5 rounded-md ${getAccuracyBg(tAccuracy, tHasData)}`}>
+                                    {tHasData ? `${tAccuracy}%` : '-'}
+                                  </span>
+                                </td>
+                                <td className="px-4 py-2.5 text-right text-zinc-400 dark:text-zinc-500 font-mono">
+                                  {topic.weight !== undefined ? `${topic.weight.toFixed(2).replace('.', ',')}%` : '—'}
+                                </td>
+                                <td className="px-4 py-2.5 text-right font-mono">
+                                  <div className="flex items-center justify-end gap-1.5">
+                                    <span className={`px-2 py-0.5 rounded-md font-black ${
+                                      tPriorityPct >= 75 ? 'bg-rose-100 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400'
+                                      : tPriorityPct >= 60 ? 'bg-orange-100 dark:bg-orange-950/30 text-orange-700 dark:text-orange-400'
+                                      : tPriorityPct >= 40 ? 'bg-amber-100 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400'
+                                      : 'bg-emerald-100 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400'
+                                    }`}>
+                                      {tPriorityPct}%
+                                    </span>
+                                    <span className="text-[10px] text-zinc-400">({topic.priority})</span>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
                       </>
                     )}
                   </React.Fragment>

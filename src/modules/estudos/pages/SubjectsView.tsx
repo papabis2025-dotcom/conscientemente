@@ -882,7 +882,19 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                       </td>
                     </tr>
 
-{isExpanded && (
+{isExpanded && (() => {
+                      const totalTopicWeightSum = (subject.topics || []).reduce((acc, t) => {
+                        const localW = localTopicWeights[t.id];
+                        let w = 0;
+                        if (localW !== undefined && localW.trim() !== '') {
+                          w = parseFloat(localW.replace(',', '.')) || 0;
+                        } else if (localW === undefined && t.weight !== undefined) {
+                          w = t.weight;
+                        }
+                        return acc + w;
+                      }, 0);
+
+                      return (
                       <tr>
                         <td colSpan={3} className="px-0 py-0 bg-zinc-50/30 dark:bg-zinc-800/10 border-b border-zinc-100 dark:border-zinc-800">
                           <div className="pl-10 pr-4 py-2">
@@ -916,7 +928,18 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                                       </button>
                                     )}
                                   </th>
-                                  <th className="py-1.5 px-2 text-[10px] uppercase font-bold text-center w-24">Peso (%)</th>
+                                  <th className="py-1.5 px-2 text-[10px] uppercase font-bold text-center w-28 whitespace-nowrap">
+                                    <div className="flex flex-col items-center">
+                                      <span>Peso (%)</span>
+                                      <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded font-black ${
+                                        totalTopicWeightSum > 100.005 ? 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300' :
+                                        Math.abs(totalTopicWeightSum - 100) < 0.01 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' :
+                                        'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
+                                      }`}>
+                                        {totalTopicWeightSum.toFixed(2).replace('.', ',')}% / 100%
+                                      </span>
+                                    </div>
+                                  </th>
                                   <th className="py-1.5 text-[10px] uppercase font-bold cursor-pointer text-emerald-600 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/20 px-2.5 rounded-t-xl" onClick={() => { setTopicSortBy('firstStudy'); setTopicSortOrder(o => o === 'desc' ? 'asc' : 'desc'); }}>
                                     Primeira {topicSortBy === 'firstStudy' && (topicSortOrder === 'desc' ? '↓' : '↑')}
                                   </th>
@@ -1118,6 +1141,28 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                                             onChange={(e) => {
                                               const val = e.target.value;
                                               if (/^[0-9]*[.,]?[0-9]{0,2}$/.test(val) || val === '') {
+                                                const topics = subject.topics || [];
+                                                let otherSum = 0;
+                                                topics.forEach(t => {
+                                                  if (t.id !== topic.id) {
+                                                    const localW = localTopicWeights[t.id];
+                                                    let w = 0;
+                                                    if (localW !== undefined && localW.trim() !== '') {
+                                                      w = parseFloat(localW.replace(',', '.')) || 0;
+                                                    } else if (localW === undefined && t.weight !== undefined) {
+                                                      w = t.weight;
+                                                    }
+                                                    otherSum += w;
+                                                  }
+                                                });
+
+                                                const parsedVal = val === '' ? 0 : parseFloat(val.replace(',', '.')) || 0;
+                                                if (otherSum + parsedVal > 100.005) {
+                                                  const maxAllowed = Math.max(0, 100 - otherSum);
+                                                  alert(`A soma dos pesos dos assuntos da disciplina "${subject.name}" não pode ultrapassar 100% (soma atual com esta alteração: ${(otherSum + parsedVal).toFixed(2).replace('.', ',')}%). O peso máximo permitido para este assunto é ${maxAllowed.toFixed(2).replace('.', ',')}%.`);
+                                                  return;
+                                                }
+
                                                 setLocalTopicWeights(prev => ({
                                                   ...prev,
                                                   [topic.id]: val
@@ -1184,7 +1229,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                           </div>
                         </td>
                       </tr>
-                    )}
+                    ); })()}
                   </React.Fragment>
                 );
               })}

@@ -1460,20 +1460,20 @@ const Dashboard: React.FC<DashboardProps> = ({
         </div>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 auto-rows-auto lg:h-[calc(100vh-125px)] lg:grid-rows-[28fr_36fr_36fr]">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 auto-rows-min min-h-0 overflow-y-auto pr-1 pb-8 custom-scrollbar">
         {widgets.map((widget, index) => {
           if (!widget.isVisible && !isEditMode) return null;
           const sizeClass = widget.size === 'full' ? 'md:col-span-3' : widget.size === 'wide' ? 'md:col-span-2' : 'md:col-span-1';
 
-          // Define heights for different widgets
+          // Alturas responsivas flexíveis para cada widget
           const heightClass = (() => {
-            if (widget.id === 'general_stats') return 'lg:h-full md:h-[180px] h-[180px] min-h-[170px]';
-            if (widget.id === 'study_frequency') return 'lg:h-full md:h-[200px] h-[200px] min-h-[180px]';
-            if (widget.id === 'study_tasks') return 'lg:h-full md:h-[250px] h-[250px] min-h-[230px]';
-            if (widget.id === 'weekly_chart') return 'lg:h-full md:h-[250px] h-[250px] min-h-[230px]';
-            if (widget.id === 'activity_calendar') return 'lg:h-full md:h-[250px] h-[250px] min-h-[230px]';
-            if (widget.id === 'unified_subject_analysis') return 'lg:h-full md:h-[250px] h-[250px] min-h-[230px]';
-            return 'h-auto';
+            if (widget.id === 'general_stats') return 'min-h-[170px]';
+            if (widget.id === 'study_frequency') return 'min-h-[190px]';
+            if (widget.id === 'study_tasks') return 'min-h-[260px]';
+            if (widget.id === 'weekly_chart') return 'min-h-[260px]';
+            if (widget.id === 'activity_calendar') return 'min-h-[260px]';
+            if (widget.id === 'unified_subject_analysis') return 'min-h-[260px]';
+            return 'min-h-[200px]';
           })();
 
           return (

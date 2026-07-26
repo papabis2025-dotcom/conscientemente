@@ -413,6 +413,7 @@ const GlobalSidebar: React.FC<GlobalSidebarProps> = ({
         if (ctx) {
           ctx.drawImage(img, 0, 0, width, height);
           const compressedBase64 = canvas.toDataURL('image/jpeg', 0.85);
+          localStorage.setItem('cn_custom_bg_type', 'image');
           localStorage.setItem('cn_custom_bg_image', compressedBase64);
           setBgImage(compressedBase64);
           setBgType('image');

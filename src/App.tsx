@@ -32,6 +32,8 @@ const SYNC_KEYS = [
   'cn_cleared_notifications',
   'cn_anotacoes',
   'cn_anotacoes_folders',
+  'cn_custom_bg_type',
+  'cn_custom_bg_color',
   'cn_custom_bg_image',
   'cn_custom_bg_style',
   'cn_push_notifications_enabled',
@@ -385,10 +387,22 @@ const App: React.FC = () => {
   });
   const [lastAutoColor, setLastAutoColor] = useState<string>('');
 
-  const [bgType, setBgType] = useState<'default' | 'color' | 'image'>('default');
-  const [bgColor, setBgColor] = useState('#ffffff');
+  const [bgType, setBgType] = useState<'default' | 'color' | 'image'>(() => {
+    return (localStorage.getItem('cn_custom_bg_type') as any) || 'default';
+  });
+  const [bgColor, setBgColor] = useState<string>(() => {
+    return localStorage.getItem('cn_custom_bg_color') || '#ffffff';
+  });
   const [bgImage, setBgImage] = useState<string>(() => localStorage.getItem('cn_custom_bg_image') || '');
   const [bgImageStyle, setBgImageStyle] = useState<string>(() => localStorage.getItem('cn_custom_bg_style') || 'cover');
+
+  useEffect(() => {
+    localStorage.setItem('cn_custom_bg_type', bgType);
+  }, [bgType]);
+
+  useEffect(() => {
+    localStorage.setItem('cn_custom_bg_color', bgColor);
+  }, [bgColor]);
   const [isPrefsLoaded, setIsPrefsLoaded] = useState(false);
 
   const [lastSyncTime, setLastSyncTime] = useState<number>(0);

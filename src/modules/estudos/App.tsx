@@ -292,6 +292,7 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
           subjects={filteredSubjects}
           allSubjects={allSubjects}
           scheduledStudies={scheduledStudies}
+          sessions={sessions}
           onSaveActivity={saveCalendarActivity}
           onDelete={deleteScheduledStudy}
           onToggleStatus={toggleScheduledStudyStatus}

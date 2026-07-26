@@ -12,6 +12,20 @@ export interface SleepLog {
   notes?: string;
 }
 
+export interface SleepCalibration {
+  id: string;
+  date: string;
+  watchDeep: number;
+  actualDeep: number;
+  watchLight: number;
+  actualLight: number;
+  watchREM: number;
+  actualREM: number;
+  watchAwake: number;
+  actualAwake: number;
+  notes?: string;
+}
+
 interface MonitoramentoSonoProps {
   onUpdateSleepLogs?: () => void;
 }
@@ -22,7 +36,12 @@ export const MonitoramentoSono: React.FC<MonitoramentoSonoProps> = ({ onUpdateSl
     return saved ? JSON.parse(saved) : [];
   });
 
-  const [subTab, setSubTab] = useState<'painel' | 'historico'>('painel');
+  const [calibrations, setCalibrations] = useState<SleepCalibration[]>(() => {
+    const saved = localStorage.getItem('cn_saude_sleep_calibrations');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const [subTab, setSubTab] = useState<'painel' | 'historico' | 'calibracao'>('painel');
 
   useEffect(() => {
     localStorage.setItem('cn_saude_sleep_logs', JSON.stringify(sleepLogs));
@@ -34,7 +53,22 @@ export const MonitoramentoSono: React.FC<MonitoramentoSonoProps> = ({ onUpdateSl
     window.dispatchEvent(new Event('local-settings-changed'));
   }, [sleepLogs]);
 
-  // Form states
+  useEffect(() => {
+    localStorage.setItem('cn_saude_sleep_calibrations', JSON.stringify(calibrations));
+  }, [calibrations]);
+
+  // Calibration Form states
+  const [calibDate, setCalibDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [cWatchDeep, setCWatchDeep] = useState('90');
+  const [cActualDeep, setCActualDeep] = useState('100');
+  const [cWatchLight, setCWatchLight] = useState('240');
+  const [cActualLight, setCActualLight] = useState('220');
+  const [cWatchREM, setCWatchREM] = useState('90');
+  const [cActualREM, setCActualREM] = useState('95');
+  const [cWatchAwake, setCWatchAwake] = useState('15');
+  const [cActualAwake, setCActualAwake] = useState('15');
+
+  // Form states for Sleep Logs
   const [formDate, setFormDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [deepH, setDeepH] = useState('1');
   const [deepM, setDeepM] = useState('30');
@@ -58,6 +92,38 @@ export const MonitoramentoSono: React.FC<MonitoramentoSonoProps> = ({ onUpdateSl
     if (parts.length !== 3) return dateStr;
     return `${parts[2]}/${parts[1]}`;
   };
+
+  // Cálculo de fatores de calibração dando peso de 60% para a última calibração e 40% para a média histórica
+  const calibrationFactors = React.useMemo(() => {
+    if (calibrations.length === 0) {
+      return { deep: 1.0, light: 1.0, rem: 1.0, awake: 1.0 };
+    }
+    const sorted = [...calibrations].sort((a, b) => b.date.localeCompare(a.date));
+    const latest = sorted[0];
+
+    const getRatio = (actual: number, watch: number) => (watch > 0 ? actual / watch : 1.0);
+
+    const latestRatios = {
+      deep: getRatio(latest.actualDeep, latest.watchDeep),
+      light: getRatio(latest.actualLight, latest.watchLight),
+      rem: getRatio(latest.actualREM, latest.watchREM),
+      awake: getRatio(latest.actualAwake, latest.watchAwake)
+    };
+
+    const avgRatios = {
+      deep: sorted.reduce((acc, c) => acc + getRatio(c.actualDeep, c.watchDeep), 0) / sorted.length,
+      light: sorted.reduce((acc, c) => acc + getRatio(c.actualLight, c.watchLight), 0) / sorted.length,
+      rem: sorted.reduce((acc, c) => acc + getRatio(c.actualREM, c.watchREM), 0) / sorted.length,
+      awake: sorted.reduce((acc, c) => acc + getRatio(c.actualAwake, c.watchAwake), 0) / sorted.length
+    };
+
+    return {
+      deep: Number((latestRatios.deep * 0.6 + avgRatios.deep * 0.4).toFixed(2)),
+      light: Number((latestRatios.light * 0.6 + avgRatios.light * 0.4).toFixed(2)),
+      rem: Number((latestRatios.rem * 0.6 + avgRatios.rem * 0.4).toFixed(2)),
+      awake: Number((latestRatios.awake * 0.6 + avgRatios.awake * 0.4).toFixed(2))
+    };
+  }, [calibrations]);
 
   const calculateScore = (log: SleepLog) => {
     const total = log.deepMinutes + log.lightMinutes + log.remMinutes + log.awakeMinutes;
@@ -122,22 +188,47 @@ export const MonitoramentoSono: React.FC<MonitoramentoSonoProps> = ({ onUpdateSl
     setNotes('');
   };
 
+  const handleAddCalibration = (e: React.FormEvent) => {
+    e.preventDefault();
+    const newCalib: SleepCalibration = {
+      id: crypto.randomUUID(),
+      date: calibDate,
+      watchDeep: parseInt(cWatchDeep) || 0,
+      actualDeep: parseInt(cActualDeep) || 0,
+      watchLight: parseInt(cWatchLight) || 0,
+      actualLight: parseInt(cActualLight) || 0,
+      watchREM: parseInt(cWatchREM) || 0,
+      actualREM: parseInt(cActualREM) || 0,
+      watchAwake: parseInt(cWatchAwake) || 0,
+      actualAwake: parseInt(cActualAwake) || 0
+    };
+
+    setCalibrations(prev => [newCalib, ...prev.filter(c => c.date !== calibDate)]);
+    alert('Calibração salva com sucesso!');
+  };
+
+  const handleDeleteCalibration = (id: string) => {
+    if (!window.confirm('Excluir esta calibração?')) return;
+    setCalibrations(prev => prev.filter(c => c.id !== id));
+  };
+
   const handleDeleteLog = (id: string) => {
     if (!window.confirm('Tem certeza que deseja excluir este registro de sono?')) return;
     setSleepLogs(prev => prev.filter(log => log.id !== id));
   };
 
-  const chartData = [...sleepLogs]
-    .slice(0, 10)
-    .reverse()
-    .map(log => ({
-      name: formatDate(log.date),
-      'Profundo (h)': Number((log.deepMinutes / 60).toFixed(2)),
-      'Leve (h)': Number((log.lightMinutes / 60).toFixed(2)),
-      'REM (h)': Number((log.remMinutes / 60).toFixed(2)),
-      'Acordado (h)': Number((log.awakeMinutes / 60).toFixed(2)),
-      totalHours: Number(((log.deepMinutes + log.lightMinutes + log.remMinutes + log.awakeMinutes) / 60).toFixed(2))
-    }));
+  // Garante que o gráfico exibe sempre os ÚLTIMOS 10 DIAS de registro em ordem cronológica
+  const sortedLogsAsc = [...sleepLogs].sort((a, b) => a.date.localeCompare(b.date));
+  const recentLogs = sortedLogsAsc.slice(-10);
+
+  const chartData = recentLogs.map(log => ({
+    name: formatDate(log.date),
+    'Profundo (h)': Number((log.deepMinutes / 60).toFixed(2)),
+    'Leve (h)': Number((log.lightMinutes / 60).toFixed(2)),
+    'REM (h)': Number((log.remMinutes / 60).toFixed(2)),
+    'Acordado (h)': Number((log.awakeMinutes / 60).toFixed(2)),
+    totalHours: Number(((log.deepMinutes + log.lightMinutes + log.remMinutes + log.awakeMinutes) / 60).toFixed(2))
+  }));
 
   const avgSleepMinutes = sleepLogs.length > 0 
     ? Math.round(sleepLogs.reduce((acc, log) => acc + log.deepMinutes + log.lightMinutes + log.remMinutes + log.awakeMinutes, 0) / sleepLogs.length)
@@ -175,6 +266,21 @@ export const MonitoramentoSono: React.FC<MonitoramentoSonoProps> = ({ onUpdateSl
           <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 font-bold">
             {sleepLogs.length}
           </span>
+        </button>
+        <button
+          onClick={() => setSubTab('calibracao')}
+          className={`px-6 py-2.5 text-xs font-black uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 ${
+            subTab === 'calibracao'
+              ? 'border-cyan-500 text-cyan-500'
+              : 'border-transparent text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-350'
+          }`}
+        >
+          <RefreshCw size={13} /> Calibração de Relógio
+          {calibrations.length > 0 && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-cyan-100 dark:bg-cyan-950 text-cyan-700 dark:text-cyan-400 font-bold">
+              {calibrations.length}
+            </span>
+          )}
         </button>
       </div>
 
@@ -421,7 +527,7 @@ export const MonitoramentoSono: React.FC<MonitoramentoSonoProps> = ({ onUpdateSl
             </div>
           </div>
         </div>
-      ) : (
+      ) : subTab === 'historico' ? (
         <div className="flex-1 flex flex-col gap-4 min-h-0">
           <div className="bg-white dark:bg-[#121214] border border-zinc-200 dark:border-zinc-800/50 rounded-2xl shadow-sm overflow-hidden flex flex-col flex-1 min-h-0">
             <div className="p-4 border-b border-zinc-100 dark:border-zinc-800/50 shrink-0">
@@ -438,15 +544,15 @@ export const MonitoramentoSono: React.FC<MonitoramentoSonoProps> = ({ onUpdateSl
               <div className="overflow-y-auto flex-1 custom-scrollbar">
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
-                    <tr className="text-zinc-400 dark:text-zinc-500 font-bold uppercase tracking-wider border-b border-zinc-100 dark:border-zinc-800/80 sticky top-0 bg-white dark:bg-[#121214] z-10">
+                    <tr className="border-b border-zinc-100 dark:border-zinc-800/80 text-[10px] uppercase font-black tracking-wider text-zinc-400 dark:text-zinc-500">
                       <th className="py-3 px-4">Data</th>
-                      <th className="py-3 px-4">Tempo Total</th>
+                      <th className="py-3 px-4">Total</th>
                       <th className="py-3 px-4">Profundo</th>
                       <th className="py-3 px-4">Leve</th>
                       <th className="py-3 px-4">REM</th>
                       <th className="py-3 px-4">Acordado</th>
-                      <th className="py-3 px-4">Qualidade</th>
-                      <th className="py-3 px-4 text-right"></th>
+                      <th className="py-3 px-4">Score</th>
+                      <th className="py-3 px-4 text-right">Ações</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/50">
@@ -494,6 +600,154 @@ export const MonitoramentoSono: React.FC<MonitoramentoSonoProps> = ({ onUpdateSl
                         </tr>
                       );
                     })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div className="flex-1 flex flex-col gap-4 min-h-0 overflow-y-auto pr-1">
+          {/* Card de Resumo de Fatores */}
+          <div className="bg-white dark:bg-[#121214] p-5 rounded-2xl border border-zinc-200 dark:border-zinc-800/50 shadow-sm space-y-3">
+            <div className="flex justify-between items-center">
+              <div>
+                <h4 className="text-sm font-black text-zinc-800 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                  <RefreshCw size={16} className="text-cyan-500" /> Fatores de Calibração Atuais (Relógio/Smartwatch)
+                </h4>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 font-medium">
+                  A calibração pondera 60% para a última calibração efetuada e 40% para o histórico de calibrações anteriores.
+                </p>
+              </div>
+              <span className="text-xs px-2.5 py-1 rounded-full font-black bg-cyan-100 text-cyan-700 dark:bg-cyan-950 dark:text-cyan-300">
+                {calibrations.length} {calibrations.length === 1 ? 'registro' : 'registros'}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+              <div className="bg-cyan-50/40 dark:bg-cyan-950/20 p-3 rounded-xl border border-cyan-100 dark:border-cyan-900/30 text-center">
+                <span className="text-[10px] font-black uppercase text-cyan-700 dark:text-cyan-300 tracking-widest block">Profundo</span>
+                <span className="text-lg font-black text-cyan-600 dark:text-cyan-400 mt-1 block">x{calibrationFactors.deep}</span>
+              </div>
+              <div className="bg-blue-50/40 dark:bg-blue-950/20 p-3 rounded-xl border border-blue-100 dark:border-blue-900/30 text-center">
+                <span className="text-[10px] font-black uppercase text-blue-700 dark:text-blue-300 tracking-widest block">Leve</span>
+                <span className="text-lg font-black text-blue-600 dark:text-blue-400 mt-1 block">x{calibrationFactors.light}</span>
+              </div>
+              <div className="bg-purple-50/40 dark:bg-purple-950/20 p-3 rounded-xl border border-purple-100 dark:border-purple-900/30 text-center">
+                <span className="text-[10px] font-black uppercase text-purple-700 dark:text-purple-300 tracking-widest block">REM</span>
+                <span className="text-lg font-black text-purple-600 dark:text-purple-400 mt-1 block">x{calibrationFactors.rem}</span>
+              </div>
+              <div className="bg-amber-50/40 dark:bg-amber-950/20 p-3 rounded-xl border border-amber-100 dark:border-amber-900/30 text-center">
+                <span className="text-[10px] font-black uppercase text-amber-700 dark:text-amber-300 tracking-widest block">Acordado</span>
+                <span className="text-lg font-black text-amber-600 dark:text-amber-400 mt-1 block">x{calibrationFactors.awake}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Form de Nova Calibração */}
+          <div className="bg-white dark:bg-[#121214] p-5 rounded-2xl border border-zinc-200 dark:border-zinc-800/50 shadow-sm space-y-4">
+            <h4 className="text-xs font-black uppercase tracking-widest text-zinc-700 dark:text-zinc-300 flex items-center gap-2">
+              <Plus size={14} className="text-cyan-500" /> Registrar Nova Calibração
+            </h4>
+
+            <form onSubmit={handleAddCalibration} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-zinc-500 uppercase">Data</label>
+                  <input type="date" value={calibDate} onChange={e => setCalibDate(e.target.value)} className="w-full bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3 py-1.5 text-xs font-bold text-zinc-800 dark:text-zinc-200" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-cyan-600 dark:text-cyan-400 uppercase">Profundo (Rel / Real min)</label>
+                  <div className="flex gap-1">
+                    <input type="number" placeholder="Relógio" value={cWatchDeep} onChange={e => setCWatchDeep(e.target.value)} className="w-1/2 bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 rounded-xl p-1.5 text-xs text-center font-bold" />
+                    <input type="number" placeholder="Real" value={cActualDeep} onChange={e => setCActualDeep(e.target.value)} className="w-1/2 bg-cyan-50 dark:bg-cyan-950/40 border border-cyan-300 dark:border-cyan-700 rounded-xl p-1.5 text-xs text-center font-black text-cyan-600 dark:text-cyan-400" />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase">Leve (Rel / Real min)</label>
+                  <div className="flex gap-1">
+                    <input type="number" placeholder="Relógio" value={cWatchLight} onChange={e => setCWatchLight(e.target.value)} className="w-1/2 bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 rounded-xl p-1.5 text-xs text-center font-bold" />
+                    <input type="number" placeholder="Real" value={cActualLight} onChange={e => setCActualLight(e.target.value)} className="w-1/2 bg-blue-50 dark:bg-blue-950/40 border border-blue-300 dark:border-blue-700 rounded-xl p-1.5 text-xs text-center font-black text-blue-600 dark:text-blue-400" />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-purple-600 dark:text-purple-400 uppercase">REM (Rel / Real min)</label>
+                  <div className="flex gap-1">
+                    <input type="number" placeholder="Relógio" value={cWatchREM} onChange={e => setCWatchREM(e.target.value)} className="w-1/2 bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 rounded-xl p-1.5 text-xs text-center font-bold" />
+                    <input type="number" placeholder="Real" value={cActualREM} onChange={e => setCActualREM(e.target.value)} className="w-1/2 bg-purple-50 dark:bg-purple-950/40 border border-purple-300 dark:border-purple-700 rounded-xl p-1.5 text-xs text-center font-black text-purple-600 dark:text-purple-400" />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase">Acordado (Rel / Real min)</label>
+                  <div className="flex gap-1">
+                    <input type="number" placeholder="Relógio" value={cWatchAwake} onChange={e => setCWatchAwake(e.target.value)} className="w-1/2 bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 rounded-xl p-1.5 text-xs text-center font-bold" />
+                    <input type="number" placeholder="Real" value={cActualAwake} onChange={e => setCActualAwake(e.target.value)} className="w-1/2 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700 rounded-xl p-1.5 text-xs text-center font-black text-amber-600 dark:text-amber-400" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end">
+                <button type="submit" className="px-5 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-600 text-white font-black text-xs uppercase tracking-wider shadow-md shadow-cyan-500/20 transition-all">
+                  Salvar Calibração
+                </button>
+              </div>
+            </form>
+          </div>
+
+          {/* Histórico de Calibrações */}
+          <div className="bg-white dark:bg-[#121214] border border-zinc-200 dark:border-zinc-800/50 rounded-2xl shadow-sm overflow-hidden flex flex-col min-h-0">
+            <div className="p-4 border-b border-zinc-100 dark:border-zinc-800/50">
+              <h3 className="text-xs font-black uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
+                Histórico de Calibrações
+              </h3>
+            </div>
+
+            {calibrations.length === 0 ? (
+              <div className="p-8 text-center text-zinc-400 text-xs font-semibold">
+                Nenhuma calibração realizada ainda. Adicione os dados do seu relógio acima para calibrar.
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="border-b border-zinc-100 dark:border-zinc-800/80 text-[10px] uppercase font-black tracking-wider text-zinc-400">
+                      <th className="py-2.5 px-4">Data</th>
+                      <th className="py-2.5 px-4">Profundo (Rel / Real)</th>
+                      <th className="py-2.5 px-4">Leve (Rel / Real)</th>
+                      <th className="py-2.5 px-4">REM (Rel / Real)</th>
+                      <th className="py-2.5 px-4">Acordado (Rel / Real)</th>
+                      <th className="py-2.5 px-4 text-right">Ação</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/50">
+                    {calibrations.map(c => (
+                      <tr key={c.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-900/20">
+                        <td className="py-2.5 px-4 font-bold text-zinc-800 dark:text-white">
+                          {new Date(`${c.date}T12:00:00`).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                        </td>
+                        <td className="py-2.5 px-4 font-semibold text-cyan-600 dark:text-cyan-400">
+                          {c.watchDeep}m / {c.actualDeep}m
+                        </td>
+                        <td className="py-2.5 px-4 font-semibold text-blue-600 dark:text-blue-400">
+                          {c.watchLight}m / {c.actualLight}m
+                        </td>
+                        <td className="py-2.5 px-4 font-semibold text-purple-600 dark:text-purple-400">
+                          {c.watchREM}m / {c.actualREM}m
+                        </td>
+                        <td className="py-2.5 px-4 font-semibold text-amber-600 dark:text-amber-400">
+                          {c.watchAwake}m / {c.actualAwake}m
+                        </td>
+                        <td className="py-2.5 px-4 text-right">
+                          <button
+                            onClick={() => handleDeleteCalibration(c.id)}
+                            className="p-1 hover:bg-rose-50 dark:hover:bg-rose-950 text-zinc-400 hover:text-rose-500 rounded-lg transition-colors"
+                            title="Excluir calibração"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>

@@ -32,6 +32,23 @@ const AnotacoesApp: React.FC = () => {
   const [editorTitle, setEditorTitle] = useState('');
   const [editorContent, setEditorContent] = useState('');
   const [editorFolderId, setEditorFolderId] = useState<string | undefined>(undefined);
+  const textareaRef = React.useRef<HTMLTextAreaElement>(null);
+
+  const applyFormat = (prefix: string, suffix: string = '') => {
+    if (!textareaRef.current) return;
+    const el = textareaRef.current;
+    const start = el.selectionStart;
+    const end = el.selectionEnd;
+    const selected = editorContent.substring(start, end);
+    const replacement = prefix + (selected || 'texto') + suffix;
+    const updated = editorContent.substring(0, start) + replacement + editorContent.substring(end);
+    setEditorContent(updated);
+
+    setTimeout(() => {
+      el.focus();
+      el.setSelectionRange(start + prefix.length, start + prefix.length + (selected ? selected.length : 5));
+    }, 0);
+  };
 
   // Folders state
   const [folders, setFolders] = useState<FolderItem[]>(() => {
@@ -199,13 +216,14 @@ const AnotacoesApp: React.FC = () => {
   // Folder CRUD handlers
   const handleAddFolder = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const name = prompt('Digite o nome da nova pasta (Livro):');
+    const promptText = activeTab === 'Diário de Leitura' ? 'Digite o nome da nova pasta (Livro):' : 'Digite o nome da nova pasta:';
+    const name = prompt(promptText);
     if (!name || !name.trim()) return;
 
     const newFolder: FolderItem = {
       id: `folder_${Date.now()}`,
       name: name.trim(),
-      category: 'Diário de Leitura',
+      category: activeTab,
       createdAt: Date.now()
     };
     const updated = [...folders, newFolder];
@@ -668,28 +686,76 @@ const AnotacoesApp: React.FC = () => {
                 className="w-full bg-transparent border-b border-zinc-200 dark:border-zinc-800 pb-3 text-sm font-black text-zinc-800 dark:text-zinc-100 placeholder:text-zinc-400 outline-none uppercase tracking-wide"
               />
 
-              <div className="flex items-center gap-2 mt-3 pb-2 border-b border-zinc-100 dark:border-zinc-900">
-                <span className="text-[10px] font-mono text-zinc-400 dark:text-zinc-500 uppercase tracking-widest font-black">
-                  {activeTab === 'Diário de Leitura' ? 'Livro (Pasta):' : 'Pasta:'}
-                </span>
-                <select
-                  value={editorFolderId || ''}
-                  onChange={e => setEditorFolderId(e.target.value || undefined)}
-                  className="bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded px-2.5 py-1 text-[11px] text-zinc-700 dark:text-zinc-300 outline-none font-sans font-bold cursor-pointer"
-                >
-                  <option value="" className="bg-white dark:bg-zinc-900 text-zinc-500">Nenhuma Pasta</option>
-                  {folders.filter(f => f.category === activeTab).map(f => (
-                    <option key={f.id} value={f.id} className="bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 font-semibold">{f.name}</option>
-                  ))}
-                </select>
+              <div className="flex flex-wrap items-center justify-between gap-2 mt-3 pb-2 border-b border-zinc-100 dark:border-zinc-900">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-mono text-zinc-400 dark:text-zinc-500 uppercase tracking-widest font-black">
+                    {activeTab === 'Diário de Leitura' ? 'Livro (Pasta):' : 'Pasta:'}
+                  </span>
+                  <select
+                    value={editorFolderId || ''}
+                    onChange={e => setEditorFolderId(e.target.value || undefined)}
+                    className="bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded px-2.5 py-1 text-[11px] text-zinc-700 dark:text-zinc-300 outline-none font-sans font-bold cursor-pointer"
+                  >
+                    <option value="" className="bg-white dark:bg-zinc-900 text-zinc-500">Nenhuma Pasta</option>
+                    {folders.filter(f => f.category === activeTab).map(f => (
+                      <option key={f.id} value={f.id} className="bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 font-semibold">{f.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Toolbar de Formatação */}
+                <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-850 p-1 rounded-lg border border-zinc-200/60 dark:border-zinc-700/60 select-none">
+                  <button
+                    type="button"
+                    onClick={() => applyFormat('**', '**')}
+                    className="px-2 py-0.5 rounded font-black text-xs text-zinc-700 dark:text-zinc-200 hover:bg-white dark:hover:bg-zinc-700 transition-colors"
+                    title="Negrito (**texto**)"
+                  >
+                    B
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => applyFormat('*', '*')}
+                    className="px-2 py-0.5 rounded italic font-serif text-xs text-zinc-700 dark:text-zinc-200 hover:bg-white dark:hover:bg-zinc-700 transition-colors"
+                    title="Itálico (*texto*)"
+                  >
+                    I
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => applyFormat('<u>', '</u>')}
+                    className="px-2 py-0.5 rounded underline text-xs text-zinc-700 dark:text-zinc-200 hover:bg-white dark:hover:bg-zinc-700 transition-colors"
+                    title="Sublinhado (<u>texto</u>)"
+                  >
+                    U
+                  </button>
+                  <div className="w-px h-3 bg-zinc-300 dark:bg-zinc-700 mx-0.5" />
+                  <button
+                    type="button"
+                    onClick={() => applyFormat('#')}
+                    className="px-2 py-0.5 rounded text-[11px] font-mono font-bold text-amber-600 dark:text-amber-400 hover:bg-white dark:hover:bg-zinc-700 transition-colors"
+                    title="Adicionar Hashtag (#tag)"
+                  >
+                    # Tag
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => applyFormat('@' + new Date().toLocaleDateString('pt-BR') + ' ')}
+                    className="px-2 py-0.5 rounded text-[11px] font-mono font-bold text-cyan-600 dark:text-cyan-400 hover:bg-white dark:hover:bg-zinc-700 transition-colors"
+                    title="Adicionar Data (@data)"
+                  >
+                    @ Data
+                  </button>
+                </div>
               </div>
 
               <textarea
-                placeholder="Comece a digitar sua nota..."
+                ref={textareaRef}
+                placeholder="Comece a digitar sua nota... Use #tag para marcadores e @data para datas."
                 value={editorContent}
                 onChange={e => setEditorContent(e.target.value)}
-                className="w-full flex-1 bg-transparent py-4 text-xs leading-relaxed font-mono text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-400 outline-none resize-none custom-scrollbar focus:ring-0"
-                style={{ fontFamily: 'Consolas, Monaco, "Courier New", Courier, monospace' }}
+                className="w-full flex-1 bg-transparent py-4 text-[12px] leading-relaxed font-sans text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-400 outline-none resize-none custom-scrollbar focus:ring-0"
+                style={{ fontFamily: 'Inter, system-ui, -apple-system, sans-serif', fontSize: '12px' }}
               />
             </div>
             

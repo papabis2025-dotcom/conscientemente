@@ -8,6 +8,7 @@ interface CalendarViewProps {
   allSubjects?: Subject[]; // For lookup (global)
   scheduledStudies: ScheduledStudy[];
   simulados: Simulado[];
+  sessions?: StudySession[];
   onSaveActivity: (editingTaskId: string | null, formData: any, selectedDayKey: string) => Promise<void>;
   onDelete: (idOrIds: string | string[]) => Promise<void>;
   onToggleStatus?: (idOrIds: string | string[]) => void;
@@ -45,6 +46,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   allSubjects, 
   scheduledStudies, 
   simulados,
+  sessions,
   onSaveActivity, 
   onDelete, 
   onToggleStatus,
@@ -62,6 +64,66 @@ const CalendarView: React.FC<CalendarViewProps> = ({
 
   // Use allSubjects for lookup if available, otherwise fallback to subjects
   const lookupSubjects = allSubjects || subjects;
+
+  const getTaskAllLinks = (task: any): string[] => {
+    const linksSet = new Set<string>();
+
+    const parseAndAdd = (linkData: string | undefined | null) => {
+      if (!linkData) return;
+      try {
+        const parsed = JSON.parse(linkData);
+        if (Array.isArray(parsed)) {
+          parsed.filter(Boolean).forEach((l: any) => {
+            if (typeof l === 'string' && l.trim()) linksSet.add(l.trim());
+          });
+        } else if (typeof parsed === 'string' && parsed.trim()) {
+          linksSet.add(parsed.trim());
+        }
+      } catch {
+        if (typeof linkData === 'string' && linkData.trim()) {
+          linksSet.add(linkData.trim());
+        }
+      }
+    };
+
+    // 1. Direct links on task
+    parseAndAdd(task.questionsLink);
+
+    // 2. Links from sessions (Caderno de Questões)
+    const taskSubId = task.subjectId;
+    const taskTopicId = task.topicId || (task.topicIds && task.topicIds[0]);
+    const taskDate = task.date ? task.date.split('T')[0] : '';
+
+    (sessions || []).forEach(s => {
+      if (!s.questionsLink) return;
+      const sameSub = taskSubId && s.subjectId === taskSubId;
+      const sameTopic = !taskTopicId || !s.topicId || taskTopicId === s.topicId;
+      const sameDate = taskDate && s.date && s.date.split('T')[0] === taskDate;
+      if (sameSub && (sameTopic || sameDate)) {
+        parseAndAdd(s.questionsLink);
+      }
+    });
+
+    // 3. Fallback: any link in sessions for the same subjectId
+    if (linksSet.size === 0 && taskSubId) {
+      (sessions || []).forEach(s => {
+        if (s.subjectId === taskSubId && s.questionsLink) {
+          parseAndAdd(s.questionsLink);
+        }
+      });
+    }
+
+    // 4. Fallback: scheduledStudies links for the same subjectId
+    if (linksSet.size === 0 && taskSubId) {
+      (scheduledStudies || []).forEach(s => {
+        if (s.subjectId === taskSubId && s.questionsLink) {
+          parseAndAdd(s.questionsLink);
+        }
+      });
+    }
+
+    return Array.from(linksSet);
+  };
 
   const handleDragStart = (e: React.DragEvent, idOrIds: string) => {
     e.dataTransfer.setData('text/plain', idOrIds);
@@ -511,17 +573,12 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                               {sub.topics.find(t => t.id === task.topicId)?.title || 'Assunto não encontrado'}
                             </p>
                           )}
-                          {task.questionsLink && (
-                            <div className="mt-2 pt-1.5 border-t border-black/10 dark:border-white/10 flex flex-wrap gap-1 shrink-0">
-                              {(() => {
-                                let links: string[] = [];
-                                try {
-                                  const parsed = JSON.parse(task.questionsLink);
-                                  links = Array.isArray(parsed) ? parsed : [parsed];
-                                } catch (e) {
-                                  links = [task.questionsLink];
-                                }
-                                return links.filter(Boolean).map((link, idx) => (
+                          {(() => {
+                            const links = getTaskAllLinks(task);
+                            if (links.length === 0) return null;
+                            return (
+                              <div className="mt-2 pt-1.5 border-t border-black/10 dark:border-white/10 flex flex-wrap gap-1 shrink-0">
+                                {links.map((link, idx) => (
                                   <a
                                     key={idx}
                                     href={link}
@@ -533,10 +590,10 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                                   >
                                     <ExternalLink size={7} /> Q{idx + 1}
                                   </a>
-                                ));
-                              })()}
-                            </div>
-                          )}
+                                ))}
+                              </div>
+                            );
+                          })()}
                         </div>
                       );
                     })}
@@ -1094,32 +1151,27 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                     {task.durationInMinutes !== undefined && task.durationInMinutes > 0 && (
                       <p className="text-[9px] text-zinc-400 font-bold">{task.durationInMinutes} min</p>
                     )}
-                    {task.questionsLink && (
-                      <div className="mt-2 pt-2 border-t border-zinc-100 dark:border-zinc-800/80 flex flex-wrap gap-1">
-                        {(() => {
-                          let links: string[] = [];
-                          try {
-                            const parsed = JSON.parse(task.questionsLink);
-                            links = Array.isArray(parsed) ? parsed : [parsed];
-                          } catch (e) {
-                            links = [task.questionsLink];
-                          }
-                          return links.filter(Boolean).map((link, idx) => (
-                            <a
-                              key={idx}
-                              href={link}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              onClick={(e) => e.stopPropagation()}
-                              className="px-2 py-0.5 rounded-md text-[8px] font-bold bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-150 dark:hover:bg-indigo-900/40 transition-colors flex items-center gap-1 cursor-pointer"
-                              title={link}
-                            >
-                              <ExternalLink size={8} /> Q{idx + 1}
-                            </a>
-                          ));
-                        })()}
-                      </div>
-                    )}
+                      {(() => {
+                        const links = getTaskAllLinks(task);
+                        if (links.length === 0) return null;
+                        return (
+                          <div className="mt-2 pt-2 border-t border-zinc-100 dark:border-zinc-800/80 flex flex-wrap gap-1">
+                            {links.map((link, idx) => (
+                              <a
+                                key={idx}
+                                href={link}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                className="px-2 py-0.5 rounded-md text-[8px] font-bold bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-150 dark:hover:bg-indigo-900/40 transition-colors flex items-center gap-1 cursor-pointer"
+                                title={link}
+                              >
+                                <ExternalLink size={8} /> Caderno {idx + 1}
+                              </a>
+                            ))}
+                          </div>
+                        );
+                      })()}
                   </div>
                 ))}
                 {tasksForSelectedDay.length === 0 && <p className="text-xs text-zinc-400 italic text-center py-10 opacity-40">Vazio</p>}

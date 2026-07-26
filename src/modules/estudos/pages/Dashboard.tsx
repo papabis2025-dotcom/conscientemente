@@ -98,6 +98,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   });
   const [draggedWidgetIndex, setDraggedWidgetIndex] = useState<number | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [showWidgetManager, setShowWidgetManager] = useState(false);
   const [fullscreenWidgetId, setFullscreenWidgetId] = useState<string | null>(null);
   const [dashboardPeriod, setDashboardPeriod] = useState<'semana' | 'mes' | 'ano' | 'sempre'>(() => {
     return (localStorage.getItem('cp_studies_dashboard_period') as any) || 'mes';
@@ -1447,6 +1448,9 @@ const Dashboard: React.FC<DashboardProps> = ({
              </select>
           </div>
           
+          <button onClick={() => setShowWidgetManager(true)} className="px-4 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 flex items-center gap-1.5 shadow-sm">
+            <Eye size={12} /> Gerenciar Widgets
+          </button>
           <button onClick={() => {
             setIsEditMode(!isEditMode);
             onToggleReorderMode?.(!isEditMode);
@@ -1493,6 +1497,15 @@ const Dashboard: React.FC<DashboardProps> = ({
                       <Maximize2 size={13} />
                     </button>
                   )}
+                  {!isEditMode && (
+                    <button
+                      onClick={() => setWidgets(prev => prev.map(w => w.id === widget.id ? { ...w, isVisible: false } : w))}
+                      className="text-zinc-400 hover:text-rose-500 dark:text-zinc-500 transition-colors p-1"
+                      title="Ocultar Widget"
+                    >
+                      <EyeOff size={13} />
+                    </button>
+                  )}
                   {isEditMode && (
                     <div className="flex gap-2">
                       <button onClick={() => cycleSize(widget.id)} className="bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded-lg text-[9px] font-bold uppercase tracking-tight text-zinc-500">Tam: {widget.size}</button>
@@ -1508,6 +1521,53 @@ const Dashboard: React.FC<DashboardProps> = ({
           );
         })}
       </div>
+
+      {showWidgetManager && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-zinc-950/80 backdrop-blur-sm p-4 animate-in fade-in">
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 w-full max-w-md shadow-2xl space-y-4">
+            <div className="flex justify-between items-center pb-3 border-b border-zinc-100 dark:border-zinc-800">
+              <h3 className="text-sm font-black uppercase tracking-widest text-zinc-800 dark:text-white flex items-center gap-2">
+                <Eye size={16} className="text-emerald-500" /> Gerenciar Widgets
+              </h3>
+              <button onClick={() => setShowWidgetManager(false)} className="text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 text-sm font-bold">✕</button>
+            </div>
+
+            <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-1 custom-scrollbar">
+              {widgets.map(w => (
+                <div key={w.id} className="flex items-center justify-between p-3 rounded-2xl bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200/50 dark:border-zinc-700/50">
+                  <span className="text-xs font-bold text-zinc-700 dark:text-zinc-200">{w.title}</span>
+                  <button
+                    onClick={() => setWidgets(prev => prev.map(item => item.id === w.id ? { ...item, isVisible: !item.isVisible } : item))}
+                    className={`px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 ${
+                      w.isVisible
+                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400'
+                        : 'bg-zinc-200 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-400'
+                    }`}
+                  >
+                    {w.isVisible ? <Eye size={12} /> : <EyeOff size={12} />}
+                    {w.isVisible ? 'Visível' : 'Oculto'}
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <div className="pt-2 flex justify-between gap-2 border-t border-zinc-100 dark:border-zinc-800">
+              <button
+                onClick={() => setWidgets(prev => prev.map(item => ({ ...item, isVisible: true })))}
+                className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline"
+              >
+                Exibir Todos
+              </button>
+              <button
+                onClick={() => setShowWidgetManager(false)}
+                className="px-4 py-2 rounded-xl bg-zinc-900 text-white dark:bg-zinc-700 font-bold text-xs"
+              >
+                Concluir
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {fullscreenWidgetId && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-zinc-950/90 backdrop-blur-md p-6 animate-in fade-in duration-300">

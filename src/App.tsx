@@ -48,6 +48,8 @@ const SYNC_KEYS = [
   'cn_saude_sleep_logs',
   'cn_home_cards_layout',
   'cn_home_widgets_order',
+  'cn_home_widgets_visibility',
+  'cp_questoes_selected_subject',
   'estudos_deleted_review_ids',
   'cp_active_tab_estudos',
   'financas_active_tab',

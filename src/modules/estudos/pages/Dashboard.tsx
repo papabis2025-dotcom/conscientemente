@@ -1023,7 +1023,6 @@ const Dashboard: React.FC<DashboardProps> = ({
           </div>
         );
       }
-
       case 'weekly_chart':
         return (
           <div className="flex flex-col h-full">
@@ -1049,6 +1048,17 @@ const Dashboard: React.FC<DashboardProps> = ({
                   Desempenho
                 </button>
               </div>
+              {/* Indicador de fonte de dados */}
+              {activeWeeklyTab === 'hours' && (
+                <span className="text-[8px] font-bold text-zinc-400 dark:text-zinc-500 bg-zinc-100 dark:bg-zinc-800/60 px-1.5 py-0.5 rounded-md" title="Tempo de simulados não é computado nesta visão — apenas sessões de estudo">
+                  apenas estudo
+                </span>
+              )}
+              {(activeWeeklyTab === 'questions' || activeWeeklyTab === 'desempenho') && (
+                <span className="text-[8px] font-bold text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20 px-1.5 py-0.5 rounded-md border border-purple-200/50 dark:border-purple-800/50" title="Questões e acertos de simulados são incluídos nesta visão">
+                  incl. simulados
+                </span>
+              )}
             </div>
 
             <div className="flex-1 w-full min-h-0">

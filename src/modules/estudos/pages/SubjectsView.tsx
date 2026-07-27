@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Subject, Topic, StudySession, Concurso } from '../types';
 import { playSound } from '../../../utils/audio';
+import { getDeterministicReviewId } from '../hooks/useAppData';
 
 import { COLORS } from '../constants';
 import { getColorHex, getBadgeStyle } from '../utils/colors';
@@ -349,14 +350,19 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
         }
 
         // Look up status in scheduledStudies
+        const latestSessionId = sortedSessions[0]?.id;
+        const targetReviewId = latestSessionId ? getDeterministicReviewId(subjectId, topicId === null ? undefined : topicId, latestSessionId, i) : null;
+
         const review = (scheduledStudies || []).find(s => 
           s.subjectId === subjectId &&
           s.topicId === (topicId === null ? undefined : topicId) &&
           s.activityType && (
             s.activityType.toLowerCase().includes('revisão') || 
             s.activityType.toLowerCase().includes('revisao')
-          ) &&
-          s.id && s.id.toLowerCase().split('-')[3] === `400${i}`
+          ) && (
+            (targetReviewId && s.id === targetReviewId) ||
+            (s.id && s.id.toLowerCase().split('-')[3] === `400${i}` && s.status === 'realizado')
+          )
         );
 
         customReviewDates[i] = {

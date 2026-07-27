@@ -73,7 +73,9 @@ export const QuestionsNotebooksView: React.FC<QuestionsNotebooksViewProps> = ({
   setSessions,
   onSyncReviews
 }) => {
-  const [selectedSubjectId, setSelectedSubjectId] = useState<string>('all');
+  const [selectedSubjectId, setSelectedSubjectId] = useState<string>(() => {
+    return localStorage.getItem('cp_questoes_selected_subject') || 'all';
+  });
   const [searchQuery, setSearchQuery] = useState<string>('');
 
   // Estados locais para edição dos links de grupos de estudos (chave: dateStr_subjectId)
@@ -269,7 +271,10 @@ export const QuestionsNotebooksView: React.FC<QuestionsNotebooksViewProps> = ({
           <label className="text-[10px] font-black text-zinc-400 dark:text-zinc-500 uppercase mb-2 block">Disciplina</label>
           <select 
             value={selectedSubjectId} 
-            onChange={(e) => setSelectedSubjectId(e.target.value)}
+            onChange={(e) => {
+              setSelectedSubjectId(e.target.value);
+              localStorage.setItem('cp_questoes_selected_subject', e.target.value);
+            }}
             className="w-full p-2.5 bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 rounded-xl outline-none text-sm text-zinc-900 dark:text-zinc-100 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all cursor-pointer shadow-sm"
           >
             <option value="all">Todas as Disciplinas</option>

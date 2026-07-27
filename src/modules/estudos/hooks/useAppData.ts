@@ -10,7 +10,7 @@ const getDeterministicSessionId = (simId: string, subjectId: string): string => 
     return `${simId.substring(0, 18)}${subjectId.substring(18)}`;
 };
 
-const getDeterministicReviewId = (subId: string, topicId: string | undefined, lastSessId: string, idx: number): string => {
+export const getDeterministicReviewId = (subId: string, topicId: string | undefined, lastSessId: string, idx: number): string => {
     const cleanSub = subId.toLowerCase().replace(/-/g, '').padEnd(32, '0');
     const cleanTopic = (topicId || 'geral').toLowerCase().replace(/-/g, '').padEnd(32, '0');
     const cleanSess = lastSessId.toLowerCase().replace(/-/g, '').padEnd(32, '0');
@@ -436,48 +436,60 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                     );
 
                     if (topicSessions.length > 0) {
-                        const sorted = [...topicSessions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-                        const latestSession = sorted[0];
-                        
-                        const sessionDateStr = getLocalDateString(latestSession.date);
-                        const parts = sessionDateStr.split('-');
-                        const year = parseInt(parts[0], 10);
-                        const month = parseInt(parts[1], 10) - 1;
-                        const day = parseInt(parts[2], 10);
-
-                        customReviewDays.forEach((days, idx) => {
-                            const plannedDate = new Date(year, month, day);
-                            plannedDate.setDate(plannedDate.getDate() + days);
-
-                            const yyyy = plannedDate.getFullYear();
-                            const mm = String(plannedDate.getMonth() + 1).padStart(2, '0');
-                            const dd = String(plannedDate.getDate()).padStart(2, '0');
-                            const dateStr = `${yyyy}-${mm}-${dd}`;
-
-                            if (concurso.targetDate) {
-                                const examDateStr = concurso.targetDate.split('T')[0];
-                                if (dateStr > examDateStr) return;
+                        // Sugestão A: Agrupar por data de estudo (para pegar a sessão mais recente de cada dia de estudo)
+                        // e gerar revisões para CADA data de estudo distinta!
+                        const sessionsByDateMap = new Map<string, StudySession>();
+                        topicSessions.forEach(sess => {
+                            const dStr = getLocalDateString(sess.date);
+                            if (dStr) {
+                                const existing = sessionsByDateMap.get(dStr);
+                                if (!existing || new Date(sess.date).getTime() > new Date(existing.date).getTime()) {
+                                    sessionsByDateMap.set(dStr, sess);
+                                }
                             }
+                        });
 
-                            const reviewId = getDeterministicReviewId(subject.id, topic.id === 'geral' ? undefined : topic.id, latestSession.id, idx);
-                            
-                            const tag = getActivityTag(subject.id, sessionDateStr, topic.id === 'geral' ? undefined : topic.title);
+                        sessionsByDateMap.forEach((latestSession) => {
+                            const sessionDateStr = getLocalDateString(latestSession.date);
+                            const parts = sessionDateStr.split('-');
+                            const year = parseInt(parts[0], 10);
+                            const month = parseInt(parts[1], 10) - 1;
+                            const day = parseInt(parts[2], 10);
 
-                            // Agrupamos as revisões com base na data do estudo de origem (sessionDateStr)
-                            // anexando-a ao groupId de forma universal.
-                            const groupId = `rev_${subject.id}_${dateStr}_from_${sessionDateStr}`;
-                            
-                            const originText = `${parts[2]} ${['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'][parseInt(parts[1], 10) - 1]} ${parts[0].substring(2)}`;
+                            customReviewDays.forEach((days, idx) => {
+                                const plannedDate = new Date(year, month, day);
+                                plannedDate.setDate(plannedDate.getDate() + days);
 
-                            expectedReviews.push({
-                                id: reviewId,
-                                date: dateStr,
-                                subjectId: subject.id,
-                                topicId: topic.id === 'geral' ? undefined : topic.id,
-                                activityType: 'Revisão',
-                                notes: `[groupId:${groupId}] ${tag} - Revisão automática (${days}d) | Origem: ${originText}`,
-                                status: 'planejado',
-                                questionsLink: latestSession.questionsLink
+                                const yyyy = plannedDate.getFullYear();
+                                const mm = String(plannedDate.getMonth() + 1).padStart(2, '0');
+                                const dd = String(plannedDate.getDate()).padStart(2, '0');
+                                const dateStr = `${yyyy}-${mm}-${dd}`;
+
+                                if (concurso.targetDate) {
+                                    const examDateStr = concurso.targetDate.split('T')[0];
+                                    if (dateStr > examDateStr) return;
+                                }
+
+                                const reviewId = getDeterministicReviewId(subject.id, topic.id === 'geral' ? undefined : topic.id, latestSession.id, idx);
+                                
+                                const tag = getActivityTag(subject.id, sessionDateStr, topic.id === 'geral' ? undefined : topic.title);
+
+                                // Agrupamos as revisões com base na data do estudo de origem (sessionDateStr)
+                                // anexando-a ao groupId de forma universal.
+                                const groupId = `rev_${subject.id}_${dateStr}_from_${sessionDateStr}`;
+                                
+                                const originText = `${parts[2]} ${['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'][parseInt(parts[1], 10) - 1]} ${parts[0].substring(2)}`;
+
+                                expectedReviews.push({
+                                    id: reviewId,
+                                    date: dateStr,
+                                    subjectId: subject.id,
+                                    topicId: topic.id === 'geral' ? undefined : topic.id,
+                                    activityType: 'Revisão',
+                                    notes: `[groupId:${groupId}] ${tag} - Revisão automática (${days}d) | Origem: ${originText}`,
+                                    status: 'planejado',
+                                    questionsLink: latestSession.questionsLink
+                                });
                             });
                         });
                     }

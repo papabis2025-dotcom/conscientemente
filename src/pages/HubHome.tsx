@@ -3,7 +3,7 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { MODULES } from '../constants';
 import { Module } from '../types';
 import { LogEntry } from '../modules/estudos/types';
-import { LogOut, Sun, Moon, ArrowUpRight, Lock, BookOpen, Wallet, ListTodo, Brain, ChevronRight, ChevronLeft, ChevronDown, ChevronUp, Sliders, Activity, TrendingUp, Settings, User, X, HeartPulse, Bell, Plus, Trash2, Check, ClipboardList, BarChart3, Calendar, Award, CheckCircle2, StickyNote, Flame, Clock, DollarSign, Database, Cloud, AlertTriangle, FileText, CalendarDays, Menu, Trophy, AlertCircle } from 'lucide-react';
+import { LogOut, Sun, Moon, ArrowUpRight, Lock, BookOpen, Wallet, ListTodo, Brain, ChevronRight, ChevronLeft, ChevronDown, ChevronUp, Sliders, Activity, TrendingUp, Settings, User, X, HeartPulse, Bell, Plus, Trash2, Check, ClipboardList, BarChart3, Calendar, Award, CheckCircle2, StickyNote, Flame, Clock, DollarSign, Database, Cloud, AlertTriangle, FileText, CalendarDays, Menu, Trophy, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { api } from '../modules/estudos/services/api';
 import { supabase } from '../modules/estudos/services/supabase';
 import { playSound } from '../utils/audio';
@@ -336,6 +336,24 @@ const HubHome: React.FC<HubHomeProps> = ({
     }
   });
 
+  const [widgetsVisibility, setWidgetsVisibility] = useState<Record<string, boolean>>(() => {
+    try {
+      const saved = localStorage.getItem('cn_home_widgets_visibility');
+      return saved ? JSON.parse(saved) : { calendar: true, habits: true, sleep: true };
+    } catch {
+      return { calendar: true, habits: true, sleep: true };
+    }
+  });
+
+  const toggleWidgetVisibility = (id: string) => {
+    setWidgetsVisibility(prev => {
+      const next = { ...prev, [id]: !prev[id] };
+      localStorage.setItem('cn_home_widgets_visibility', JSON.stringify(next));
+      window.dispatchEvent(new Event('local-layout-changed'));
+      return next;
+    });
+  };
+
   const moveWidget = (id: string, direction: 'up' | 'down') => {
     const index = widgetsOrder.indexOf(id);
     if (index === -1) return;
@@ -371,8 +389,12 @@ const HubHome: React.FC<HubHomeProps> = ({
         if (savedOrder) {
           setWidgetsOrder(JSON.parse(savedOrder));
         }
+        const savedVisibility = localStorage.getItem('cn_home_widgets_visibility');
+        if (savedVisibility) {
+          setWidgetsVisibility(JSON.parse(savedVisibility));
+        }
       } catch (e) {
-        console.error('Error parsing cn_home_widgets_order on sync:', e);
+        console.error('Error parsing home widget state on sync:', e);
       }
     };
     // Escuta ambos os eventos: 'local-layout-changed' (layout/alinhamento) e
@@ -2003,13 +2025,15 @@ const HubHome: React.FC<HubHomeProps> = ({
             <div className="flex flex-col gap-6 mt-6 w-full animate-in fade-in slide-in-from-top-2 duration-300">
               {widgetsOrder.map((widgetId) => {
             if (widgetId === 'calendar') {
+              const isCalendarVisible = widgetsVisibility['calendar'] !== false;
+              if (!isCalendarVisible && !isHomeEditMode) return null;
               return (
                 <div 
                   key="calendar"
                   onMouseEnter={() => setIsCalendarHovered(true)}
                   onMouseLeave={() => setIsCalendarHovered(false)}
-                  style={{ opacity: isCalendarHovered ? 1 : calendarOpacity }}
-                  className="w-full bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm rounded-2xl border border-zinc-200 dark:border-zinc-800 p-3.5 transition-all duration-300"
+                  style={{ opacity: !isCalendarVisible ? 0.4 : (isCalendarHovered ? 1 : calendarOpacity) }}
+                  className={`w-full bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm rounded-2xl border border-zinc-200 dark:border-zinc-800 p-3.5 transition-all duration-300 ${!isCalendarVisible ? 'ring-2 ring-dashed ring-rose-500/30' : ''}`}
                 >
                   <div className="grid grid-cols-1 sm:grid-cols-12 gap-6">
                     
@@ -2022,9 +2046,17 @@ const HubHome: React.FC<HubHomeProps> = ({
                           {calendarMonth.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }).toUpperCase()}
                         </h3>
                         <div className="flex items-center gap-2">
-                          {/* Opacity control for Calendar — only visible in edit mode */}
+                          {/* Opacity & Visibility control for Calendar — only visible in edit mode */}
                           {isHomeEditMode && (
                             <div className="flex items-center gap-1.5 bg-zinc-100/60 dark:bg-zinc-800/50 px-2 py-0.5 rounded-lg border border-zinc-300/30 dark:border-zinc-700/50 animate-in fade-in duration-200">
+                              <button
+                                onClick={(e) => { e.stopPropagation(); toggleWidgetVisibility('calendar'); }}
+                                className="text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 cursor-pointer p-0.5"
+                                title={isCalendarVisible ? 'Ocultar widget de calendário' : 'Exibir widget de calendário'}
+                              >
+                                {isCalendarVisible ? <Eye size={11} strokeWidth={2.5} /> : <EyeOff size={11} strokeWidth={2.5} className="text-rose-500" />}
+                              </button>
+                              <div className="w-[1px] h-3 bg-zinc-350 dark:bg-zinc-700 mx-0.5" />
                               <Sliders size={10} className="text-zinc-400 dark:text-zinc-500" />
                               <input 
                                 type="range" 
@@ -2437,13 +2469,15 @@ const HubHome: React.FC<HubHomeProps> = ({
             }
 
             if (widgetId === 'habits') {
+              const isHabitsVisible = widgetsVisibility['habits'] !== false;
+              if (!isHabitsVisible && !isHomeEditMode) return null;
               return (
                 <div 
                   key="habits"
                   onMouseEnter={() => setIsHabitsHovered(true)}
                   onMouseLeave={() => setIsHabitsHovered(false)}
-                  style={{ opacity: isHabitsHovered ? 1 : habitsOpacity }}
-                  className="w-full bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm rounded-2xl border border-zinc-200 dark:border-zinc-800 flex flex-col justify-between p-3 overflow-hidden relative transition-all duration-300 h-[140px]"
+                  style={{ opacity: !isHabitsVisible ? 0.4 : (isHabitsHovered ? 1 : habitsOpacity) }}
+                  className={`w-full bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm rounded-2xl border border-zinc-200 dark:border-zinc-800 flex flex-col justify-between p-3 overflow-hidden relative transition-all duration-300 h-[140px] ${!isHabitsVisible ? 'ring-2 ring-dashed ring-rose-500/30' : ''}`}
                 >
                   <div className="flex-1 min-h-0 flex flex-col justify-between">
                     <div>
@@ -2455,9 +2489,17 @@ const HubHome: React.FC<HubHomeProps> = ({
                           </h3>
                         </div>
 
-                        {/* Opacity control for Habit Tracker — only visible in edit mode */}
+                        {/* Opacity & Visibility control for Habit Tracker — only visible in edit mode */}
                         {isHomeEditMode && (
                           <div className="flex items-center gap-1.5 bg-zinc-100/60 dark:bg-zinc-800/50 px-2 py-0.5 rounded-lg border border-zinc-300/30 dark:border-zinc-700/50 animate-in fade-in duration-200">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); toggleWidgetVisibility('habits'); }}
+                              className="text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 cursor-pointer p-0.5"
+                              title={isHabitsVisible ? 'Ocultar widget de hábitos' : 'Exibir widget de hábitos'}
+                            >
+                              {isHabitsVisible ? <Eye size={11} strokeWidth={2.5} /> : <EyeOff size={11} strokeWidth={2.5} className="text-rose-500" />}
+                            </button>
+                            <div className="w-[1px] h-3 bg-zinc-350 dark:bg-zinc-700 mx-0.5" />
                             <Sliders size={10} className="text-zinc-400 dark:text-zinc-500" />
                             <input 
                               type="range" 
@@ -2565,13 +2607,15 @@ const HubHome: React.FC<HubHomeProps> = ({
             }
 
             if (widgetId === 'sleep') {
+              const isSleepVisible = widgetsVisibility['sleep'] !== false;
+              if (!isSleepVisible && !isHomeEditMode) return null;
               return (
                 <div 
                   key="sleep"
                   onMouseEnter={() => setIsSleepHovered(true)}
                   onMouseLeave={() => setIsSleepHovered(false)}
-                  style={{ opacity: isSleepHovered ? 1 : sleepOpacity }}
-                  className="w-full bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm rounded-2xl border border-zinc-200 dark:border-zinc-800 flex flex-col justify-between p-3.5 overflow-hidden relative transition-all duration-300 h-[190px]"
+                  style={{ opacity: !isSleepVisible ? 0.4 : (isSleepHovered ? 1 : sleepOpacity) }}
+                  className={`w-full bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm rounded-2xl border border-zinc-200 dark:border-zinc-800 flex flex-col justify-between p-3.5 overflow-hidden relative transition-all duration-300 h-[190px] ${!isSleepVisible ? 'ring-2 ring-dashed ring-rose-500/30' : ''}`}
                 >
                   <div className="flex items-center justify-between mb-1.5 shrink-0">
                     <h3 className="text-[10px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest flex items-center gap-1.5">
@@ -2580,9 +2624,17 @@ const HubHome: React.FC<HubHomeProps> = ({
                     </h3>
                     
                     <div className="flex items-center gap-2">
-                      {/* Opacity control for Sleep — only visible in edit mode */}
+                      {/* Opacity & Visibility control for Sleep — only visible in edit mode */}
                       {isHomeEditMode && (
                         <div className="flex items-center gap-1.5 bg-zinc-100/60 dark:bg-zinc-800/50 px-2 py-0.5 rounded-lg border border-zinc-300/30 dark:border-zinc-700/50 animate-in fade-in duration-200">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); toggleWidgetVisibility('sleep'); }}
+                            className="text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 cursor-pointer p-0.5"
+                            title={isSleepVisible ? 'Ocultar widget de sono' : 'Exibir widget de sono'}
+                          >
+                            {isSleepVisible ? <Eye size={11} strokeWidth={2.5} /> : <EyeOff size={11} strokeWidth={2.5} className="text-rose-500" />}
+                          </button>
+                          <div className="w-[1px] h-3 bg-zinc-350 dark:bg-zinc-700 mx-0.5" />
                           <Sliders size={10} className="text-zinc-400 dark:text-zinc-500" />
                           <input 
                             type="range" 

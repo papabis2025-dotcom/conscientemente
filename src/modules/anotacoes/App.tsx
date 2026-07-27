@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { StickyNote, BookOpen, Trash2, Plus, Save, ChevronLeft, ChevronRight, FileText, Folder, FolderPlus, Calendar, Menu, Search, ArrowLeft } from 'lucide-react';
+import { StickyNote, BookOpen, Trash2, Plus, Save, ChevronLeft, ChevronRight, FileText, Folder, FolderPlus, Calendar, Menu, Search, ArrowLeft, LayoutTemplate } from 'lucide-react';
 
 export interface Note {
   id: string;
@@ -418,6 +418,17 @@ const AnotacoesApp: React.FC = () => {
               </div>
             )}
           </nav>
+
+          <div className="pt-4 mt-auto">
+            <button 
+              onClick={() => window.location.hash = ''} 
+              className={`w-full flex items-center justify-center ${isSidebarCollapsed ? 'p-3' : 'gap-2 py-2.5 px-4'} bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 rounded-xl transition-colors font-bold text-xs uppercase tracking-wider shadow-xs`}
+              title="Voltar ao Hub"
+            >
+              <LayoutTemplate size={16} className="shrink-0 text-amber-500" />
+              {!isSidebarCollapsed && <span>Voltar ao Hub</span>}
+            </button>
+          </div>
         </div>
       </aside>
 

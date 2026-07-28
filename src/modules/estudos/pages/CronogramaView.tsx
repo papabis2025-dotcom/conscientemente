@@ -237,8 +237,7 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
 
   const cronogramaStudies = useMemo(() => {
     return (scheduledStudies || []).filter(s => 
-      (s.generatedByCronograma || (s.activityType && (s.activityType.toLowerCase().includes('revis') || s.activityType.toLowerCase().includes('simulado')))) && 
-      (activeConcursoSubjectIds.has(s.subjectId) || s.activityType === 'Simulado')
+      activeConcursoSubjectIds.has(s.subjectId) || s.activityType === 'Simulado'
     );
   }, [scheduledStudies, activeConcursoSubjectIds]);
 
@@ -258,6 +257,21 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
 
   // Current calendar month view state
   const [currentMonthDate, setCurrentMonthDate] = useState(() => new Date());
+
+  // Sync mini calendar month date whenever selectedDateStr changes
+  React.useEffect(() => {
+    if (selectedDateStr) {
+      const d = new Date(`${selectedDateStr}T12:00:00`);
+      if (!isNaN(d.getTime())) {
+        setCurrentMonthDate(prev => {
+          if (prev.getFullYear() !== d.getFullYear() || prev.getMonth() !== d.getMonth()) {
+            return new Date(d.getFullYear(), d.getMonth(), 1);
+          }
+          return prev;
+        });
+      }
+    }
+  }, [selectedDateStr]);
 
   // Week calculation based on selectedDateStr
   const currentWeekDays = useMemo(() => {
@@ -997,6 +1011,7 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
                 if (!day) return <div key={i} className="aspect-square" />;
                 const dateStr = day.toISOString().split('T')[0];
                 const isSelected = selectedDateStr === dateStr;
+                const isCurrentWeekDay = currentWeekDays.some(wDay => wDay.toISOString().split('T')[0] === dateStr);
                 const hasActivities = cronogramaStudies.some(s => s.date === dateStr);
                 const dayStatus = monthActivitiesSummary[dateStr];
                 const isAllDone = dayStatus && dayStatus.done === dayStatus.total;
@@ -1008,12 +1023,14 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
                     onClick={() => setSelectedDateStr(dateStr)}
                     className={`aspect-square rounded-lg text-xs font-bold transition-all relative flex flex-col items-center justify-center ${
                       isSelected
-                        ? 'bg-emerald-500 text-white font-black'
-                        : isAllDone
-                          ? 'bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 font-semibold'
-                          : hasActivities
-                            ? 'bg-zinc-50 dark:bg-zinc-800 text-zinc-800 dark:text-white border border-zinc-200/50 dark:border-zinc-700/50'
-                            : 'text-zinc-350 dark:text-zinc-650 hover:bg-zinc-50 dark:hover:bg-zinc-850'
+                        ? 'bg-emerald-500 text-white font-black shadow-sm'
+                        : isCurrentWeekDay
+                          ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-extrabold border border-emerald-500/40'
+                          : isAllDone
+                            ? 'bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 font-semibold'
+                            : hasActivities
+                              ? 'bg-zinc-50 dark:bg-zinc-800 text-zinc-800 dark:text-white border border-zinc-200/50 dark:border-zinc-700/50'
+                              : 'text-zinc-350 dark:text-zinc-650 hover:bg-zinc-50 dark:hover:bg-zinc-850'
                     }`}
                   >
                     <span>{day.getDate()}</span>

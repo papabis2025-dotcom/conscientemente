@@ -499,7 +499,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
 
         const expectedIds = new Set(expectedReviews.map(r => r.id));
 
-        // Deduplicação ativa por chave única (disciplina, tópico e data) para evitar duplicidade de revisões planejadas
+        // Deduplicação ativa por chave única (disciplina, tópico, data e origem) para evitar duplicidade de revisões planejadas
         const activeReviewKeysFound = new Set<string>();
         const duplicateReviewsToDelete: ScheduledStudy[] = [];
 
@@ -509,7 +509,12 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                 s.activityType.toLowerCase().includes('revisao')
             );
             if (isReview && s.status === 'planejado') {
-                const key = `${s.subjectId}_${s.topicId || 'geral'}_${s.date}`;
+                let originTag = '';
+                if (s.notes) {
+                    const match = s.notes.match(/_from_([0-9-]{10})/);
+                    if (match) originTag = match[1];
+                }
+                const key = `${s.subjectId}_${s.topicId || 'geral'}_${s.date}_from_${originTag || s.id}`;
                 if (activeReviewKeysFound.has(key)) {
                     duplicateReviewsToDelete.push(s);
                 } else {

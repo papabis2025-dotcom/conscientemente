@@ -278,54 +278,36 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
     const tAcc = tDone > 0 ? Math.min(100, Math.round((tCorrect / tDone) * 100)) : 0;
     const tHours = (tMinutes / 60).toFixed(1);
 
-    // Calculate first and last study dates
-    let lastStudyDate = '';
-    let firstStudyDate = '';
-    let review7dDate = '';
-    let review30dDate = '';
-    let review90dDate = '';
-    const customReviewDates: { dateStr: string; status: 'planejado' | 'realizado' | 'none' }[] = [
-      { dateStr: '', status: 'none' },
-      { dateStr: '', status: 'none' },
-      { dateStr: '', status: 'none' },
-      { dateStr: '', status: 'none' },
-      { dateStr: '', status: 'none' }
-    ];
+    const studyCycles: {
+      originSession: StudySession;
+      studyDateStr: string;
+      customReviewDates: { dateStr: string; status: 'planejado' | 'realizado' | 'none' }[];
+    }[] = [];
 
-    if (reviewsDisabled) {
-      for (let i = 0; i < 5; i++) {
-        customReviewDates[i] = { dateStr: 'N/A', status: 'none' };
-      }
-      if (topicSessions.length > 0) {
-        const sortedSessions = [...topicSessions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-        const lastDate = new Date(sortedSessions[0].date);
-        const firstDate = new Date(sortedSessions[sortedSessions.length - 1].date);
-        const formatDate = (date: Date) => date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' });
-        lastStudyDate = formatDate(lastDate);
-        firstStudyDate = formatDate(firstDate);
-      }
-    } else if (topicSessions.length > 0) {
-      const sortedSessions = [...topicSessions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-      const lastDate = new Date(sortedSessions[0].date);
-      const firstDate = new Date(sortedSessions[sortedSessions.length - 1].date);
+    if (topicSessions.length > 0) {
+      const getLocalDateString = (d: string | Date) => {
+        if (!d) return '';
+        const dateObj = typeof d === 'string' ? new Date(d) : d;
+        const yyyy = dateObj.getFullYear();
+        const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
+        const dd = String(dateObj.getDate()).padStart(2, '0');
+        return `${yyyy}-${mm}-${dd}`;
+      };
 
-      const formatDate = (date: Date) => date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' });
+      const sessionsByDateMap = new Map<string, StudySession>();
+      topicSessions.forEach(sess => {
+        const dStr = getLocalDateString(sess.date);
+        if (dStr) {
+          const existing = sessionsByDateMap.get(dStr);
+          if (!existing || new Date(sess.date).getTime() > new Date(existing.date).getTime()) {
+            sessionsByDateMap.set(dStr, sess);
+          }
+        }
+      });
 
-      lastStudyDate = formatDate(lastDate);
-      firstStudyDate = formatDate(firstDate);
+      const sortedCyclesSessions = Array.from(sessionsByDateMap.values())
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-      const d7 = new Date(lastDate);
-      d7.setDate(d7.getDate() + 7);
-      review7dDate = formatDate(d7);
-
-      const d30 = new Date(lastDate);
-      d30.setDate(d30.getDate() + 30);
-      review30dDate = formatDate(d30);
-
-      const d90 = new Date(lastDate);
-      d90.setDate(d90.getDate() + 90);
-      review90dDate = formatDate(d90);
-      // Find targetDate of the active concurso (cap reviews at exam date)
       let examDateStr: string | null = null;
       if (concursos && selectedConcursoId && selectedConcursoId !== 'all') {
         const activeConcurso = concursos.find(c => c.id === selectedConcursoId);
@@ -334,45 +316,66 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
         }
       }
 
-      for (let i = 0; i < 5; i++) {
-        const dCustom = new Date(lastDate);
-        dCustom.setDate(dCustom.getDate() + customReviewDays[i]);
-        
-        const uncappedDateStr = dCustom.toISOString().split('T')[0];
-        const isPastExam = examDateStr && uncappedDateStr > examDateStr;
+      const formatDate = (date: Date) => date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' });
 
-        if (isPastExam) {
-          customReviewDates[i] = {
-            dateStr: '—',
-            status: 'none'
-          };
-          continue;
+      sortedCyclesSessions.forEach((sess) => {
+        const sessDateObj = new Date(sess.date);
+        const studyDateStr = formatDate(sessDateObj);
+
+        const cycleReviews: { dateStr: string; status: 'planejado' | 'realizado' | 'none' }[] = [
+          { dateStr: '', status: 'none' },
+          { dateStr: '', status: 'none' },
+          { dateStr: '', status: 'none' },
+          { dateStr: '', status: 'none' },
+          { dateStr: '', status: 'none' }
+        ];
+
+        if (reviewsDisabled) {
+          for (let i = 0; i < 5; i++) {
+            cycleReviews[i] = { dateStr: 'N/A', status: 'none' };
+          }
+        } else {
+          for (let i = 0; i < 5; i++) {
+            const dCustom = new Date(sessDateObj);
+            dCustom.setDate(dCustom.getDate() + customReviewDays[i]);
+
+            const uncappedDateStr = dCustom.toISOString().split('T')[0];
+            const isPastExam = examDateStr && uncappedDateStr > examDateStr;
+
+            if (isPastExam) {
+              cycleReviews[i] = { dateStr: '—', status: 'none' };
+              continue;
+            }
+
+            const targetReviewId = getDeterministicReviewId(subjectId, topicId === null ? undefined : topicId, sess.id, i);
+            const review = (scheduledStudies || []).find(s =>
+              s.subjectId === subjectId &&
+              s.topicId === (topicId === null ? undefined : topicId) &&
+              s.activityType && (
+                s.activityType.toLowerCase().includes('revisão') ||
+                s.activityType.toLowerCase().includes('revisao')
+              ) && (
+                s.id === targetReviewId ||
+                (s.id && s.id.toLowerCase().split('-')[3] === `400${i}` && s.status === 'realizado' && s.date === uncappedDateStr)
+              )
+            );
+
+            cycleReviews[i] = {
+              dateStr: formatDate(dCustom),
+              status: review ? review.status : 'none'
+            };
+          }
         }
 
-        // Look up status in scheduledStudies
-        const latestSessionId = sortedSessions[0]?.id;
-        const targetReviewId = latestSessionId ? getDeterministicReviewId(subjectId, topicId === null ? undefined : topicId, latestSessionId, i) : null;
-
-        const review = (scheduledStudies || []).find(s => 
-          s.subjectId === subjectId &&
-          s.topicId === (topicId === null ? undefined : topicId) &&
-          s.activityType && (
-            s.activityType.toLowerCase().includes('revisão') || 
-            s.activityType.toLowerCase().includes('revisao')
-          ) && (
-            (targetReviewId && s.id === targetReviewId) ||
-            (s.id && s.id.toLowerCase().split('-')[3] === `400${i}` && s.status === 'realizado')
-          )
-        );
-
-        customReviewDates[i] = {
-          dateStr: formatDate(dCustom),
-          status: review ? review.status : 'none'
-        };
-      }
+        studyCycles.push({
+          originSession: sess,
+          studyDateStr,
+          customReviewDates: cycleReviews
+        });
+      });
     }
 
-    return { minutes: tMinutes, done: tDone, correct: tCorrect, acc: tAcc, hours: tHours, firstStudyDate, lastStudyDate, review7dDate, review30dDate, review90dDate, customReviewDates };
+    return { minutes: tMinutes, done: tDone, correct: tCorrect, acc: tAcc, hours: tHours, firstStudyDate, lastStudyDate, review7dDate, review30dDate, review90dDate, customReviewDates, studyCycles };
   };
 
   const sortedSubjects = [...subjects].sort((a, b) => {
@@ -1061,167 +1064,205 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
 
                                     return 0;
                                   })
-                                  .map(({ topic, stats: tStats }, topicRenderIndex) => {
+                                  .flatMap(({ topic, stats: tStats }, topicRenderIndex) => {
                                     const topicOrder = topic.order ?? (topicRenderIndex + 1);
                                     const isCompleted = isTopicCompletedHelper(subject.id, topic.id, topic.isCompleted, scheduledStudies, sessions);
-                                    return (
-                                      <tr
-                                        key={topic.id}
-                                        className={`group/row hover:bg-zinc-100/80 dark:hover:bg-zinc-700/40 transition-colors border-b border-zinc-50 dark:border-zinc-800/20 last:border-0 ${dragOverTopicId === topic.id && topicSortBy === 'default' ? 'border-t-2 border-blue-400' : ''} ${draggedTopicId === topic.id ? 'opacity-40' : ''}`}
-                                        onDragOver={topicSortBy === 'default' ? (e) => handleTopicDragOver(e, topic.id) : undefined}
-                                        onDrop={topicSortBy === 'default' ? (e) => handleTopicDrop(e, subject.id, topic.id) : undefined}
-                                      >
-                                        {/* Order number cell — editable inline */}
-                                        <td className="py-1.5 pl-3 pr-1 text-center flex items-center justify-center gap-1.5" onClick={e => e.stopPropagation()}>
-                                          {topicSortBy === 'default' && editingTopicId !== topic.id && (
-                                            <div
-                                              draggable
-                                              onDragStart={(e) => handleTopicDragStart(e, topic.id)}
-                                              onDragEnd={handleTopicDragEnd}
-                                              className="cursor-grab active:cursor-grabbing shrink-0 flex items-center"
-                                              title="Arraste para reordenar"
-                                            >
-                                              <GripVertical
-                                                size={13}
-                                                className="text-zinc-300 dark:text-zinc-600 pointer-events-none"
-                                              />
-                                            </div>
-                                          )}
-                                          {editingTopicOrderId === topic.id ? (
-                                            <input
-                                              type="number"
-                                              min="1"
-                                              value={editTopicOrder}
-                                              onChange={e => setEditTopicOrder(parseInt(e.target.value) || 1)}
-                                              onBlur={() => updateTopicOrder(subject.id, topic.id, editTopicOrder)}
-                                              onKeyDown={(e) => {
-                                                if (e.key === 'Enter') updateTopicOrder(subject.id, topic.id, editTopicOrder);
-                                                if (e.key === 'Escape') setEditingTopicOrderId(null);
-                                              }}
-                                              className="w-10 text-center px-1 py-0.5 bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-600 rounded text-xs font-bold text-zinc-700 dark:text-zinc-200 outline-none focus:ring-1 focus:ring-zinc-400"
-                                              autoFocus
-                                            />
-                                          ) : (
-                                            <span
-                                              title="Clique para alterar o número"
-                                              onClick={() => { setEditingTopicOrderId(topic.id); setEditTopicOrder(topicOrder); }}
-                                              className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-zinc-100 dark:bg-zinc-800 text-[10px] font-black text-zinc-500 dark:text-zinc-400 cursor-pointer hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors select-none shrink-0"
-                                            >
-                                              {topicOrder}
-                                            </span>
-                                          )}
-                                        </td>
-                                        <td className={`py-1.5 pl-2 text-xs font-semibold ${isCompleted ? 'text-zinc-300 dark:text-zinc-650 line-through' : 'text-zinc-700 dark:text-zinc-300'}`}>
-                                          {editingTopicId === topic.id ? (
-                                            <div className="flex items-center gap-2">
-                                              <input
-                                                className="px-2 py-1 bg-white dark:bg-zinc-900 border rounded text-xs w-full outline-none focus:ring-1 focus:ring-zinc-500 text-zinc-800 dark:text-zinc-100"
-                                                value={editTopicTitle}
-                                                onChange={e => setEditTopicTitle(e.target.value)}
-                                                autoFocus
-                                                onKeyDown={(e) => {
-                                                  if (e.key === 'Enter') saveTopicEdit(subject.id, topic.id);
-                                                  if (e.key === 'Escape') cancelTopicEdit();
-                                                }}
-                                                onClick={e => e.stopPropagation()}
-                                              />
-                                              <button onClick={() => saveTopicEdit(subject.id, topic.id)} className="text-emerald-500 hover:text-emerald-600">
-                                                <CheckCircle size={13} />
-                                              </button>
-                                            </div>
-                                          ) : (
-                                            <span
-                                              className="cursor-pointer hover:text-zinc-900 dark:hover:text-white transition-colors select-none"
-                                              onClick={() => toggleTopic(subject.id, topic.id)}
-                                              title={isCompleted ? 'Marcar como pendente' : 'Marcar como concluído'}
-                                            >
-                                              {topic.title}
-                                            </span>
-                                          )}
-                                        </td>
-                                        <td className="py-1.5 px-2 text-center" onClick={e => e.stopPropagation()}>
-                                          <input
-                                            type="text"
-                                            placeholder="—"
-                                            value={localTopicWeights[topic.id] !== undefined ? localTopicWeights[topic.id] : (topic.weight !== undefined ? topic.weight.toString().replace('.', ',') : '')}
-                                            onChange={(e) => {
-                                              const val = e.target.value;
-                                              if (/^[0-9]*[.,]?[0-9]{0,2}$/.test(val) || val === '') {
-                                                const topics = subject.topics || [];
-                                                let otherSum = 0;
-                                                topics.forEach(t => {
-                                                  if (t.id !== topic.id) {
-                                                    const localW = localTopicWeights[t.id];
-                                                    let w = 0;
-                                                    if (localW !== undefined && localW.trim() !== '') {
-                                                      w = parseFloat(localW.replace(',', '.')) || 0;
-                                                    } else if (localW === undefined && t.weight !== undefined) {
-                                                      w = t.weight;
-                                                    }
-                                                    otherSum += w;
-                                                  }
-                                                });
 
-                                                const parsedVal = val === '' ? 0 : parseFloat(val.replace(',', '.')) || 0;
-                                                if (otherSum + parsedVal > 100.005) {
-                                                  const maxAllowed = Math.max(0, 100 - otherSum);
-                                                  alert(`A soma dos pesos dos assuntos da disciplina "${subject.name}" não pode ultrapassar 100% (soma atual com esta alteração: ${(otherSum + parsedVal).toFixed(2).replace('.', ',')}%). O peso máximo permitido para este assunto é ${maxAllowed.toFixed(2).replace('.', ',')}%.`);
-                                                  return;
-                                                }
+                                    const cycles = tStats.studyCycles && tStats.studyCycles.length > 0
+                                      ? tStats.studyCycles.map(c => ({ studyDateStr: c.studyDateStr, customReviewDates: c.customReviewDates, lastDateStr: c.studyDateStr }))
+                                      : [{ studyDateStr: tStats.firstStudyDate, customReviewDates: tStats.customReviewDates, lastDateStr: tStats.lastStudyDate }];
 
-                                                setLocalTopicWeights(prev => ({
-                                                  ...prev,
-                                                  [topic.id]: val
-                                                }));
-                                              }
-                                            }}
-                                            onBlur={() => {
-                                              handleSaveAllSettings(false);
-                                            }}
-                                            onKeyDown={(e) => {
-                                              if (e.key === 'Enter') {
-                                                (e.target as HTMLInputElement).blur();
-                                              }
-                                            }}
-                                            className="w-16 px-1.5 py-0.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded text-center text-xs font-mono font-bold text-zinc-800 dark:text-white outline-none focus:ring-1 focus:ring-zinc-400"
-                                          />
-                                        </td>
-                                        <td className="py-1.5 text-emerald-700/80 dark:text-emerald-300/80 text-xs bg-emerald-50/30 dark:bg-emerald-950/10 px-2.5 font-medium">
-                                          {tStats.firstStudyDate || '-'}
-                                        </td>
-                                        {sortedReviewIndices.map((origIdx) => {
-                                          const item = tStats.customReviewDates[origIdx];
-                                          const dateVal = typeof item === 'string' ? item : item.dateStr;
-                                          const statusVal = typeof item === 'string' ? 'none' : item.status;
-                                          let className = "py-1.5 text-xs font-medium ";
-                                          if (statusVal === 'realizado') {
-                                            className += "text-blue-500 dark:text-blue-400";
-                                          } else if (statusVal === 'planejado') {
-                                            className += "text-rose-655 dark:text-rose-455 font-bold";
-                                          } else {
-                                            className += "text-zinc-400";
-                                          }
-                                          return (
-                                            <td key={origIdx} className={className}>
-                                              {dateVal || '—'}
+                                    const rowSpanCount = cycles.length;
+
+                                    return cycles.map((cycle, cycleIndex) => {
+                                      return (
+                                        <tr
+                                          key={`${topic.id}_cycle_${cycleIndex}`}
+                                          className={`group/row hover:bg-zinc-100/80 dark:hover:bg-zinc-700/40 transition-colors border-b border-zinc-150 dark:border-zinc-800/30 ${cycleIndex === cycles.length - 1 ? 'border-b-2 border-zinc-200 dark:border-zinc-700/50' : ''} ${dragOverTopicId === topic.id && topicSortBy === 'default' ? 'border-t-2 border-blue-400' : ''} ${draggedTopicId === topic.id ? 'opacity-40' : ''}`}
+                                          onDragOver={topicSortBy === 'default' && cycleIndex === 0 ? (e) => handleTopicDragOver(e, topic.id) : undefined}
+                                          onDrop={topicSortBy === 'default' && cycleIndex === 0 ? (e) => handleTopicDrop(e, subject.id, topic.id) : undefined}
+                                        >
+                                          {/* Order number cell — only rendered on first cycle row with rowSpan */}
+                                          {cycleIndex === 0 && (
+                                            <td rowSpan={rowSpanCount} className="py-1.5 pl-3 pr-1 text-center items-center justify-center gap-1.5 align-middle bg-white/40 dark:bg-zinc-900/40" onClick={e => e.stopPropagation()}>
+                                              <div className="flex items-center justify-center gap-1">
+                                                {topicSortBy === 'default' && editingTopicId !== topic.id && (
+                                                  <div
+                                                    draggable
+                                                    onDragStart={(e) => handleTopicDragStart(e, topic.id)}
+                                                    onDragEnd={handleTopicDragEnd}
+                                                    className="cursor-grab active:cursor-grabbing shrink-0 flex items-center"
+                                                    title="Arraste para reordenar"
+                                                  >
+                                                    <GripVertical
+                                                      size={13}
+                                                      className="text-zinc-300 dark:text-zinc-600 pointer-events-none"
+                                                    />
+                                                  </div>
+                                                )}
+                                                {editingTopicOrderId === topic.id ? (
+                                                  <input
+                                                    type="number"
+                                                    min="1"
+                                                    value={editTopicOrder}
+                                                    onChange={e => setEditTopicOrder(parseInt(e.target.value) || 1)}
+                                                    onBlur={() => updateTopicOrder(subject.id, topic.id, editTopicOrder)}
+                                                    onKeyDown={(e) => {
+                                                      if (e.key === 'Enter') updateTopicOrder(subject.id, topic.id, editTopicOrder);
+                                                      if (e.key === 'Escape') setEditingTopicOrderId(null);
+                                                    }}
+                                                    className="w-10 text-center px-1 py-0.5 bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-600 rounded text-xs font-bold text-zinc-700 dark:text-zinc-200 outline-none focus:ring-1 focus:ring-zinc-400"
+                                                    autoFocus
+                                                  />
+                                                ) : (
+                                                  <span
+                                                    title="Clique para alterar o número"
+                                                    onClick={() => { setEditingTopicOrderId(topic.id); setEditTopicOrder(topicOrder); }}
+                                                    className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-zinc-100 dark:bg-zinc-800 text-[10px] font-black text-zinc-500 dark:text-zinc-400 cursor-pointer hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors select-none shrink-0"
+                                                  >
+                                                    {topicOrder}
+                                                  </span>
+                                                )}
+                                              </div>
                                             </td>
-                                          );
-                                        })}
-                                        <td className="py-1.5 text-red-650/80 dark:text-red-455/80 text-xs bg-red-50/30 dark:bg-red-950/10 px-2.5 font-medium">
-                                          {tStats.lastStudyDate || '-'}
-                                        </td>
-                                        <td className="py-1.5 text-right">
-                                          <div className="flex items-center justify-end gap-2 opacity-0 group-hover/row:opacity-100 transition-opacity">
-                                            <button onClick={() => startEditingTopic(topic)} className="text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors">
-                                              <Edit2 size={11} />
-                                            </button>
-                                            <button onClick={() => deleteTopic(subject.id, topic.id)} className="text-zinc-400 hover:text-rose-500 transition-colors">
-                                              <Trash2 size={11} />
-                                            </button>
-                                          </div>
-                                        </td>
-                                      </tr>
-                                    );
+                                          )}
+
+                                          {/* Title cell — only rendered on first cycle row with rowSpan */}
+                                          {cycleIndex === 0 && (
+                                            <td rowSpan={rowSpanCount} className={`py-1.5 pl-2 text-xs font-semibold align-middle bg-white/40 dark:bg-zinc-900/40 ${isCompleted ? 'text-zinc-300 dark:text-zinc-650 line-through' : 'text-zinc-700 dark:text-zinc-300'}`}>
+                                              {editingTopicId === topic.id ? (
+                                                <div className="flex items-center gap-2">
+                                                  <input
+                                                    className="px-2 py-1 bg-white dark:bg-zinc-900 border rounded text-xs w-full outline-none focus:ring-1 focus:ring-zinc-500 text-zinc-800 dark:text-zinc-100"
+                                                    value={editTopicTitle}
+                                                    onChange={e => setEditTopicTitle(e.target.value)}
+                                                    autoFocus
+                                                    onKeyDown={(e) => {
+                                                      if (e.key === 'Enter') saveTopicEdit(subject.id, topic.id);
+                                                      if (e.key === 'Escape') cancelTopicEdit();
+                                                    }}
+                                                    onClick={e => e.stopPropagation()}
+                                                  />
+                                                  <button onClick={() => saveTopicEdit(subject.id, topic.id)} className="text-emerald-500 hover:text-emerald-600">
+                                                    <CheckCircle size={13} />
+                                                  </button>
+                                                </div>
+                                              ) : (
+                                                <div className="flex items-center gap-1.5 flex-wrap">
+                                                  <span
+                                                    className="cursor-pointer hover:text-zinc-900 dark:hover:text-white transition-colors select-none"
+                                                    onClick={() => toggleTopic(subject.id, topic.id)}
+                                                    title={isCompleted ? 'Marcar como pendente' : 'Marcar como concluído'}
+                                                  >
+                                                    {topic.title}
+                                                  </span>
+                                                  {cycles.length > 1 && (
+                                                    <span className="text-[8px] font-black uppercase tracking-wider bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded border border-blue-200/50 dark:border-blue-800/40">
+                                                      {cycles.length} estudos
+                                                    </span>
+                                                  )}
+                                                </div>
+                                              )}
+                                            </td>
+                                          )}
+
+                                          {/* Weight cell — only rendered on first cycle row with rowSpan */}
+                                          {cycleIndex === 0 && (
+                                            <td rowSpan={rowSpanCount} className="py-1.5 px-2 text-center align-middle bg-white/40 dark:bg-zinc-900/40" onClick={e => e.stopPropagation()}>
+                                              <input
+                                                type="text"
+                                                placeholder="—"
+                                                value={localTopicWeights[topic.id] !== undefined ? localTopicWeights[topic.id] : (topic.weight !== undefined ? topic.weight.toString().replace('.', ',') : '')}
+                                                onChange={(e) => {
+                                                  const val = e.target.value;
+                                                  if (/^[0-9]*[.,]?[0-9]{0,2}$/.test(val) || val === '') {
+                                                    const topics = subject.topics || [];
+                                                    let otherSum = 0;
+                                                    topics.forEach(t => {
+                                                      if (t.id !== topic.id) {
+                                                        const localW = localTopicWeights[t.id];
+                                                        let w = 0;
+                                                        if (localW !== undefined && localW.trim() !== '') {
+                                                          w = parseFloat(localW.replace(',', '.')) || 0;
+                                                        } else if (localW === undefined && t.weight !== undefined) {
+                                                          w = t.weight;
+                                                        }
+                                                        otherSum += w;
+                                                      }
+                                                    });
+
+                                                    const parsedVal = val === '' ? 0 : parseFloat(val.replace(',', '.')) || 0;
+                                                    if (otherSum + parsedVal > 100.005) {
+                                                      const maxAllowed = Math.max(0, 100 - otherSum);
+                                                      alert(`A soma dos pesos dos assuntos da disciplina "${subject.name}" não pode ultrapassar 100% (soma atual com esta alteração: ${(otherSum + parsedVal).toFixed(2).replace('.', ',')}%). O peso máximo permitido para este assunto é ${maxAllowed.toFixed(2).replace('.', ',')}%.`);
+                                                      return;
+                                                    }
+
+                                                    setLocalTopicWeights(prev => ({
+                                                      ...prev,
+                                                      [topic.id]: val
+                                                    }));
+                                                  }
+                                                }}
+                                                onBlur={() => {
+                                                  handleSaveAllSettings(false);
+                                                }}
+                                                onKeyDown={(e) => {
+                                                  if (e.key === 'Enter') {
+                                                    (e.target as HTMLInputElement).blur();
+                                                  }
+                                                }}
+                                                className="w-16 px-1.5 py-0.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded text-center text-xs font-mono font-bold text-zinc-800 dark:text-white outline-none focus:ring-1 focus:ring-zinc-400"
+                                              />
+                                            </td>
+                                          )}
+
+                                          {/* Data do Estudo de Origem (Primeiro estudo desta linha) */}
+                                          <td className="py-1.5 text-emerald-700/80 dark:text-emerald-300/80 text-xs bg-emerald-50/30 dark:bg-emerald-950/10 px-2.5 font-medium">
+                                            {cycle.studyDateStr || '-'}
+                                          </td>
+
+                                          {/* 5 Colunas de Revisão para este Estudo de Origem */}
+                                          {sortedReviewIndices.map((origIdx) => {
+                                            const item = cycle.customReviewDates[origIdx];
+                                            const dateVal = typeof item === 'string' ? item : item.dateStr;
+                                            const statusVal = typeof item === 'string' ? 'none' : item.status;
+                                            let className = "py-1.5 text-xs font-medium ";
+                                            if (statusVal === 'realizado') {
+                                              className += "text-blue-500 dark:text-blue-400";
+                                            } else if (statusVal === 'planejado') {
+                                              className += "text-rose-655 dark:text-rose-455 font-bold";
+                                            } else {
+                                              className += "text-zinc-400";
+                                            }
+                                            return (
+                                              <td key={origIdx} className={className}>
+                                                {dateVal || '—'}
+                                              </td>
+                                            );
+                                          })}
+
+                                          {/* Último Estudo da linha (mesma data de origem do ciclo) */}
+                                          <td className="py-1.5 text-red-650/80 dark:text-red-455/80 text-xs bg-red-50/30 dark:bg-red-950/10 px-2.5 font-medium">
+                                            {cycle.lastDateStr || '-'}
+                                          </td>
+
+                                          {/* Ações (Editar/Excluir tópico) — rendered only once on first cycle row with rowSpan */}
+                                          {cycleIndex === 0 && (
+                                            <td rowSpan={rowSpanCount} className="py-1.5 text-right align-middle bg-white/40 dark:bg-zinc-900/40">
+                                              <div className="flex items-center justify-end gap-2 opacity-0 group-hover/row:opacity-100 transition-opacity">
+                                                <button onClick={() => startEditingTopic(topic)} className="text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors">
+                                                  <Edit2 size={11} />
+                                                </button>
+                                                <button onClick={() => deleteTopic(subject.id, topic.id)} className="text-zinc-400 hover:text-rose-500 transition-colors">
+                                                  <Trash2 size={11} />
+                                                </button>
+                                              </div>
+                                            </td>
+                                          )}
+                                        </tr>
+                                      );
+                                    });
                                   })}
                                 {(subject.topics || []).length === 0 && (
                                   <tr>

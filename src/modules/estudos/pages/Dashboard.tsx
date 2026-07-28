@@ -480,6 +480,7 @@ const Dashboard: React.FC<DashboardProps> = ({
       }
 
       relevantSessions.forEach(s => {
+        if (isSimuladoSession(s)) return;
         const sDateStr = getLocalSessionDate(s.date);
         if (!sDateStr) return;
         const match = dataMap.find(d => d.dateStr === sDateStr);
@@ -498,7 +499,7 @@ const Dashboard: React.FC<DashboardProps> = ({
         if (match) {
           const simDone = (s.results || []).reduce((a, r) => a + r.done, 0);
           const simCorrect = (s.results || []).reduce((a, r) => a + r.correct, 0);
-          // match.h += (Number(s.durationInMinutes) || 0) / 60; // Não computar tempo de simulado
+          match.h += (Number(s.durationInMinutes) || 0) / 60;
           match.q += simDone;
           match.correct += simCorrect;
           match.done += simDone;
@@ -532,6 +533,7 @@ const Dashboard: React.FC<DashboardProps> = ({
       }));
 
       relevantSessions.forEach(s => {
+        if (isSimuladoSession(s)) return;
         const sDateStr = getLocalSessionDate(s.date);
         if (!sDateStr) return;
         const [sYear, sMonth, sDay] = sDateStr.split('-').map(Number);
@@ -557,7 +559,7 @@ const Dashboard: React.FC<DashboardProps> = ({
           if (weekIndex < weeksInMonth) {
             const simDone = (s.results || []).reduce((a, r) => a + r.done, 0);
             const simCorrect = (s.results || []).reduce((a, r) => a + r.correct, 0);
-            // dataMap[weekIndex].h += (Number(s.durationInMinutes) || 0) / 60; // Não computar tempo de simulado
+            dataMap[weekIndex].h += (Number(s.durationInMinutes) || 0) / 60;
             dataMap[weekIndex].q += simDone;
             dataMap[weekIndex].correct += simCorrect;
             dataMap[weekIndex].done += simDone;
@@ -580,6 +582,7 @@ const Dashboard: React.FC<DashboardProps> = ({
       const currentYear = today.getFullYear();
 
       relevantSessions.forEach(s => {
+        if (isSimuladoSession(s)) return;
         const sDateStr = getLocalSessionDate(s.date);
         if (!sDateStr) return;
         const [sYear, sMonth] = sDateStr.split('-').map(Number);
@@ -602,7 +605,7 @@ const Dashboard: React.FC<DashboardProps> = ({
           const monthIdx = sMonth - 1;
           const simDone = (s.results || []).reduce((a, r) => a + r.done, 0);
           const simCorrect = (s.results || []).reduce((a, r) => a + r.correct, 0);
-          // dataMap[monthIdx].h += (Number(s.durationInMinutes) || 0) / 60; // Não computar tempo de simulado
+          dataMap[monthIdx].h += (Number(s.durationInMinutes) || 0) / 60;
           dataMap[monthIdx].q += simDone;
           dataMap[monthIdx].correct += simCorrect;
           dataMap[monthIdx].done += simDone;
@@ -644,6 +647,7 @@ const Dashboard: React.FC<DashboardProps> = ({
       }
 
       relevantSessions.forEach(s => {
+        if (isSimuladoSession(s)) return;
         const sDateStr = getLocalSessionDate(s.date);
         if (!sDateStr) return;
         const [sYear, sMonth] = sDateStr.split('-').map(Number);
@@ -668,7 +672,7 @@ const Dashboard: React.FC<DashboardProps> = ({
         if (match) {
           const simDone = (s.results || []).reduce((a, r) => a + r.done, 0);
           const simCorrect = (s.results || []).reduce((a, r) => a + r.correct, 0);
-          // match.h += (Number(s.durationInMinutes) || 0) / 60; // Não computar tempo de simulado
+          match.h += (Number(s.durationInMinutes) || 0) / 60;
           match.q += simDone;
           match.correct += simCorrect;
           match.done += simDone;
@@ -761,7 +765,9 @@ const Dashboard: React.FC<DashboardProps> = ({
         const simColor = getPerformanceColor(simAccuracy);
         const simColorHex = getPerformanceColorHex(simAccuracy);
 
-        const totalMinutes = filteredSessions.reduce((acc, s) => acc + (Number(s.durationInMinutes) || 0), 0);
+        const totalSessionMinutes = filteredSessions.filter(s => !isSimuladoSession(s)).reduce((acc, s) => acc + (Number(s.durationInMinutes) || 0), 0);
+        const totalSimuladoMinutes = filteredSimulados.reduce((acc, s) => acc + (Number(s.durationInMinutes) || 0), 0);
+        const totalMinutes = totalSessionMinutes + totalSimuladoMinutes;
         const totalHours = (totalMinutes / 60).toFixed(1);
 
         return (

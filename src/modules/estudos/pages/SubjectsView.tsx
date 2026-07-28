@@ -278,13 +278,36 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
     const tAcc = tDone > 0 ? Math.min(100, Math.round((tCorrect / tDone) * 100)) : 0;
     const tHours = (tMinutes / 60).toFixed(1);
 
+    let lastStudyDate = '';
+    let firstStudyDate = '';
+    let review7dDate = '';
+    let review30dDate = '';
+    let review90dDate = '';
+    const customReviewDates: { dateStr: string; status: 'planejado' | 'realizado' | 'none' }[] = [
+      { dateStr: '', status: 'none' },
+      { dateStr: '', status: 'none' },
+      { dateStr: '', status: 'none' },
+      { dateStr: '', status: 'none' },
+      { dateStr: '', status: 'none' }
+    ];
+
     const studyCycles: {
       originSession: StudySession;
       studyDateStr: string;
       customReviewDates: { dateStr: string; status: 'planejado' | 'realizado' | 'none' }[];
     }[] = [];
 
-    if (topicSessions.length > 0) {
+    if (reviewsDisabled) {
+      for (let i = 0; i < 5; i++) {
+        customReviewDates[i] = { dateStr: 'N/A', status: 'none' };
+      }
+      if (topicSessions.length > 0) {
+        const sortedSessions = [...topicSessions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        const formatDate = (date: Date) => date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' });
+        lastStudyDate = formatDate(new Date(sortedSessions[0].date));
+        firstStudyDate = formatDate(new Date(sortedSessions[sortedSessions.length - 1].date));
+      }
+    } else if (topicSessions.length > 0) {
       const getLocalDateString = (d: string | Date) => {
         if (!d) return '';
         const dateObj = typeof d === 'string' ? new Date(d) : d;
@@ -330,41 +353,35 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
           { dateStr: '', status: 'none' }
         ];
 
-        if (reviewsDisabled) {
-          for (let i = 0; i < 5; i++) {
-            cycleReviews[i] = { dateStr: 'N/A', status: 'none' };
+        for (let i = 0; i < 5; i++) {
+          const dCustom = new Date(sessDateObj);
+          dCustom.setDate(dCustom.getDate() + customReviewDays[i]);
+
+          const uncappedDateStr = dCustom.toISOString().split('T')[0];
+          const isPastExam = examDateStr && uncappedDateStr > examDateStr;
+
+          if (isPastExam) {
+            cycleReviews[i] = { dateStr: '—', status: 'none' };
+            continue;
           }
-        } else {
-          for (let i = 0; i < 5; i++) {
-            const dCustom = new Date(sessDateObj);
-            dCustom.setDate(dCustom.getDate() + customReviewDays[i]);
 
-            const uncappedDateStr = dCustom.toISOString().split('T')[0];
-            const isPastExam = examDateStr && uncappedDateStr > examDateStr;
+          const targetReviewId = getDeterministicReviewId(subjectId, topicId === null ? undefined : topicId, sess.id, i);
+          const review = (scheduledStudies || []).find(s =>
+            s.subjectId === subjectId &&
+            s.topicId === (topicId === null ? undefined : topicId) &&
+            s.activityType && (
+              s.activityType.toLowerCase().includes('revisão') ||
+              s.activityType.toLowerCase().includes('revisao')
+            ) && (
+              s.id === targetReviewId ||
+              (s.id && s.id.toLowerCase().split('-')[3] === `400${i}` && s.status === 'realizado' && s.date === uncappedDateStr)
+            )
+          );
 
-            if (isPastExam) {
-              cycleReviews[i] = { dateStr: '—', status: 'none' };
-              continue;
-            }
-
-            const targetReviewId = getDeterministicReviewId(subjectId, topicId === null ? undefined : topicId, sess.id, i);
-            const review = (scheduledStudies || []).find(s =>
-              s.subjectId === subjectId &&
-              s.topicId === (topicId === null ? undefined : topicId) &&
-              s.activityType && (
-                s.activityType.toLowerCase().includes('revisão') ||
-                s.activityType.toLowerCase().includes('revisao')
-              ) && (
-                s.id === targetReviewId ||
-                (s.id && s.id.toLowerCase().split('-')[3] === `400${i}` && s.status === 'realizado' && s.date === uncappedDateStr)
-              )
-            );
-
-            cycleReviews[i] = {
-              dateStr: formatDate(dCustom),
-              status: review ? review.status : 'none'
-            };
-          }
+          cycleReviews[i] = {
+            dateStr: formatDate(dCustom),
+            status: review ? review.status : 'none'
+          };
         }
 
         studyCycles.push({
@@ -373,6 +390,14 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
           customReviewDates: cycleReviews
         });
       });
+
+      if (studyCycles.length > 0) {
+        firstStudyDate = studyCycles[0].studyDateStr;
+        lastStudyDate = studyCycles[studyCycles.length - 1].studyDateStr;
+        for (let i = 0; i < 5; i++) {
+          customReviewDates[i] = studyCycles[studyCycles.length - 1].customReviewDates[i];
+        }
+      }
     }
 
     return { minutes: tMinutes, done: tDone, correct: tCorrect, acc: tAcc, hours: tHours, firstStudyDate, lastStudyDate, review7dDate, review30dDate, review90dDate, customReviewDates, studyCycles };

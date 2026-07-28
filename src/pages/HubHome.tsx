@@ -2033,31 +2033,52 @@ const HubHome: React.FC<HubHomeProps> = ({
                   onMouseEnter={() => setIsCalendarHovered(true)}
                   onMouseLeave={() => setIsCalendarHovered(false)}
                   style={{ opacity: !isCalendarVisible ? 0.4 : (isCalendarHovered ? 1 : calendarOpacity) }}
-                  className={`w-full bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm rounded-2xl border border-zinc-200 dark:border-zinc-800 p-3.5 transition-all duration-300 ${!isCalendarVisible ? 'ring-2 ring-dashed ring-rose-500/30' : ''}`}
+                  className={`w-full bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md rounded-[2.5rem] border border-zinc-200 dark:border-zinc-800 p-6 md:p-8 shadow-xl transition-all duration-300 ${!isCalendarVisible ? 'ring-2 ring-dashed ring-rose-500/30' : ''}`}
                 >
-                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-6">
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                     
-                    {/* Calendário Mensal (Grade) */}
-                    <div className="sm:col-span-8 flex flex-col gap-2">
-                      {/* Header do calendário com botões de navegação */}
+                    {/* Calendário Mensal (Grade Principal) */}
+                    <div className="lg:col-span-8 flex flex-col gap-4">
+                      {/* Header do calendário com botões de navegação e atalho Hoje */}
                       <div className="flex justify-between items-center px-1">
-                        <h3 className="text-xs font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest flex items-center gap-2">
-                          <CalendarDays size={12} />
-                          {calendarMonth.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }).toUpperCase()}
-                        </h3>
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-2xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-800 dark:text-white shadow-xs">
+                            <CalendarDays size={18} />
+                          </div>
+                          <div>
+                            <span className="text-[9px] font-black text-zinc-400 dark:text-zinc-500 uppercase tracking-widest block">Agenda Unificada</span>
+                            <h3 className="text-base md:text-lg font-black text-zinc-900 dark:text-white uppercase tracking-tight">
+                              {calendarMonth.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
+                            </h3>
+                          </div>
+                        </div>
+
                         <div className="flex items-center gap-2">
+                          {/* Botão Atalho "Hoje" */}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setCalendarMonth(new Date());
+                              setSelectedCalendarDate(todayStr);
+                            }}
+                            className="px-3 py-1.5 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer shadow-xs"
+                          >
+                            Hoje
+                          </button>
+
                           {/* Opacity & Visibility control for Calendar — only visible in edit mode */}
                           {isHomeEditMode && (
-                            <div className="flex items-center gap-1.5 bg-zinc-100/60 dark:bg-zinc-800/50 px-2 py-0.5 rounded-lg border border-zinc-300/30 dark:border-zinc-700/50 animate-in fade-in duration-200">
+                            <div className="flex items-center gap-1.5 bg-zinc-100/60 dark:bg-zinc-800/50 px-2.5 py-1 rounded-xl border border-zinc-300/30 dark:border-zinc-700/50 animate-in fade-in duration-200">
                               <button
                                 onClick={(e) => { e.stopPropagation(); toggleWidgetVisibility('calendar'); }}
                                 className="text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 cursor-pointer p-0.5"
                                 title={isCalendarVisible ? 'Ocultar widget de calendário' : 'Exibir widget de calendário'}
                               >
-                                {isCalendarVisible ? <Eye size={11} strokeWidth={2.5} /> : <EyeOff size={11} strokeWidth={2.5} className="text-rose-500" />}
+                                {isCalendarVisible ? <Eye size={12} strokeWidth={2.5} /> : <EyeOff size={12} strokeWidth={2.5} className="text-rose-500" />}
                               </button>
-                              <div className="w-[1px] h-3 bg-zinc-350 dark:bg-zinc-700 mx-0.5" />
-                              <Sliders size={10} className="text-zinc-400 dark:text-zinc-500" />
+                              <div className="w-[1px] h-3.5 bg-zinc-350 dark:bg-zinc-700 mx-0.5" />
+                              <Sliders size={11} className="text-zinc-400 dark:text-zinc-500" />
                               <input 
                                 type="range" 
                                 min="0.2" 
@@ -2077,7 +2098,7 @@ const HubHome: React.FC<HubHomeProps> = ({
                                 {Math.round(calendarOpacity * 100)}%
                               </span>
 
-                              <div className="w-[1px] h-3 bg-zinc-350 dark:bg-zinc-700 mx-0.5" />
+                              <div className="w-[1px] h-3.5 bg-zinc-350 dark:bg-zinc-700 mx-0.5" />
 
                               <button
                                 onClick={(e) => { e.stopPropagation(); moveWidget('calendar', 'up'); }}
@@ -2085,7 +2106,7 @@ const HubHome: React.FC<HubHomeProps> = ({
                                 className="text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed p-0.5"
                                 title="Mover para cima"
                               >
-                                <ChevronUp size={11} strokeWidth={3} />
+                                <ChevronUp size={12} strokeWidth={3} />
                               </button>
                               <button
                                 onClick={(e) => { e.stopPropagation(); moveWidget('calendar', 'down'); }}
@@ -2093,7 +2114,7 @@ const HubHome: React.FC<HubHomeProps> = ({
                                 className="text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed p-0.5"
                                 title="Mover para baixo"
                               >
-                                <ChevronDown size={11} strokeWidth={3} />
+                                <ChevronDown size={12} strokeWidth={3} />
                               </button>
                             </div>
                           )}
@@ -2106,11 +2127,11 @@ const HubHome: React.FC<HubHomeProps> = ({
                               setCalendarMonth(newDate);
                             }}
                             type="button"
-                            className={`p-1 hover:bg-zinc-200/30 dark:hover:bg-zinc-800 rounded-lg text-zinc-500 transition-colors cursor-pointer ${
+                            className={`p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl text-zinc-600 dark:text-zinc-300 transition-colors cursor-pointer ${
                               hasPastPendingEvents ? 'animate-pulse text-amber-500 dark:text-amber-400 font-black' : ''
                             }`}
                           >
-                            <ChevronLeft size={14} />
+                            <ChevronLeft size={16} />
                           </button>
                           <button
                             onClick={(e) => {
@@ -2120,18 +2141,18 @@ const HubHome: React.FC<HubHomeProps> = ({
                               setCalendarMonth(newDate);
                             }}
                             type="button"
-                            className="p-1 hover:bg-zinc-200/30 dark:hover:bg-zinc-800 rounded-lg text-zinc-500 transition-colors cursor-pointer"
+                            className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl text-zinc-600 dark:text-zinc-300 transition-colors cursor-pointer"
                           >
-                            <ChevronRight size={14} />
+                            <ChevronRight size={16} />
                           </button>
                         </div>
                       </div>
 
-                      {/* Grade do Calendário */}
-                      <div className="grid grid-cols-7 gap-1">
+                      {/* Grade Ampliada do Calendário */}
+                      <div className="grid grid-cols-7 gap-2">
                         {/* Dias da semana */}
-                        {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((day, idx) => (
-                          <div key={idx} className="text-center text-[9px] font-black text-zinc-400 dark:text-zinc-650 uppercase py-1">{day}</div>
+                        {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map((day, idx) => (
+                          <div key={idx} className="text-center text-[10px] font-black text-zinc-400 dark:text-zinc-500 uppercase py-2 tracking-wider">{day}</div>
                         ))}
 
                         {/* Células dos dias do mês */}
@@ -2144,7 +2165,7 @@ const HubHome: React.FC<HubHomeProps> = ({
                           const cells = [];
                           // Células vazias do mês anterior
                           for (let i = 0; i < firstDayIndex; i++) {
-                            cells.push(<div key={`empty-${i}`} className="py-1.5" />);
+                            cells.push(<div key={`empty-${i}`} className="py-3" />);
                           }
 
                           // Dias do mês atual
@@ -2193,34 +2214,34 @@ const HubHome: React.FC<HubHomeProps> = ({
                                   e.stopPropagation();
                                   setSelectedCalendarDate(dateStr);
                                 }}
-                                className={`py-1.5 rounded-xl border flex flex-col items-center justify-center relative cursor-pointer transition-all hover:scale-105 active:scale-95 ${
+                                className={`py-2.5 md:py-3.5 px-1 rounded-2xl border flex flex-col items-center justify-between min-h-[52px] md:min-h-[62px] relative cursor-pointer transition-all hover:scale-105 active:scale-95 shadow-xs ${
                                   isSelected
-                                    ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-950 border-zinc-900 dark:border-white shadow-sm'
+                                    ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-950 border-zinc-900 dark:border-white shadow-md font-black scale-105 z-10'
                                     : isToday
-                                      ? `bg-zinc-200/50 dark:bg-zinc-800/60 ${todayBorderClass} text-zinc-800 dark:text-white font-bold`
+                                      ? `bg-zinc-100 dark:bg-zinc-800/80 ${todayBorderClass} text-zinc-900 dark:text-white font-extrabold`
                                       : isExamDay
-                                        ? 'bg-purple-500/5 dark:bg-purple-500/10 border-2 border-purple-500 dark:border-purple-400 text-purple-900 dark:text-purple-300 font-extrabold shadow-sm'
+                                        ? 'bg-purple-500/10 dark:bg-purple-500/15 border-2 border-purple-500 dark:border-purple-400 text-purple-900 dark:text-purple-300 font-extrabold shadow-sm'
                                         : isHealthProvaDay
-                                          ? 'bg-blue-500/5 dark:bg-blue-500/10 border-2 border-blue-500 dark:border-blue-400 text-blue-900 dark:text-blue-300 font-extrabold shadow-sm'
+                                          ? 'bg-blue-500/10 dark:bg-blue-500/15 border-2 border-blue-500 dark:border-blue-400 text-blue-900 dark:text-blue-300 font-extrabold shadow-sm'
                                           : hasImportantTask
-                                            ? 'bg-red-500/5 dark:bg-red-500/10 border-2 border-red-500 dark:border-red-400 text-red-900 dark:text-red-300 font-bold'
+                                            ? 'bg-red-500/10 dark:bg-red-500/15 border-2 border-red-500 dark:border-red-400 text-red-900 dark:text-red-300 font-bold'
                                             : hasRangeTask
-                                              ? 'bg-rose-500/10 dark:bg-rose-500/20 border-rose-500/20 dark:border-rose-900/50 text-rose-800 dark:text-rose-200'
-                                              : 'bg-zinc-50/40 dark:bg-zinc-900/40 border-zinc-250/60 dark:border-zinc-800/70 text-zinc-800 dark:text-zinc-200 hover:border-zinc-300 dark:hover:border-zinc-650'
+                                              ? 'bg-rose-500/10 dark:bg-rose-500/20 border-rose-500/30 dark:border-rose-900/50 text-rose-800 dark:text-rose-200'
+                                              : 'bg-zinc-50/80 dark:bg-zinc-900/60 border-zinc-200/80 dark:border-zinc-800 text-zinc-800 dark:text-zinc-200 hover:border-zinc-400 dark:hover:border-zinc-600'
                                 }`}
                               >
-                                <span className="text-[10px] font-black leading-none">{day}</span>
+                                <span className="text-xs md:text-sm font-black leading-none">{day}</span>
                                 
                                 {/* Bolas elegantes indicadoras sob o dia */}
-                                <div className="flex gap-0.5 mt-1 shrink-0 flex-wrap justify-center max-w-full">
+                                <div className="flex gap-1 mt-1 shrink-0 flex-wrap justify-center max-w-full">
                                   {dayStudies.map((s, idx) => {
                                     const isAtrasado = dateStr < todayStr && !s.completed;
                                     return (
                                       <div 
                                         key={`study-${s.id || idx}`}
-                                        className={`w-1.5 h-1.5 rounded-full shrink-0 transition-all ${
+                                        className={`w-1.5 h-1.5 md:w-2 md:h-2 rounded-full shrink-0 transition-all ${
                                           isAtrasado 
-                                            ? 'bg-purple-600 dark:bg-purple-400 shadow-[0_0_4px_rgba(168,85,247,0.85)] scale-110 animate-pulse' 
+                                            ? 'bg-purple-600 dark:bg-purple-400 shadow-[0_0_6px_rgba(168,85,247,0.85)] scale-110 animate-pulse' 
                                             : 'bg-purple-500/80 dark:bg-purple-400/80'
                                         }`} 
                                       />
@@ -2235,10 +2256,10 @@ const HubHome: React.FC<HubHomeProps> = ({
                                         key={`task-${t.id || idx}`}
                                         className={`rounded-full shrink-0 transition-all ${
                                           isImportant
-                                            ? 'w-2 h-2 bg-red-600 dark:bg-red-400 ring-1 ring-red-400/50'
-                                            : `w-1.5 h-1.5 ${
+                                            ? 'w-2 h-2 md:w-2.5 md:h-2.5 bg-red-600 dark:bg-red-400 ring-2 ring-red-400/50'
+                                            : `w-1.5 h-1.5 md:w-2 md:h-2 ${
                                                 isAtrasado 
-                                                  ? 'bg-red-600 dark:bg-red-400 shadow-[0_0_4px_rgba(239,68,68,0.85)] scale-110 animate-pulse' 
+                                                  ? 'bg-red-600 dark:bg-red-400 shadow-[0_0_6px_rgba(239,68,68,0.85)] scale-110 animate-pulse' 
                                                   : 'bg-red-500/80 dark:bg-red-400/80'
                                               }`
                                         }`} 
@@ -2250,9 +2271,9 @@ const HubHome: React.FC<HubHomeProps> = ({
                                     return (
                                       <div 
                                         key={`finance-${f.id || idx}`}
-                                        className={`w-1.5 h-1.5 rounded-full shrink-0 transition-all ${
+                                        className={`w-1.5 h-1.5 md:w-2 md:h-2 rounded-full shrink-0 transition-all ${
                                           isAtrasado 
-                                            ? 'bg-emerald-600 dark:bg-emerald-400 shadow-[0_0_4px_rgba(10,185,129,0.85)] scale-110 animate-pulse' 
+                                            ? 'bg-emerald-600 dark:bg-emerald-400 shadow-[0_0_6px_rgba(10,185,129,0.85)] scale-110 animate-pulse' 
                                             : 'bg-emerald-500/80 dark:bg-emerald-400/80'
                                         }`} 
                                       />
@@ -2263,9 +2284,9 @@ const HubHome: React.FC<HubHomeProps> = ({
                                     return (
                                       <div 
                                         key={`workout-${w.id || idx}`}
-                                        className={`w-1.5 h-1.5 rounded-full shrink-0 transition-all ${
+                                        className={`w-1.5 h-1.5 md:w-2 md:h-2 rounded-full shrink-0 transition-all ${
                                           isAtrasado 
-                                            ? 'bg-blue-600 dark:bg-blue-400 shadow-[0_0_4px_rgba(59,130,246,0.85)] scale-110 animate-pulse' 
+                                            ? 'bg-blue-600 dark:bg-blue-400 shadow-[0_0_6px_rgba(59,130,246,0.85)] scale-110 animate-pulse' 
                                             : 'bg-blue-500/80 dark:bg-blue-400/80'
                                         }`} 
                                       />
@@ -2281,23 +2302,35 @@ const HubHome: React.FC<HubHomeProps> = ({
                       </div>
                     </div>
 
-                    {/* Lista de Compromissos do Dia (Direita) */}
-                    <div className="sm:col-span-4 flex flex-col gap-3 min-w-0 sm:pl-6">
-                      <div className="flex justify-between items-center px-1">
-                        <h4 className="text-[9px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest">
-                          Compromissos do Dia
-                        </h4>
-                        <span className="text-[8px] font-bold text-zinc-400">
+                    {/* Lista de Compromissos do Dia (Direita - Painel Destacado) */}
+                    <div className="lg:col-span-4 flex flex-col gap-4 min-w-0 bg-zinc-50/80 dark:bg-zinc-800/40 p-5 rounded-3xl border border-zinc-200/80 dark:border-zinc-800 shadow-inner">
+                      <div className="flex justify-between items-center pb-2 border-b border-zinc-200/60 dark:border-zinc-700/50">
+                        <div>
+                          <h4 className="text-xs font-black text-zinc-900 dark:text-white uppercase tracking-wider">
+                            Compromissos
+                          </h4>
+                          <p className="text-[10px] font-bold text-zinc-400 mt-0.5">
+                            {(() => {
+                              const parts = selectedCalendarDate.split('-');
+                              if (parts.length === 3) {
+                                return `${parts[2]}/${parts[1]}/${parts[0]}`;
+                              }
+                              return selectedCalendarDate;
+                            })()}
+                          </p>
+                        </div>
+                        <span className="text-[9px] font-black text-zinc-500 dark:text-zinc-300 uppercase tracking-widest bg-zinc-200/60 dark:bg-zinc-700/60 px-2.5 py-1 rounded-xl">
                           {(() => {
-                            const parts = selectedCalendarDate.split('-');
-                            if (parts.length === 3) {
-                              return `${parts[2]}/${parts[1]}`;
-                            }
-                            return '';
-                          })()}
+                            const dayTasks = calendarEvents.tasks.filter(t => t.endDate ? (t.due_date <= selectedCalendarDate && selectedCalendarDate <= t.endDate) : t.due_date === selectedCalendarDate);
+                            const dayStudies = calendarEvents.studies.filter(s => s.date === selectedCalendarDate);
+                            const dayWorkouts = calendarEvents.workouts.filter(w => w.date === selectedCalendarDate);
+                            const dayFinances = calendarEvents.finances.filter(f => f.date === selectedCalendarDate);
+                            return dayTasks.length + dayStudies.length + dayWorkouts.length + dayFinances.length;
+                          })()} itens
                         </span>
                       </div>
-                      <div className="flex-1 overflow-y-auto pr-1 space-y-1.5 flex flex-col">
+
+                      <div className="flex-1 overflow-y-auto pr-1 space-y-2 flex flex-col max-h-[360px] custom-scrollbar">
                         {(() => {
                           const dayTasks = [...calendarEvents.tasks.filter(t => {
                             if (t.endDate) {
@@ -2328,9 +2361,10 @@ const HubHome: React.FC<HubHomeProps> = ({
 
                           if (totalCount === 0) {
                             return (
-                              <div className="flex-1 flex flex-col items-center justify-center text-center py-8 opacity-50">
-                                <CheckCircle2 size={20} className="text-zinc-400 mb-1" />
-                                <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">Dia Livre</p>
+                              <div className="flex-1 flex flex-col items-center justify-center text-center py-10 opacity-60">
+                                <CheckCircle2 size={24} className="text-emerald-500 mb-2" />
+                                <p className="text-xs font-black text-zinc-700 dark:text-zinc-300 uppercase tracking-wider">Dia Livre</p>
+                                <p className="text-[10px] text-zinc-400 mt-1">Nenhum compromisso pendente neste dia</p>
                               </div>
                             );
                           }

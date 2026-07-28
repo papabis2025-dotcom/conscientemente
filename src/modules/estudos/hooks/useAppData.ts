@@ -303,9 +303,12 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         expectedSessions.forEach(es => {
             const existing = allSess.find(s => s.id === es.id);
             if (existing) {
+                const existingDateStr = existing.date ? existing.date.split('T')[0] : '';
+                const expectedDateStr = es.date ? es.date.split('T')[0] : '';
                 if (existing.durationInMinutes !== es.durationInMinutes || 
                     existing.questionsDone !== es.questionsDone || 
-                    existing.questionsCorrect !== es.questionsCorrect) {
+                    existing.questionsCorrect !== es.questionsCorrect ||
+                    existingDateStr !== expectedDateStr) {
                     sessionsToUpdate.push(es);
                 }
             }
@@ -351,7 +354,9 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
             for (const s of sessionsToUpdate) {
                 try {
                     await api.sessions.update(s.id, s);
+                    const sessionDate = s.date.split('T')[0];
                     await api.schedule.update(s.id, {
+                        date: sessionDate,
                         durationInMinutes: s.durationInMinutes,
                         questionsDone: s.questionsDone,
                         questionsCorrect: s.questionsCorrect

@@ -37,6 +37,25 @@ interface DashboardProps {
   onToggleReorderMode?: (isReorder: boolean) => void;
 }
 
+const parseNotesGroup = (notes?: string) => {
+  let currentNotes = notes || '';
+  let groupId: string | null = null;
+
+  const groupMatch = currentNotes.match(/^\[groupId:([^\]]+)\](.*)/s);
+  if (groupMatch) {
+    groupId = groupMatch[1];
+    currentNotes = groupMatch[2].trim();
+  }
+
+  const tagMatch = currentNotes.match(/^(#[A-Za-z0-9_]+)(?:\s*-\s*|\s+)(.*)/s) || currentNotes.match(/^(#[A-Za-z0-9_]+)$/s);
+  let cleanNotes = currentNotes;
+  if (tagMatch) {
+    cleanNotes = (tagMatch[2] || '').trim();
+  }
+
+  return { groupId, cleanNotes };
+};
+
 interface WidgetState {
   id: string;
   title: string;
@@ -923,21 +942,93 @@ const Dashboard: React.FC<DashboardProps> = ({
         const todayStr = getLocalDateStr(new Date());
         const upcomingReviews: { subjectName: string; topicName: string; daysUntil: number; reviewType: string }[] = [];
 
-        // Add Planner Pending Tasks (Planejado para hoje ou atrasado)
-        const pendingStudies = (scheduledStudies || []).filter(s => s.status === 'planejado' && s.date <= todayStr);
-        pendingStudies.forEach(s => {
+        // Helper para verificar se a tarefa já possui sessão realizada ou status realizado
+        const isStudyCompleted = (s: ScheduledStudy) => {
+          if (s.status === 'realizado') return true;
+          if (!sessions || sessions.length === 0) return false;
+          return sessions.some(sess =>
+            sess.id === s.id ||
+            (sess.subjectId === s.subjectId && sess.topicId === s.topicId && sess.date && sess.date.split('T')[0] === s.date.split('T')[0])
+          );
+        };
+
+        const candidateStudies = (scheduledStudies || []).filter(s => s.date && s.date <= todayStr);
+
+        // Agrupar tarefas por groupId (alinhado com o Planner)
+        const groupedMap = new Map<string, ScheduledStudy[]>();
+        const nonGrouped: ScheduledStudy[] = [];
+
+        candidateStudies.forEach(s => {
+          const { groupId } = parseNotesGroup(s.notes);
+          if (groupId) {
+            if (!groupedMap.has(groupId)) {
+              groupedMap.set(groupId, []);
+            }
+            groupedMap.get(groupId)!.push(s);
+          } else {
+            nonGrouped.push(s);
+          }
+        });
+
+        // 1. Processar tarefas agrupadas por groupId
+        groupedMap.forEach((tasks) => {
+          const isAnyDone = tasks.some(t => isStudyCompleted(t));
+          if (isAnyDone) return;
+
+          const firstTask = tasks[0];
+          const subIds = Array.from(new Set(tasks.map(t => t.subjectId).filter(Boolean)));
+          const topIds = Array.from(new Set(tasks.map(t => t.topicId).filter(Boolean)));
+
+          const subNames = subIds.map(id => subjects.find(s => s.id === id)?.name).filter(Boolean).join(', ');
+          const topTitles = topIds.map(id => {
+            for (const sub of subjects) {
+              const found = sub.topics?.find(t => t.id === id);
+              if (found) return found.title;
+            }
+            return null;
+          }).filter(Boolean);
+
+          const { cleanNotes } = parseNotesGroup(firstTask.notes);
+          const combinedTopicTitle = topTitles.length > 0 ? topTitles.join(', ') : (cleanNotes || firstTask.activityType || 'Estudo Pendente');
+
+          let sDateMs = new Date(firstTask.date).getTime();
+          sDateMs += new Date(firstTask.date).getTimezoneOffset() * 60000;
+          const sDateNoon = new Date(sDateMs).setHours(12, 0, 0, 0);
+          const todayNoon = new Date().setHours(12, 0, 0, 0);
+
+          const diffDays = Math.round((todayNoon - sDateNoon) / (1000 * 60 * 60 * 24));
+          const isDelayed = diffDays > 0;
+
+          let labelType = 'Tarefa Programada';
+          if (firstTask.activityType && (firstTask.activityType.toLowerCase().includes('revisão') || firstTask.activityType.toLowerCase().includes('revisao'))) {
+            labelType = isDelayed ? 'Revisão Atrasada' : 'Revisão';
+          } else {
+            labelType = isDelayed ? 'Tarefa Atrasada' : 'Tarefa Programada';
+          }
+
+          upcomingReviews.push({
+            subjectName: subNames || 'Estudo',
+            topicName: combinedTopicTitle,
+            daysUntil: diffDays < 0 ? 0 : diffDays,
+            reviewType: labelType
+          });
+        });
+
+        // 2. Processar tarefas individuais não agrupadas
+        nonGrouped.forEach(s => {
+          if (isStudyCompleted(s)) return;
+
           const sub = subjects.find(sub => sub.id === s.subjectId);
           if (sub) {
             const topic = sub.topics?.find(t => t.id === s.topicId);
             let sDateMs = new Date(s.date).getTime();
-            // Handle timezone issues manually
             sDateMs += new Date(s.date).getTimezoneOffset() * 60000;
             const sDateNoon = new Date(sDateMs).setHours(12, 0, 0, 0);
             const todayNoon = new Date().setHours(12, 0, 0, 0);
-            
+
             const diffDays = Math.round((todayNoon - sDateNoon) / (1000 * 60 * 60 * 24));
             const isDelayed = diffDays > 0;
-            
+
             let labelType = 'Tarefa Programada';
             if (s.activityType && (s.activityType.toLowerCase().includes('revisão') || s.activityType.toLowerCase().includes('revisao'))) {
               labelType = isDelayed ? 'Revisão Atrasada' : 'Revisão';
@@ -945,9 +1036,9 @@ const Dashboard: React.FC<DashboardProps> = ({
               labelType = isDelayed ? 'Tarefa Atrasada' : 'Tarefa Programada';
             }
 
-            upcomingReviews.push({ 
-              subjectName: sub.name, 
-              topicName: topic?.title || s.activityType || 'Estudo Pendente', 
+            upcomingReviews.push({
+              subjectName: sub.name,
+              topicName: topic?.title || s.activityType || 'Estudo Pendente',
               daysUntil: diffDays < 0 ? 0 : diffDays,
               reviewType: labelType
             });

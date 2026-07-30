@@ -60,13 +60,18 @@ const SYNC_KEYS = [
 function getSanitizedLocalSettings(): Record<string, string | null> {
   const localSettings: Record<string, string | null> = {};
   SYNC_KEYS.forEach(key => {
-    let val = localStorage.getItem(key);
-    if (key === 'cn_custom_bg_image' && val && val.startsWith('data:image/') && val.length > 50_000) {
-      val = null;
-    }
+    const val = localStorage.getItem(key);
     localSettings[key] = val;
   });
   return localSettings;
+}
+
+function getSupabaseSanitizedSettings(settings: Record<string, string | null>): Record<string, string | null> {
+  const sanitized = { ...settings };
+  if (sanitized['cn_custom_bg_image'] && sanitized['cn_custom_bg_image'].startsWith('data:image/') && sanitized['cn_custom_bg_image'].length > 50_000) {
+    sanitized['cn_custom_bg_image'] = null;
+  }
+  return sanitized;
 }
 
 function mergeLists<T extends { id: string }>(listA: T[], listB: T[]): T[] {
@@ -459,12 +464,6 @@ const App: React.FC = () => {
         }
 
         if (prefs) {
-          const loadedBgType = prefs.hub_bg_type || 'default';
-          const loadedBgColor = prefs.hub_bg_color || '#ffffff';
-          setBgType(loadedBgType as any);
-          setBgColor(loadedBgColor);
-          initialBgRef.current = { bgType: loadedBgType, bgColor: loadedBgColor };
-
           const localSettings = getSanitizedLocalSettings();
 
           let remotePayload: SyncedPayload | null = null;
@@ -481,6 +480,12 @@ const App: React.FC = () => {
 
           // Merge local and remote
           const merged = mergeSettings(localSettings, remoteSettings, remoteUpdatedAt > 0);
+
+          const finalBgType = (merged['cn_custom_bg_type'] as any) || prefs.hub_bg_type || 'default';
+          const finalBgColor = merged['cn_custom_bg_color'] || prefs.hub_bg_color || '#ffffff';
+          setBgType(finalBgType);
+          setBgColor(finalBgColor);
+          initialBgRef.current = { bgType: finalBgType, bgColor: finalBgColor };
 
           // Save merged to localStorage
           SYNC_KEYS.forEach(key => {
@@ -510,14 +515,15 @@ const App: React.FC = () => {
           setIsPrefsLoaded(true);
 
           // Fire-and-forget: write merged settings back to DB in background
+          const dbSettings = getSupabaseSanitizedSettings(merged);
           const payload: SyncedPayload = {
             updatedAt: updatedTime,
-            settings: merged
+            settings: dbSettings
           };
           supabase.from('user_preferences').upsert({
             user_id: session.user.id,
-            hub_bg_type: loadedBgType,
-            hub_bg_color: loadedBgColor,
+            hub_bg_type: finalBgType,
+            hub_bg_color: finalBgColor,
             hub_bg_image_url: JSON.stringify(payload)
           }, { onConflict: 'user_id' }).then(({ error }) => {
             if (error) console.error('Background upsert failed:', error);
@@ -569,9 +575,10 @@ const App: React.FC = () => {
 
     const savePrefs = async () => {
       const localSettings = getSanitizedLocalSettings();
+      const dbSettings = getSupabaseSanitizedSettings(localSettings);
       const payload: SyncedPayload = {
         updatedAt: lastSyncTime || Date.now(),
-        settings: localSettings
+        settings: dbSettings
       };
       await supabase.from('user_preferences').upsert({
         user_id: session.user.id,
@@ -592,13 +599,14 @@ const App: React.FC = () => {
 
     const interval = setInterval(async () => {
       const localSettings = getSanitizedLocalSettings();
+      const dbSettings = getSupabaseSanitizedSettings(localSettings);
 
       const currentSerialized = JSON.stringify(localSettings);
       if (currentSerialized !== lastKnownSettings) {
         const updatedTime = Date.now();
         const payload: SyncedPayload = {
           updatedAt: updatedTime,
-          settings: localSettings
+          settings: dbSettings
         };
 
         const payloadJson = JSON.stringify(payload);

@@ -177,11 +177,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   // where a session done at 22:00 local time becomes "tomorrow" in UTC.
   const getLocalSessionDate = (dateStr?: string): string => {
     if (!dateStr) return '';
-    if (dateStr.includes('T')) {
-      const d = new Date(dateStr);
-      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    }
-    return dateStr;
+    return dateStr.split('T')[0];
   };
 
   const getLocalDateStr = (d: Date): string => {

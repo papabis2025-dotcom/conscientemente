@@ -838,14 +838,14 @@ const GlobalSidebar: React.FC<GlobalSidebarProps> = ({
                 <div className="space-y-4 pt-6 border-t border-zinc-200 dark:border-zinc-800">
                  <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Personalização de Fundo</p>
                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                   <button onClick={() => setBgType('default')} className={`p-4 rounded-2xl border transition-all ${bgType === 'default' ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300' : 'border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/50 text-zinc-600 dark:text-zinc-400'}`}>
+                   <button onClick={() => { setBgType('default'); localStorage.setItem('cn_custom_bg_type', 'default'); window.dispatchEvent(new Event('local-storage-sync')); }} className={`p-4 rounded-2xl border transition-all ${bgType === 'default' ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300' : 'border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/50 text-zinc-600 dark:text-zinc-400'}`}>
                      <span className="text-xs font-black uppercase tracking-widest">Padrão</span>
                    </button>
                    
                    <div className={`p-4 rounded-2xl border transition-all flex flex-col items-center justify-center gap-3 ${bgType === 'color' ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-500/10' : 'border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/50'}`}>
                      <span className={`text-[10px] font-black uppercase tracking-widest ${bgType === 'color' ? 'text-indigo-700 dark:text-indigo-300' : 'text-zinc-650 dark:text-zinc-400'}`}>Cor Sólida</span>
                      <div className="flex items-center gap-2 w-full">
-                       <input type="color" value={bgColor} onChange={e => { setBgColor(e.target.value); setBgType('color'); window.dispatchEvent(new Event('local-storage-sync')); }} className="w-8 h-8 rounded cursor-pointer border-0 p-0" />
+                       <input type="color" value={bgColor} onChange={e => { setBgColor(e.target.value); setBgType('color'); localStorage.setItem('cn_custom_bg_type', 'color'); localStorage.setItem('cn_custom_bg_color', e.target.value); window.dispatchEvent(new Event('local-storage-sync')); }} className="w-8 h-8 rounded cursor-pointer border-0 p-0" />
                        <span className="text-xs font-mono text-zinc-500">{bgColor}</span>
                      </div>
                    </div>

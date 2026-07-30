@@ -281,7 +281,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                 expectedSessions.push({
                     id: getDeterministicSessionId(sim.id, res.subjectId),
                     subjectId: res.subjectId,
-                    date: new Date(`${sim.date}T12:00:00`).toISOString(),
+                    date: sim.date ? sim.date.split('T')[0] : '',
                     durationInMinutes: durationPerSubject,
                     questionsDone: res.done,
                     questionsCorrect: res.correct,

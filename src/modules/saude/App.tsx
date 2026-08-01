@@ -49,9 +49,7 @@ const hexToRgba = (hex: string, alpha: number) => {
 };
 
 const SaudeApp: React.FC = () => {
-  const [activeTab, setActiveTabState] = useState<'dashboard' | 'atividades' | 'sono' | 'planner' | 'gerenciador'>(() => {
-    return (localStorage.getItem('saude_active_tab') as any) || 'dashboard';
-  });
+  const [activeTab, setActiveTabState] = useState<'dashboard' | 'atividades' | 'sono' | 'planner' | 'gerenciador'>('dashboard');
 
   const setActiveTab = (tab: 'dashboard' | 'atividades' | 'sono' | 'planner' | 'gerenciador') => {
     setActiveTabState(tab);
@@ -74,12 +72,20 @@ const SaudeApp: React.FC = () => {
     };
   }, []);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
-    return localStorage.getItem('isSidebarCollapsed_saude') !== 'false';
+    return localStorage.getItem('global_sidebar_collapsed') === 'true';
   });
 
   useEffect(() => {
     localStorage.setItem('isSidebarCollapsed_saude', String(isSidebarCollapsed));
   }, [isSidebarCollapsed]);
+
+  useEffect(() => {
+    const handleSidebarSync = () => {
+      setIsSidebarCollapsed(localStorage.getItem('global_sidebar_collapsed') === 'true');
+    };
+    window.addEventListener('global-sidebar-state-changed', handleSidebarSync);
+    return () => window.removeEventListener('global-sidebar-state-changed', handleSidebarSync);
+  }, []);
 
 
   // Handle navigation from hub calendar (opens specific tab)
@@ -935,7 +941,13 @@ const SaudeApp: React.FC = () => {
       {/* Sidebar Lateral */}
       <aside className={`fixed md:relative z-50 md:z-20 h-screen bg-white/95 dark:bg-zinc-900/95 md:bg-white/50 md:dark:bg-zinc-900/50 border-r border-zinc-200 dark:border-zinc-800 flex flex-col transition-all duration-300 backdrop-blur-xl shrink-0 ${isSidebarCollapsed ? 'w-64 md:w-20 -translate-x-full md:translate-x-0' : 'w-64 translate-x-0'}`}>
         <button
-          onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+          onClick={() => {
+            const next = !isSidebarCollapsed;
+            setIsSidebarCollapsed(next);
+            localStorage.setItem('global_sidebar_collapsed', String(next));
+            localStorage.setItem('isSidebarCollapsed_saude', String(next));
+            window.dispatchEvent(new Event('global-sidebar-state-changed'));
+          }}
           className="absolute -right-3 top-9 w-6 h-6 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-full flex items-center justify-center text-zinc-500 hover:text-zinc-900 dark:text-zinc-100 shadow-sm z-50 hover:scale-110 transition-transform"
         >
           {isSidebarCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}

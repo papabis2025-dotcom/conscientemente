@@ -5,9 +5,7 @@ import { tarefasApi, Task } from './api';
 import { playSound } from '../../utils/audio';
 
 const TarefasApp: React.FC = () => {
-  const [activeTab, setActiveTabState] = useState<'ativas' | 'arquivo' | 'calendario'>(() => {
-    return (localStorage.getItem('tarefas_active_tab') as any) || 'ativas';
-  });
+  const [activeTab, setActiveTabState] = useState<'ativas' | 'arquivo' | 'calendario'>('ativas');
 
   const setActiveTab = (tab: 'ativas' | 'arquivo' | 'calendario') => {
     setActiveTabState(tab);
@@ -15,13 +13,21 @@ const TarefasApp: React.FC = () => {
     window.dispatchEvent(new Event('local-settings-changed'));
   };
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
-    return localStorage.getItem('isSidebarCollapsed_tarefas') !== 'false';
+    return localStorage.getItem('global_sidebar_collapsed') === 'true';
   });
   const [mobileView, setMobileView] = useState<'form' | 'list'>('list');
 
   useEffect(() => {
     localStorage.setItem('isSidebarCollapsed_tarefas', String(isSidebarCollapsed));
   }, [isSidebarCollapsed]);
+
+  useEffect(() => {
+    const handleSidebarSync = () => {
+      setIsSidebarCollapsed(localStorage.getItem('global_sidebar_collapsed') === 'true');
+    };
+    window.addEventListener('global-sidebar-state-changed', handleSidebarSync);
+    return () => window.removeEventListener('global-sidebar-state-changed', handleSidebarSync);
+  }, []);
 
   
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -660,7 +666,13 @@ const TarefasApp: React.FC = () => {
       {/* Sidebar Lateral */}
       <aside className={`fixed md:relative z-50 md:z-20 h-screen bg-white/95 dark:bg-zinc-900/95 md:bg-white/50 md:dark:bg-zinc-900/50 border-r border-zinc-200 dark:border-zinc-800 flex flex-col transition-all duration-300 backdrop-blur-xl shrink-0 ${isSidebarCollapsed ? 'w-64 md:w-20 -translate-x-full md:translate-x-0' : 'w-64 translate-x-0'}`}>
         <button
-          onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+          onClick={() => {
+            const next = !isSidebarCollapsed;
+            setIsSidebarCollapsed(next);
+            localStorage.setItem('global_sidebar_collapsed', String(next));
+            localStorage.setItem('isSidebarCollapsed_tarefas', String(next));
+            window.dispatchEvent(new Event('global-sidebar-state-changed'));
+          }}
           className="absolute -right-3 top-9 w-6 h-6 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-full flex items-center justify-center text-zinc-500 hover:text-zinc-900 dark:text-zinc-100 shadow-sm z-50 hover:scale-110 transition-transform"
         >
           {isSidebarCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}

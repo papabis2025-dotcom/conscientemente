@@ -1978,35 +1978,27 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         setIsSaving(true);
         setSaveError(null);
 
-        // 1. Update local states
-        setSessions(prev => {
-            const updated = prev.filter(s => !subjectIds.has(s.subjectId));
-            return updated;
-        });
+        // 1. Identificar apenas itens gerados pelo cronograma para remoção
+        // Tarefas adicionadas manualmente (generatedByCronograma !== true) e revisões correspondentes NUNCA são removidas
+        const itemsToDelete = scheduledStudies.filter(s => 
+            subjectIds.has(s.subjectId) && s.generatedByCronograma === true
+        );
+        const idsToDelete = itemsToDelete.map(s => s.id);
+
         setScheduledStudies(prev => {
-            const updated = prev.filter(s => !subjectIds.has(s.subjectId));
+            const updated = prev.filter(s => !idsToDelete.includes(s.id));
             localStorage.setItem('cp_scheduled_studies', JSON.stringify(updated));
             return updated;
         });
 
-        // 2. Perform DB operations
+        // 2. Apagar do banco de dados apenas os IDs gerados pelo cronograma
         try {
-            for (const subId of Array.from(subjectIds)) {
-                await api.sessions.deleteBySubject(subId);
-                await api.schedule.deleteBySubject(subId);
+            if (idsToDelete.length > 0) {
+                await api.schedule.deleteBatch(idsToDelete);
             }
-            
-            // Also delete simulados where results are only for this concurso
-            const simsToDelete = simulados.filter(sim => 
-                sim.results && sim.results.some(r => subjectIds.has(r.subjectId))
-            );
-            for (const sim of simsToDelete) {
-                await api.simulados.delete(sim.id);
-            }
-            setSimulados(prev => prev.filter(sim => !simsToDelete.some(s => s.id === sim.id)));
 
             addLog({
-                message: `Cronograma e histórico de "${concurso.name}" limpos com sucesso`,
+                message: `Tarefas geradas pelo cronograma de "${concurso.name}" removidas com sucesso (estudos manuais e revisões preservados)`,
                 type: 'info'
             });
             setLastSaved(new Date().toLocaleTimeString());
@@ -2016,7 +2008,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         } finally {
             setIsSaving(false);
         }
-    }, [concursos, simulados, addLog]);
+    }, [concursos, scheduledStudies, addLog, api.schedule]);
 
     return {
         currentUser, setCurrentUser,

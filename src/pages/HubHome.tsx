@@ -2380,7 +2380,7 @@ const HubHome: React.FC<HubHomeProps> = ({
                                      key={s.id} 
                                      onClick={() => { window.location.hash = 'estudos'; sessionStorage.setItem('estudosActiveTab', 'calendar'); }}
                                      title="Abrir no módulo de Estudos"
-                                     className={`flex items-center gap-2 p-2 rounded-xl transition-all duration-200 cursor-pointer hover:scale-[1.01] ${
+                                     className={`flex items-center gap-2.5 p-2 rounded-xl transition-all duration-200 cursor-pointer hover:scale-[1.01] ${
                                        isCompleted
                                          ? 'bg-zinc-100/40 dark:bg-zinc-800/20 border border-zinc-200/25 dark:border-zinc-800/30 opacity-40'
                                          : isRevisao
@@ -2388,7 +2388,15 @@ const HubHome: React.FC<HubHomeProps> = ({
                                            : 'bg-purple-500/10 dark:bg-purple-500/10 border-2 border-purple-500/40 dark:border-purple-400/50 shadow-xs'
                                      }`}
                                    >
-                                     <Brain size={12} className={isCompleted ? 'text-zinc-450 dark:text-zinc-600 shrink-0' : isRevisao ? 'text-amber-500 shrink-0' : 'text-purple-500 shrink-0'} />
+                                     <div className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 transition-all ${
+                                       isCompleted
+                                         ? 'bg-zinc-200/60 dark:bg-zinc-800/60 text-zinc-400 dark:text-zinc-500'
+                                         : isRevisao
+                                           ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400'
+                                           : 'bg-purple-100 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400'
+                                     }`}>
+                                       <BookOpen size={13} strokeWidth={2.2} />
+                                     </div>
                                      <div className="min-w-0 flex-1">
                                        <p className={`text-[9px] font-black uppercase tracking-wider leading-none ${
                                          isCompleted ? 'text-zinc-400 dark:text-zinc-550' : isRevisao ? 'text-amber-600 dark:text-amber-400' : 'text-purple-600 dark:text-purple-400'
@@ -2413,7 +2421,7 @@ const HubHome: React.FC<HubHomeProps> = ({
                                      key={t.id} 
                                      onClick={() => { window.location.hash = 'tarefas'; }}
                                      title="Abrir no módulo de Tarefas"
-                                     className={`flex items-center gap-2 p-2 rounded-xl transition-all duration-200 cursor-pointer hover:scale-[1.01] ${
+                                     className={`flex items-center gap-2.5 p-2 rounded-xl transition-all duration-200 cursor-pointer hover:scale-[1.01] ${
                                        isCompleted
                                          ? 'bg-zinc-100/40 dark:bg-zinc-800/20 border border-zinc-200/25 dark:border-zinc-800/30 opacity-40'
                                          : isImportant
@@ -2421,11 +2429,17 @@ const HubHome: React.FC<HubHomeProps> = ({
                                            : 'bg-red-500/10 dark:bg-red-500/10 border border-red-500/20 dark:border-red-400/30 shadow-xs'
                                      }`}
                                    >
-                                     {isImportant ? (
-                                       <AlertCircle size={12} className={isCompleted ? 'text-zinc-450 shrink-0' : 'text-red-500 shrink-0'} />
-                                     ) : (
-                                       <ListTodo size={12} className={isCompleted ? 'text-zinc-450 dark:text-zinc-600 shrink-0' : 'text-red-500 shrink-0'} />
-                                     )}
+                                     <div className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 transition-all ${
+                                       isCompleted
+                                         ? 'bg-zinc-200/60 dark:bg-zinc-800/60 text-zinc-400 dark:text-zinc-500'
+                                         : 'bg-rose-100 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400'
+                                     }`}>
+                                       {isImportant ? (
+                                         <AlertCircle size={13} strokeWidth={2.2} />
+                                       ) : (
+                                         <ListTodo size={13} strokeWidth={2.2} />
+                                       )}
+                                     </div>
                                      <div className="min-w-0 flex-1">
                                        <p className={`text-[9px] font-black uppercase tracking-wider leading-none ${
                                          isCompleted ? 'text-zinc-400 dark:text-zinc-550' : 'text-red-600 dark:text-red-400'
@@ -2448,13 +2462,19 @@ const HubHome: React.FC<HubHomeProps> = ({
                                      key={w.id} 
                                      onClick={() => { window.location.hash = 'saude'; sessionStorage.setItem('saude_active_tab', 'planner'); }}
                                      title="Abrir no módulo de Saúde"
-                                     className={`flex items-center gap-2 p-2 rounded-xl transition-all duration-200 cursor-pointer hover:scale-[1.01] ${
+                                     className={`flex items-center gap-2.5 p-2 rounded-xl transition-all duration-200 cursor-pointer hover:scale-[1.01] ${
                                        isCompleted
                                          ? 'bg-zinc-100/40 dark:bg-zinc-800/20 border border-zinc-200/25 dark:border-zinc-800/30 opacity-40'
                                          : 'bg-blue-500/10 dark:bg-blue-500/10 border-2 border-blue-500/40 dark:border-blue-400/50 shadow-xs'
                                      }`}
                                    >
-                                     <Activity size={12} className={isCompleted ? 'text-zinc-450 dark:text-zinc-600 shrink-0' : 'text-blue-500 shrink-0'} />
+                                     <div className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 transition-all ${
+                                       isCompleted
+                                         ? 'bg-zinc-200/60 dark:bg-zinc-800/60 text-zinc-400 dark:text-zinc-500'
+                                         : 'bg-cyan-100 dark:bg-cyan-500/20 text-cyan-600 dark:text-cyan-400'
+                                     }`}>
+                                       <Activity size={13} strokeWidth={2.2} />
+                                     </div>
                                      <div className="min-w-0 flex-1">
                                        <p className={`text-[9px] font-black uppercase tracking-wider leading-none ${
                                          isCompleted ? 'text-zinc-400 dark:text-zinc-550' : 'text-blue-600 dark:text-blue-400'
@@ -2475,9 +2495,11 @@ const HubHome: React.FC<HubHomeProps> = ({
                                    key={f.id} 
                                    onClick={() => { window.location.hash = 'financas'; sessionStorage.setItem('openAddFinancasType', 'saida'); }}
                                    title="Abrir no módulo de Finanças"
-                                   className="flex items-center gap-2 p-2 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/10 border border-emerald-500/30 dark:border-emerald-400/45 shadow-xs cursor-pointer hover:scale-[1.01] transition-all duration-200"
+                                   className="flex items-center gap-2.5 p-2 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/10 border border-emerald-500/30 dark:border-emerald-400/45 shadow-xs cursor-pointer hover:scale-[1.01] transition-all duration-200"
                                  >
-                                   <DollarSign size={12} className="text-emerald-500 shrink-0" />
+                                   <div className="w-7 h-7 rounded-xl bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                                     <Wallet size={13} strokeWidth={2.2} />
+                                   </div>
                                    <div className="min-w-0 flex-1">
                                      <p className="text-[9px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider leading-none">
                                        Despesa • Pendente

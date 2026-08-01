@@ -486,22 +486,22 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
     }
   };
 
-  // Reset/Clear all schedule & history
+  // Reset/Clear schedule generated tasks only
   const handleResetAll = async () => {
     if (!selectedConcursoId || selectedConcursoId === 'all') return;
-    if (confirm('ATENÇÃO: Esta ação irá excluir definitivamente todas as atividades (planejadas e realizadas) no Planner deste concurso, e também limpará todo o histórico de sessões e simulados deste concurso. Deseja continuar?')) {
+    if (confirm('Tem certeza de que deseja apagar as tarefas de estudos geradas pelo cronograma? Suas tarefas manuais e revisões correspondentes não serão removidas. Deseja continuar?')) {
       if (onResetConcursoSchedule) {
         await onResetConcursoSchedule(selectedConcursoId);
-        alert('Cronograma e histórico limpos com sucesso!');
+        alert('Tarefas geradas pelo cronograma removidas com sucesso! Suas tarefas manuais e revisões permanecem salvas.');
       }
     }
   };
 
-  // Clear / Delete schedule (only uncompleted)
+  // Clear / Delete schedule (only uncompleted generated items)
   const handleClearSchedule = async () => {
-    if (confirm('Tem certeza de que deseja apagar todo o cronograma de estudos planejado? Esta ação não afetará as sessões de estudo já concluídas ou revisões agendadas.')) {
+    if (confirm('Tem certeza de que deseja apagar o cronograma de estudos gerado automaticamente? Esta ação não afetará tarefas adicionadas manualmente ou suas revisões agendadas.')) {
       const ids = cronogramaStudies
-        .filter(s => s.generatedByCronograma && s.status !== 'realizado')
+        .filter(s => s.generatedByCronograma === true && s.status !== 'realizado')
         .map(s => s.id);
       await onDeleteScheduledStudiesBatch(ids);
     }

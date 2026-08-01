@@ -1,23 +1,22 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-  <!-- Fundo escuro minimalista elegante -->
-  <rect width="512" height="512" rx="112" ry="112" fill="#09090b"/>
-  
-  <!-- Cérebro Minimalista Monocromático (Linhas brancas suaves e bem dimensionadas) -->
-  <g fill="none" stroke="#ffffff" stroke-width="16" stroke-linecap="round" stroke-linejoin="round">
-    <!-- Hemisfério Esquerdo (Contorno e Sulcos) -->
-    <path d="M 236 128 C 190 120 128 144 116 200 C 104 250 120 286 148 308 C 144 336 160 368 200 376 C 220 380 236 360 236 330 Z" />
-    <path d="M 196 172 C 160 176 150 216 176 236 C 196 250 220 234 230 200" />
-    <path d="M 148 260 C 130 280 152 320 188 314 C 210 310 224 286 216 260" />
+  <!-- Cérebro Monocromático Transparente Sem Fundo -->
+  <g fill="none" stroke="#ffffff" stroke-width="20" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Hemisfério Esquerdo -->
+    <path d="M 236 100 C 180 92 110 120 96 184 C 82 240 104 280 136 306 C 130 338 148 376 192 386 C 220 392 236 370 236 335 Z" />
+    <path d="M 196 150 C 150 155 140 202 170 226 C 194 242 220 224 230 184" />
+    <path d="M 140 250 C 118 274 142 322 184 316 C 210 312 224 284 214 252" />
+    <path d="M 185 115 C 155 135 170 170 210 155" />
 
-    <!-- Hemisfério Direito (Contorno e Sulcos) -->
-    <path d="M 276 128 C 322 120 384 144 396 200 C 408 250 392 286 364 308 C 368 336 352 368 312 376 C 292 380 276 360 276 330 Z" />
-    <path d="M 316 172 C 352 176 362 216 336 236 C 316 250 292 234 282 200" />
-    <path d="M 364 260 C 382 280 360 320 324 314 C 302 310 288 286 296 260" />
+    <!-- Hemisfério Direito -->
+    <path d="M 276 100 C 332 92 402 120 416 184 C 430 240 408 280 376 306 C 382 338 364 376 320 386 C 292 392 276 370 276 335 Z" />
+    <path d="M 316 150 C 362 155 372 202 342 226 C 318 242 292 224 282 184" />
+    <path d="M 372 250 C 394 274 370 322 328 316 C 302 312 288 284 298 252" />
+    <path d="M 327 115 C 357 135 342 170 302 155" />
 
-    <!-- Córtex / Divisão Central Fissura Longitudinal -->
-    <path d="M 256 120 L 256 380" stroke="#ffffff" stroke-width="14" stroke-dasharray="14 10" opacity="0.85" />
-    
-    <!-- Tronco Encefálico Minimalista -->
-    <path d="M 236 376 C 236 410 246 430 256 430 C 266 430 276 410 276 376" stroke-width="14" />
+    <!-- Fissura Central -->
+    <path d="M 256 90 L 256 385" stroke-width="18" stroke-dasharray="16 12" opacity="0.9" />
+
+    <!-- Tronco Encefálico -->
+    <path d="M 230 384 C 230 425 242 445 256 445 C 270 445 282 425 282 384" stroke-width="18" />
   </g>
 </svg>

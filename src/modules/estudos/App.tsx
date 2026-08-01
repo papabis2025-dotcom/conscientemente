@@ -25,9 +25,7 @@ interface AppProps {
 }
 
 const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme }) => {
-  const [activeTab, setActiveTabState] = useState(() => {
-    return localStorage.getItem('cp_active_tab_estudos') || 'dashboard';
-  });
+  const [activeTab, setActiveTabState] = useState('dashboard');
 
   const setActiveTab = (tab: string) => {
     setActiveTabState(tab);
@@ -36,12 +34,20 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
   };
   const [isReorderMode, setIsReorderMode] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
-    return localStorage.getItem('isSidebarCollapsed_estudos') !== 'false';
+    return localStorage.getItem('global_sidebar_collapsed') === 'true';
   });
 
   React.useEffect(() => {
     localStorage.setItem('isSidebarCollapsed_estudos', String(isSidebarCollapsed));
   }, [isSidebarCollapsed]);
+
+  React.useEffect(() => {
+    const handleSidebarSync = () => {
+      setIsSidebarCollapsed(localStorage.getItem('global_sidebar_collapsed') === 'true');
+    };
+    window.addEventListener('global-sidebar-state-changed', handleSidebarSync);
+    return () => window.removeEventListener('global-sidebar-state-changed', handleSidebarSync);
+  }, []);
 
   const {
     currentUser, setCurrentUser, users, setUsers,
@@ -348,7 +354,13 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
         onAddSession={addSession} currentUser={currentUser} onLogout={handleLogout} onUpdateUser={updateProfile}
         isReorderMode={isReorderMode}
         isCollapsed={isSidebarCollapsed}
-        onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+        onToggleCollapse={() => {
+          const next = !isSidebarCollapsed;
+          setIsSidebarCollapsed(next);
+          localStorage.setItem('global_sidebar_collapsed', String(next));
+          localStorage.setItem('isSidebarCollapsed_estudos', String(next));
+          window.dispatchEvent(new Event('global-sidebar-state-changed'));
+        }}
         studyTasks={studyTasks}
         sessions={sessions}
         onOpenAddModal={() => setShowAddModal(true)}

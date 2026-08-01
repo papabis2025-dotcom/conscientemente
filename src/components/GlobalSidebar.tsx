@@ -47,8 +47,27 @@ const GlobalSidebar: React.FC<GlobalSidebarProps> = ({
   bgImage, setBgImage, bgImageStyle, setBgImageStyle
 }) => {
   const [userSidebarExpanded, setUserSidebarExpanded] = useState(() => {
-    return localStorage.getItem('cn_sidebar_expanded') !== 'false';
+    return localStorage.getItem('global_sidebar_collapsed') !== 'true';
   });
+
+  useEffect(() => {
+    const handleSidebarSync = () => {
+      setUserSidebarExpanded(localStorage.getItem('global_sidebar_collapsed') !== 'true');
+    };
+    window.addEventListener('global-sidebar-state-changed', handleSidebarSync);
+    return () => window.removeEventListener('global-sidebar-state-changed', handleSidebarSync);
+  }, []);
+
+  const toggleSidebar = () => {
+    setUserSidebarExpanded(prev => {
+      const nextExpanded = !prev;
+      const nextCollapsed = !nextExpanded;
+      localStorage.setItem('global_sidebar_collapsed', String(nextCollapsed));
+      localStorage.setItem('cn_sidebar_expanded', String(nextExpanded));
+      window.dispatchEvent(new Event('global-sidebar-state-changed'));
+      return nextExpanded;
+    });
+  };
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [showSettingsModal, setShowSettingsModal] = useState(false);
@@ -135,14 +154,7 @@ const GlobalSidebar: React.FC<GlobalSidebarProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const toggleSidebar = () => {
-    if (currentRoute !== 'hub') return;
-    setUserSidebarExpanded(prev => {
-      const next = !prev;
-      localStorage.setItem('cn_sidebar_expanded', String(next));
-      return next;
-    });
-  };
+
 
   const requestNotificationPermission = async () => {
     if (!('Notification' in window)) return false;
@@ -463,17 +475,68 @@ const GlobalSidebar: React.FC<GlobalSidebarProps> = ({
             )}
           </div>
 
-          {/* Clock & Date */}
-          {sidebarExpanded && (
-            <div className="flex flex-col px-3 py-3 rounded-2xl bg-zinc-100/50 dark:bg-zinc-800/30 border border-zinc-200/40 dark:border-zinc-800/40 animate-in fade-in duration-200 select-none">
-              <span className="text-lg font-black text-zinc-900 dark:text-zinc-100 tabular-nums tracking-tight">
-                {timeStr}
-              </span>
-              <span className="text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 capitalize mt-1 tracking-wide">
-                {dateStr}
-              </span>
-            </div>
-          )}
+          {/* Clock & Date — Flip Clock Style */}
+          {(() => {
+            const hoursStr = String(currentTime.getHours()).padStart(2, '0');
+            const minutesStr = String(currentTime.getMinutes()).padStart(2, '0');
+            const h1 = hoursStr[0];
+            const h2 = hoursStr[1];
+            const m1 = minutesStr[0];
+            const m2 = minutesStr[1];
+
+            const renderFlipTile = (digit: string, isFirst = false) => (
+              <div className="relative w-7 h-10 md:w-8 md:h-11 bg-zinc-900 dark:bg-zinc-850 rounded-xl border border-zinc-800 dark:border-zinc-700/80 shadow-md flex items-center justify-center overflow-hidden select-none">
+                {/* Visual top glare */}
+                <div className="absolute inset-x-0 top-0 h-1/2 bg-white/[0.05] border-b border-black/80 pointer-events-none" />
+                {/* Horizontal slit seam */}
+                <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-[1px] bg-black/90 z-10" />
+                {/* Flip digit number */}
+                <span className="text-lg md:text-xl font-black text-zinc-100 font-mono tracking-tighter z-0">
+                  {digit}
+                </span>
+                {isFirst && (
+                  <span className="absolute bottom-0.5 left-1 text-[6px] font-black uppercase text-zinc-500 z-20">
+                    {currentTime.getHours() >= 12 ? 'PM' : 'AM'}
+                  </span>
+                )}
+              </div>
+            );
+
+            if (sidebarExpanded) {
+              return (
+                <div className="flex flex-col items-center gap-2 p-3 rounded-2xl bg-zinc-100/60 dark:bg-zinc-800/30 border border-zinc-200/50 dark:border-zinc-800/50 animate-in fade-in duration-200 select-none">
+                  <div className="flex items-center gap-1">
+                    {renderFlipTile(h1, true)}
+                    {renderFlipTile(h2)}
+                    <div className="flex flex-col gap-1 mx-0.5 opacity-60 animate-pulse">
+                      <div className="w-1 h-1 rounded-full bg-zinc-700 dark:bg-zinc-300" />
+                      <div className="w-1 h-1 rounded-full bg-zinc-700 dark:bg-zinc-300" />
+                    </div>
+                    {renderFlipTile(m1)}
+                    {renderFlipTile(m2)}
+                  </div>
+                  <span className="text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 capitalize tracking-wide mt-0.5">
+                    {dateStr}
+                  </span>
+                </div>
+              );
+            }
+
+            return (
+              <div 
+                className="w-10 h-10 rounded-xl bg-zinc-900 dark:bg-zinc-850 border border-zinc-800 flex flex-col items-center justify-center shadow-md select-none relative overflow-hidden my-1 mx-auto"
+                title={`${timeStr} — ${dateStr}`}
+              >
+                <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-[1px] bg-black/90 z-10" />
+                <span className="text-[10px] font-black text-zinc-100 font-mono leading-none z-0">
+                  {hoursStr}
+                </span>
+                <span className="text-[9px] font-black text-zinc-400 font-mono leading-none z-0 mt-0.5">
+                  {minutesStr}
+                </span>
+              </div>
+            );
+          })()}
 
           {/* Welcome User */}
           {sidebarExpanded && (

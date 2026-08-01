@@ -2,7 +2,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { Subject, StudySession, Concurso } from '../types';
 import { api } from '../services/api';
-import { ChevronDown, ChevronRight, Trophy, PieChart as PieChartIcon, Table } from 'lucide-react';
+import { ChevronDown, ChevronRight, Trophy, PieChart as PieChartIcon, Table, Lock, Unlock } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 
 interface StatisticsViewProps {
@@ -54,6 +54,18 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, sim
     const saved = localStorage.getItem('estudos_weight_time');
     return saved !== null ? parseInt(saved) : 10;
   });
+
+  const [isWeightsLocked, setIsWeightsLocked] = useState(() => {
+    return localStorage.getItem('estudos_weights_locked') === 'true';
+  });
+
+  const toggleWeightsLock = () => {
+    setIsWeightsLocked(prev => {
+      const next = !prev;
+      localStorage.setItem('estudos_weights_locked', String(next));
+      return next;
+    });
+  };
 
   // Sync with Supabase on mount
   useEffect(() => {
@@ -430,26 +442,39 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, sim
         </div>
 
         <div className="flex flex-wrap items-center gap-3 bg-white dark:bg-zinc-900 p-2 rounded-xl border border-zinc-200 dark:border-zinc-800">
-          <span className="text-[10px] font-bold uppercase text-zinc-400 px-2">Pesos:</span>
+          <button
+            onClick={toggleWeightsLock}
+            className={`p-1.5 rounded-lg border transition-all cursor-pointer flex items-center gap-1 text-xs font-bold ${
+              isWeightsLocked
+                ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800 text-amber-700 dark:text-amber-300'
+                : 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300'
+            }`}
+            title={isWeightsLocked ? "Critérios trancados (Clique para destrancar)" : "Critérios destrancados (Clique para trancar)"}
+          >
+            {isWeightsLocked ? <Lock size={14} /> : <Unlock size={14} />}
+            <span className="text-[10px] font-black uppercase">{isWeightsLocked ? 'Trancado' : 'Destrancado'}</span>
+          </button>
+
+          <span className="text-[10px] font-bold uppercase text-zinc-400 px-1">Pesos:</span>
           
-          <label className="flex items-center gap-1 text-xs font-bold text-zinc-600 dark:text-zinc-300">
+          <label className={`flex items-center gap-1 text-xs font-bold text-zinc-600 dark:text-zinc-300 ${isWeightsLocked ? 'opacity-50' : ''}`}>
             Aproveitamento
-            <input type="number" min="0" max="100" value={weightAcc} onChange={e => handleWeightAccChange(Number(e.target.value))} className="w-14 bg-zinc-100 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded p-1 text-center font-mono dark:text-white" />
+            <input type="number" min="0" max="100" value={weightAcc} disabled={isWeightsLocked} onChange={e => handleWeightAccChange(Number(e.target.value))} className="w-14 bg-zinc-100 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded p-1 text-center font-mono dark:text-white disabled:cursor-not-allowed" />
           </label>
           
-          <label className="flex items-center gap-1 text-xs font-bold text-zinc-600 dark:text-zinc-300">
+          <label className={`flex items-center gap-1 text-xs font-bold text-zinc-600 dark:text-zinc-300 ${isWeightsLocked ? 'opacity-50' : ''}`}>
             Peso
-            <input type="number" min="0" max="100" value={weightSubj} onChange={e => handleWeightSubjChange(Number(e.target.value))} className="w-14 bg-zinc-100 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded p-1 text-center font-mono dark:text-white" />
+            <input type="number" min="0" max="100" value={weightSubj} disabled={isWeightsLocked} onChange={e => handleWeightSubjChange(Number(e.target.value))} className="w-14 bg-zinc-100 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded p-1 text-center font-mono dark:text-white disabled:cursor-not-allowed" />
           </label>
 
-          <label className="flex items-center gap-1 text-xs font-bold text-zinc-600 dark:text-zinc-300">
+          <label className={`flex items-center gap-1 text-xs font-bold text-zinc-600 dark:text-zinc-300 ${isWeightsLocked ? 'opacity-50' : ''}`}>
             Volume Qs
-            <input type="number" min="0" max="100" value={weightQtd} onChange={e => handleWeightQtdChange(Number(e.target.value))} className="w-14 bg-zinc-100 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded p-1 text-center font-mono dark:text-white" />
+            <input type="number" min="0" max="100" value={weightQtd} disabled={isWeightsLocked} onChange={e => handleWeightQtdChange(Number(e.target.value))} className="w-14 bg-zinc-100 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded p-1 text-center font-mono dark:text-white disabled:cursor-not-allowed" />
           </label>
 
-          <label className="flex items-center gap-1 text-xs font-bold text-zinc-600 dark:text-zinc-300">
+          <label className={`flex items-center gap-1 text-xs font-bold text-zinc-600 dark:text-zinc-300 ${isWeightsLocked ? 'opacity-50' : ''}`}>
             Tempo Dedicado
-            <input type="number" min="0" max="100" value={weightTime} onChange={e => handleWeightTimeChange(Number(e.target.value))} className="w-14 bg-zinc-100 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded p-1 text-center font-mono dark:text-white" />
+            <input type="number" min="0" max="100" value={weightTime} disabled={isWeightsLocked} onChange={e => handleWeightTimeChange(Number(e.target.value))} className="w-14 bg-zinc-100 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded p-1 text-center font-mono dark:text-white disabled:cursor-not-allowed" />
           </label>
         </div>
       </header>

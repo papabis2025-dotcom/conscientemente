@@ -74,10 +74,16 @@ const CalendarView: React.FC<CalendarViewProps> = ({
         const parsed = JSON.parse(linkData);
         if (Array.isArray(parsed)) {
           parsed.filter(Boolean).forEach((l: any) => {
-            if (typeof l === 'string' && l.trim()) linksSet.add(l.trim());
+            if (typeof l === 'string' && l.trim()) {
+              linksSet.add(l.trim());
+            } else if (l && typeof l === 'object' && l.url && l.url.trim()) {
+              linksSet.add(l.url.trim());
+            }
           });
         } else if (typeof parsed === 'string' && parsed.trim()) {
           linksSet.add(parsed.trim());
+        } else if (parsed && typeof parsed === 'object' && parsed.url && parsed.url.trim()) {
+          linksSet.add(parsed.url.trim());
         }
       } catch {
         if (typeof linkData === 'string' && linkData.trim()) {
@@ -89,38 +95,19 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     // 1. Direct links on task
     parseAndAdd(task.questionsLink);
 
-    // 2. Links from sessions (Caderno de Questões)
+    // 2. Links from sessions (Caderno de Questões) matching specific topic or date
     const taskSubId = task.subjectId;
     const taskTopicId = task.topicId || (task.topicIds && task.topicIds[0]);
     const taskDate = task.date ? task.date.split('T')[0] : '';
 
     (sessions || []).forEach(s => {
-      if (!s.questionsLink) return;
-      const sameSub = taskSubId && s.subjectId === taskSubId;
-      const sameTopic = !taskTopicId || !s.topicId || taskTopicId === s.topicId;
-      const sameDate = taskDate && s.date && s.date.split('T')[0] === taskDate;
-      if (sameSub && (sameTopic || sameDate)) {
+      if (!s.questionsLink || !s.subjectId || s.subjectId !== taskSubId) return;
+      const sameTopic = taskTopicId && s.topicId && taskTopicId === s.topicId;
+      const sameDate = taskDate && s.date && taskDate === s.date.split('T')[0];
+      if (sameTopic || sameDate) {
         parseAndAdd(s.questionsLink);
       }
     });
-
-    // 3. Fallback: any link in sessions for the same subjectId
-    if (linksSet.size === 0 && taskSubId) {
-      (sessions || []).forEach(s => {
-        if (s.subjectId === taskSubId && s.questionsLink) {
-          parseAndAdd(s.questionsLink);
-        }
-      });
-    }
-
-    // 4. Fallback: scheduledStudies links for the same subjectId
-    if (linksSet.size === 0 && taskSubId) {
-      (scheduledStudies || []).forEach(s => {
-        if (s.subjectId === taskSubId && s.questionsLink) {
-          parseAndAdd(s.questionsLink);
-        }
-      });
-    }
 
     return Array.from(linksSet);
   };

@@ -17,7 +17,9 @@ import {
   AlertTriangle,
   Trophy,
   Bot,
-  GripVertical
+  GripVertical,
+  Lock,
+  Unlock
 } from 'lucide-react';
 
 interface SubjectsViewProps {
@@ -101,6 +103,18 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
     }
     return false;
   });
+
+  const [isReviewDaysLocked, setIsReviewDaysLocked] = useState(() => {
+    return localStorage.getItem('estudos_review_days_locked') === 'true';
+  });
+
+  const toggleReviewDaysLock = () => {
+    setIsReviewDaysLocked(prev => {
+      const next = !prev;
+      localStorage.setItem('estudos_review_days_locked', String(next));
+      return next;
+    });
+  };
 
   const [localTopicWeights, setLocalTopicWeights] = useState<Record<string, string>>({});
 
@@ -707,14 +721,14 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
 
           <div className="flex flex-wrap gap-2 items-center">
             {customReviewDays.map((days, idx) => (
-              <label key={idx} className={`flex items-center gap-1.5 text-xs font-bold text-zinc-500 ${reviewsDisabled ? 'opacity-40' : ''}`}>
+              <label key={idx} className={`flex items-center gap-1.5 text-xs font-bold text-zinc-500 ${reviewsDisabled || isReviewDaysLocked ? 'opacity-40' : ''}`}>
                 Rev. {idx + 1}
                 <input
                   type="number"
                   min="1"
                   max="365"
                   value={days}
-                  disabled={reviewsDisabled}
+                  disabled={reviewsDisabled || isReviewDaysLocked}
                   onChange={(e) => {
                     const newVal = Math.max(1, parseInt(e.target.value) || 1);
                     const updated = [...customReviewDays];
@@ -722,15 +736,29 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                     setCustomReviewDays(updated);
                   }}
                   className={`w-14 px-1.5 py-1 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg text-center text-xs font-mono font-bold text-zinc-800 dark:text-white outline-none focus:ring-1 focus:ring-zinc-400 ${
-                    reviewsDisabled ? 'cursor-not-allowed opacity-60' : ''
+                    reviewsDisabled || isReviewDaysLocked ? 'cursor-not-allowed opacity-60' : ''
                   }`}
                 />
               </label>
             ))}
 
             <button
+              onClick={toggleReviewDaysLock}
+              className={`p-1.5 rounded-xl border transition-all cursor-pointer flex items-center gap-1 text-xs font-bold ${
+                isReviewDaysLocked
+                  ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800 text-amber-700 dark:text-amber-300'
+                  : 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300'
+              }`}
+              title={isReviewDaysLocked ? "Revisões trancadas (Clique para destrancar)" : "Revisões destrancadas (Clique para trancar)"}
+            >
+              {isReviewDaysLocked ? <Lock size={14} /> : <Unlock size={14} />}
+              <span className="hidden sm:inline">{isReviewDaysLocked ? 'Trancado' : 'Destrancado'}</span>
+            </button>
+
+            <button
               onClick={() => handleSaveAllSettings(true)}
-              className="px-4 py-1.5 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-xl text-xs font-bold hover:opacity-90 transition-all cursor-pointer"
+              disabled={isReviewDaysLocked}
+              className="px-4 py-1.5 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-xl text-xs font-bold hover:opacity-90 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
             >
               Salvar
             </button>

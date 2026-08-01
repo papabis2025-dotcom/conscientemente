@@ -41,7 +41,6 @@ const SYNC_KEYS = [
   'cn_deleted_note_ids',
   'cn_deleted_folder_ids',
   'cp_deleted_study_task_ids',
-  'cp_scheduled_studies',
   'cn_saude_activity_types',
   'cn_saude_muscle_groups',
   'cn_saude_dashboard_layout',
@@ -55,6 +54,8 @@ const SYNC_KEYS = [
   'financas_active_tab',
   'saude_active_tab',
   'tarefas_active_tab',
+  'cn_sound_enabled',
+  'estudos_custom_review_days',
 ];
 
 function getSanitizedLocalSettings(): Record<string, string | null> {
@@ -443,6 +444,29 @@ const App: React.FC = () => {
     if (prefsLoadedForUserRef.current === session.user.id) {
       return;
     }
+
+    // Safety check: se o usuário logado for diferente do usuário anterior salvo localmente,
+    // limpa o localStorage local para prevenir vazamento e contaminação de preferências entre contas.
+    const lastUser = localStorage.getItem('cn_last_user_id');
+    if (lastUser && lastUser !== session.user.id) {
+      Object.keys(localStorage).forEach(key => {
+        if (
+          key.startsWith('cn_') ||
+          key.startsWith('cp_') ||
+          key.startsWith('gp_') ||
+          key.startsWith('estudos_') ||
+          key.startsWith('financas_') ||
+          key.startsWith('saude_') ||
+          key.startsWith('tarefas_') ||
+          key.startsWith('anotacoes_') ||
+          key.startsWith('global_') ||
+          key.startsWith('isSidebarCollapsed_')
+        ) {
+          localStorage.removeItem(key);
+        }
+      });
+    }
+    localStorage.setItem('cn_last_user_id', session.user.id);
     prefsLoadedForUserRef.current = session.user.id;
 
     const loadPreferences = async () => {
@@ -855,10 +879,22 @@ const App: React.FC = () => {
 
   const handleLogout = async () => {
     Object.keys(localStorage).forEach(key => {
-      if (key.startsWith('cn_') || key.startsWith('cp_') || key.startsWith('isSidebarCollapsed_')) {
+      if (
+        key.startsWith('cn_') ||
+        key.startsWith('cp_') ||
+        key.startsWith('gp_') ||
+        key.startsWith('estudos_') ||
+        key.startsWith('financas_') ||
+        key.startsWith('saude_') ||
+        key.startsWith('tarefas_') ||
+        key.startsWith('anotacoes_') ||
+        key.startsWith('global_') ||
+        key.startsWith('isSidebarCollapsed_')
+      ) {
         localStorage.removeItem(key);
       }
     });
+    localStorage.removeItem('cn_last_user_id');
     await supabase.auth.signOut();
     setSession(null);
     window.location.reload();

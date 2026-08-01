@@ -90,7 +90,11 @@ export const api = {
             }
             return handleRequest<Concurso>(Promise.resolve(result));
         },
-        delete: async (id: string) => handleRequest(supabase.from('concursos').delete().eq('id', id)),
+        delete: async (id: string) => {
+            const user = await getAuthUser();
+            if (!user) return null;
+            return handleRequest(supabase.from('concursos').delete().eq('id', id).eq('user_id', user.id));
+        },
         deleteAll: async () => {
             const user = await getAuthUser();
             if (user) return handleRequest(supabase.from('concursos').delete().eq('user_id', user.id));
@@ -204,8 +208,16 @@ export const api = {
             }
             return handleRequest(Promise.resolve(updateResult));
         },
-        delete: async (id: string) => handleRequest(supabase.from('study_sessions').delete().eq('id', id)),
-        deleteBySubject: async (subjectId: string) => handleRequest(supabase.from('study_sessions').delete().eq('subject_id', subjectId)),
+        delete: async (id: string) => {
+            const user = await getAuthUser();
+            if (!user) return null;
+            return handleRequest(supabase.from('study_sessions').delete().eq('id', id).eq('user_id', user.id));
+        },
+        deleteBySubject: async (subjectId: string) => {
+            const user = await getAuthUser();
+            if (!user) return null;
+            return handleRequest(supabase.from('study_sessions').delete().eq('subject_id', subjectId).eq('user_id', user.id));
+        },
         deleteAll: async () => {
             const user = await getAuthUser();
             if (user) return handleRequest(supabase.from('study_sessions').delete().eq('user_id', user.id));
@@ -287,7 +299,11 @@ export const api = {
                 results: payloadResults
             }).eq('id', id));
         },
-        delete: async (id: string) => handleRequest(supabase.from('simulados').delete().eq('id', id)),
+        delete: async (id: string) => {
+            const user = await getAuthUser();
+            if (!user) return null;
+            return handleRequest(supabase.from('simulados').delete().eq('id', id).eq('user_id', user.id));
+        },
         deleteAll: async () => {
             const user = await getAuthUser();
             if (user) return handleRequest(supabase.from('simulados').delete().eq('user_id', user.id));
@@ -424,8 +440,16 @@ export const api = {
             }
             return handleRequest(Promise.resolve(result));
         },
-        delete: async (id: string) => handleRequest(supabase.from('scheduled_studies').delete().eq('id', id)),
-        deleteBySubject: async (subjectId: string) => handleRequest(supabase.from('scheduled_studies').delete().eq('subject_id', subjectId)),
+        delete: async (id: string) => {
+            const user = await getAuthUser();
+            if (!user) return null;
+            return handleRequest(supabase.from('scheduled_studies').delete().eq('id', id).eq('user_id', user.id));
+        },
+        deleteBySubject: async (subjectId: string) => {
+            const user = await getAuthUser();
+            if (!user) return null;
+            return handleRequest(supabase.from('scheduled_studies').delete().eq('subject_id', subjectId).eq('user_id', user.id));
+        },
         deleteAll: async () => {
             const user = await getAuthUser();
             if (user) return handleRequest(supabase.from('scheduled_studies').delete().eq('user_id', user.id));
@@ -476,7 +500,9 @@ export const api = {
         },
         deleteBatch: async (ids: string[]) => {
             if (ids.length === 0) return;
-            return handleRequest(supabase.from('scheduled_studies').delete().in('id', ids));
+            const user = await getAuthUser();
+            if (!user) return null;
+            return handleRequest(supabase.from('scheduled_studies').delete().in('id', ids).eq('user_id', user.id));
         },
     },
 
@@ -529,7 +555,11 @@ export const api = {
             };
             return handleRequest<any>(supabase.from('habits').upsert(dbPayload).select().single());
         },
-        delete: async (id: string) => handleRequest(supabase.from('habits').delete().eq('id', id)),
+        delete: async (id: string) => {
+            const user = await getAuthUser();
+            if (!user) return null;
+            return handleRequest(supabase.from('habits').delete().eq('id', id).eq('user_id', user.id));
+        },
 
         getLogs: async (dateStr: string) => {
             const user = await getAuthUser();

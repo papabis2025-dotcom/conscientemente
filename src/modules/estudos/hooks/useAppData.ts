@@ -627,24 +627,18 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         });
 
         if (reviewsToDelete.length > 0) {
-            console.log('Syncing planned reviews: deleting obsolete/duplicate reviews:', reviewsToDelete.map(r => r.id));
-            for (const r of reviewsToDelete) {
-                try {
-                    await api.schedule.delete(r.id);
-                } catch (e) {
-                    console.error('Error deleting obsolete/duplicate review:', r.id, e);
-                }
+            try {
+                await api.schedule.deleteBatch(reviewsToDelete.map(r => r.id));
+            } catch (e) {
+                console.error('Error deleting obsolete/duplicate reviews batch:', e);
             }
         }
 
         if (reviewsToCreate.length > 0) {
-            console.log('Syncing planned reviews: creating missing reviews:', reviewsToCreate.map(r => r.id));
-            for (const r of reviewsToCreate) {
-                try {
-                    await api.schedule.create(r);
-                } catch (e) {
-                    console.error('Error creating missing review:', r.id, e);
-                }
+            try {
+                await api.schedule.createBatch(reviewsToCreate);
+            } catch (e) {
+                console.error('Error creating missing reviews batch:', e);
             }
         }
 

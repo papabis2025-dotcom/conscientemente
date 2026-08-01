@@ -15,6 +15,11 @@ import {
   X
 } from 'lucide-react';
 
+export interface NotebookLinkItem {
+  url: string;
+  status: 'incompleto' | 'concluído';
+}
+
 interface QuestionsNotebooksViewProps {
   sessions: StudySession[];
   activeConcurso: Concurso | null;
@@ -78,8 +83,7 @@ export const QuestionsNotebooksView: React.FC<QuestionsNotebooksViewProps> = ({
   });
   const [searchQuery, setSearchQuery] = useState<string>('');
 
-  // Estados locais para edição dos links de grupos de estudos (chave: dateStr_subjectId)
-  const [editingGroupLinks, setEditingGroupLinks] = useState<Record<string, string[]>>({});
+  const [editingGroupLinks, setEditingGroupLinks] = useState<Record<string, NotebookLinkItem[]>>({});
   const [savingGroupKey, setSavingGroupKey] = useState<string | null>(null);
 
   // Proteção absoluta contra arrays nulos ou indefinidos vindo das props
@@ -173,7 +177,7 @@ export const QuestionsNotebooksView: React.FC<QuestionsNotebooksViewProps> = ({
   }, [filteredSessions, safeAllSubjects]);
 
   // Inicializa ou obtém a lista de links para um grupo
-  const getGroupLinks = (cardKey: string, cardSessions: StudySession[]) => {
+  const getGroupLinks = (cardKey: string, cardSessions: StudySession[]): NotebookLinkItem[] => {
     if (editingGroupLinks[cardKey] !== undefined) {
       return editingGroupLinks[cardKey];
     }
@@ -183,31 +187,49 @@ export const QuestionsNotebooksView: React.FC<QuestionsNotebooksViewProps> = ({
       try {
         const parsed = JSON.parse(sessionWithLinks.questionsLink);
         if (Array.isArray(parsed)) {
-          return parsed;
+          return parsed.map(item => {
+            if (typeof item === 'string') {
+              return { url: item, status: 'incompleto' };
+            }
+            if (item && typeof item === 'object' && 'url' in item) {
+              return {
+                url: item.url || '',
+                status: item.status === 'concluído' ? 'concluído' : 'incompleto'
+              };
+            }
+            return { url: String(item), status: 'incompleto' };
+          });
         }
       } catch (e) {}
-      return [sessionWithLinks.questionsLink];
+      return [{ url: sessionWithLinks.questionsLink, status: 'incompleto' }];
     }
     return [];
   };
 
-  const handleAddGroupLinkField = (cardKey: string, currentLinks: string[]) => {
+  const handleAddGroupLinkField = (cardKey: string, currentLinks: NotebookLinkItem[]) => {
     setEditingGroupLinks(prev => ({
       ...prev,
-      [cardKey]: [...currentLinks, '']
+      [cardKey]: [...currentLinks, { url: '', status: 'incompleto' }]
     }));
   };
 
-  const handleUpdateGroupLinkValue = (cardKey: string, index: number, value: string, currentLinks: string[]) => {
-    const next = [...currentLinks];
-    next[index] = value;
+  const handleUpdateGroupLinkValue = (cardKey: string, index: number, value: string, currentLinks: NotebookLinkItem[]) => {
+    const next = currentLinks.map((item, i) => i === index ? { ...item, url: value } : item);
     setEditingGroupLinks(prev => ({
       ...prev,
       [cardKey]: next
     }));
   };
 
-  const handleRemoveGroupLinkField = (cardKey: string, index: number, currentLinks: string[]) => {
+  const handleToggleGroupLinkStatus = (cardKey: string, index: number, currentLinks: NotebookLinkItem[]) => {
+    const next: NotebookLinkItem[] = currentLinks.map((item, i) => i === index ? { ...item, status: item.status === 'concluído' ? 'incompleto' : 'concluído' } : item);
+    setEditingGroupLinks(prev => ({
+      ...prev,
+      [cardKey]: next
+    }));
+  };
+
+  const handleRemoveGroupLinkField = (cardKey: string, index: number, currentLinks: NotebookLinkItem[]) => {
     const next = currentLinks.filter((_, i) => i !== index);
     setEditingGroupLinks(prev => ({
       ...prev,
@@ -215,10 +237,10 @@ export const QuestionsNotebooksView: React.FC<QuestionsNotebooksViewProps> = ({
     }));
   };
 
-  // Salvar links do grupo consolidado (propaga para todas as sessões do grupo)
-  const handleSaveGroupLinks = async (cardKey: string, cardSessions: StudySession[], links: string[]) => {
+  // Salvar links do grupo consolidado (propaga para todas as sessões do grupo de forma rápida)
+  const handleSaveGroupLinks = async (cardKey: string, cardSessions: StudySession[], links: NotebookLinkItem[]) => {
     setSavingGroupKey(cardKey);
-    const filtered = links.filter(Boolean);
+    const filtered = links.filter(l => l.url && l.url.trim() !== '');
     const payload = filtered.length > 0 ? JSON.stringify(filtered) : null;
 
     try {
@@ -231,10 +253,7 @@ export const QuestionsNotebooksView: React.FC<QuestionsNotebooksViewProps> = ({
       const sessionIds = new Set(cardSessions.map(s => s.id));
       setSessions(prev => prev.map(s => sessionIds.has(s.id) ? { ...s, questionsLink: payload || undefined } : s));
 
-      // 3. Forçar sincronização automática para propagar para as revisões subsequentes geradas de todos os tópicos
-      await onSyncReviews();
-
-      // Limpar estado de edição
+      // Limpar estado de edição do grupo
       setEditingGroupLinks(prev => {
         const copy = { ...prev };
         delete copy[cardKey];
@@ -430,45 +449,65 @@ export const QuestionsNotebooksView: React.FC<QuestionsNotebooksViewProps> = ({
                     </div>
 
                     {/* Inputs Dinâmicos de Link */}
-                    <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+                    <div className="space-y-2.5 max-h-56 overflow-y-auto pr-1 custom-scrollbar">
                       {linksToDisplay.length === 0 ? (
                         <p className="text-[10px] text-zinc-400 dark:text-zinc-500 font-medium italic mt-1 pl-1">
                           Nenhum link adicionado ainda.
                         </p>
                       ) : (
-                        linksToDisplay.map((lnk, idx) => (
-                          <div key={idx} className="flex gap-1.5 items-center">
-                            <input
-                              type="url"
-                              placeholder="https://..."
-                              value={lnk || ''}
-                              onChange={(e) => {
-                                const current = isEditing ? linksToDisplay : [...links];
-                                handleUpdateGroupLinkValue(cardKey, idx, e.target.value, current);
-                              }}
-                              className="flex-1 p-2.5 bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 rounded-xl outline-none text-xs text-zinc-900 dark:text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
-                            />
-                            {lnk && !isEditing && (
-                              <a
-                                href={lnk}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="p-2 bg-white hover:bg-zinc-100 dark:bg-zinc-800 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700 rounded-xl text-indigo-600 hover:text-indigo-755 dark:text-indigo-400 transition-colors shadow-xs"
-                                title="Abrir Link"
+                        linksToDisplay.map((lnkItem, idx) => (
+                          <div key={idx} className="p-2.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl flex flex-col gap-2 shadow-xs">
+                            <div className="flex gap-1.5 items-center">
+                              <input
+                                type="url"
+                                placeholder="https://..."
+                                value={lnkItem.url || ''}
+                                onChange={(e) => {
+                                  const current = isEditing ? linksToDisplay : [...links];
+                                  handleUpdateGroupLinkValue(cardKey, idx, e.target.value, current);
+                                }}
+                                className="flex-1 p-2 bg-zinc-50 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-xl outline-none text-xs text-zinc-900 dark:text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
+                              />
+                              {lnkItem.url && (
+                                <a
+                                  href={lnkItem.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="p-2 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700 rounded-xl text-indigo-600 dark:text-indigo-400 transition-colors shadow-xs shrink-0"
+                                  title="Abrir Link"
+                                >
+                                  <Link2 size={12} />
+                                </a>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const current = isEditing ? linksToDisplay : [...links];
+                                  handleRemoveGroupLinkField(cardKey, idx, current);
+                                }}
+                                className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-xl transition-colors cursor-pointer shrink-0"
+                                title="Remover Link"
                               >
-                                <Link2 size={12} />
-                              </a>
-                            )}
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const current = isEditing ? linksToDisplay : [...links];
-                                handleRemoveGroupLinkField(cardKey, idx, current);
-                              }}
-                              className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-xl transition-colors cursor-pointer"
-                            >
-                              <Trash2 size={12} />
-                            </button>
+                                <Trash2 size={12} />
+                              </button>
+                            </div>
+                            <div className="flex items-center justify-between px-1 pt-0.5 border-t border-zinc-100 dark:border-zinc-800">
+                              <span className="text-[9px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">Status do Caderno</span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const current = isEditing ? linksToDisplay : [...links];
+                                  handleToggleGroupLinkStatus(cardKey, idx, current);
+                                }}
+                                className={`text-[9px] font-black uppercase px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                                  lnkItem.status === 'concluído'
+                                    ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 shadow-xs'
+                                    : 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-800 shadow-xs'
+                                }`}
+                              >
+                                {lnkItem.status === 'concluído' ? '✓ Concluído' : '⏳ Incompleto'}
+                              </button>
+                            </div>
                           </div>
                         ))
                       )}

@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { Subject, StudySession, Concurso, ScheduledStudy, Simulado, ActivityType } from '../types';
+import { Subject, Topic, StudySession, Concurso, ScheduledStudy, Simulado, ActivityType } from '../types';
 import {
   CalendarDays,
   ChevronLeft,
@@ -76,6 +76,8 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
   const [startDateStr, setStartDateStr] = useState(() => new Date().toISOString().split('T')[0]);
   const [subjectsPerDay, setSubjectsPerDay] = useState(2);
   const [topicsPerSubjectPerDay, setTopicsPerSubjectPerDay] = useState(1);
+  const [simuladoIntervalDays, setSimuladoIntervalDays] = useState(7);
+  const [simuladoQuestionsLimit, setSimuladoQuestionsLimit] = useState(60);
 
   // Load preferences from localStorage based on selectedConcursoId
   React.useEffect(() => {
@@ -91,6 +93,8 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
         if (prefs.activeDays !== undefined) setActiveDays(prefs.activeDays);
         if (prefs.startDateStr !== undefined) setStartDateStr(prefs.startDateStr);
         if (prefs.isCronogramaEnabled !== undefined) setIsCronogramaEnabled(prefs.isCronogramaEnabled);
+        if (prefs.simuladoIntervalDays !== undefined) setSimuladoIntervalDays(prefs.simuladoIntervalDays);
+        if (prefs.simuladoQuestionsLimit !== undefined) setSimuladoQuestionsLimit(prefs.simuladoQuestionsLimit);
       } else {
         // defaults
         setDurWeeks(8);
@@ -100,6 +104,8 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
         setActiveDays(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']);
         setStartDateStr(new Date().toISOString().split('T')[0]);
         setIsCronogramaEnabled(true);
+        setSimuladoIntervalDays(7);
+        setSimuladoQuestionsLimit(60);
       }
     } catch (e) {
       console.error('Error loading cronograma preferences:', e);
@@ -118,7 +124,9 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
       topicsPerSubjectPerDay,
       activeDays,
       startDateStr,
-      isCronogramaEnabled
+      isCronogramaEnabled,
+      simuladoIntervalDays,
+      simuladoQuestionsLimit
     };
     localStorage.setItem(`cp_cronograma_prefs_${selectedConcursoId}`, JSON.stringify(prefs));
     alert('Preferências salvas com sucesso!');
@@ -179,10 +187,16 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
         const parsed = JSON.parse(linkData);
         if (Array.isArray(parsed)) {
           parsed.filter(Boolean).forEach(l => {
-            if (typeof l === 'string' && l.trim()) linksSet.add(l.trim());
+            if (typeof l === 'string' && l.trim()) {
+              linksSet.add(l.trim());
+            } else if (l && typeof l === 'object' && l.url && l.url.trim()) {
+              linksSet.add(l.url.trim());
+            }
           });
         } else if (typeof parsed === 'string' && parsed.trim()) {
           linksSet.add(parsed.trim());
+        } else if (parsed && typeof parsed === 'object' && parsed.url && parsed.url.trim()) {
+          linksSet.add(parsed.url.trim());
         }
       } catch {
         if (typeof linkData === 'string' && linkData.trim()) {
@@ -195,35 +209,21 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
     parseAndAdd(act.questionsLink);
 
     // 2. Links do Caderno de Questões (sessões de estudo da mesma disciplina / tópico / data)
+    const taskSubId = act.subjectId;
+    const taskTopicId = act.topicId;
+    const taskDate = act.date;
+
     (sessions || []).forEach(s => {
-      if (!s.questionsLink || !s.subjectId || s.subjectId !== act.subjectId) return;
-      const sameTopic = !act.topicId || !s.topicId || act.topicId === s.topicId;
-      const sameDate = s.date && s.date.split('T')[0] === act.date;
+      if (!s.questionsLink || !s.subjectId || s.subjectId !== taskSubId) return;
+      const sameTopic = taskTopicId && s.topicId && taskTopicId === s.topicId;
+      const sameDate = taskDate && s.date && taskDate === s.date.split('T')[0];
       if (sameTopic || sameDate) {
         parseAndAdd(s.questionsLink);
       }
     });
 
-    // 3. Fallback 1: se nenhum link por tópico/data for encontrado, buscar qualquer link da mesma disciplina no Caderno
-    if (linksSet.size === 0 && act.subjectId) {
-      (sessions || []).forEach(s => {
-        if (s.subjectId === act.subjectId && s.questionsLink) {
-          parseAndAdd(s.questionsLink);
-        }
-      });
-    }
-
-    // 4. Fallback 2: buscar em scheduledStudies da mesma disciplina
-    if (linksSet.size === 0 && act.subjectId) {
-      (scheduledStudies || []).forEach(s => {
-        if (s.subjectId === act.subjectId && s.questionsLink) {
-          parseAndAdd(s.questionsLink);
-        }
-      });
-    }
-
     return Array.from(linksSet);
-  }, [sessions, scheduledStudies]);
+  }, [sessions]);
 
   // Active Concurso
   const activeConcurso = useMemo(() => {
@@ -365,18 +365,15 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
 
       // 3. Generate items day by day
       const items: (Omit<ScheduledStudy, 'id' | 'status'> & { id?: string })[] = [];
-      const weeklyStudiedSubjects: Set<string> = new Set();
+      const accumStudiedSubjects: Set<string> = new Set();
+      const accumStudiedTopics: Set<string> = new Set();
+      let daysSinceSimulado = 0;
 
       for (let dayOffset = 0; dayOffset < totalDays; dayOffset++) {
         const currentDate = new Date(start);
         currentDate.setDate(start.getDate() + dayOffset);
         const dateStr = currentDate.toISOString().split('T')[0];
-
-        // Reset weekly studied subjects on Mondays
-        const dayOfWeekStr = currentDate.toLocaleDateString('en-US', { weekday: 'long' });
-        if (dayOfWeekStr === 'Monday') {
-          weeklyStudiedSubjects.clear();
-        }
+        daysSinceSimulado++;
 
         // Se este dia já tem alguma atividade cadastrada, pular a geração automática
         const hasExistingActivity = (scheduledStudies || []).some(s => {
@@ -393,7 +390,27 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
         const weekdayName = currentDate.toLocaleDateString('en-US', { weekday: 'long' });
         const isStudyDay = activeDays.includes(weekdayName);
 
-        if (isStudyDay) {
+        // Check if today should trigger a Simulado based on user defined interval
+        const shouldRunSimulado = daysSinceSimulado >= simuladoIntervalDays || (!isStudyDay && daysSinceSimulado >= Math.max(1, simuladoIntervalDays - 1));
+
+        if (shouldRunSimulado && (!isStudyDay || daysSinceSimulado >= simuladoIntervalDays)) {
+          daysSinceSimulado = 0;
+          const fallbackSubject = subjects[0] || { id: '' };
+          const studiedListStr = accumStudiedSubjects.size > 0 
+            ? Array.from(accumStudiedSubjects).join(', ') 
+            : 'Matérias do edital';
+
+          items.push({
+            date: dateStr,
+            subjectId: fallbackSubject.id,
+            activityType: 'Simulado',
+            notes: `Simulado (${simuladoQuestionsLimit} questões): ${studiedListStr}`,
+            durationInMinutes: Math.min(360, Math.max(60, simuladoQuestionsLimit * 3)),
+            questionsDone: simuladoQuestionsLimit,
+            questionsCorrect: Math.round(simuladoQuestionsLimit * 0.7),
+            generatedByCronograma: true
+          });
+        } else if (isStudyDay) {
           // Select todays subjects dynamically based on priority scores
           const todaysSubjects: typeof subjectProfiles[0][] = [];
           for (let s = 0; s < subjectsPerDay; s++) {
@@ -419,11 +436,25 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
           const totalMinutesPerTopic = Math.round((dailyHours * 60) / totalTopicsCount);
 
           todaysSubjects.forEach(profile => {
-            weeklyStudiedSubjects.add(profile.subject.name);
+            accumStudiedSubjects.add(profile.subject.name);
+            const subTopics = profile.subject.topics || [];
+            const hasSubTopics = subTopics.length > 0;
+
             for (let tIdx = 0; tIdx < topicsPerSubjectPerDay; tIdx++) {
-              const topic = profile.queue[profile.queueIndex % profile.queue.length];
-              if (topic) {
+              let topic: Topic | undefined = undefined;
+
+              if (hasSubTopics) {
+                // 2.3.1 fix: ensure an explicit topic is assigned if subject has topics defined
+                if (profile.queue.length > 0) {
+                  topic = profile.queue[profile.queueIndex % profile.queue.length];
+                } else {
+                  topic = subTopics[profile.queueIndex % subTopics.length];
+                }
                 profile.queueIndex++;
+              }
+
+              if (topic) {
+                accumStudiedTopics.add(topic.title);
               }
 
               // Group reading and questions into a single planner task
@@ -432,7 +463,7 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
                 subjectId: profile.subject.id,
                 topicId: topic?.id,
                 activityType: 'Leitura, Questões',
-                notes: `Leitura e Questões: ${topic?.title || 'Conteúdo geral'}`,
+                notes: `Leitura e Questões: ${topic?.title || 'Conteúdo geral da disciplina'}`,
                 durationInMinutes: totalMinutesPerTopic,
                 questionsDone: 10,
                 questionsCorrect: 7,
@@ -456,23 +487,6 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
               generatedByCronograma: true
             });
           }
-        } else {
-          // Off-day / Sunday: schedule a Simulado session including only subjects studied during the week
-          const fallbackSubject = subjects[0] || { id: '' };
-          const studiedListStr = weeklyStudiedSubjects.size > 0 
-            ? Array.from(weeklyStudiedSubjects).join(', ') 
-            : 'Matérias do edital';
-
-          items.push({
-            date: dateStr,
-            subjectId: fallbackSubject.id,
-            activityType: 'Simulado',
-            notes: `Simulado Semanal: ${studiedListStr}`,
-            durationInMinutes: 300,
-            questionsDone: 60,
-            questionsCorrect: 42,
-            generatedByCronograma: true
-          });
         }
       }
 
@@ -760,6 +774,45 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
                   />
                 </div>
 
+                {/* Frequência dos Simulados */}
+                <div>
+                  <label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest block mb-2">Frequência dos Simulados</label>
+                  <select
+                    value={simuladoIntervalDays}
+                    onChange={(e) => setSimuladoIntervalDays(parseInt(e.target.value))}
+                    className="w-full bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 px-4 py-3 rounded-2xl text-sm font-bold text-zinc-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  >
+                    <option value={7}>A cada 7 dias (Semanal)</option>
+                    <option value={14}>A cada 14 dias (Quinzenal)</option>
+                    <option value={21}>A cada 21 dias (Três semanas)</option>
+                    <option value={30}>A cada 30 dias (Mensal)</option>
+                  </select>
+                </div>
+
+                {/* Limite de Questões por Simulado */}
+                <div>
+                  <label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest block mb-2">Limite de Questões por Simulado</label>
+                  <input
+                    type="number"
+                    min={10}
+                    max={200}
+                    value={simuladoQuestionsLimit}
+                    onChange={(e) => setSimuladoQuestionsLimit(Math.max(10, parseInt(e.target.value) || 60))}
+                    className="w-full bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 px-4 py-3 rounded-2xl text-sm font-bold text-zinc-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+
+                {/* 2.3.2 Aviso de Priorização */}
+                <div className="md:col-span-2 bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-900/50 p-4 rounded-2xl flex items-start gap-3 text-indigo-900 dark:text-indigo-200 text-xs shadow-xs">
+                  <Info size={18} className="text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-black uppercase tracking-wider block text-[10px] text-indigo-500 dark:text-indigo-400">Critérios de Priorização do Cronograma</span>
+                    <p className="mt-0.5 leading-relaxed font-medium">
+                      A priorização dos assuntos e disciplinas no cronograma segue os critérios definidos na guia <strong className="font-bold underline">Análise Estatística</strong> e as revisões definidas na guia <strong className="font-bold underline">Disciplinas</strong>.
+                    </p>
+                  </div>
+                </div>
+
                 {/* Weekdays */}
                 <div className="md:col-span-2">
                   <label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest block mb-3">Dias Disponíveis para Estudo</label>
@@ -860,6 +913,15 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
   // Render scheduler dashboard
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
+      {/* 2.3.2 Aviso de Priorização */}
+      <div className="bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-200/80 dark:border-indigo-900/60 p-3.5 rounded-2xl flex items-center gap-3 text-indigo-900 dark:text-indigo-200 text-xs shadow-xs">
+        <Info size={16} className="text-indigo-600 dark:text-indigo-400 shrink-0" />
+        <p className="leading-relaxed font-medium text-[11px]">
+          <strong className="font-black uppercase tracking-wider text-[10px] text-indigo-600 dark:text-indigo-400 mr-2">Aviso de Priorização:</strong>
+          A priorização dos assuntos e disciplinas no cronograma segue os critérios da guia <strong className="font-bold underline">Análise Estatística</strong> e as revisões definidas na guia <strong className="font-bold underline">Disciplinas</strong>.
+        </p>
+      </div>
+
       {/* Top Header controls */}
       <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-4 rounded-[2rem] shadow-sm">
         <div className="flex items-center gap-3">
@@ -1625,6 +1687,45 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
                     onChange={(e) => setStartDateStr(e.target.value)}
                     className="w-full bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 px-4 py-2.5 rounded-xl text-sm font-bold text-zinc-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
                   />
+                </div>
+
+                {/* Frequência dos Simulados */}
+                <div>
+                  <label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest block mb-1.5">Frequência dos Simulados</label>
+                  <select
+                    value={simuladoIntervalDays}
+                    onChange={(e) => setSimuladoIntervalDays(parseInt(e.target.value))}
+                    className="w-full bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 px-4 py-2.5 rounded-xl text-sm font-bold text-zinc-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                  >
+                    <option value={7}>A cada 7 dias (Semanal)</option>
+                    <option value={14}>A cada 14 dias (Quinzenal)</option>
+                    <option value={21}>A cada 21 dias (Três semanas)</option>
+                    <option value={30}>A cada 30 dias (Mensal)</option>
+                  </select>
+                </div>
+
+                {/* Limite de Questões por Simulado */}
+                <div>
+                  <label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest block mb-1.5">Limite de Questões por Simulado</label>
+                  <input
+                    type="number"
+                    min={10}
+                    max={200}
+                    value={simuladoQuestionsLimit}
+                    onChange={(e) => setSimuladoQuestionsLimit(Math.max(10, parseInt(e.target.value) || 60))}
+                    className="w-full bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 px-4 py-2.5 rounded-xl text-sm font-bold text-zinc-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                  />
+                </div>
+
+                {/* 2.3.2 Aviso de Priorização */}
+                <div className="sm:col-span-2 bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-900/50 p-3.5 rounded-xl flex items-start gap-2.5 text-indigo-900 dark:text-indigo-200 text-xs shadow-xs">
+                  <Info size={16} className="text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-black uppercase tracking-wider block text-[9px] text-indigo-500 dark:text-indigo-400">Critérios de Priorização do Cronograma</span>
+                    <p className="mt-0.5 leading-relaxed font-medium text-[11px]">
+                      A priorização dos assuntos e disciplinas no cronograma segue os critérios definidos na guia <strong className="font-bold underline">Análise Estatística</strong> e as revisões definidas na guia <strong className="font-bold underline">Disciplinas</strong>.
+                    </p>
+                  </div>
                 </div>
 
                 <div className="sm:col-span-2">

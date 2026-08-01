@@ -485,17 +485,15 @@ const GlobalSidebar: React.FC<GlobalSidebarProps> = ({
             const m2 = minutesStr[1];
 
             const renderFlipTile = (digit: string, isFirst = false) => (
-              <div className="relative w-7 h-10 md:w-8 md:h-11 bg-zinc-950 rounded-xl border border-zinc-800 shadow-md flex items-center justify-center overflow-hidden select-none">
-                {/* Visual top glare */}
-                <div className="absolute inset-x-0 top-0 h-1/2 bg-white/[0.06] border-b border-black pointer-events-none" />
+              <div className="relative w-8 h-11 md:w-9 md:h-12 bg-[#222226] rounded-xl border border-zinc-800/80 shadow-md flex items-center justify-center overflow-hidden select-none">
                 {/* Horizontal slit seam */}
-                <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-[1px] bg-black z-10" />
+                <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-[1.5px] bg-[#111113] z-10" />
                 {/* Flip digit number */}
-                <span className="text-lg md:text-xl font-black text-zinc-100 font-mono tracking-tighter z-0">
+                <span className="text-xl md:text-2xl font-black text-white font-mono tracking-tight z-0">
                   {digit}
                 </span>
                 {isFirst && (
-                  <span className="absolute bottom-0.5 left-1 text-[6px] font-black uppercase text-zinc-500 z-20">
+                  <span className="absolute bottom-1 left-1 text-[7px] font-bold uppercase text-zinc-400 z-20 leading-none">
                     {currentTime.getHours() >= 12 ? 'PM' : 'AM'}
                   </span>
                 )}
@@ -504,18 +502,14 @@ const GlobalSidebar: React.FC<GlobalSidebarProps> = ({
 
             if (sidebarExpanded) {
               return (
-                <div className="flex flex-col items-center gap-2 p-3 rounded-2xl bg-zinc-900 dark:bg-zinc-900 border border-zinc-800 shadow-md animate-in fade-in duration-200 select-none">
-                  <div className="flex items-center gap-1">
+                <div className="flex flex-col items-center gap-2.5 p-3 rounded-2xl bg-black dark:bg-black border border-zinc-800/80 shadow-lg animate-in fade-in duration-200 select-none">
+                  <div className="flex items-center gap-1.5 justify-center">
                     {renderFlipTile(h1, true)}
                     {renderFlipTile(h2)}
-                    <div className="flex flex-col gap-1 mx-0.5 opacity-60 animate-pulse">
-                      <div className="w-1 h-1 rounded-full bg-zinc-400" />
-                      <div className="w-1 h-1 rounded-full bg-zinc-400" />
-                    </div>
                     {renderFlipTile(m1)}
                     {renderFlipTile(m2)}
                   </div>
-                  <span className="text-[10px] font-semibold text-zinc-400 capitalize tracking-wide mt-0.5">
+                  <span className="text-[10px] font-semibold text-zinc-400 capitalize tracking-wide">
                     {dateStr}
                   </span>
                 </div>

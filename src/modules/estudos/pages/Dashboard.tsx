@@ -1334,14 +1334,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                         : '1px solid rgba(161,161,170,0.18)'
                   }}
                 >
-                  {/* Pending review indicator: small amber badge */}
-                  {d.hasPendingReview && (
-                    <div
-                      className="absolute top-0 left-0 w-1.5 h-1.5 rounded-br-sm"
-                      style={{ backgroundColor: '#f59e0b' }}
-                      title="Revisão pendente"
-                    />
-                  )}
+
 
                   <span className={`text-[10px] font-bold leading-none ${
                     d.hasSimulado

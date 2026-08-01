@@ -198,6 +198,7 @@ const FinancasApp: React.FC = () => {
   const [categorySort, setCategorySort] = useState<'value'|'type'>('value');
   const [inStatusFilter, setInStatusFilter] = useState<'all' | 'pending' | 'paid'>('all');
   const [outStatusFilter, setOutStatusFilter] = useState<'all' | 'pending' | 'paid'>('all');
+  const [outMethodFilter, setOutMethodFilter] = useState<string>('all');
 
   // localStorage triggers removed
 
@@ -206,6 +207,14 @@ const FinancasApp: React.FC = () => {
   const monthTransactions = useMemo(() => {
     return transactions.filter(t => t.date.startsWith(currentMonthStr));
   }, [transactions, currentMonthStr]);
+
+  const availableOutMethods = useMemo(() => {
+    const methods = new Set<string>();
+    monthTransactions.filter(t => t.type === 'saida').forEach(t => {
+      if (t.paymentMethod) methods.add(t.paymentMethod);
+    });
+    return Array.from(methods);
+  }, [monthTransactions]);
 
   const unfilteredEntradas = useMemo(() => {
     return monthTransactions.filter(t => t.type === 'entrada');
@@ -244,6 +253,9 @@ const FinancasApp: React.FC = () => {
     } else if (outStatusFilter === 'paid') {
       filtered = filtered.filter(t => !t.pending);
     }
+    if (outMethodFilter !== 'all') {
+      filtered = filtered.filter(t => (t.paymentMethod || '') === outMethodFilter);
+    }
     let sorted = [...filtered];
     if (outSort === 'date') sorted.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     if (outSort === 'value') sorted.sort((a, b) => b.amount - a.amount);
@@ -251,7 +263,7 @@ const FinancasApp: React.FC = () => {
     if (outSort === 'name') sorted.sort((a, b) => a.name.localeCompare(b.name));
     if (outSort === 'paymentMethod') sorted.sort((a, b) => (a.paymentMethod || '').localeCompare(b.paymentMethod || ''));
     return sorted;
-  }, [monthTransactions, outSort, outStatusFilter]);
+  }, [monthTransactions, outSort, outStatusFilter, outMethodFilter]);
 
   const gastosPorCartao = useMemo(() => {
     const totals: Record<string, number> = {};
@@ -1246,6 +1258,13 @@ const FinancasApp: React.FC = () => {
                     <option value="all">Status: Todos</option>
                     <option value="pending">Status: Pendente</option>
                     <option value="paid">Status: Pago</option>
+                  </select>
+                  <span className="text-zinc-300 dark:text-zinc-700 text-[10px]">•</span>
+                  <select value={outMethodFilter} onChange={e => setOutMethodFilter(e.target.value)} className="text-[9px] uppercase font-bold tracking-wider bg-transparent text-zinc-400 outline-none cursor-pointer max-w-[110px] truncate">
+                    <option value="all">Forma: Todas</option>
+                    {availableOutMethods.map(m => (
+                      <option key={m} value={m}>{m}</option>
+                    ))}
                   </select>
                   <span className="text-zinc-300 dark:text-zinc-700 text-[10px]">•</span>
                   <select value={outSort} onChange={e => setOutSort(e.target.value as any)} className="text-[9px] uppercase font-bold tracking-wider bg-transparent text-zinc-400 outline-none cursor-pointer">

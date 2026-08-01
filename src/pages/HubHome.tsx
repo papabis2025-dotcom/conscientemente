@@ -2232,75 +2232,72 @@ const HubHome: React.FC<HubHomeProps> = ({
                               >
                                 <span className="text-xs md:text-sm font-black leading-none">{day}</span>
                                 
-                                {/* Ícones vetoriais em miniatura indicadores do módulo sob o dia */}
+                                {/* Ícones vetoriais em miniatura com badges arredondadas no estilo dos cards dos módulos */}
                                 <div className="flex gap-0.5 mt-0.5 shrink-0 flex-wrap justify-center items-center max-w-full">
                                   {dayStudies.map((s, idx) => {
                                     const isAtrasado = dateStr < todayStr && !s.completed;
                                     return (
-                                      <BookOpen 
+                                      <div 
                                         key={`study-${s.id || idx}`}
-                                        size={10} 
-                                        strokeWidth={2.8} 
-                                        className={`shrink-0 transition-all ${
+                                        className={`w-3.5 h-3.5 md:w-4 md:h-4 rounded-md flex items-center justify-center shrink-0 transition-all ${
                                           isAtrasado 
-                                            ? 'text-purple-600 dark:text-purple-400 animate-pulse scale-110' 
-                                            : 'text-purple-500/90 dark:text-purple-400/90'
-                                        }`} 
-                                      />
+                                            ? 'bg-purple-200 dark:bg-purple-500/40 animate-pulse scale-105' 
+                                            : 'bg-purple-100 dark:bg-purple-500/20'
+                                        }`}
+                                      >
+                                        <BookOpen size={9} strokeWidth={2.8} className="text-purple-600 dark:text-purple-400" />
+                                      </div>
                                     );
                                   })}
                                   {dayTasks.filter(t => !t.endDate).map((t, idx) => {
                                     const cat = String(t.category || '').trim().toLowerCase();
                                     const isImportant = cat === 'importante' || cat === 'urgente';
                                     const isAtrasado = dateStr < todayStr && !t.completed;
-                                    return isImportant ? (
-                                      <AlertCircle 
+                                    return (
+                                      <div 
                                         key={`task-${t.id || idx}`}
-                                        size={10} 
-                                        strokeWidth={3} 
-                                        className="text-red-600 dark:text-red-400 shrink-0 animate-pulse" 
-                                      />
-                                    ) : (
-                                      <ListTodo 
-                                        key={`task-${t.id || idx}`}
-                                        size={10} 
-                                        strokeWidth={2.8} 
-                                        className={`shrink-0 transition-all ${
-                                          isAtrasado 
-                                            ? 'text-rose-600 dark:text-rose-400 animate-pulse scale-110' 
-                                            : 'text-rose-500/90 dark:text-rose-400/90'
-                                        }`} 
-                                      />
+                                        className={`w-3.5 h-3.5 md:w-4 md:h-4 rounded-md flex items-center justify-center shrink-0 transition-all ${
+                                          isImportant || isAtrasado 
+                                            ? 'bg-rose-200 dark:bg-rose-500/40 animate-pulse scale-105' 
+                                            : 'bg-rose-100 dark:bg-rose-500/20'
+                                        }`}
+                                      >
+                                        {isImportant ? (
+                                          <AlertCircle size={9} strokeWidth={3} className="text-red-600 dark:text-red-400" />
+                                        ) : (
+                                          <ListTodo size={9} strokeWidth={2.8} className="text-rose-600 dark:text-rose-400" />
+                                        )}
+                                      </div>
                                     );
                                   })}
                                   {dayFinances.map((f, idx) => {
                                     const isAtrasado = dateStr < todayStr;
                                     return (
-                                      <Wallet 
+                                      <div 
                                         key={`finance-${f.id || idx}`}
-                                        size={10} 
-                                        strokeWidth={2.8} 
-                                        className={`shrink-0 transition-all ${
+                                        className={`w-3.5 h-3.5 md:w-4 md:h-4 rounded-md flex items-center justify-center shrink-0 transition-all ${
                                           isAtrasado 
-                                            ? 'text-emerald-600 dark:text-emerald-400 animate-pulse scale-110' 
-                                            : 'text-emerald-500/90 dark:text-emerald-400/90'
-                                        }`} 
-                                      />
+                                            ? 'bg-emerald-200 dark:bg-emerald-500/40 animate-pulse scale-105' 
+                                            : 'bg-emerald-100 dark:bg-emerald-500/20'
+                                        }`}
+                                      >
+                                        <Wallet size={9} strokeWidth={2.8} className="text-emerald-600 dark:text-emerald-400" />
+                                      </div>
                                     );
                                   })}
                                   {dayWorkouts.map((w, idx) => {
                                     const isAtrasado = dateStr < todayStr && w.status !== 'realizado';
                                     return (
-                                      <Activity 
+                                      <div 
                                         key={`workout-${w.id || idx}`}
-                                        size={10} 
-                                        strokeWidth={2.8} 
-                                        className={`shrink-0 transition-all ${
+                                        className={`w-3.5 h-3.5 md:w-4 md:h-4 rounded-md flex items-center justify-center shrink-0 transition-all ${
                                           isAtrasado 
-                                            ? 'text-cyan-600 dark:text-cyan-400 animate-pulse scale-110' 
-                                            : 'text-cyan-500/90 dark:text-cyan-400/90'
-                                        }`} 
-                                      />
+                                            ? 'bg-cyan-200 dark:bg-cyan-500/40 animate-pulse scale-105' 
+                                            : 'bg-cyan-100 dark:bg-cyan-500/20'
+                                        }`}
+                                      >
+                                        <Activity size={9} strokeWidth={2.8} className="text-cyan-600 dark:text-cyan-400" />
+                                      </div>
                                     );
                                   })}
                                 </div>

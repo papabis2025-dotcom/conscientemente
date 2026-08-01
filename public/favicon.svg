@@ -5,7 +5,7 @@
       path { stroke: #ffffff; }
     }
   </style>
-  <g fill="none" stroke-width="22" stroke-linecap="round" stroke-linejoin="round">
+  <g fill="none" stroke-width="20" stroke-linecap="round" stroke-linejoin="round">
     <!-- Left Hemisphere -->
     <path d="M 236 100 C 180 92 110 120 96 184 C 82 240 104 280 136 306 C 130 338 148 376 192 386 C 220 392 236 370 236 335 Z" />
     <path d="M 196 150 C 150 155 140 202 170 226 C 194 242 220 224 230 184" />
@@ -19,9 +19,9 @@
     <path d="M 327 115 C 357 135 342 170 302 155" />
 
     <!-- Central Fissure -->
-    <path d="M 256 90 L 256 385" stroke-width="20" stroke-dasharray="16 12" opacity="0.9" />
+    <path d="M 256 90 L 256 385" stroke-width="18" stroke-dasharray="16 12" opacity="0.9" />
 
     <!-- Brain Stem Base -->
-    <path d="M 230 384 C 230 425 242 445 256 445 C 270 445 282 425 282 384" stroke-width="20" />
+    <path d="M 230 384 C 230 425 242 445 256 445 C 270 445 282 425 282 384" stroke-width="18" />
   </g>
 </svg>

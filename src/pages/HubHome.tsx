@@ -2232,17 +2232,19 @@ const HubHome: React.FC<HubHomeProps> = ({
                               >
                                 <span className="text-xs md:text-sm font-black leading-none">{day}</span>
                                 
-                                {/* Bolas elegantes indicadoras sob o dia */}
-                                <div className="flex gap-1 mt-1 shrink-0 flex-wrap justify-center max-w-full">
+                                {/* Ícones vetoriais em miniatura indicadores do módulo sob o dia */}
+                                <div className="flex gap-0.5 mt-0.5 shrink-0 flex-wrap justify-center items-center max-w-full">
                                   {dayStudies.map((s, idx) => {
                                     const isAtrasado = dateStr < todayStr && !s.completed;
                                     return (
-                                      <div 
+                                      <BookOpen 
                                         key={`study-${s.id || idx}`}
-                                        className={`w-1.5 h-1.5 md:w-2 md:h-2 rounded-full shrink-0 transition-all ${
+                                        size={10} 
+                                        strokeWidth={2.8} 
+                                        className={`shrink-0 transition-all ${
                                           isAtrasado 
-                                            ? 'bg-purple-600 dark:bg-purple-400 shadow-[0_0_6px_rgba(168,85,247,0.85)] scale-110 animate-pulse' 
-                                            : 'bg-purple-500/80 dark:bg-purple-400/80'
+                                            ? 'text-purple-600 dark:text-purple-400 animate-pulse scale-110' 
+                                            : 'text-purple-500/90 dark:text-purple-400/90'
                                         }`} 
                                       />
                                     );
@@ -2251,17 +2253,22 @@ const HubHome: React.FC<HubHomeProps> = ({
                                     const cat = String(t.category || '').trim().toLowerCase();
                                     const isImportant = cat === 'importante' || cat === 'urgente';
                                     const isAtrasado = dateStr < todayStr && !t.completed;
-                                    return (
-                                      <div 
+                                    return isImportant ? (
+                                      <AlertCircle 
                                         key={`task-${t.id || idx}`}
-                                        className={`rounded-full shrink-0 transition-all ${
-                                          isImportant
-                                            ? 'w-2 h-2 md:w-2.5 md:h-2.5 bg-red-600 dark:bg-red-400 ring-2 ring-red-400/50'
-                                            : `w-1.5 h-1.5 md:w-2 md:h-2 ${
-                                                isAtrasado 
-                                                  ? 'bg-red-600 dark:bg-red-400 shadow-[0_0_6px_rgba(239,68,68,0.85)] scale-110 animate-pulse' 
-                                                  : 'bg-red-500/80 dark:bg-red-400/80'
-                                              }`
+                                        size={10} 
+                                        strokeWidth={3} 
+                                        className="text-red-600 dark:text-red-400 shrink-0 animate-pulse" 
+                                      />
+                                    ) : (
+                                      <ListTodo 
+                                        key={`task-${t.id || idx}`}
+                                        size={10} 
+                                        strokeWidth={2.8} 
+                                        className={`shrink-0 transition-all ${
+                                          isAtrasado 
+                                            ? 'text-rose-600 dark:text-rose-400 animate-pulse scale-110' 
+                                            : 'text-rose-500/90 dark:text-rose-400/90'
                                         }`} 
                                       />
                                     );
@@ -2269,12 +2276,14 @@ const HubHome: React.FC<HubHomeProps> = ({
                                   {dayFinances.map((f, idx) => {
                                     const isAtrasado = dateStr < todayStr;
                                     return (
-                                      <div 
+                                      <Wallet 
                                         key={`finance-${f.id || idx}`}
-                                        className={`w-1.5 h-1.5 md:w-2 md:h-2 rounded-full shrink-0 transition-all ${
+                                        size={10} 
+                                        strokeWidth={2.8} 
+                                        className={`shrink-0 transition-all ${
                                           isAtrasado 
-                                            ? 'bg-emerald-600 dark:bg-emerald-400 shadow-[0_0_6px_rgba(10,185,129,0.85)] scale-110 animate-pulse' 
-                                            : 'bg-emerald-500/80 dark:bg-emerald-400/80'
+                                            ? 'text-emerald-600 dark:text-emerald-400 animate-pulse scale-110' 
+                                            : 'text-emerald-500/90 dark:text-emerald-400/90'
                                         }`} 
                                       />
                                     );
@@ -2282,12 +2291,14 @@ const HubHome: React.FC<HubHomeProps> = ({
                                   {dayWorkouts.map((w, idx) => {
                                     const isAtrasado = dateStr < todayStr && w.status !== 'realizado';
                                     return (
-                                      <div 
+                                      <Activity 
                                         key={`workout-${w.id || idx}`}
-                                        className={`w-1.5 h-1.5 md:w-2 md:h-2 rounded-full shrink-0 transition-all ${
+                                        size={10} 
+                                        strokeWidth={2.8} 
+                                        className={`shrink-0 transition-all ${
                                           isAtrasado 
-                                            ? 'bg-blue-600 dark:bg-blue-400 shadow-[0_0_6px_rgba(59,130,246,0.85)] scale-110 animate-pulse' 
-                                            : 'bg-blue-500/80 dark:bg-blue-400/80'
+                                            ? 'text-cyan-600 dark:text-cyan-400 animate-pulse scale-110' 
+                                            : 'text-cyan-500/90 dark:text-cyan-400/90'
                                         }`} 
                                       />
                                     );

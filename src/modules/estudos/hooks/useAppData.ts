@@ -2016,8 +2016,10 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         concursos, setConcursos: updateConcursos,
         selectedConcursoId, setSelectedConcursoId,
         sessions: filteredSessions, setSessions: (s: any) => s, // Disabled direct set
+        allSessions: sessions,
         simulados: filteredSimulados, setSimulados: (s: any) => s, // Disabled direct set
         scheduledStudies: filteredScheduledStudies, setScheduledStudies: updateScheduledStudies, deleteScheduledStudy, updateScheduledStudy, saveCalendarActivity,
+        allScheduledStudies: scheduledStudies,
         dailyGoals, setDailyGoals: updateDailyGoals,
         logs, setLogs: (s: any) => s, // Disabled direct set
         theme, toggleTheme,

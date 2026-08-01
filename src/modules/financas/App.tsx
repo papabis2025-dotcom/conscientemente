@@ -193,7 +193,7 @@ const FinancasApp: React.FC = () => {
   }, [txType, inCategories, outCategories, paymentMethods]);
 
   const [inSort, setInSort] = useState<'date'|'value'|'category'|'name'>('date');
-  const [outSort, setOutSort] = useState<'date'|'value'|'category'|'name'>('date');
+  const [outSort, setOutSort] = useState<'date'|'value'|'category'|'name'|'paymentMethod'>('date');
   const [paymentSort, setPaymentSort] = useState<'value'|'type'>('value');
   const [categorySort, setCategorySort] = useState<'value'|'type'>('value');
   const [inStatusFilter, setInStatusFilter] = useState<'all' | 'pending' | 'paid'>('all');
@@ -249,6 +249,7 @@ const FinancasApp: React.FC = () => {
     if (outSort === 'value') sorted.sort((a, b) => b.amount - a.amount);
     if (outSort === 'category') sorted.sort((a, b) => a.category.localeCompare(b.category));
     if (outSort === 'name') sorted.sort((a, b) => a.name.localeCompare(b.name));
+    if (outSort === 'paymentMethod') sorted.sort((a, b) => (a.paymentMethod || '').localeCompare(b.paymentMethod || ''));
     return sorted;
   }, [monthTransactions, outSort, outStatusFilter]);
 
@@ -1252,6 +1253,7 @@ const FinancasApp: React.FC = () => {
                     <option value="value">Valor</option>
                     <option value="category">Categ</option>
                     <option value="name">Nome</option>
+                    <option value="paymentMethod">Forma Pagto</option>
                   </select>
                 </div>
               </div>

@@ -485,11 +485,11 @@ const GlobalSidebar: React.FC<GlobalSidebarProps> = ({
             const m2 = minutesStr[1];
 
             const renderFlipTile = (digit: string, isFirst = false) => (
-              <div className="relative w-7 h-10 md:w-8 md:h-11 bg-zinc-900 dark:bg-zinc-850 rounded-xl border border-zinc-800 dark:border-zinc-700/80 shadow-md flex items-center justify-center overflow-hidden select-none">
+              <div className="relative w-7 h-10 md:w-8 md:h-11 bg-zinc-950 rounded-xl border border-zinc-800 shadow-md flex items-center justify-center overflow-hidden select-none">
                 {/* Visual top glare */}
-                <div className="absolute inset-x-0 top-0 h-1/2 bg-white/[0.05] border-b border-black/80 pointer-events-none" />
+                <div className="absolute inset-x-0 top-0 h-1/2 bg-white/[0.06] border-b border-black pointer-events-none" />
                 {/* Horizontal slit seam */}
-                <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-[1px] bg-black/90 z-10" />
+                <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-[1px] bg-black z-10" />
                 {/* Flip digit number */}
                 <span className="text-lg md:text-xl font-black text-zinc-100 font-mono tracking-tighter z-0">
                   {digit}
@@ -504,18 +504,18 @@ const GlobalSidebar: React.FC<GlobalSidebarProps> = ({
 
             if (sidebarExpanded) {
               return (
-                <div className="flex flex-col items-center gap-2 p-3 rounded-2xl bg-zinc-100/60 dark:bg-zinc-800/30 border border-zinc-200/50 dark:border-zinc-800/50 animate-in fade-in duration-200 select-none">
+                <div className="flex flex-col items-center gap-2 p-3 rounded-2xl bg-zinc-900 dark:bg-zinc-900 border border-zinc-800 shadow-md animate-in fade-in duration-200 select-none">
                   <div className="flex items-center gap-1">
                     {renderFlipTile(h1, true)}
                     {renderFlipTile(h2)}
                     <div className="flex flex-col gap-1 mx-0.5 opacity-60 animate-pulse">
-                      <div className="w-1 h-1 rounded-full bg-zinc-700 dark:bg-zinc-300" />
-                      <div className="w-1 h-1 rounded-full bg-zinc-700 dark:bg-zinc-300" />
+                      <div className="w-1 h-1 rounded-full bg-zinc-400" />
+                      <div className="w-1 h-1 rounded-full bg-zinc-400" />
                     </div>
                     {renderFlipTile(m1)}
                     {renderFlipTile(m2)}
                   </div>
-                  <span className="text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 capitalize tracking-wide mt-0.5">
+                  <span className="text-[10px] font-semibold text-zinc-400 capitalize tracking-wide mt-0.5">
                     {dateStr}
                   </span>
                 </div>

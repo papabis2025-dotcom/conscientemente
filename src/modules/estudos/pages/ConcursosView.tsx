@@ -12,6 +12,9 @@ interface ConcursosViewProps {
 }
 
 const isTopicCompletedHelper = (subjectId: string, topicId: string, isCompletedFlag: boolean, scheduledStudies: any[], sessions: StudySession[]) => {
+  if (isCompletedFlag) {
+    return true;
+  }
   const hasBeenStudied = (sessions || []).some(s => s.subjectId === subjectId && s.topicId === topicId);
   if (hasBeenStudied) {
     return true;

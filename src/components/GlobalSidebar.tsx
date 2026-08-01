@@ -484,7 +484,7 @@ const GlobalSidebar: React.FC<GlobalSidebarProps> = ({
             const m1 = minutesStr[0];
             const m2 = minutesStr[1];
 
-            const renderFlipTile = (digit: string, isFirst = false) => (
+            const renderFlipTile = (digit: string) => (
               <div className="relative w-8 h-11 md:w-9 md:h-12 bg-[#222226] rounded-xl border border-zinc-800/80 shadow-md flex items-center justify-center overflow-hidden select-none">
                 {/* Horizontal slit seam */}
                 <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-[1.5px] bg-[#111113] z-10" />
@@ -492,19 +492,14 @@ const GlobalSidebar: React.FC<GlobalSidebarProps> = ({
                 <span className="text-xl md:text-2xl font-black text-white font-mono tracking-tight z-0">
                   {digit}
                 </span>
-                {isFirst && (
-                  <span className="absolute bottom-1 left-1 text-[7px] font-bold uppercase text-zinc-400 z-20 leading-none">
-                    {currentTime.getHours() >= 12 ? 'PM' : 'AM'}
-                  </span>
-                )}
               </div>
             );
 
             if (sidebarExpanded) {
               return (
-                <div className="flex flex-col items-center gap-2.5 p-3 rounded-2xl bg-black dark:bg-black border border-zinc-800/80 shadow-lg animate-in fade-in duration-200 select-none">
+                <div className="flex flex-col items-center gap-2 py-2 animate-in fade-in duration-200 select-none">
                   <div className="flex items-center gap-1.5 justify-center">
-                    {renderFlipTile(h1, true)}
+                    {renderFlipTile(h1)}
                     {renderFlipTile(h2)}
                     {renderFlipTile(m1)}
                     {renderFlipTile(m2)}

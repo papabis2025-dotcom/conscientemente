@@ -2232,21 +2232,19 @@ const HubHome: React.FC<HubHomeProps> = ({
                               >
                                 <span className="text-xs md:text-sm font-black leading-none">{day}</span>
                                 
-                                {/* Ícones vetoriais em miniatura com badges arredondadas no estilo dos cards dos módulos */}
-                                <div className="flex gap-0.5 mt-0.5 shrink-0 flex-wrap justify-center items-center max-w-full">
+                                {/* Bolas elegantes indicadoras sob o dia */}
+                                <div className="flex gap-1 mt-1 shrink-0 flex-wrap justify-center max-w-full">
                                   {dayStudies.map((s, idx) => {
                                     const isAtrasado = dateStr < todayStr && !s.completed;
                                     return (
                                       <div 
                                         key={`study-${s.id || idx}`}
-                                        className={`w-3.5 h-3.5 md:w-4 md:h-4 rounded-md flex items-center justify-center shrink-0 transition-all ${
+                                        className={`w-1.5 h-1.5 md:w-2 md:h-2 rounded-full shrink-0 transition-all ${
                                           isAtrasado 
-                                            ? 'bg-purple-200 dark:bg-purple-500/40 animate-pulse scale-105' 
-                                            : 'bg-purple-100 dark:bg-purple-500/20'
-                                        }`}
-                                      >
-                                        <BookOpen size={9} strokeWidth={2.8} className="text-purple-600 dark:text-purple-400" />
-                                      </div>
+                                            ? 'bg-purple-600 dark:bg-purple-400 shadow-[0_0_6px_rgba(168,85,247,0.85)] scale-110 animate-pulse' 
+                                            : 'bg-purple-500/80 dark:bg-purple-400/80'
+                                        }`} 
+                                      />
                                     );
                                   })}
                                   {dayTasks.filter(t => !t.endDate).map((t, idx) => {
@@ -2256,18 +2254,16 @@ const HubHome: React.FC<HubHomeProps> = ({
                                     return (
                                       <div 
                                         key={`task-${t.id || idx}`}
-                                        className={`w-3.5 h-3.5 md:w-4 md:h-4 rounded-md flex items-center justify-center shrink-0 transition-all ${
-                                          isImportant || isAtrasado 
-                                            ? 'bg-rose-200 dark:bg-rose-500/40 animate-pulse scale-105' 
-                                            : 'bg-rose-100 dark:bg-rose-500/20'
-                                        }`}
-                                      >
-                                        {isImportant ? (
-                                          <AlertCircle size={9} strokeWidth={3} className="text-red-600 dark:text-red-400" />
-                                        ) : (
-                                          <ListTodo size={9} strokeWidth={2.8} className="text-rose-600 dark:text-rose-400" />
-                                        )}
-                                      </div>
+                                        className={`rounded-full shrink-0 transition-all ${
+                                          isImportant
+                                            ? 'w-2 h-2 md:w-2.5 md:h-2.5 bg-red-600 dark:bg-red-400 ring-2 ring-red-400/50'
+                                            : `w-1.5 h-1.5 md:w-2 md:h-2 ${
+                                                isAtrasado 
+                                                  ? 'bg-red-600 dark:bg-red-400 shadow-[0_0_6px_rgba(239,68,68,0.85)] scale-110 animate-pulse' 
+                                                  : 'bg-red-500/80 dark:bg-red-400/80'
+                                              }`
+                                        }`} 
+                                      />
                                     );
                                   })}
                                   {dayFinances.map((f, idx) => {
@@ -2275,14 +2271,12 @@ const HubHome: React.FC<HubHomeProps> = ({
                                     return (
                                       <div 
                                         key={`finance-${f.id || idx}`}
-                                        className={`w-3.5 h-3.5 md:w-4 md:h-4 rounded-md flex items-center justify-center shrink-0 transition-all ${
+                                        className={`w-1.5 h-1.5 md:w-2 md:h-2 rounded-full shrink-0 transition-all ${
                                           isAtrasado 
-                                            ? 'bg-emerald-200 dark:bg-emerald-500/40 animate-pulse scale-105' 
-                                            : 'bg-emerald-100 dark:bg-emerald-500/20'
-                                        }`}
-                                      >
-                                        <Wallet size={9} strokeWidth={2.8} className="text-emerald-600 dark:text-emerald-400" />
-                                      </div>
+                                            ? 'bg-emerald-600 dark:bg-emerald-400 shadow-[0_0_6px_rgba(10,185,129,0.85)] scale-110 animate-pulse' 
+                                            : 'bg-emerald-500/80 dark:bg-emerald-400/80'
+                                        }`} 
+                                      />
                                     );
                                   })}
                                   {dayWorkouts.map((w, idx) => {
@@ -2290,14 +2284,12 @@ const HubHome: React.FC<HubHomeProps> = ({
                                     return (
                                       <div 
                                         key={`workout-${w.id || idx}`}
-                                        className={`w-3.5 h-3.5 md:w-4 md:h-4 rounded-md flex items-center justify-center shrink-0 transition-all ${
+                                        className={`w-1.5 h-1.5 md:w-2 md:h-2 rounded-full shrink-0 transition-all ${
                                           isAtrasado 
-                                            ? 'bg-cyan-200 dark:bg-cyan-500/40 animate-pulse scale-105' 
-                                            : 'bg-cyan-100 dark:bg-cyan-500/20'
-                                        }`}
-                                      >
-                                        <Activity size={9} strokeWidth={2.8} className="text-cyan-600 dark:text-cyan-400" />
-                                      </div>
+                                            ? 'bg-cyan-600 dark:bg-cyan-400 shadow-[0_0_6px_rgba(59,130,246,0.85)] scale-110 animate-pulse' 
+                                            : 'bg-cyan-500/80 dark:bg-cyan-400/80'
+                                        }`} 
+                                      />
                                     );
                                   })}
                                 </div>

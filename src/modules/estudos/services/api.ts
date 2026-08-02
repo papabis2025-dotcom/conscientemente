@@ -82,7 +82,6 @@ export const api = {
                 subjects: concurso.subjects || [] // JSONB supported directly, default to empty array
             };
 
-            console.log('Upserting concurso to DB:', { id: dbPayload.id, name: dbPayload.name, subjectsCount: concurso.subjects?.length });
             let result = await supabase.from('concursos').upsert(dbPayload).select().single();
             if (result.error && result.error.code === '42703') {
                 const { image_url, ...payloadWithoutImage } = dbPayload as any;
@@ -182,6 +181,9 @@ export const api = {
             return handleRequest(Promise.resolve(result));
         },
         update: async (id: string, updates: Partial<StudySession>) => {
+            const user = await getAuthUser();
+            if (!user) throw new Error('Not authenticated');
+
             const dbPayload: any = {};
             if (updates.subjectId) dbPayload.subject_id = updates.subjectId;
             if (updates.topicId !== undefined) dbPayload.topic_id = updates.topicId;
@@ -197,13 +199,13 @@ export const api = {
                 dbPayload.questions_link = updates.questionsLink;
             }
 
-            let updateResult = await supabase.from('study_sessions').update(dbPayload).eq('id', id);
+            let updateResult = await supabase.from('study_sessions').update(dbPayload).eq('id', id).eq('user_id', user.id);
             if (updateResult.error && updateResult.error.code === '42703') {
                 const { questions_link, ...payloadWithoutLink } = dbPayload;
-                updateResult = await supabase.from('study_sessions').update(payloadWithoutLink).eq('id', id);
+                updateResult = await supabase.from('study_sessions').update(payloadWithoutLink).eq('id', id).eq('user_id', user.id);
                 if (updateResult.error && updateResult.error.code === '42703') {
                     const { activity_type, ...payloadWithoutBoth } = payloadWithoutLink;
-                    updateResult = await supabase.from('study_sessions').update(payloadWithoutBoth).eq('id', id);
+                    updateResult = await supabase.from('study_sessions').update(payloadWithoutBoth).eq('id', id).eq('user_id', user.id);
                 }
             }
             return handleRequest(Promise.resolve(updateResult));
@@ -419,6 +421,9 @@ export const api = {
             } as ScheduledStudy;
         },
         update: async (id: string, updates: Partial<ScheduledStudy>) => {
+            const user = await getAuthUser();
+            if (!user) throw new Error('Not authenticated');
+
             const dbPayload: any = {};
             if (updates.subjectId) dbPayload.subject_id = updates.subjectId;
             if (updates.topicId) dbPayload.topic_id = updates.topicId;
@@ -433,10 +438,10 @@ export const api = {
                 dbPayload.questions_link = updates.questionsLink ?? null;
             }
 
-            let result = await supabase.from('scheduled_studies').update(dbPayload).eq('id', id);
+            let result = await supabase.from('scheduled_studies').update(dbPayload).eq('id', id).eq('user_id', user.id);
             if (result.error && result.error.code === '42703') {
                 const { questions_link, ...payloadWithout } = dbPayload;
-                result = await supabase.from('scheduled_studies').update(payloadWithout).eq('id', id);
+                result = await supabase.from('scheduled_studies').update(payloadWithout).eq('id', id).eq('user_id', user.id);
             }
             return handleRequest(Promise.resolve(result));
         },

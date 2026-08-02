@@ -47,25 +47,25 @@ const LoginView: React.FC<LoginViewProps> = () => {
     setSuccessMsg('');
     setLoading(true);
 
-    console.log('Login attempt:', { email, isRegistering });
+
 
     try {
       if (isRegistering) {
-        console.log('Attempting sign up...');
+
         const { data, error: signUpError } = await supabase.auth.signUp({
           email,
           password,
         });
-        console.log('Sign up response:', { data, error: signUpError });
+
         if (signUpError) throw signUpError;
         setSuccessMsg('Verifique seu e-mail para confirmar o cadastro!');
       } else {
-        console.log('Attempting sign in...');
+
         const { data, error: signInError } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
-        console.log('Sign in response:', { data, error: signInError });
+
         if (signInError) throw signInError;
 
         // If successful, show success message briefly
@@ -104,15 +104,15 @@ const LoginView: React.FC<LoginViewProps> = () => {
     setSuccessMsg('');
     setLoading(true);
 
-    console.log('Password reset attempt for:', email);
+
     const redirectUrl = `${window.location.origin}/reset-password`;
-    console.log('Redirect URL:', redirectUrl);
+
 
     try {
       const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: redirectUrl,
       });
-      console.log('Password reset response:', { data, error });
+
 
       if (error) throw error;
 

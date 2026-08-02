@@ -315,7 +315,6 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         });
 
         if (sessionsToDelete.length > 0) {
-            console.log('Syncing simulados: deleting obsolete sessions:', sessionsToDelete.map(s => s.id));
             for (const s of sessionsToDelete) {
                 try {
                     await api.sessions.delete(s.id);
@@ -327,7 +326,6 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         }
 
         if (sessionsToCreate.length > 0) {
-            console.log('Syncing simulados: creating missing sessions:', sessionsToCreate.map(s => s.id));
             for (const s of sessionsToCreate) {
                 try {
                     await api.sessions.create(s);
@@ -350,7 +348,6 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         }
 
         if (sessionsToUpdate.length > 0) {
-            console.log('Syncing simulados: updating modified sessions:', sessionsToUpdate.map(s => s.id));
             for (const s of sessionsToUpdate) {
                 try {
                     await api.sessions.update(s.id, s);
@@ -643,7 +640,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         }
 
         if (reviewsToUpdate.length > 0) {
-            console.log('Syncing planned reviews: updating review notes/dates:', reviewsToUpdate.map(r => r.id));
+
             for (const r of reviewsToUpdate) {
                 try {
                     await api.schedule.update(r.id, { 
@@ -835,11 +832,9 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         const handleFocus = () => {
             const now = Date.now();
             if (now - lastFocusFetchAt < FOCUS_THROTTLE_MS) {
-                console.log('Window focused: throttled, skipping fetch (last fetch was less than 5 min ago).');
                 return;
             }
             lastFocusFetchAt = now;
-            console.log('Window focused: fetching latest studies data silently...');
             fetchDataRef.current(true);
         };
         window.addEventListener('focus', handleFocus);
@@ -1302,7 +1297,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
             const removedSubjectIds = oldSubjects.filter(os => !newSubjects.find(ns => ns.id === os.id)).map(s => s.id);
 
             if (removedSubjectIds.length > 0) {
-                console.log('Cascading delete for subjects:', removedSubjectIds);
+
                 // Update local state
                 setSessions(prev => prev.filter(s => !removedSubjectIds.includes(s.subjectId)));
                 setScheduledStudies(prev => prev.filter(s => !removedSubjectIds.includes(s.subjectId)));
@@ -1336,7 +1331,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                     oldConc.name !== newConc.name || 
                     oldConc.banca !== newConc.banca ||
                     oldConc.imageUrl !== newConc.imageUrl) {
-                    console.log('Upserting concurso:', newConc.id, newConc.name);
+
                     const upserted = await api.concursos.upsert(newConc);
                     if (upserted && upserted.id !== newConc.id) {
                         // Update local ID if it changed (e.g. from ai-... to uuid)
@@ -1943,16 +1938,25 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         setSaveError(null);
         try {
             await api.schedule.deleteBatch(ids);
-            // Also delete corresponding sessions if they exist
+            // FIX 1.2: Apenas apagar sessões de atividades NÃO realizadas.
+            // Atividades já concluídas (status === 'realizado') têm sessões que
+            // devem persistir no planner e nas estatísticas mesmo após zerar/desativar o cronograma.
+            const completedIds = new Set(
+                scheduledStudies
+                    .filter(s => ids.includes(s.id) && s.status === 'realizado')
+                    .map(s => s.id)
+            );
             for (const id of ids) {
-                try { await api.sessions.delete(id); } catch(e) {}
+                if (!completedIds.has(id)) {
+                    try { await api.sessions.delete(id); } catch(e) {}
+                }
             }
             setScheduledStudies(prev => {
                 const filtered = prev.filter(s => !ids.includes(s.id));
                 localStorage.setItem('cp_scheduled_studies', JSON.stringify(filtered));
                 return filtered;
             });
-            setSessions(prev => prev.filter(s => !ids.includes(s.id)));
+            setSessions(prev => prev.filter(s => !ids.includes(s.id) || completedIds.has(s.id)));
             setLastSaved(new Date().toLocaleTimeString());
         } catch (e) {
             console.error('Error deleting scheduled studies batch:', e);
@@ -1961,7 +1965,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         } finally {
             setIsSaving(false);
         }
-    }, [api.schedule]);
+    }, [api.schedule, scheduledStudies]);
 
     const resetConcursoSchedule = useCallback(async (concursoId: string) => {
         if (!concursoId || concursoId === 'all') return;

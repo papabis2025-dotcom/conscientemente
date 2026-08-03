@@ -271,11 +271,21 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
     );
   }, [scheduledStudies, activeConcursoSubjectIds]);
 
-  const uncompletedCronogramaStudies = useMemo(() => {
-    return cronogramaStudies.filter(s => s.status !== 'realizado');
-  }, [cronogramaStudies]);
+  const hasGenerated = isCronogramaEnabled && cronogramaStudies.length > 0;
 
-  const hasGenerated = isCronogramaEnabled && uncompletedCronogramaStudies.length > 0;
+  // Auto-limpeza: remover automaticamente tarefas de estudo pendentes que foram geradas sem assunto específico
+  React.useEffect(() => {
+    if (!scheduledStudies || scheduledStudies.length === 0) return;
+    const invalidTasks = scheduledStudies.filter(s => 
+      s.status !== 'realizado' && 
+      s.activityType !== 'Simulado' && 
+      (!s.topicId || s.notes?.includes('Conteúdo geral da disciplina') || s.notes?.includes('dos tópicos prioritários'))
+    );
+    if (invalidTasks.length > 0) {
+      const idsToDelete = invalidTasks.map(t => t.id);
+      onDeleteScheduledStudiesBatch(idsToDelete).catch(e => console.error('Error cleaning invalid tasks without topic:', e));
+    }
+  }, [scheduledStudies, onDeleteScheduledStudiesBatch]);
 
   // Find start and end dates of the generated schedule
   const scheduleBounds = useMemo(() => {
@@ -353,6 +363,23 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
     setIsGenerating(true);
 
     try {
+      setIsCronogramaEnabled(true);
+      if (selectedConcursoId && selectedConcursoId !== 'all') {
+        const prefs = {
+          durWeeks,
+          dailyHours,
+          subjectsPerDay,
+          topicsPerSubjectPerDay,
+          activeDays,
+          startDateStr,
+          isCronogramaEnabled: true,
+          simuladoIntervalDays,
+          simuladoQuestionsLimit
+        };
+        localStorage.setItem(`cp_cronograma_prefs_${selectedConcursoId}`, JSON.stringify(prefs));
+        window.dispatchEvent(new Event('local-settings-changed'));
+      }
+
       // 1. Carrega os pesos customizados definidos na guia Análise Estatística
       const weightAcc = parseInt(localStorage.getItem('estudos_weight_acc') || '50');
       const weightSubj = parseInt(localStorage.getItem('estudos_weight_subj') || '25');
@@ -542,7 +569,6 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
               let topic: Topic | undefined = undefined;
 
               if (hasSubTopics) {
-                // Garante que um tópico explícito é sempre atribuído se a disciplina tem tópicos
                 if (profile.queue.length > 0) {
                   topic = profile.queue[profile.queueIndex % profile.queue.length];
                 } else {
@@ -551,23 +577,20 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
                 profile.queueIndex++;
               }
 
-              // FIX 1.1: Pular tarefa se a disciplina tem tópicos mas nenhum foi atribuído
-              // (evita entradas com disciplina mas sem assunto especificado)
-              if (hasSubTopics && !topic) {
+              // EXPLICIT CHECK: Pular criação se não houver um tópico válido com ID e Título
+              if (!topic || !topic.id || !topic.title) {
                 continue;
               }
 
-              if (topic) {
-                accumStudiedTopics.add(topic.title);
-              }
+              accumStudiedTopics.add(topic.title);
 
               // Group reading and questions into a single planner task
               items.push({
                 date: dateStr,
                 subjectId: profile.subject.id,
-                topicId: topic?.id,
+                topicId: topic.id,
                 activityType: 'Leitura, Questões',
-                notes: `Leitura e Questões: ${topic?.title || 'Conteúdo geral da disciplina'}`,
+                notes: `Leitura e Questões: ${topic.title}`,
                 durationInMinutes: totalMinutesPerTopic,
                 questionsDone: undefined,
                 questionsCorrect: undefined,
@@ -580,24 +603,28 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
           const isLastActiveDayOfWeek = dayOffset % 7 === 5; // Saturday
           if (isLastActiveDayOfWeek) {
             const bestSubProfile = [...subjectProfiles].sort((a, b) => b.priorityScore - a.priorityScore)[0];
-            // Inclui o tópico mais prioritário da disciplina na revisão semanal (se houver)
-            const bestSubTopics = bestSubProfile.subject.topics || [];
-            const bestTopic = bestSubTopics.length > 0
-              ? (bestSubProfile.queue.length > 0
-                  ? bestSubProfile.queue[bestSubProfile.queueIndex % bestSubProfile.queue.length]
-                  : bestSubTopics[bestSubProfile.queueIndex % bestSubTopics.length])
-              : undefined;
-            items.push({
-              date: dateStr,
-              subjectId: bestSubProfile.subject.id,
-              topicId: bestTopic?.id,
-              activityType: 'Revisão',
-              notes: `Revisão Semanal${bestTopic ? ': ' + bestTopic.title : ' dos tópicos prioritários'}`,
-              durationInMinutes: 30,
-              questionsDone: 0,
-              questionsCorrect: 0,
-              generatedByCronograma: true
-            });
+            if (bestSubProfile) {
+              const bestSubTopics = bestSubProfile.subject.topics || [];
+              const bestTopic = bestSubTopics.length > 0
+                ? (bestSubProfile.queue.length > 0
+                    ? bestSubProfile.queue[bestSubProfile.queueIndex % bestSubProfile.queue.length]
+                    : bestSubTopics[bestSubProfile.queueIndex % bestSubTopics.length])
+                : undefined;
+
+              if (bestTopic && bestTopic.id && bestTopic.title) {
+                items.push({
+                  date: dateStr,
+                  subjectId: bestSubProfile.subject.id,
+                  topicId: bestTopic.id,
+                  activityType: 'Revisão',
+                  notes: `Revisão Semanal: ${bestTopic.title}`,
+                  durationInMinutes: 30,
+                  questionsDone: 0,
+                  questionsCorrect: 0,
+                  generatedByCronograma: true
+                });
+              }
+            }
           }
         }
       }

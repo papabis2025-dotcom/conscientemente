@@ -25,7 +25,8 @@ import {
   ExternalLink,
   BookMarked,
   Printer,
-  RotateCcw
+  RotateCcw,
+  Pin
 } from 'lucide-react';
 import { exportToPdf } from '../utils/exportUtils';
 import { getColorHex, getBadgeStyle } from '../utils/colors';
@@ -121,10 +122,6 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
   }, [selectedConcursoId]);
 
   const handleSavePreferences = () => {
-    if (!selectedConcursoId || selectedConcursoId === 'all') {
-      alert('Por favor, selecione um concurso primeiro.');
-      return;
-    }
     const prefs = {
       durWeeks,
       dailyHours,
@@ -136,7 +133,14 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
       simuladoIntervalDays,
       simuladoQuestionsLimit
     };
-    localStorage.setItem(`cp_cronograma_prefs_${selectedConcursoId}`, JSON.stringify(prefs));
+    if (selectedConcursoId && selectedConcursoId !== 'all') {
+      localStorage.setItem(`cp_cronograma_prefs_${selectedConcursoId}`, JSON.stringify(prefs));
+    } else {
+      localStorage.setItem('cp_cronograma_prefs_default', JSON.stringify(prefs));
+      concursos.forEach(conc => {
+        localStorage.setItem(`cp_cronograma_prefs_${conc.id}`, JSON.stringify(prefs));
+      });
+    }
     alert('Preferências salvas com sucesso!');
   };
 
@@ -1458,14 +1462,7 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
                   const topic = sub?.topics?.find(t => t.id === act.topicId);
                   const isSimulado = act.activityType === 'Simulado';
                   const isRevisao = act.activityType && (act.activityType.toLowerCase().includes('revisão') || act.activityType.toLowerCase().includes('revisao'));
-                  const badgeStyle = sub ? getBadgeStyle(sub.color) : { style: {}, className: 'bg-amber-500 text-white' };
                   const subHex = getColorHex(sub?.color || 'bg-amber-500');
-
-                  const revisionStyle = isRevisao ? {
-                    borderColor: subHex,
-                    borderWidth: '3px',
-                    boxShadow: `0 0 15px ${subHex}95, 0 0 5px ${subHex}70`
-                  } : {};
 
                   const taskLinks = getTaskAllLinks(act);
                   const isExpanded = expandedTaskId === act.id;
@@ -1474,17 +1471,13 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
                     <div key={act.id} id={`task-card-${act.id}`} className="space-y-0">
                       <div
                         style={{
-                          ...(isRevisao ? badgeStyle.style : {}),
-                          ...(isRevisao ? revisionStyle : {}),
                           borderLeftColor: isSimulado ? '#A855F7' : (subHex || '#10B981')
                         }}
                         onClick={() => toggleExpandTask(act.id)}
                         className={`p-4 border flex justify-between items-start gap-4 transition-all cursor-pointer hover:bg-zinc-100/80 dark:hover:bg-zinc-800/50 ${
                           isSimulado
                             ? 'border-l-4 border-purple-500 ring-2 ring-purple-500/40 bg-purple-50/50 dark:bg-purple-950/30 shadow-md shadow-purple-500/10'
-                            : isRevisao
-                              ? `border-l-[6px] shadow-xl font-bold ${badgeStyle.className}`
-                              : 'border-l-4 bg-zinc-50 dark:bg-zinc-800/20 border-zinc-200/50 dark:border-zinc-700/50'
+                            : 'border-l-4 bg-zinc-50 dark:bg-zinc-800/20 border-zinc-200/50 dark:border-zinc-700/50'
                         } ${
                           isDone ? 'opacity-40' : ''
                         } ${
@@ -1493,10 +1486,10 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
                       >
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2 mb-2 flex-wrap">
-                            <span className={`inline-block px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${
                               act.activityType === 'Simulado'
                                 ? 'bg-purple-100 text-purple-800 dark:bg-purple-950/40 dark:text-purple-300 ring-1 ring-purple-400/50 font-black'
-                                : (act.activityType && (act.activityType.toLowerCase().includes('revisão') || act.activityType.toLowerCase().includes('revisao')))
+                                : isRevisao
                                   ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 ring-1 ring-amber-400/50 font-black'
                                   : act.activityType === 'Leitura'
                                     ? 'bg-blue-100 text-blue-755 dark:bg-blue-950/20 dark:text-blue-400'
@@ -1504,6 +1497,7 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
                                       ? 'bg-emerald-100 text-emerald-755 dark:bg-emerald-950/20 dark:text-emerald-400'
                                       : 'bg-zinc-200 text-zinc-700 dark:bg-zinc-700 dark:text-zinc-300'
                             }`}>
+                              {isRevisao && <Pin size={10} className="fill-amber-500/40 text-amber-600 dark:text-amber-400" />}
                               {act.activityType}
                             </span>
                             {sub && (

@@ -93,7 +93,8 @@ const GlobalSidebar: React.FC<GlobalSidebarProps> = ({
   // Module PIN states
   const [modulePins, setModulePins] = useState<Record<string, string>>(() => {
     try {
-      return JSON.parse(localStorage.getItem('cn_module_pins') || '{}');
+      const parsed = JSON.parse(localStorage.getItem('cn_module_pins') || '{}');
+      return parsed && typeof parsed === 'object' ? parsed : {};
     } catch {
       return {};
     }

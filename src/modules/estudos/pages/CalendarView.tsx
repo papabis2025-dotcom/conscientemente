@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Subject, ScheduledStudy, ActivityType, Topic, StudySession, Simulado } from '../types';
 import { getColorHex, getBadgeStyle } from '../utils/colors';
-import { FileText, Layers, Video, BookOpen, Clipboard, Book, Clock, RefreshCw, Sparkles, Plus, Trash2, ExternalLink, Printer } from 'lucide-react';
+import { FileText, Layers, Video, BookOpen, Clipboard, Book, Clock, RefreshCw, Sparkles, Plus, Trash2, ExternalLink, Printer, Pin } from 'lucide-react';
 import { exportToPdf } from '../utils/exportUtils';
 
 interface CalendarViewProps {
@@ -506,28 +506,22 @@ const CalendarView: React.FC<CalendarViewProps> = ({
 
                       if (isRevisao && !isAulao) {
                         const { style, className } = sub ? getBadgeStyle(sub.color) : { style: {}, className: 'bg-amber-600 text-white' };
-                        const hex = getColorHex(sub?.color || 'bg-amber-500');
                         const topicTitle = sub?.topics?.find(t => t.id === task.topicId)?.title;
                         return (
                           <div 
                             key={task.id} 
                             id={`task-card-${task.id}`}
-                            style={{
-                              ...style,
-                              borderColor: hex,
-                              boxShadow: `0 0 15px ${hex}95, 0 0 5px ${hex}70`,
-                              opacity: task.status === 'realizado' ? 0.45 : 1
-                            }} 
+                            style={{ ...style, opacity: task.status === 'realizado' ? 0.45 : 1 }} 
                             draggable={true}
                             onDragStart={(e) => handleDragStart(e, task.isGroupedVirtual ? task.taskIds.join(',') : task.id)}
                             onClick={(e) => {
                               e.stopPropagation();
                               if (onToggleStatus) onToggleStatus(task.isGroupedVirtual ? task.taskIds : task.id);
                             }}
-                            className={`p-4 rounded-2xl text-xs font-bold border-l-[6px] border-4 ${className} cursor-pointer transition-all hover:scale-[1.02] active:scale-95 shadow-xl`}
+                            className={`p-4 rounded-2xl text-xs font-bold ${className} cursor-pointer transition-all hover:scale-[1.02] active:scale-95 shadow-md`}
                           >
-                            <span className="opacity-80 flex items-center gap-1 font-black text-[10px] uppercase tracking-wider">
-                              REVISÃO
+                            <span className="opacity-95 flex items-center gap-1 font-black text-[10px] uppercase tracking-wider">
+                              <Pin size={10} className="fill-current/30 shrink-0" /> REVISÃO
                             </span>
                             <p className="truncate font-black text-sm mt-0.5">{sub ? sub.name : 'Disciplina Removida'}</p>
                             {task.isGroupedVirtual && sub && task.topicIds && task.topicIds.length > 0 && (
@@ -716,25 +710,22 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                         if (isRevisao && !isAulao) {
                           const subObj = lookupSubjects.find(s => s.id === t.subjectId);
                           const { style, className } = subObj ? getBadgeStyle(subObj.color) : { style: {}, className: 'bg-amber-600 text-white' };
-                          const hex = getColorHex(subObj?.color || 'bg-amber-500');
                           const topicTitle = subObj?.topics?.find(top => top.id === t.topicId)?.title;
                           return (
                             <div 
                               key={t.id} 
                               id={`task-card-${t.id}`}
-                              style={{
-                                ...style,
-                                borderColor: hex,
-                                boxShadow: `0 0 10px ${hex}90, 0 0 4px ${hex}60`,
-                                opacity: t.status === 'realizado' ? 0.45 : 1
-                              }} 
+                              style={{ ...style, opacity: t.status === 'realizado' ? 0.45 : 1 }} 
                               draggable={true}
                               onDragStart={(e) => handleDragStart(e, t.isGroupedVirtual ? t.taskIds.join(',') : t.id)}
                               onClick={(e) => handleTaskClick(e, t)}
-                              className={`px-2 py-1.5 rounded-lg text-[10px] leading-tight font-black border-2 ${className} cursor-pointer transition-all hover:scale-[1.02] active:scale-95 shadow-sm truncate`}
+                              className={`px-2 py-1.5 rounded-lg text-[10px] leading-tight font-black ${className} cursor-pointer transition-all hover:scale-[1.02] active:scale-95 shadow-xs truncate`}
                             >
                               <div className="flex flex-col gap-0.5">
-                                <span className="truncate">{subObj ? subObj.name : 'Revisão'}</span>
+                                <span className="truncate flex items-center gap-1">
+                                  <Pin size={9} className="shrink-0 fill-current/30" />
+                                  {subObj ? subObj.name : 'Revisão'}
+                                </span>
                                 {topicTitle && <span className="text-[8px] opacity-80 truncate font-medium italic">{topicTitle}</span>}
                               </div>
                             </div>

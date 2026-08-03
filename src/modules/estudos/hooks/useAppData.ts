@@ -935,11 +935,10 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                 if (!activeSimDates.has(sDate)) return false;
             }
 
-            // Se for atividade gerada pelo cronograma e NÃO realizada, ocultar se o cronograma daquele concurso estiver desativado
-            if (s.generatedByCronograma === true && s.status !== 'realizado') {
-                const concId = s.subjectId ? subjectToConcursoMap.get(s.subjectId) : selectedConcursoId;
-                const targetConcId = concId && concId !== 'all' ? concId : (selectedConcursoId !== 'all' ? selectedConcursoId : undefined);
-                if (targetConcId && !isCronogramaEnabledForConcurso(targetConcId)) {
+            // Se for atividade agendada e NÃO realizada, ocultar se o cronograma daquele concurso estiver desativado
+            if (s.status !== 'realizado') {
+                const concId = s.subjectId ? subjectToConcursoMap.get(s.subjectId) : (selectedConcursoId !== 'all' ? selectedConcursoId : undefined);
+                if (concId && !isCronogramaEnabledForConcurso(concId)) {
                     return false;
                 }
             }

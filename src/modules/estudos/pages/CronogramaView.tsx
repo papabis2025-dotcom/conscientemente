@@ -267,7 +267,7 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
 
   const cronogramaStudies = useMemo(() => {
     return (scheduledStudies || []).filter(s => 
-      activeConcursoSubjectIds.has(s.subjectId) || s.activityType === 'Simulado'
+      activeConcursoSubjectIds.has(s.subjectId)
     );
   }, [scheduledStudies, activeConcursoSubjectIds]);
 

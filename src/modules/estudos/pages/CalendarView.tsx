@@ -467,33 +467,66 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                   </div>
                   <div className="space-y-2 flex-1 overflow-y-auto custom-scrollbar pr-1">
                     {tasks.map(task => {
-                      if (task.isSimuladoVirtual) {
+                      if (task.isSimuladoVirtual || task.activityType === 'Simulado') {
                         return (
                           <div 
                             key={task.id} 
                             onClick={(e) => handleTaskClick(e, task)}
-                            className="p-3 rounded-2xl text-xs font-bold border-2 border-amber-400 bg-gradient-to-r from-amber-500/10 to-orange-500/10 text-amber-900 dark:text-amber-250 cursor-pointer transition-all hover:scale-[1.02] active:scale-95 shadow-sm"
+                            className="p-3.5 rounded-2xl text-xs font-bold border-2 border-purple-500 ring-2 ring-purple-500/40 animate-pulse bg-purple-50/70 dark:bg-purple-950/40 text-purple-950 dark:text-purple-200 cursor-pointer transition-all hover:scale-[1.02] active:scale-95 shadow-md shadow-purple-500/10"
                           >
-                            <span className="flex items-center gap-1 font-black text-amber-600 dark:text-amber-400">SIMULADO</span>
-                            <p className="font-black truncate mt-1 text-sm">{task.name}</p>
-                            <p className="text-[10px] opacity-90 mt-1 font-bold flex items-center gap-1">
-                              <Clock size={10} /> {task.durationInMinutes} min | <FileText size={10} /> {task.questionsCorrect}/{task.questionsDone} Qs
+                            <span className="flex items-center gap-1 font-black text-purple-600 dark:text-purple-400 text-[10px] uppercase tracking-wider">
+                              <Clipboard size={11} className="text-purple-500 shrink-0" /> SIMULADO
+                            </span>
+                            <p className="font-black truncate mt-1 text-sm">{task.name || task.notes || 'Simulado'}</p>
+                            <p className="text-[10px] opacity-90 mt-1 font-bold flex items-center gap-1 font-mono">
+                              <Clock size={10} /> {task.durationInMinutes} min
+                              {task.questionsDone !== undefined && task.questionsDone > 0 && (
+                                <> | <FileText size={10} /> {task.questionsCorrect}/{task.questionsDone} Qs</>
+                              )}
                             </p>
-                            <div className="flex flex-wrap gap-1 mt-1.5">
-                              {(task.results || []).map((r: any, idx: number) => {
-                                const sub = lookupSubjects.find(s => s.id === r.subjectId);
-                                return (
-                                  <span key={idx} className="px-1.5 py-0.5 rounded-full text-[8px] bg-zinc-200/50 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-350 font-bold">
-                                    {sub?.name || 'Matéria'}
-                                  </span>
-                                );
-                              })}
-                            </div>
+                            {task.results && (
+                              <div className="flex flex-wrap gap-1 mt-1.5">
+                                {(task.results || []).map((r: any, idx: number) => {
+                                  const sub = lookupSubjects.find(s => s.id === r.subjectId);
+                                  return (
+                                    <span key={idx} className="px-1.5 py-0.5 rounded-full text-[8px] bg-purple-200/50 dark:bg-purple-900/40 text-purple-800 dark:text-purple-200 font-bold">
+                                      {sub?.name || 'Matéria'}
+                                    </span>
+                                  );
+                                })}
+                              </div>
+                            )}
                           </div>
                         );
                       }
+
                       const sub = lookupSubjects.find(s => s.id === task.subjectId);
                       const isAulao = task.activityType?.includes('Aulão de Revisão');
+                      const isRevisao = task.activityType && (task.activityType.toLowerCase().includes('revisão') || task.activityType.toLowerCase().includes('revisao'));
+
+                      if (isRevisao && !isAulao) {
+                        return (
+                          <div 
+                            key={task.id} 
+                            onClick={(e) => handleTaskClick(e, task)}
+                            className="p-3.5 rounded-2xl text-xs font-bold border-l-[6px] border-amber-500 dark:border-amber-400 bg-amber-50/80 dark:bg-amber-950/30 text-amber-950 dark:text-amber-200 border border-zinc-200/80 dark:border-zinc-700/80 cursor-pointer transition-all hover:scale-[1.02] active:scale-95 shadow-xs"
+                          >
+                            <span className="flex items-center gap-1 font-black text-amber-600 dark:text-amber-400 text-[10px] uppercase tracking-wider">
+                              <RefreshCw size={11} className="text-amber-500 shrink-0" /> REVISÃO
+                            </span>
+                            <p className="font-black truncate mt-1 text-sm">{sub ? sub.name : 'Disciplina'}</p>
+                            {task.topicId && sub && (
+                              <p className="text-[10px] opacity-80 mt-0.5 line-clamp-1 font-medium italic">
+                                {sub.topics?.find(t => t.id === task.topicId)?.title}
+                              </p>
+                            )}
+                            <p className="text-[10px] opacity-90 mt-1 font-bold flex items-center gap-1 font-mono">
+                              <Clock size={10} /> {task.durationInMinutes} min
+                            </p>
+                          </div>
+                        );
+                      }
+
                       if (isAulao) {
                         return (
                           <div 
@@ -624,23 +657,41 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                     <span className={`text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full ${isToday ? 'bg-zinc-900 dark:bg-zinc-700 text-white' : 'text-zinc-400'}`}>{day}</span>
                     <div className="mt-1 space-y-1 overflow-y-auto">
                       {tasks.map(t => {
-                        if (t.isSimuladoVirtual) {
+                        const isSimulado = t.isSimuladoVirtual || t.activityType === 'Simulado';
+                        const isAulao = t.activityType?.includes('Aulão de Revisão');
+                        const isRevisao = t.activityType && (t.activityType.toLowerCase().includes('revisão') || t.activityType.toLowerCase().includes('revisao'));
+
+                        if (isSimulado) {
                           return (
                             <div 
                               key={t.id}
                               onClick={(e) => handleTaskClick(e, t)}
-                              className="px-2 py-1.5 rounded-lg text-[10px] leading-tight font-black border-2 border-amber-400 bg-amber-500/10 text-amber-900 dark:text-amber-200 cursor-pointer transition-all hover:scale-[1.02] active:scale-95 shadow-sm"
+                              className="px-2 py-1.5 rounded-lg text-[10px] leading-tight font-black border-2 border-purple-500 ring-1 ring-purple-500/40 animate-pulse bg-purple-50 dark:bg-purple-950/40 text-purple-950 dark:text-purple-200 cursor-pointer transition-all hover:scale-[1.02] active:scale-95 shadow-sm"
                             >
                               <div className="flex flex-col gap-0.5">
-                                <span>{t.name}</span>
-                                <span className="text-[8px] opacity-80 font-bold flex items-center gap-1">
-                                  <Clock size={8} /> {t.durationInMinutes}m | <FileText size={8} /> {t.questionsCorrect}/{t.questionsDone} Qs
-                                </span>
+                                <span className="truncate">⚡ {t.name || t.notes || 'Simulado'}</span>
                               </div>
                             </div>
                           );
                         }
-                        const isAulao = t.activityType?.includes('Aulão de Revisão');
+
+                        if (isRevisao && !isAulao) {
+                          const subObj = lookupSubjects.find(s => s.id === t.subjectId);
+                          return (
+                            <div 
+                              key={t.id} 
+                              style={{ opacity: t.status === 'realizado' ? 0.45 : 1 }} 
+                              draggable={true}
+                              onDragStart={(e) => handleDragStart(e, t.isGroupedVirtual ? t.taskIds.join(',') : t.id)}
+                              onClick={(e) => handleTaskClick(e, t)}
+                              className="px-2 py-1.5 rounded-lg text-[10px] leading-tight font-black border-l-4 border-amber-500 bg-amber-50 dark:bg-amber-950/30 text-amber-950 dark:text-amber-200 border border-zinc-200/80 dark:border-zinc-700/80 cursor-pointer transition-all hover:scale-[1.02] active:scale-95 shadow-xs truncate"
+                            >
+                              <div className="flex flex-col gap-0.5">
+                                <span className="truncate">🔄 {subObj ? subObj.name : 'Revisão'}</span>
+                              </div>
+                            </div>
+                          );
+                        }
                         if (isAulao) {
                           return (
                             <div 

@@ -943,7 +943,9 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
 
             // Se for atividade agendada e NÃO realizada, ocultar se o cronograma daquele concurso estiver desativado
             if (s.status !== 'realizado') {
-                const concId = s.subjectId ? subjectToConcursoMap.get(s.subjectId) : (selectedConcursoId !== 'all' ? selectedConcursoId : undefined);
+                const concId = s.subjectId 
+                    ? (subjectToConcursoMap.get(s.subjectId) || (selectedConcursoId !== 'all' ? selectedConcursoId : undefined)) 
+                    : (selectedConcursoId !== 'all' ? selectedConcursoId : undefined);
                 if (concId && !isCronogramaEnabledForConcurso(concId)) {
                     return false;
                 }

@@ -607,6 +607,19 @@ const HubHome: React.FC<HubHomeProps> = ({
         .select('id, name, banca, target_date, subjects, category_id')
         .eq('user_id', user.id);
 
+      const subjectMap = new Map<string, any>();
+      const subjectToConcursoObjMap = new Map<string, any>();
+      const subjectToConcursoIdMap = new Map<string, string>();
+      if (dbConcursos) {
+        dbConcursos.forEach((c: any) => {
+          (c.subjects || []).forEach((sub: any) => {
+            subjectMap.set(sub.id, sub);
+            subjectToConcursoObjMap.set(sub.id, c);
+            subjectToConcursoIdMap.set(sub.id, c.id);
+          });
+        });
+      }
+
       const { data: dbSimulados } = await supabase
         .from('simulados')
         .select('*')
@@ -683,11 +696,6 @@ const HubHome: React.FC<HubHomeProps> = ({
       }
 
       // Filter out deleted tasks and tasks from disabled cronogramas
-      const subjectToConcursoMap = new Map<string, string>();
-      (normalizedConcursos || []).forEach((c: any) => {
-        (c.subjects || []).forEach((sub: any) => subjectToConcursoMap.set(sub.id, c.id));
-      });
-
       const isCronogramaEnabledForConcurso = (concursoId?: string) => {
         if (!concursoId || concursoId === 'all') return true;
         try {
@@ -703,7 +711,7 @@ const HubHome: React.FC<HubHomeProps> = ({
       scheduledStudiesFiltered = scheduledStudiesFiltered.filter((s: any) => {
         if (deletedScheduledIds.has(s.id)) return false;
         if (s.status !== 'realizado') {
-          const concId = s.concursoId || (s.subjectId ? subjectToConcursoMap.get(s.subjectId) : undefined);
+          const concId = s.concursoId || (s.subjectId ? subjectToConcursoIdMap.get(s.subjectId) : undefined);
           if (concId && !isCronogramaEnabledForConcurso(concId)) return false;
         }
         return true;
@@ -757,20 +765,9 @@ const HubHome: React.FC<HubHomeProps> = ({
 
       const consolidatedStudies = [...nonGroupedStudies, ...groupedStudies];
 
-      const subjectMap = new Map<string, any>();
-      if (dbConcursos) {
-        dbConcursos.forEach((c: any) => {
-          const subjectsList = c.subjects || [];
-          subjectsList.forEach((sub: any) => {
-            subjectMap.set(sub.id, sub);
-            subjectToConcursoMap.set(sub.id, c);
-          });
-        });
-      }
-
       const studiesList = [
         ...studyTasksFiltered.map((t: any) => {
-          const conc = subjectToConcursoMap.get(t.subjectId);
+          const conc = subjectToConcursoObjMap.get(t.subjectId);
           const prefix = conc ? `[${conc.name}] ` : '';
           return { 
             id: t.id, 
@@ -781,7 +778,7 @@ const HubHome: React.FC<HubHomeProps> = ({
         }),
         ...consolidatedStudies.map((s: any) => {
           const sub = subjectMap.get(s.subjectId);
-          const conc = subjectToConcursoMap.get(s.subjectId);
+          const conc = subjectToConcursoObjMap.get(s.subjectId);
           const prefix = conc ? `[${conc.name}] ` : '';
           const subjectName = sub ? sub.name : 'Disciplina';
           const isCompleted = s.status === 'realizado';

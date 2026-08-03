@@ -383,20 +383,18 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
 
           const targetReviewId = getDeterministicReviewId(subjectId, topicId === null ? undefined : topicId, sess.id, i);
           const review = (scheduledStudies || []).find(s =>
-            s.subjectId === subjectId &&
-            s.topicId === (topicId === null ? undefined : topicId) &&
             s.activityType && (
               s.activityType.toLowerCase().includes('revisão') ||
               s.activityType.toLowerCase().includes('revisao')
             ) && (
               s.id === targetReviewId ||
-              (s.id && s.id.toLowerCase().split('-')[3] === `400${i}` && s.status === 'realizado' && s.date === uncappedDateStr)
+              (s.subjectId === subjectId && s.date === uncappedDateStr)
             )
           );
 
           cycleReviews[i] = {
             dateStr: formatDate(dCustom),
-            status: review ? review.status : 'none'
+            status: review ? review.status : 'planejado'
           };
         }
 

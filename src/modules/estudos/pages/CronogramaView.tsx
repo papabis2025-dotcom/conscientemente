@@ -578,6 +578,18 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
                 accumStudiedTopics.add(topicTitle);
               }
 
+              // Evitar duplicidade com atividades já realizadas no mesmo dia para a mesma disciplina/tópico
+              const isAlreadyRealized = (scheduledStudies || []).some(s => 
+                s.status === 'realizado' && 
+                s.date === dateStr && 
+                s.subjectId === profile.subject.id &&
+                (topicId ? s.topicId === topicId : true)
+              );
+
+              if (isAlreadyRealized) {
+                continue;
+              }
+
               // Group reading and questions into a single planner task
               items.push({
                 date: dateStr,

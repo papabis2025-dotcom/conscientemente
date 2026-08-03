@@ -507,6 +507,22 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
 
         const expectedIds = new Set(expectedReviews.map(r => r.id));
 
+        // Limpar os IDs das revisões esperadas dos caches de exclusão para permitir sua criação
+        try {
+            const savedDeletedRev = localStorage.getItem('estudos_deleted_review_ids');
+            if (savedDeletedRev) {
+                const arr: string[] = JSON.parse(savedDeletedRev);
+                const filteredArr = arr.filter(id => !expectedIds.has(id));
+                localStorage.setItem('estudos_deleted_review_ids', JSON.stringify(filteredArr));
+            }
+            const savedDeletedSched = localStorage.getItem('cp_deleted_scheduled_ids');
+            if (savedDeletedSched) {
+                const arr: string[] = JSON.parse(savedDeletedSched);
+                const filteredArr = arr.filter(id => !expectedIds.has(id));
+                localStorage.setItem('cp_deleted_scheduled_ids', JSON.stringify(filteredArr));
+            }
+        } catch (e) {}
+
         // Deduplicação ativa por chave única (disciplina, tópico, data e origem) para evitar duplicidade de revisões planejadas
         const activeReviewKeysFound = new Set<string>();
         const duplicateReviewsToDelete: ScheduledStudy[] = [];
@@ -573,14 +589,6 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                 .map(s => `${s.subjectId}_${s.topicId || 'geral'}_${s.date}`)
         );
 
-        let deletedReviewIds: string[] = [];
-        try {
-            const savedDeleted = localStorage.getItem('estudos_deleted_review_ids');
-            if (savedDeleted) deletedReviewIds = JSON.parse(savedDeleted);
-        } catch (e) {
-            console.error('Error reading deleted review IDs:', e);
-        }
-
         // Chaves de revisões planejadas remanescentes que não serão deletadas
         const remainingPlannedKeys = new Set<string>();
         allSchedule.forEach(s => {
@@ -596,12 +604,11 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
 
         const currentIds = new Set(allSchedule.map(s => s.id));
         
-        // Só criamos a revisão esperada se ela ainda não existir no cronograma ativo (usando chaves de IDs)
+        // Só criamos a revisão esperada se ela ainda não existir no cronograma ativo
         const reviewsToCreate = expectedReviews.filter(r => {
             const expectedKey = `${r.subjectId}_${r.topicId || 'geral'}_${r.date}`;
 
             return !currentIds.has(r.id) && 
-                   !deletedReviewIds.includes(r.id) &&
                    !completedReviewIds.has(r.id) &&
                    !completedReviewKeys.has(expectedKey) &&
                    !remainingPlannedKeys.has(expectedKey);

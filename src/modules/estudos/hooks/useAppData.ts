@@ -404,7 +404,16 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
 
         allConcursos.forEach(concurso => {
             const isReviewsDisabled = localStorage.getItem(`estudos_disabled_reviews_${concurso.id}`) === 'true';
-            if (isReviewsDisabled) return;
+            let isCronogramaDisabled = false;
+            try {
+                const prefs = localStorage.getItem(`cp_cronograma_prefs_${concurso.id}`);
+                if (prefs) {
+                    const parsed = JSON.parse(prefs);
+                    if (parsed.isCronogramaEnabled === false) isCronogramaDisabled = true;
+                }
+            } catch (e) {}
+
+            if (isReviewsDisabled || isCronogramaDisabled) return;
 
             (concurso.subjects || []).forEach(subject => {
                 const topicsList = [{ id: 'geral', title: 'Geral / Outros' }, ...(subject.topics || [])];

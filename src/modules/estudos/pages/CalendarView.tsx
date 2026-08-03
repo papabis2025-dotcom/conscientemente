@@ -520,8 +520,21 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                             }}
                             className={`p-4 rounded-2xl text-xs font-bold ${className} cursor-pointer transition-all hover:scale-[1.02] active:scale-95 shadow-md`}
                           >
-                            <span className="opacity-95 flex items-center gap-1 font-black text-[10px] uppercase tracking-wider">
-                              <Pin size={10} className="fill-current/30 shrink-0" /> REVISÃO
+                            <span className="opacity-95 flex items-center gap-1.5 font-black text-[10px] uppercase tracking-wider">
+                              <span className="relative flex h-2.5 w-2.5 items-center justify-center shrink-0">
+                                <span
+                                  className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75"
+                                  style={{ backgroundColor: getColorHex(sub?.color || 'bg-amber-500') }}
+                                />
+                                <span
+                                  className="relative inline-flex rounded-full h-2 w-2"
+                                  style={{
+                                    backgroundColor: getColorHex(sub?.color || 'bg-amber-500'),
+                                    boxShadow: `0 0 10px ${getColorHex(sub?.color || 'bg-amber-500')}, 0 0 4px ${getColorHex(sub?.color || 'bg-amber-500')}`
+                                  }}
+                                />
+                              </span>
+                              REVISÃO
                             </span>
                             <p className="truncate font-black text-sm mt-0.5">{sub ? sub.name : 'Disciplina Removida'}</p>
                             {task.isGroupedVirtual && sub && task.topicIds && task.topicIds.length > 0 && (
@@ -722,8 +735,14 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                               className={`px-2 py-1.5 rounded-lg text-[10px] leading-tight font-black ${className} cursor-pointer transition-all hover:scale-[1.02] active:scale-95 shadow-xs truncate`}
                             >
                               <div className="flex flex-col gap-0.5">
-                                <span className="truncate flex items-center gap-1">
-                                  <Pin size={9} className="shrink-0 fill-current/30" />
+                                <span className="truncate flex items-center gap-1.5">
+                                  <span
+                                    className="inline-block w-2 h-2 rounded-full shrink-0"
+                                    style={{
+                                      backgroundColor: getColorHex(subObj?.color || 'bg-amber-500'),
+                                      boxShadow: `0 0 8px ${getColorHex(subObj?.color || 'bg-amber-500')}`
+                                    }}
+                                  />
                                   {subObj ? subObj.name : 'Revisão'}
                                 </span>
                                 {topicTitle && <span className="text-[8px] opacity-80 truncate font-medium italic">{topicTitle}</span>}

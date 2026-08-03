@@ -926,7 +926,10 @@ const GlobalSidebar: React.FC<GlobalSidebarProps> = ({
                       { id: 'tarefas', label: 'Tarefas' },
                       { id: 'anotacoes', label: 'Anotações' }
                     ].map(mod => {
-                      const currentPin = modulePins[mod.id] || '';
+                      const safePins = (modulePins && typeof modulePins === 'object') ? modulePins : {};
+                      const safeInputs = (modulePinInputs && typeof modulePinInputs === 'object') ? modulePinInputs : {};
+                      const currentPin = safePins[mod.id] || '';
+                      const inputValue = safeInputs[mod.id] !== undefined ? safeInputs[mod.id] : currentPin;
                       return (
                         <div key={mod.id} className="p-3.5 bg-zinc-50 dark:bg-zinc-800/40 rounded-2xl border border-zinc-200 dark:border-zinc-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                           <span className="text-xs font-bold text-zinc-800 dark:text-white uppercase tracking-wider flex items-center gap-2">
@@ -938,18 +941,17 @@ const GlobalSidebar: React.FC<GlobalSidebarProps> = ({
                               type="password"
                               maxLength={6}
                               placeholder="PIN 6 dígitos"
-                              value={modulePinInputs[mod.id] !== undefined ? modulePinInputs[mod.id] : currentPin}
+                              value={inputValue}
                               onChange={(e) => {
                                 const val = e.target.value.replace(/\D/g, '').slice(0, 6);
-                                setModulePinInputs(prev => ({ ...prev, [mod.id]: val }));
+                                setModulePinInputs(prev => ({ ...(prev || {}), [mod.id]: val }));
                               }}
                               className="w-32 px-3 py-1.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-mono text-center tracking-widest text-zinc-800 dark:text-white outline-none focus:ring-2 focus:ring-amber-500"
                             />
                             <button
                               type="button"
                               onClick={() => {
-                                const val = modulePinInputs[mod.id] !== undefined ? modulePinInputs[mod.id] : currentPin;
-                                handleSaveModulePin(mod.id, val);
+                                handleSaveModulePin(mod.id, inputValue);
                               }}
                               className="px-3 py-1.5 bg-zinc-900 text-white dark:bg-zinc-700 hover:bg-zinc-800 text-[10px] font-black uppercase tracking-wider rounded-xl transition-all"
                             >
@@ -1018,7 +1020,7 @@ const GlobalSidebar: React.FC<GlobalSidebarProps> = ({
                    </button>
                    
                    <div className={`p-4 rounded-2xl border transition-all flex flex-col items-center justify-center gap-3 ${bgType === 'color' ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-500/10' : 'border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/50'}`}>
-                     <span className={`text-[10px] font-black uppercase tracking-widest ${bgType === 'color' ? 'text-indigo-700 dark:text-indigo-300' : 'text-zinc-650 dark:text-zinc-400'}`}>Cor Sólida</span>
+                     <span className={`text-[10px] font-black uppercase tracking-widest ${bgType === 'color' ? 'text-indigo-700 dark:text-indigo-300' : 'text-zinc-600 dark:text-zinc-400'}`}>Cor Sólida</span>
                      <div className="flex items-center gap-2 w-full">
                        <input type="color" value={bgColor} onChange={e => { setBgColor(e.target.value); setBgType('color'); localStorage.setItem('cn_custom_bg_type', 'color'); localStorage.setItem('cn_custom_bg_color', e.target.value); window.dispatchEvent(new Event('local-storage-sync')); }} className="w-8 h-8 rounded cursor-pointer border-0 p-0" />
                        <span className="text-xs font-mono text-zinc-500">{bgColor}</span>
@@ -1026,7 +1028,7 @@ const GlobalSidebar: React.FC<GlobalSidebarProps> = ({
                    </div>
 
                    <div className={`p-4 rounded-2xl border transition-all flex flex-col items-center justify-center gap-3 ${bgType === 'image' ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-500/10' : 'border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/50'}`}>
-                     <span className={`text-[10px] font-black uppercase tracking-widest ${bgType === 'image' ? 'text-indigo-700 dark:text-indigo-300' : 'text-zinc-650 dark:text-zinc-400'}`}>Imagem</span>
+                     <span className={`text-[10px] font-black uppercase tracking-widest ${bgType === 'image' ? 'text-indigo-700 dark:text-indigo-300' : 'text-zinc-600 dark:text-zinc-400'}`}>Imagem</span>
                      <button 
                        onClick={() => document.getElementById('custom-bg-input-sidebar')?.click()} 
                        className="w-full text-[10px] font-black uppercase tracking-widest text-zinc-700 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-700 px-3 py-2 rounded-xl hover:bg-zinc-200 dark:hover:bg-zinc-600 transition-colors truncate"

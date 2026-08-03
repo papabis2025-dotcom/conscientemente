@@ -164,7 +164,11 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
 
       // Apagar todas as tarefas pendentes do concurso ativo
       const uncompletedTasks = (scheduledStudies || []).filter(s => 
-        s.status !== 'realizado' && activeConcursoSubjectIds.has(s.subjectId)
+        s.status !== 'realizado' && (
+          activeConcursoSubjectIds.has(s.subjectId) ||
+          s.concursoId === selectedConcursoId ||
+          (s.generatedByCronograma && s.activityType === 'Simulado')
+        )
       );
       if (uncompletedTasks.length > 0) {
         const ids = uncompletedTasks.map(t => t.id);
@@ -380,7 +384,11 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
 
       // 0. Purgar previamente qualquer tarefa pendente antiga do concurso ativo para evitar duplicar tarefas ao re-gerar
       const uncompletedOldTasks = (scheduledStudies || []).filter(s => 
-        s.status !== 'realizado' && activeConcursoSubjectIds.has(s.subjectId)
+        s.status !== 'realizado' && (
+          activeConcursoSubjectIds.has(s.subjectId) ||
+          s.concursoId === selectedConcursoId ||
+          (s.generatedByCronograma && s.activityType === 'Simulado')
+        )
       );
       if (uncompletedOldTasks.length > 0) {
         const idsToClear = uncompletedOldTasks.map(t => t.id);
@@ -541,7 +549,8 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
             durationInMinutes: Math.min(360, Math.max(60, simuladoQuestionsLimit * 3)),
             questionsDone: simuladoQuestionsLimit,
             questionsCorrect: Math.round(simuladoQuestionsLimit * 0.7),
-            generatedByCronograma: true
+            generatedByCronograma: true,
+            concursoId: selectedConcursoId
           });
         } else if (isStudyDay) {
           // Select todays subjects dynamically based on priority scores
@@ -601,7 +610,8 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
                 durationInMinutes: totalMinutesPerTopic,
                 questionsDone: undefined,
                 questionsCorrect: undefined,
-                generatedByCronograma: true
+                generatedByCronograma: true,
+                concursoId: selectedConcursoId
               });
             }
           });
@@ -632,7 +642,11 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
     try {
       // 1. Apagar todas as tarefas pendentes vinculadas a este concurso
       const uncompletedTasks = (scheduledStudies || []).filter(s => 
-        s.status !== 'realizado' && (activeConcursoSubjectIds.has(s.subjectId) || s.activityType === 'Simulado')
+        s.status !== 'realizado' && (
+          activeConcursoSubjectIds.has(s.subjectId) ||
+          s.concursoId === selectedConcursoId ||
+          (s.generatedByCronograma && s.activityType === 'Simulado')
+        )
       );
       if (uncompletedTasks.length > 0) {
         const ids = uncompletedTasks.map(t => t.id);

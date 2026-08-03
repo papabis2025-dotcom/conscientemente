@@ -759,8 +759,29 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                     };
                 });
 
-                setScheduledStudies(finalSchedule);
-                localStorage.setItem('cp_scheduled_studies', JSON.stringify(finalSchedule));
+                // Filter out uncompleted tasks for any concurso whose schedule is currently disabled
+                const subjectToConcursoMap = new Map<string, string>();
+                (concursosData || []).forEach(c => {
+                    (c.subjects || []).forEach(sub => subjectToConcursoMap.set(sub.id, c.id));
+                });
+
+                const filteredFinalSchedule = finalSchedule.filter(s => {
+                    if (s.status === 'realizado') return true;
+                    const concId = s.concursoId || (s.subjectId ? subjectToConcursoMap.get(s.subjectId) : undefined);
+                    if (concId) {
+                        try {
+                            const saved = localStorage.getItem(`cp_cronograma_prefs_${concId}`);
+                            if (saved) {
+                                const parsed = JSON.parse(saved);
+                                if (parsed.isCronogramaEnabled === false) return false;
+                            }
+                        } catch (e) {}
+                    }
+                    return true;
+                });
+
+                setScheduledStudies(filteredFinalSchedule);
+                localStorage.setItem('cp_scheduled_studies', JSON.stringify(filteredFinalSchedule));
             }
             if (goalsData) setDailyGoals(goalsData);
             if (logsData) setLogs(logsData);

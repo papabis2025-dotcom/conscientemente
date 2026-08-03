@@ -95,6 +95,7 @@ export interface ScheduledStudy {
   questionsCorrect?: number;
   status?: 'planejado' | 'realizado';
   generatedByCronograma?: boolean;
+  concursoId?: string;
   questionsLink?: string;
 }
 

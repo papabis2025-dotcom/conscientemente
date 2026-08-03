@@ -474,8 +474,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                             onClick={(e) => handleTaskClick(e, task)}
                             className="p-3.5 rounded-2xl text-xs font-bold border-2 border-purple-500 ring-2 ring-purple-500/40 animate-pulse bg-purple-50/70 dark:bg-purple-950/40 text-purple-950 dark:text-purple-200 cursor-pointer transition-all hover:scale-[1.02] active:scale-95 shadow-md shadow-purple-500/10"
                           >
-                            <span className="flex items-center gap-1 font-black text-purple-600 dark:text-purple-400 text-[10px] uppercase tracking-wider">
-                              <Clipboard size={11} className="text-purple-500 shrink-0" /> SIMULADO
+                            <span className="font-black text-purple-600 dark:text-purple-400 text-[10px] uppercase tracking-wider block">
+                              SIMULADO
                             </span>
                             <p className="font-black truncate mt-1 text-sm">{task.name || task.notes || 'Simulado'}</p>
                             <p className="text-[10px] opacity-90 mt-1 font-bold flex items-center gap-1 font-mono">
@@ -511,8 +511,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                             onClick={(e) => handleTaskClick(e, task)}
                             className="p-3.5 rounded-2xl text-xs font-bold border-l-[6px] border-amber-500 dark:border-amber-400 bg-amber-50/80 dark:bg-amber-950/30 text-amber-950 dark:text-amber-200 border border-zinc-200/80 dark:border-zinc-700/80 cursor-pointer transition-all hover:scale-[1.02] active:scale-95 shadow-xs"
                           >
-                            <span className="flex items-center gap-1 font-black text-amber-600 dark:text-amber-400 text-[10px] uppercase tracking-wider">
-                              <RefreshCw size={11} className="text-amber-500 shrink-0" /> REVISÃO
+                            <span className="font-black text-amber-600 dark:text-amber-400 text-[10px] uppercase tracking-wider block">
+                              REVISÃO
                             </span>
                             <p className="font-black truncate mt-1 text-sm">{sub ? sub.name : 'Disciplina'}</p>
                             {task.topicId && sub && (
@@ -669,7 +669,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                               className="px-2 py-1.5 rounded-lg text-[10px] leading-tight font-black border-2 border-purple-500 ring-1 ring-purple-500/40 animate-pulse bg-purple-50 dark:bg-purple-950/40 text-purple-950 dark:text-purple-200 cursor-pointer transition-all hover:scale-[1.02] active:scale-95 shadow-sm"
                             >
                               <div className="flex flex-col gap-0.5">
-                                <span className="truncate">⚡ {t.name || t.notes || 'Simulado'}</span>
+                                <span className="truncate">{t.name || t.notes || 'Simulado'}</span>
                               </div>
                             </div>
                           );
@@ -687,7 +687,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                               className="px-2 py-1.5 rounded-lg text-[10px] leading-tight font-black border-l-4 border-amber-500 bg-amber-50 dark:bg-amber-950/30 text-amber-950 dark:text-amber-200 border border-zinc-200/80 dark:border-zinc-700/80 cursor-pointer transition-all hover:scale-[1.02] active:scale-95 shadow-xs truncate"
                             >
                               <div className="flex flex-col gap-0.5">
-                                <span className="truncate">🔄 {subObj ? subObj.name : 'Revisão'}</span>
+                                <span className="truncate">{subObj ? subObj.name : 'Revisão'}</span>
                               </div>
                             </div>
                           );

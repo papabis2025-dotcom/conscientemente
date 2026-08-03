@@ -472,6 +472,12 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                                     if (dateStr > examDateStr) return;
                                 }
 
+                                // Se este dia for dia de Simulado, não agendar revisão neste dia
+                                const isSimuladoDay = allSchedule.some(sched => 
+                                    sched.activityType === 'Simulado' && sched.date === dateStr
+                                );
+                                if (isSimuladoDay) return;
+
                                 const reviewId = getDeterministicReviewId(subject.id, topic.id === 'geral' ? undefined : topic.id, latestSession.id, idx);
                                 
                                 const tag = getActivityTag(subject.id, sessionDateStr, topic.id === 'geral' ? undefined : topic.title);

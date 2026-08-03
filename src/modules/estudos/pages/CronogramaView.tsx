@@ -598,34 +598,6 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
               });
             }
           });
-
-          // Add Weekly Review on Saturdays / last day of active study week
-          const isLastActiveDayOfWeek = dayOffset % 7 === 5; // Saturday
-          if (isLastActiveDayOfWeek) {
-            const bestSubProfile = [...subjectProfiles].sort((a, b) => b.priorityScore - a.priorityScore)[0];
-            if (bestSubProfile) {
-              const bestSubTopics = bestSubProfile.subject.topics || [];
-              const bestTopic = bestSubTopics.length > 0
-                ? (bestSubProfile.queue.length > 0
-                    ? bestSubProfile.queue[bestSubProfile.queueIndex % bestSubProfile.queue.length]
-                    : bestSubTopics[bestSubProfile.queueIndex % bestSubTopics.length])
-                : undefined;
-
-              if (bestTopic && bestTopic.id && bestTopic.title) {
-                items.push({
-                  date: dateStr,
-                  subjectId: bestSubProfile.subject.id,
-                  topicId: bestTopic.id,
-                  activityType: 'Revisão',
-                  notes: `Revisão Semanal: ${bestTopic.title}`,
-                  durationInMinutes: 30,
-                  questionsDone: 0,
-                  questionsCorrect: 0,
-                  generatedByCronograma: true
-                });
-              }
-            }
-          }
         }
       }
 
@@ -1438,6 +1410,8 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
                   const isDone = act.status === 'realizado';
                   const sub = subjects.find(s => s.id === act.subjectId);
                   const topic = sub?.topics?.find(t => t.id === act.topicId);
+                  const isSimulado = act.activityType === 'Simulado';
+                  const isRevisao = act.activityType && (act.activityType.toLowerCase().includes('revisão') || act.activityType.toLowerCase().includes('revisao'));
 
                   const taskLinks = getTaskAllLinks(act);
                   const isExpanded = expandedTaskId === act.id;
@@ -1445,9 +1419,15 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
                   return (
                     <div key={act.id} className="space-y-0">
                       <div
-                        style={{ borderLeftColor: sub?.color || '#10B981' }}
+                        style={{ borderLeftColor: isSimulado ? '#A855F7' : isRevisao ? '#F59E0B' : (sub?.color || '#10B981') }}
                         onClick={() => toggleExpandTask(act.id)}
-                        className={`p-4 border-l-4 bg-zinc-50 dark:bg-zinc-800/20 border border-zinc-200/50 dark:border-zinc-700/50 flex justify-between items-start gap-4 transition-all cursor-pointer hover:bg-zinc-100/80 dark:hover:bg-zinc-800/50 ${
+                        className={`p-4 border flex justify-between items-start gap-4 transition-all cursor-pointer hover:bg-zinc-100/80 dark:hover:bg-zinc-800/50 ${
+                          isSimulado
+                            ? 'border-l-4 border-purple-500 ring-2 ring-purple-500/40 animate-pulse bg-purple-50/50 dark:bg-purple-950/30 shadow-md shadow-purple-500/10'
+                            : isRevisao
+                              ? 'border-l-[6px] border-amber-500 dark:border-amber-400 bg-amber-50/60 dark:bg-amber-950/20 border-zinc-200/80 dark:border-zinc-700/80 shadow-xs font-semibold'
+                              : 'border-l-4 bg-zinc-50 dark:bg-zinc-800/20 border-zinc-200/50 dark:border-zinc-700/50'
+                        } ${
                           isDone ? 'opacity-40' : ''
                         } ${
                           isExpanded ? 'rounded-t-3xl border-b-0' : 'rounded-3xl'
@@ -1457,12 +1437,14 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
                           <div className="flex items-center gap-2 mb-2 flex-wrap">
                             <span className={`inline-block px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${
                               act.activityType === 'Simulado'
-                                ? 'bg-purple-100 text-purple-755 dark:bg-purple-950/20 dark:text-purple-400'
-                                : act.activityType === 'Leitura'
-                                  ? 'bg-blue-100 text-blue-755 dark:bg-blue-950/20 dark:text-blue-400'
-                                  : act.activityType === 'Questões'
-                                    ? 'bg-emerald-100 text-emerald-755 dark:bg-emerald-950/20 dark:text-emerald-400'
-                                    : 'bg-zinc-200 text-zinc-700 dark:bg-zinc-700 dark:text-zinc-300'
+                                ? 'bg-purple-100 text-purple-800 dark:bg-purple-950/40 dark:text-purple-300 ring-1 ring-purple-400/50 font-black'
+                                : (act.activityType && (act.activityType.toLowerCase().includes('revisão') || act.activityType.toLowerCase().includes('revisao')))
+                                  ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 ring-1 ring-amber-400/50 font-black'
+                                  : act.activityType === 'Leitura'
+                                    ? 'bg-blue-100 text-blue-755 dark:bg-blue-950/20 dark:text-blue-400'
+                                    : act.activityType === 'Questões'
+                                      ? 'bg-emerald-100 text-emerald-755 dark:bg-emerald-950/20 dark:text-emerald-400'
+                                      : 'bg-zinc-200 text-zinc-700 dark:bg-zinc-700 dark:text-zinc-300'
                             }`}>
                               {act.activityType}
                             </span>

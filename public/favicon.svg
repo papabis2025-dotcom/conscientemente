@@ -1,21 +1,26 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-  <g fill="none" stroke="#ffffff" stroke-width="20" stroke-linecap="round" stroke-linejoin="round">
-    <!-- Left Hemisphere -->
-    <path d="M 236 100 C 180 92 110 120 96 184 C 82 240 104 280 136 306 C 130 338 148 376 192 386 C 220 392 236 370 236 335 Z" />
-    <path d="M 196 150 C 150 155 140 202 170 226 C 194 242 220 224 230 184" />
-    <path d="M 140 250 C 118 274 142 322 184 316 C 210 312 224 284 214 252" />
-    <path d="M 185 115 C 155 135 170 170 210 155" />
+  <g fill="none" stroke="#ffffff" stroke-width="14" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Contorno Perfil Lateral do Cérebro (Lobo Frontal, Parietal, Occipital e Temporal) -->
+    <path d="M 175 360 C 130 355 100 320 95 270 C 90 215 125 150 190 115 C 255 80 345 85 400 130 C 445 168 450 230 425 280 C 405 320 375 340 335 345" />
 
-    <!-- Right Hemisphere -->
-    <path d="M 276 100 C 332 92 402 120 416 184 C 430 240 408 280 376 306 C 382 338 364 376 320 386 C 292 392 276 370 276 335 Z" />
-    <path d="M 316 150 C 362 155 372 202 342 226 C 318 242 292 224 282 184" />
-    <path d="M 372 250 C 394 274 370 322 328 316 C 302 312 288 284 298 252" />
-    <path d="M 327 115 C 357 135 342 170 302 155" />
+    <!-- Cerebelo (Posterior Inferior) -->
+    <path d="M 335 345 C 375 350 405 370 395 405 C 385 435 345 440 315 420 C 295 408 290 380 305 350" />
 
-    <!-- Central Fissure -->
-    <path d="M 256 90 L 256 385" stroke-width="18" stroke-dasharray="16 12" opacity="0.9" />
+    <!-- Tronco Encefálico Descendente -->
+    <path d="M 285 375 C 280 415 270 450 250 470" stroke-width="16" />
 
-    <!-- Brain Stem Base -->
-    <path d="M 230 384 C 230 425 242 445 256 445 C 270 445 282 425 282 384" stroke-width="18" />
+    <!-- Giros e Sulcos Corticais Elegantes -->
+    <path d="M 140 230 C 175 200 220 210 240 180 C 260 150 230 130 200 145" />
+    <path d="M 210 120 C 250 140 290 125 320 150 C 350 175 320 210 280 200 C 240 190 230 230 260 250" />
+    <path d="M 330 135 C 380 160 410 200 375 230 C 350 250 320 230 300 265" />
+    <path d="M 115 250 C 150 260 180 245 205 270 C 230 295 210 325 180 330" />
+
+    <!-- Giro Temporal e Sulco de Silvius -->
+    <path d="M 175 330 C 215 335 250 320 265 285 C 280 250 330 260 365 280" />
+    <path d="M 265 285 C 245 270 205 280 185 260" />
+
+    <path d="M 155 210 C 185 225 215 235 255 220" stroke-width="10" opacity="0.9" />
+    <path d="M 280 165 C 310 180 340 175 370 190" stroke-width="10" opacity="0.9" />
+    <path d="M 320 375 C 345 380 365 370 375 390" stroke-width="10" opacity="0.9" />
   </g>
 </svg>

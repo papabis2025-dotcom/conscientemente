@@ -1979,36 +1979,37 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         if (ids.length === 0) return;
         setIsSaving(true);
         setSaveError(null);
+
+        // Identificar apenas tarefas NÃO concluídas para apagar
+        const completedIds = new Set(
+            scheduledStudies
+                .filter(s => ids.includes(s.id) && s.status === 'realizado')
+                .map(s => s.id)
+        );
+        
+        const uncompletedIdsToDelete = ids.filter(id => !completedIds.has(id));
+        if (uncompletedIdsToDelete.length === 0) {
+            setIsSaving(false);
+            return;
+        }
+
+        // 1. Atualizar estado local e localStorage de forma GARANTIDA e IMEDIATA
+        setScheduledStudies(prev => {
+            const filtered = prev.filter(s => !uncompletedIdsToDelete.includes(s.id));
+            localStorage.setItem('cp_scheduled_studies', JSON.stringify(filtered));
+            return filtered;
+        });
+        setSessions(prev => prev.filter(s => !uncompletedIdsToDelete.includes(s.id) || completedIds.has(s.id)));
+        setLastSaved(new Date().toLocaleTimeString());
+
+        // 2. Tentar deletar no Supabase DB de forma assíncrona (com tratamento de exceção sem bloquear a UI)
         try {
-            // FIX: Identificar tarefas com status 'realizado' para NUNCA apagá-las
-            const completedIds = new Set(
-                scheduledStudies
-                    .filter(s => ids.includes(s.id) && s.status === 'realizado')
-                    .map(s => s.id)
-            );
-            
-            // Apenas apagar do banco IDs de tarefas não concluídas
-            const uncompletedIdsToDelete = ids.filter(id => !completedIds.has(id));
-
-            if (uncompletedIdsToDelete.length > 0) {
-                await api.schedule.deleteBatch(uncompletedIdsToDelete);
-            }
-
+            await api.schedule.deleteBatch(uncompletedIdsToDelete);
             for (const id of uncompletedIdsToDelete) {
                 try { await api.sessions.delete(id); } catch(e) {}
             }
-
-            setScheduledStudies(prev => {
-                const filtered = prev.filter(s => !uncompletedIdsToDelete.includes(s.id));
-                localStorage.setItem('cp_scheduled_studies', JSON.stringify(filtered));
-                return filtered;
-            });
-            setSessions(prev => prev.filter(s => !uncompletedIdsToDelete.includes(s.id) || completedIds.has(s.id)));
-            setLastSaved(new Date().toLocaleTimeString());
         } catch (e) {
-            console.error('Error deleting scheduled studies batch:', e);
-            setSaveError('Erro ao deletar itens do cronograma.');
-            throw e;
+            console.error('Non-fatal error purging scheduled studies from Supabase DB:', e);
         } finally {
             setIsSaving(false);
         }

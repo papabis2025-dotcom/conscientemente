@@ -164,7 +164,7 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
 
       // Apagar todas as tarefas pendentes do concurso ativo
       const uncompletedTasks = (scheduledStudies || []).filter(s => 
-        s.status !== 'realizado' && (activeConcursoSubjectIds.has(s.subjectId) || s.activityType === 'Simulado')
+        s.status !== 'realizado' && activeConcursoSubjectIds.has(s.subjectId)
       );
       if (uncompletedTasks.length > 0) {
         const ids = uncompletedTasks.map(t => t.id);
@@ -172,8 +172,6 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
       }
     } catch (e) {
       console.error('Error disabling cronograma:', e);
-      setIsCronogramaEnabled(previousState);
-      alert('Ocorreu um erro ao desativar o cronograma. As alterações foram revertidas.');
     }
   };
 
@@ -378,6 +376,15 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
         };
         localStorage.setItem(`cp_cronograma_prefs_${selectedConcursoId}`, JSON.stringify(prefs));
         window.dispatchEvent(new Event('local-settings-changed'));
+      }
+
+      // 0. Purgar previamente qualquer tarefa pendente antiga do concurso ativo para evitar duplicar tarefas ao re-gerar
+      const uncompletedOldTasks = (scheduledStudies || []).filter(s => 
+        s.status !== 'realizado' && activeConcursoSubjectIds.has(s.subjectId)
+      );
+      if (uncompletedOldTasks.length > 0) {
+        const idsToClear = uncompletedOldTasks.map(t => t.id);
+        await onDeleteScheduledStudiesBatch(idsToClear);
       }
 
       // 1. Carrega os pesos customizados definidos na guia Análise Estatística

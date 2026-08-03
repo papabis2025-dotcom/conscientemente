@@ -10,7 +10,7 @@ import TarefasApp from './modules/tarefas/App';
 import AnotacoesApp from './modules/anotacoes/App';
 import type { Session } from '@supabase/supabase-js';
 import { playSound } from './utils/audio';
-import { Brain } from 'lucide-react';
+import { Brain, Lock } from 'lucide-react';
 import GlobalSidebar from './components/GlobalSidebar';
 import FaviconIcon from './components/FaviconIcon';
 
@@ -413,6 +413,13 @@ const App: React.FC = () => {
     localStorage.setItem('cn_custom_bg_color', bgColor);
   }, [bgColor]);
   const [isPrefsLoaded, setIsPrefsLoaded] = useState(false);
+  const [unlockedModules, setUnlockedModules] = useState<Set<string>>(() => new Set());
+  const [pinInput, setPinInput] = useState('');
+  const [pinError, setPinError] = useState('');
+
+  useEffect(() => {
+    setUnlockedModules(new Set());
+  }, [session?.user?.id]);
 
   const [lastSyncTime, setLastSyncTime] = useState<number>(0);
   const [lastKnownSettings, setLastKnownSettings] = useState<string>('');
@@ -946,8 +953,98 @@ const App: React.FC = () => {
   }
   const bgClass = bgType === 'default' ? 'bg-zinc-50 dark:bg-zinc-950' : 'bg-transparent';
 
+  const modulePins: Record<string, string> = (() => {
+    try {
+      return JSON.parse(localStorage.getItem('cn_module_pins') || '{}');
+    } catch {
+      return {};
+    }
+  })();
+  const requiredPin = modulePins[currentRoute];
+
   let pageContent;
-  if (currentRoute === 'estudos') {
+  if (requiredPin && requiredPin.length === 6 && !unlockedModules.has(currentRoute)) {
+    const moduleNames: Record<string, string> = {
+      estudos: 'Estudos',
+      financas: 'Finanças',
+      saude: 'Saúde',
+      tarefas: 'Tarefas',
+      anotacoes: 'Anotações',
+      habitos: 'Hábitos'
+    };
+    pageContent = (
+      <div className="min-h-screen w-full bg-zinc-950/80 backdrop-blur-md flex items-center justify-center p-4 z-50">
+        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-8 max-w-md w-full text-center space-y-6 shadow-2xl animate-in zoom-in-95">
+          <div className="w-16 h-16 bg-amber-500/10 text-amber-500 rounded-2xl flex items-center justify-center mx-auto border border-amber-500/20 shadow-inner">
+            <Lock size={32} />
+          </div>
+          <div>
+            <h2 className="text-xl font-black uppercase tracking-tight text-zinc-900 dark:text-white">Módulo Protegido</h2>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 font-medium">
+              Insira a senha de 6 dígitos para desbloquear o módulo <strong className="uppercase text-zinc-800 dark:text-zinc-200">{moduleNames[currentRoute] || currentRoute}</strong> neste login.
+            </p>
+          </div>
+
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (pinInput === requiredPin) {
+                setUnlockedModules(prev => new Set([...prev, currentRoute]));
+                setPinInput('');
+                setPinError('');
+              } else {
+                setPinError('PIN incorreto. Verifique a senha de 6 dígitos.');
+                setPinInput('');
+              }
+            }}
+            className="space-y-4"
+          >
+            <input
+              type="password"
+              maxLength={6}
+              autoFocus
+              placeholder="••••••"
+              value={pinInput}
+              onChange={(e) => {
+                const val = e.target.value.replace(/\D/g, '').slice(0, 6);
+                setPinInput(val);
+                setPinError('');
+                if (val.length === 6 && val === requiredPin) {
+                  setUnlockedModules(prev => new Set([...prev, currentRoute]));
+                  setPinInput('');
+                  setPinError('');
+                }
+              }}
+              className="w-full px-4 py-4 bg-zinc-50 dark:bg-zinc-955 border border-zinc-200 dark:border-zinc-700 rounded-2xl text-2xl font-mono text-center tracking-[0.5em] text-zinc-900 dark:text-white outline-none focus:ring-2 focus:ring-amber-500"
+            />
+
+            {pinError && (
+              <p className="text-xs font-bold text-rose-500 bg-rose-50 dark:bg-rose-950/40 p-2.5 rounded-xl border border-rose-200 dark:border-rose-900/30">
+                {pinError}
+              </p>
+            )}
+
+            <div className="flex items-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => { window.location.hash = 'hub'; setPinInput(''); setPinError(''); }}
+                className="flex-1 py-3 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-black text-xs uppercase tracking-wider rounded-2xl hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-all"
+              >
+                Voltar
+              </button>
+              <button
+                type="submit"
+                disabled={pinInput.length !== 6}
+                className="flex-1 py-3 bg-amber-500 text-zinc-950 font-black text-xs uppercase tracking-wider rounded-2xl hover:bg-amber-400 transition-all disabled:opacity-50 shadow-lg shadow-amber-500/20"
+              >
+                Desbloquear
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  } else if (currentRoute === 'estudos') {
     pageContent = <EstudosApp theme={theme} toggleTheme={toggleTheme} />;
   } else if (currentRoute === 'financas') {
     pageContent = <FinancasApp />;

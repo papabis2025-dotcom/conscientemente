@@ -28,6 +28,7 @@ import {
   RotateCcw
 } from 'lucide-react';
 import { exportToPdf } from '../utils/exportUtils';
+import { getBadgeStyle } from '../utils/colors';
 
 interface CronogramaViewProps {
   subjects: Subject[];
@@ -35,6 +36,7 @@ interface CronogramaViewProps {
   simulados: Simulado[];
   concursos: Concurso[];
   selectedConcursoId: string;
+  onSelectConcursoId?: (id: string | 'all') => void;
   scheduledStudies: ScheduledStudy[];
   onAddScheduledStudiesBatch: (items: (Omit<ScheduledStudy, 'id' | 'status'> & { id?: string })[]) => Promise<void>;
   onDeleteScheduledStudiesBatch: (ids: string[]) => Promise<void>;
@@ -59,6 +61,7 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
   simulados,
   concursos,
   selectedConcursoId,
+  onSelectConcursoId,
   scheduledStudies,
   onAddScheduledStudiesBatch,
   onDeleteScheduledStudiesBatch,
@@ -268,6 +271,9 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
   }, [subjects]);
 
   const cronogramaStudies = useMemo(() => {
+    if (selectedConcursoId === 'all') {
+      return scheduledStudies || [];
+    }
     return (scheduledStudies || []).filter(s => 
       activeConcursoSubjectIds.has(s.subjectId) ||
       s.concursoId === selectedConcursoId ||
@@ -1073,7 +1079,7 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
 
       {/* Top Header controls */}
       <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-4 rounded-[2rem] shadow-sm">
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <div className="flex bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl">
             {(['day', 'week', 'month'] as const).map(mode => (
               <button
@@ -1090,6 +1096,24 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
               </button>
             ))}
           </div>
+
+          {concursos && onSelectConcursoId && (
+            <div className="bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3 py-1.5 flex items-center gap-2 shadow-xs">
+              <Trophy size={14} className="text-amber-500 shrink-0" />
+              <select
+                value={selectedConcursoId}
+                onChange={(e) => onSelectConcursoId(e.target.value as string | 'all')}
+                className="bg-transparent border-none outline-none text-xs font-black text-zinc-800 dark:text-zinc-100 cursor-pointer uppercase tracking-wide focus:ring-0"
+              >
+                <option value="all" className="bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-100">Visão Global</option>
+                {concursos.map(c => (
+                  <option key={c.id} value={c.id} className="bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-100">
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
 
         {/* Week navigation (or Month/Day navigation depending on mode) */}
@@ -1434,20 +1458,24 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
                   const topic = sub?.topics?.find(t => t.id === act.topicId);
                   const isSimulado = act.activityType === 'Simulado';
                   const isRevisao = act.activityType && (act.activityType.toLowerCase().includes('revisão') || act.activityType.toLowerCase().includes('revisao'));
+                  const badgeStyle = sub ? getBadgeStyle(sub.color) : { style: {}, className: 'bg-amber-500 text-white' };
 
                   const taskLinks = getTaskAllLinks(act);
                   const isExpanded = expandedTaskId === act.id;
 
                   return (
-                    <div key={act.id} className="space-y-0">
+                    <div key={act.id} id={`task-card-${act.id}`} className="space-y-0">
                       <div
-                        style={{ borderLeftColor: isSimulado ? '#A855F7' : isRevisao ? '#F59E0B' : (sub?.color || '#10B981') }}
+                        style={{
+                          ...(isRevisao ? badgeStyle.style : {}),
+                          borderLeftColor: isSimulado ? '#A855F7' : isRevisao ? '#000000' : (sub?.color || '#10B981')
+                        }}
                         onClick={() => toggleExpandTask(act.id)}
                         className={`p-4 border flex justify-between items-start gap-4 transition-all cursor-pointer hover:bg-zinc-100/80 dark:hover:bg-zinc-800/50 ${
                           isSimulado
-                            ? 'border-l-4 border-purple-500 ring-2 ring-purple-500/40 animate-pulse bg-purple-50/50 dark:bg-purple-950/30 shadow-md shadow-purple-500/10'
+                            ? 'border-l-4 border-purple-500 ring-2 ring-purple-500/40 bg-purple-50/50 dark:bg-purple-950/30 shadow-md shadow-purple-500/10'
                             : isRevisao
-                              ? 'border-l-[6px] border-amber-500 dark:border-amber-400 bg-amber-50/60 dark:bg-amber-950/20 border-zinc-200/80 dark:border-zinc-700/80 shadow-xs font-semibold'
+                              ? `border-l-[6px] border-4 border-black dark:border-black shadow-md font-bold ${badgeStyle.className}`
                               : 'border-l-4 bg-zinc-50 dark:bg-zinc-800/20 border-zinc-200/50 dark:border-zinc-700/50'
                         } ${
                           isDone ? 'opacity-40' : ''

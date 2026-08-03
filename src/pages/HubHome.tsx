@@ -773,7 +773,8 @@ const HubHome: React.FC<HubHomeProps> = ({
             id: t.id, 
             text: prefix + t.subjectName + ' - ' + (t.topicName || 'Geral'), 
             date: t.date, 
-            completed: t.done 
+            completed: t.done,
+            concursoId: conc?.id || t.concursoId
           };
         }),
         ...consolidatedStudies.map((s: any) => {
@@ -789,7 +790,8 @@ const HubHome: React.FC<HubHomeProps> = ({
             id: s.id,
             text,
             date: s.date?.split('T')[0],
-            completed: isCompleted
+            completed: isCompleted,
+            concursoId: conc?.id || s.concursoId
           };
         }),
         ...simuladosFiltered.map((sim: any) => ({
@@ -797,7 +799,8 @@ const HubHome: React.FC<HubHomeProps> = ({
           text: `SIMULADO: ${sim.name} (${sim.durationInMinutes || 0} min)`,
           date: sim.date?.split('T')[0] || sim.date,
           completed: true,
-          isSimulado: true
+          isSimulado: true,
+          concursoId: sim.concursoId || sim.concurso_id
         }))
       ].filter(s => s.date >= startOfMonth && s.date <= endOfMonth);
 
@@ -2434,8 +2437,17 @@ const HubHome: React.FC<HubHomeProps> = ({
                                  return (
                                    <div 
                                      key={s.id} 
-                                     onClick={() => { window.location.hash = 'estudos'; sessionStorage.setItem('estudosActiveTab', 'calendar'); }}
-                                     title="Abrir no módulo de Estudos"
+                                     onClick={() => {
+                                       if (s.concursoId) {
+                                         localStorage.setItem('cp_selected_concurso_id', s.concursoId);
+                                       }
+                                       sessionStorage.setItem('estudosActiveTab', 'cronograma');
+                                       if (s.id) {
+                                         sessionStorage.setItem('targetTaskId', s.id);
+                                       }
+                                       window.location.hash = 'estudos';
+                                     }}
+                                     title="Abrir diretamente no Planner do respectivo curso"
                                      className={`flex items-center gap-2.5 p-2 rounded-xl transition-all duration-200 cursor-pointer hover:scale-[1.01] ${
                                        isCompleted
                                          ? 'bg-zinc-100/40 dark:bg-zinc-800/20 border border-zinc-200/25 dark:border-zinc-800/30 opacity-40'

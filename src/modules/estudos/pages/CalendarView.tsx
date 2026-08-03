@@ -472,7 +472,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                           <div 
                             key={task.id} 
                             onClick={(e) => handleTaskClick(e, task)}
-                            className="p-3.5 rounded-2xl text-xs font-bold border-2 border-purple-500 ring-2 ring-purple-500/40 animate-pulse bg-purple-50/70 dark:bg-purple-950/40 text-purple-950 dark:text-purple-200 cursor-pointer transition-all hover:scale-[1.02] active:scale-95 shadow-md shadow-purple-500/10"
+                            className="p-3.5 rounded-2xl text-xs font-bold border-2 border-purple-500 ring-2 ring-purple-500/40 bg-purple-50/70 dark:bg-purple-950/40 text-purple-950 dark:text-purple-200 cursor-pointer transition-all hover:scale-[1.02] active:scale-95 shadow-md shadow-purple-500/10"
                           >
                             <span className="font-black text-purple-600 dark:text-purple-400 text-[10px] uppercase tracking-wider block">
                               SIMULADO
@@ -517,7 +517,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                               e.stopPropagation();
                               if (onToggleStatus) onToggleStatus(task.isGroupedVirtual ? task.taskIds : task.id);
                             }}
-                            className={`p-4 rounded-2xl text-xs font-bold border-l-[6px] border-amber-500 dark:border-amber-400 border-2 border-amber-500/40 ${className} cursor-pointer transition-all hover:scale-[1.02] active:scale-95 shadow-sm`}
+                            className={`p-4 rounded-2xl text-xs font-bold border-l-[6px] border-4 border-black dark:border-black ${className} cursor-pointer transition-all hover:scale-[1.02] active:scale-95 shadow-md`}
                           >
                             <span className="opacity-80 flex items-center gap-1 font-black text-[10px] uppercase tracking-wider">
                               REVISÃO
@@ -697,7 +697,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                             <div 
                               key={t.id}
                               onClick={(e) => handleTaskClick(e, t)}
-                              className="px-2 py-1.5 rounded-lg text-[10px] leading-tight font-black border-2 border-purple-500 ring-1 ring-purple-500/40 animate-pulse bg-purple-50 dark:bg-purple-950/40 text-purple-950 dark:text-purple-200 cursor-pointer transition-all hover:scale-[1.02] active:scale-95 shadow-sm"
+                              className="px-2 py-1.5 rounded-lg text-[10px] leading-tight font-black border-2 border-purple-500 ring-1 ring-purple-500/40 bg-purple-50 dark:bg-purple-950/40 text-purple-950 dark:text-purple-200 cursor-pointer transition-all hover:scale-[1.02] active:scale-95 shadow-sm"
                             >
                               <div className="flex flex-col gap-0.5">
                                 <span className="truncate">{t.name || t.notes || 'Simulado'}</span>
@@ -717,7 +717,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                               draggable={true}
                               onDragStart={(e) => handleDragStart(e, t.isGroupedVirtual ? t.taskIds.join(',') : t.id)}
                               onClick={(e) => handleTaskClick(e, t)}
-                              className={`px-2 py-1.5 rounded-lg text-[10px] leading-tight font-black border-l-4 border-amber-500 border-2 border-amber-500/40 ${className} cursor-pointer transition-all hover:scale-[1.02] active:scale-95 shadow-xs truncate`}
+                              className={`px-2 py-1.5 rounded-lg text-[10px] leading-tight font-black border-2 border-black dark:border-black ${className} cursor-pointer transition-all hover:scale-[1.02] active:scale-95 shadow-xs truncate`}
                             >
                               <div className="flex flex-col gap-0.5">
                                 <span className="truncate">{subObj ? subObj.name : 'Revisão'}</span>

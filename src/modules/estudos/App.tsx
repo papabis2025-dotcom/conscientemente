@@ -287,6 +287,7 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
           simulados={simulados}
           concursos={concursos}
           selectedConcursoId={selectedConcursoId}
+          onSelectConcursoId={setSelectedConcursoId}
           scheduledStudies={allScheduledStudies || scheduledStudies}
           onAddScheduledStudiesBatch={addScheduledStudiesBatch}
           onDeleteScheduledStudiesBatch={deleteScheduledStudiesBatch}

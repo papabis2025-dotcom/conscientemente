@@ -90,6 +90,28 @@ const GlobalSidebar: React.FC<GlobalSidebarProps> = ({
   const [newEmail, setNewEmail] = useState('');
   const [emailMessage, setEmailMessage] = useState('');
 
+  // Module PIN states
+  const [modulePins, setModulePins] = useState<Record<string, string>>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('cn_module_pins') || '{}');
+    } catch {
+      return {};
+    }
+  });
+  const [modulePinInputs, setModulePinInputs] = useState<Record<string, string>>({});
+
+  const handleSaveModulePin = (modId: string, val: string) => {
+    if (val && (val.length !== 6 || !/^\d{6}$/.test(val))) {
+      alert('O PIN do módulo deve conter exatamente 6 dígitos numéricos.');
+      return;
+    }
+    const updated = { ...modulePins, [modId]: val };
+    setModulePins(updated);
+    localStorage.setItem('cn_module_pins', JSON.stringify(updated));
+    window.dispatchEvent(new Event('local-storage-sync'));
+    alert(val ? `PIN de 6 dígitos configurado para o módulo ${modId}!` : `PIN removido para o módulo ${modId}!`);
+  };
+
   // Notifications state
   const [notifications, setNotifications] = useState<AppNotification[]>(() => {
     const saved = localStorage.getItem('cn_notifications');
@@ -849,7 +871,102 @@ const GlobalSidebar: React.FC<GlobalSidebarProps> = ({
                  </div>
                </div>
 
-               <div className="space-y-4 pt-6 border-t border-zinc-200 dark:border-zinc-800">
+                {/* Vinculação de Conta Google */}
+                <div className="space-y-4 pt-6 border-t border-zinc-200 dark:border-zinc-800">
+                  <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Vinculação com Conta Google</p>
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-zinc-50 dark:bg-zinc-800/40 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-xs">
+                    <div>
+                      <p className="text-xs font-bold text-zinc-800 dark:text-white">Conexão Google OAuth</p>
+                      <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5">Permite entrar no sistema com 1 clique usando sua Conta Google.</p>
+                    </div>
+                    <button
+                      onClick={async () => {
+                        try {
+                          const { error } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin } });
+                          if (error) throw error;
+                        } catch (e: any) {
+                          alert(e.message || 'Erro ao vincular conta Google.');
+                        }
+                      }}
+                      className="px-4 py-2.5 bg-white dark:bg-zinc-700 border border-zinc-200 dark:border-zinc-600 text-zinc-800 dark:text-white font-bold text-xs rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-600 transition-all flex items-center gap-2 shrink-0 shadow-xs"
+                    >
+                      <svg className="w-4 h-4" viewBox="0 0 24 24">
+                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
+                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
+                      </svg>
+                      Vincular Conta Google
+                    </button>
+                  </div>
+                </div>
+
+                {/* Segurança de Módulos (PIN de 6 dígitos) */}
+                <div className="space-y-4 pt-6 border-t border-zinc-200 dark:border-zinc-800">
+                  <div>
+                    <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest flex items-center gap-1.5">
+                      <Lock size={12} className="text-amber-500" /> Segurança de Módulos (PIN 6 Dígitos)
+                    </p>
+                    <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-1 font-medium">
+                      Defina um PIN numérico de 6 dígitos exigido a cada novo login ao tentar acessar o módulo.
+                    </p>
+                  </div>
+
+                  <div className="space-y-3">
+                    {[
+                      { id: 'estudos', label: 'Estudos' },
+                      { id: 'financas', label: 'Finanças' },
+                      { id: 'saude', label: 'Saúde' },
+                      { id: 'tarefas', label: 'Tarefas' },
+                      { id: 'anotacoes', label: 'Anotações' }
+                    ].map(mod => {
+                      const currentPin = modulePins[mod.id] || '';
+                      return (
+                        <div key={mod.id} className="p-3.5 bg-zinc-50 dark:bg-zinc-800/40 rounded-2xl border border-zinc-200 dark:border-zinc-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                          <span className="text-xs font-bold text-zinc-800 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                            <span className={`w-2 h-2 rounded-full ${currentPin ? 'bg-emerald-500' : 'bg-zinc-400'}`} />
+                            {mod.label}
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="password"
+                              maxLength={6}
+                              placeholder="PIN 6 dígitos"
+                              value={modulePinInputs[mod.id] !== undefined ? modulePinInputs[mod.id] : currentPin}
+                              onChange={(e) => {
+                                const val = e.target.value.replace(/\D/g, '').slice(0, 6);
+                                setModulePinInputs(prev => ({ ...prev, [mod.id]: val }));
+                              }}
+                              className="w-32 px-3 py-1.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-mono text-center tracking-widest text-zinc-800 dark:text-white outline-none focus:ring-2 focus:ring-amber-500"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const val = modulePinInputs[mod.id] !== undefined ? modulePinInputs[mod.id] : currentPin;
+                                handleSaveModulePin(mod.id, val);
+                              }}
+                              className="px-3 py-1.5 bg-zinc-900 text-white dark:bg-zinc-700 hover:bg-zinc-800 text-[10px] font-black uppercase tracking-wider rounded-xl transition-all"
+                            >
+                              Salvar
+                            </button>
+                            {currentPin && (
+                              <button
+                                type="button"
+                                onClick={() => handleSaveModulePin(mod.id, '')}
+                                className="px-2 py-1.5 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 text-[10px] font-bold rounded-xl transition-all"
+                                title="Remover PIN"
+                              >
+                                Remover
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="space-y-4 pt-6 border-t border-zinc-200 dark:border-zinc-800">
                   <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Notificações Push</p>
                   <div className="flex items-center justify-between bg-zinc-50 dark:bg-zinc-800/40 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
                     <div>

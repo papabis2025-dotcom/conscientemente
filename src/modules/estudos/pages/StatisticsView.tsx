@@ -2,8 +2,9 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { Subject, StudySession, Concurso } from '../types';
 import { api } from '../services/api';
-import { ChevronDown, ChevronRight, Trophy, PieChart as PieChartIcon, Table, Lock, Unlock } from 'lucide-react';
+import { ChevronDown, ChevronRight, Trophy, PieChart as PieChartIcon, Table, Lock, Unlock, FileSpreadsheet } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import { exportToCsv } from '../utils/exportUtils';
 
 interface StatisticsViewProps {
   subjects: Subject[];
@@ -380,6 +381,70 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, sim
       {label}{sortBy === col ? (sortOrder === 'desc' ? ' ↓' : ' ↑') : ''}
     </th>;
 
+  const handleExportSpreadsheet = () => {
+    const headers = [
+      'Tipo',
+      'Disciplina / Assunto',
+      'Questões Resolvidas',
+      'Certas',
+      'Meta Prevista',
+      'Tempo (min)',
+      'Aproveitamento (%)',
+      'Peso',
+      'Prioridade (%)'
+    ];
+
+    const rows: (string | number)[][] = [];
+
+    sortedData.forEach(({ sub, questions, correct, accuracy, weight, questionsGoal, minutes }) => {
+      const priority = getPriority(weight, accuracy, questions, minutes);
+      const priorityPct = Math.round(priority * 100);
+
+      rows.push([
+        'Disciplina',
+        sub.name,
+        questions,
+        correct,
+        questionsGoal,
+        minutes,
+        accuracy,
+        weight,
+        priorityPct
+      ]);
+
+      if (showTopics && sub.topics && sub.topics.length > 0) {
+        sub.topics.forEach(topic => {
+          const topicSessions = sessions.filter(s => s.subjectId === sub.id && s.topicId === topic.id);
+          const tDone = topicSessions.reduce((acc, s) => acc + (s.questionsDone || 0), 0);
+          const tCorrect = topicSessions.reduce((acc, s) => acc + (s.questionsCorrect || 0), 0);
+          const tAccuracy = tDone > 0 ? Math.min(100, Math.round((tCorrect / tDone) * 100)) : 0;
+          const tMinutes = topicSessions.reduce((acc, s) => acc + (s.durationInMinutes || 0), 0);
+          const baseSubjW = sub.weight !== undefined && sub.weight > 0 ? sub.weight : 1;
+          const tEffectiveWeight = topic.weight !== undefined && topic.weight > 0
+            ? baseSubjW * (topic.weight / 100)
+            : baseSubjW / Math.max(1, sub.topics.length);
+
+          const tPriorityPct = Math.round(getPriority(tEffectiveWeight, tAccuracy, tDone, tMinutes) * 100);
+
+          rows.push([
+            'Assunto',
+            `  └ ${topic.title}`,
+            tDone,
+            tCorrect,
+            '-',
+            tMinutes,
+            tAccuracy,
+            topic.weight !== undefined ? topic.weight : '-',
+            tPriorityPct
+          ]);
+        });
+      }
+    });
+
+    const concursoName = (concursos || []).find(c => c.id === selectedConcursoId)?.name || 'Visao_Global';
+    exportToCsv(`Analise_Estatistica_${concursoName.replace(/[^a-zA-Z0-9_-]/g, '_')}`, headers, rows);
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-10">
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 px-1">
@@ -411,6 +476,16 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, sim
               }`}
             >
               {showTopics ? 'Ocultar Assuntos' : 'Mostrar Assuntos'}
+            </button>
+
+            <button
+              type="button"
+              onClick={handleExportSpreadsheet}
+              className="bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-black uppercase tracking-wider px-3.5 py-1.5 rounded-xl transition-all flex items-center gap-1.5 shadow-sm"
+              title="Exportar Análise Estatística para planilha Excel / Google Planilhas"
+            >
+              <FileSpreadsheet size={14} />
+              Exportar Planilha
             </button>
 
             <div className="flex bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl shadow-inner border border-zinc-200/20 dark:border-zinc-800/50 select-none">

@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { Subject, ScheduledStudy, ActivityType, Topic, StudySession, Simulado } from '../types';
 import { getBadgeStyle } from '../utils/colors';
-import { FileText, Layers, Video, BookOpen, Clipboard, Book, Clock, RefreshCw, Sparkles, Plus, Trash2, ExternalLink } from 'lucide-react';
+import { FileText, Layers, Video, BookOpen, Clipboard, Book, Clock, RefreshCw, Sparkles, Plus, Trash2, ExternalLink, Printer } from 'lucide-react';
+import { exportToPdf } from '../utils/exportUtils';
 
 interface CalendarViewProps {
   subjects: Subject[]; // For dropdown (filtered)
@@ -986,6 +987,16 @@ const CalendarView: React.FC<CalendarViewProps> = ({
               {isSyncing ? 'Atualizando...' : 'Atualizar Revisões'}
             </button>
           )}
+
+          <button
+            type="button"
+            onClick={() => exportToPdf('Planner_Estudos')}
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-rose-600 hover:bg-rose-700 active:scale-95 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-sm transition-all"
+            title="Exportar visualização do Planner para PDF"
+          >
+            <Printer size={12} />
+            Exportar PDF
+          </button>
 
           <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-1 shadow-sm flex">
             {(['semanal', 'mensal', 'anual', 'lista'] as ViewMode[]).map((mode) => (

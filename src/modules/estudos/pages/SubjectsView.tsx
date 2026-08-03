@@ -19,8 +19,10 @@ import {
   Bot,
   GripVertical,
   Lock,
-  Unlock
+  Unlock,
+  FileSpreadsheet
 } from 'lucide-react';
+import { exportToCsv } from '../utils/exportUtils';
 
 interface SubjectsViewProps {
   subjects: Subject[];
@@ -681,7 +683,75 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
     setEditTopicTitle('');
   };
 
+  const handleExportSpreadsheet = () => {
+    const headers = [
+      'Disciplina',
+      'Peso Disciplina',
+      'Meta Questões',
+      'Assunto / Tópico',
+      'Prioridade Tópico',
+      'Peso Tópico',
+      'Status Concluído',
+      'Questões Resolvidas',
+      'Acertos',
+      'Aproveitamento (%)',
+      'Tempo (min)'
+    ];
 
+    const rows: (string | number)[][] = [];
+
+    subjects.forEach(sub => {
+      const subSessions = sessions.filter(s => s.subjectId === sub.id);
+      const subTopics = sub.topics || [];
+
+      if (subTopics.length === 0) {
+        const qDone = subSessions.reduce((acc, s) => acc + (s.questionsDone || 0), 0);
+        const qCorrect = subSessions.reduce((acc, s) => acc + (s.questionsCorrect || 0), 0);
+        const accPct = qDone > 0 ? Math.round((qCorrect / qDone) * 100) : 0;
+        const mins = subSessions.reduce((acc, s) => acc + (s.durationInMinutes || 0), 0);
+
+        rows.push([
+          sub.name,
+          sub.weight || 1,
+          sub.questionsGoal || 0,
+          'Geral',
+          '-',
+          '-',
+          '-',
+          qDone,
+          qCorrect,
+          accPct,
+          mins
+        ]);
+      } else {
+        subTopics.forEach(topic => {
+          const topSessions = subSessions.filter(s => s.topicId === topic.id);
+          const qDone = topSessions.reduce((acc, s) => acc + (s.questionsDone || 0), 0);
+          const qCorrect = topSessions.reduce((acc, s) => acc + (s.questionsCorrect || 0), 0);
+          const accPct = qDone > 0 ? Math.round((qCorrect / qDone) * 100) : 0;
+          const mins = topSessions.reduce((acc, s) => acc + (s.durationInMinutes || 0), 0);
+          const isCompleted = isTopicCompletedHelper(sub.id, topic.id, !!topic.isCompleted, scheduledStudies, sessions);
+
+          rows.push([
+            sub.name,
+            sub.weight || 1,
+            sub.questionsGoal || 0,
+            topic.title,
+            topic.priority || 'Média',
+            topic.weight !== undefined ? topic.weight : '-',
+            isCompleted ? 'Concluído' : 'Pendente',
+            qDone,
+            qCorrect,
+            accPct,
+            mins
+          ]);
+        });
+      }
+    });
+
+    const concursoName = (concursos || []).find(c => c.id === selectedConcursoId)?.name || 'Geral';
+    exportToCsv(`Disciplinas_${concursoName.replace(/[^a-zA-Z0-9_-]/g, '_')}`, headers, rows);
+  };
 
   return (
     <div className="space-y-4 animate-in fade-in duration-500">
@@ -697,6 +767,15 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
           </div>
         </div>
         <div className="flex flex-wrap gap-4 items-center">
+          <button
+            type="button"
+            onClick={handleExportSpreadsheet}
+            className="bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-black uppercase tracking-wider px-3.5 py-1.5 rounded-xl transition-all flex items-center gap-1.5 shadow-sm"
+            title="Exportar disciplinas e tópicos para planilha Excel / Google Planilhas"
+          >
+            <FileSpreadsheet size={14} />
+            Exportar Planilha
+          </button>
           {selectedConcursoId && selectedConcursoId !== 'all' && (
             <label className="flex items-center gap-2 cursor-pointer py-1.5 px-3 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-bold text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700/50 transition-colors select-none">
               <input

@@ -899,20 +899,58 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         );
     }, [simulados, selectedConcursoId, activeConcurso]);
 
+    const [settingsTick, setSettingsTick] = useState(0);
+    useEffect(() => {
+        const handleSettingsChanged = () => setSettingsTick(t => t + 1);
+        window.addEventListener('local-settings-changed', handleSettingsChanged);
+        return () => window.removeEventListener('local-settings-changed', handleSettingsChanged);
+    }, []);
+
     const filteredScheduledStudies = useMemo(() => {
         const activeSimDates = new Set((simulados || []).map(sim => sim.date?.split('T')[0]).filter(Boolean));
+
+        // Mapeia disciplinas para o id do concurso correspondente
+        const subjectToConcursoMap = new Map<string, string>();
+        concursos.forEach(c => {
+            (c.subjects || []).forEach(sub => {
+                subjectToConcursoMap.set(sub.id, c.id);
+            });
+        });
+
+        const isCronogramaEnabledForConcurso = (concursoId?: string) => {
+            if (!concursoId || concursoId === 'all') return true;
+            try {
+                const saved = localStorage.getItem(`cp_cronograma_prefs_${concursoId}`);
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    if (parsed.isCronogramaEnabled === false) return false;
+                }
+            } catch (e) {}
+            return true;
+        };
+
         const validScheduled = scheduledStudies.filter(s => {
             if (s.activityType === 'Simulado' && s.status === 'realizado') {
                 const sDate = s.date?.split('T')[0];
-                return activeSimDates.has(sDate);
+                if (!activeSimDates.has(sDate)) return false;
             }
+
+            // Se for atividade gerada pelo cronograma e NÃO realizada, ocultar se o cronograma daquele concurso estiver desativado
+            if (s.generatedByCronograma === true && s.status !== 'realizado') {
+                const concId = s.subjectId ? subjectToConcursoMap.get(s.subjectId) : selectedConcursoId;
+                const targetConcId = concId && concId !== 'all' ? concId : (selectedConcursoId !== 'all' ? selectedConcursoId : undefined);
+                if (targetConcId && !isCronogramaEnabledForConcurso(targetConcId)) {
+                    return false;
+                }
+            }
+
             return true;
         });
 
         if (selectedConcursoId === 'all') return validScheduled;
         const subIds = new Set((activeConcurso?.subjects || []).map(s => s.id));
         return validScheduled.filter(s => subIds.has(s.subjectId));
-    }, [scheduledStudies, simulados, selectedConcursoId, activeConcurso]);
+    }, [scheduledStudies, simulados, selectedConcursoId, activeConcurso, concursos, settingsTick]);
 
     const filteredStudyTasks = useMemo(() => {
         if (selectedConcursoId === 'all') return studyTasks;
@@ -1937,26 +1975,30 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         setIsSaving(true);
         setSaveError(null);
         try {
-            await api.schedule.deleteBatch(ids);
-            // FIX 1.2: Apenas apagar sessões de atividades NÃO realizadas.
-            // Atividades já concluídas (status === 'realizado') têm sessões que
-            // devem persistir no planner e nas estatísticas mesmo após zerar/desativar o cronograma.
+            // FIX: Identificar tarefas com status 'realizado' para NUNCA apagá-las
             const completedIds = new Set(
                 scheduledStudies
                     .filter(s => ids.includes(s.id) && s.status === 'realizado')
                     .map(s => s.id)
             );
-            for (const id of ids) {
-                if (!completedIds.has(id)) {
-                    try { await api.sessions.delete(id); } catch(e) {}
-                }
+            
+            // Apenas apagar do banco IDs de tarefas não concluídas
+            const uncompletedIdsToDelete = ids.filter(id => !completedIds.has(id));
+
+            if (uncompletedIdsToDelete.length > 0) {
+                await api.schedule.deleteBatch(uncompletedIdsToDelete);
             }
+
+            for (const id of uncompletedIdsToDelete) {
+                try { await api.sessions.delete(id); } catch(e) {}
+            }
+
             setScheduledStudies(prev => {
-                const filtered = prev.filter(s => !ids.includes(s.id));
+                const filtered = prev.filter(s => !uncompletedIdsToDelete.includes(s.id));
                 localStorage.setItem('cp_scheduled_studies', JSON.stringify(filtered));
                 return filtered;
             });
-            setSessions(prev => prev.filter(s => !ids.includes(s.id) || completedIds.has(s.id)));
+            setSessions(prev => prev.filter(s => !uncompletedIdsToDelete.includes(s.id) || completedIds.has(s.id)));
             setLastSaved(new Date().toLocaleTimeString());
         } catch (e) {
             console.error('Error deleting scheduled studies batch:', e);
@@ -1976,10 +2018,12 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         setIsSaving(true);
         setSaveError(null);
 
-        // 1. Identificar apenas itens gerados pelo cronograma para remoção
-        // Tarefas adicionadas manualmente (generatedByCronograma !== true) e revisões correspondentes NUNCA são removidas
+        // 1. Identificar apenas itens gerados pelo cronograma que NÃO estejam realizados
+        // Tarefas adicionadas manualmente (generatedByCronograma !== true) e tarefas concluídas NUNCA são removidas
         const itemsToDelete = scheduledStudies.filter(s => 
-            subjectIds.has(s.subjectId) && s.generatedByCronograma === true
+            (subjectIds.has(s.subjectId) || (s.activityType === 'Simulado' && s.generatedByCronograma === true)) && 
+            s.generatedByCronograma === true && 
+            s.status !== 'realizado'
         );
         const idsToDelete = itemsToDelete.map(s => s.id);
 
@@ -1989,14 +2033,14 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
             return updated;
         });
 
-        // 2. Apagar do banco de dados apenas os IDs gerados pelo cronograma
+        // 2. Apagar do banco de dados apenas os IDs gerados pelo cronograma não realizados
         try {
             if (idsToDelete.length > 0) {
                 await api.schedule.deleteBatch(idsToDelete);
             }
 
             addLog({
-                message: `Tarefas geradas pelo cronograma de "${concurso.name}" removidas com sucesso (estudos manuais e revisões preservados)`,
+                message: `Tarefas não concluídas geradas pelo cronograma de "${concurso.name}" removidas com sucesso (estudos manuais e tarefas concluídas preservados)`,
                 type: 'info'
             });
             setLastSaved(new Date().toLocaleTimeString());

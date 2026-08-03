@@ -2018,11 +2018,9 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         setIsSaving(true);
         setSaveError(null);
 
-        // 1. Identificar apenas itens gerados pelo cronograma que NÃO estejam realizados
-        // Tarefas adicionadas manualmente (generatedByCronograma !== true) e tarefas concluídas NUNCA são removidas
+        // 1. Identificar apenas itens vinculados às disciplinas do concurso (ou simulados) que NÃO estejam realizados
         const itemsToDelete = scheduledStudies.filter(s => 
-            (subjectIds.has(s.subjectId) || (s.activityType === 'Simulado' && s.generatedByCronograma === true)) && 
-            s.generatedByCronograma === true && 
+            (subjectIds.has(s.subjectId) || s.activityType === 'Simulado') && 
             s.status !== 'realizado'
         );
         const idsToDelete = itemsToDelete.map(s => s.id);

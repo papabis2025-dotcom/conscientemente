@@ -404,16 +404,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
 
         allConcursos.forEach(concurso => {
             const isReviewsDisabled = localStorage.getItem(`estudos_disabled_reviews_${concurso.id}`) === 'true';
-            let isCronogramaDisabled = false;
-            try {
-                const prefs = localStorage.getItem(`cp_cronograma_prefs_${concurso.id}`);
-                if (prefs) {
-                    const parsed = JSON.parse(prefs);
-                    if (parsed.isCronogramaEnabled === false) isCronogramaDisabled = true;
-                }
-            } catch (e) {}
-
-            if (isReviewsDisabled || isCronogramaDisabled) return;
+            if (isReviewsDisabled) return;
 
             (concurso.subjects || []).forEach(subject => {
                 const topicsList = [{ id: 'geral', title: 'Geral / Outros' }, ...(subject.topics || [])];
@@ -2011,6 +2002,16 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
             });
 
             const savedItems = await api.schedule.createBatch(itemsWithTags);
+
+            // Clear created IDs from cp_deleted_scheduled_ids so future fetches don't filter them
+            try {
+                const deletedRaw = localStorage.getItem('cp_deleted_scheduled_ids') || '[]';
+                const deletedArr: string[] = JSON.parse(deletedRaw);
+                const newIds = new Set(savedItems.map(s => s.id));
+                const filtered = deletedArr.filter(id => !newIds.has(id));
+                localStorage.setItem('cp_deleted_scheduled_ids', JSON.stringify(filtered));
+            } catch (e) {}
+
             setScheduledStudies(prev => {
                 const combined = [...prev, ...savedItems];
                 localStorage.setItem('cp_scheduled_studies', JSON.stringify(combined));

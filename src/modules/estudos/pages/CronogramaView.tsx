@@ -390,8 +390,9 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
           (s.generatedByCronograma && s.activityType === 'Simulado')
         )
       );
+      const idsBeingDeleted = new Set(uncompletedOldTasks.map(t => t.id));
       if (uncompletedOldTasks.length > 0) {
-        const idsToClear = uncompletedOldTasks.map(t => t.id);
+        const idsToClear = Array.from(idsBeingDeleted);
         await onDeleteScheduledStudiesBatch(idsToClear);
       }
 
@@ -516,8 +517,9 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
         const dateStr = currentDate.toISOString().split('T')[0];
         daysSinceSimulado++;
 
-        // Se este dia já tem alguma atividade cadastrada, pular a geração automática
+        // Se este dia já tem alguma atividade cadastrada que NÃO está sendo deletada, pular a geração automática
         const hasExistingActivity = (scheduledStudies || []).some(s => {
+          if (idsBeingDeleted.has(s.id)) return false;
           if (!s.date) return false;
           const sDateOnly = s.date.includes('T') ? s.date.split('T')[0] : s.date;
           return sDateOnly === dateStr;

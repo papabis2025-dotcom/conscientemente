@@ -269,25 +269,13 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
 
   const cronogramaStudies = useMemo(() => {
     return (scheduledStudies || []).filter(s => 
-      activeConcursoSubjectIds.has(s.subjectId)
+      activeConcursoSubjectIds.has(s.subjectId) ||
+      s.concursoId === selectedConcursoId ||
+      (s.generatedByCronograma && s.activityType === 'Simulado')
     );
-  }, [scheduledStudies, activeConcursoSubjectIds]);
+  }, [scheduledStudies, activeConcursoSubjectIds, selectedConcursoId]);
 
   const hasGenerated = isCronogramaEnabled && cronogramaStudies.length > 0;
-
-  // Auto-limpeza: remover automaticamente tarefas de estudo pendentes que foram geradas sem assunto específico
-  React.useEffect(() => {
-    if (!scheduledStudies || scheduledStudies.length === 0) return;
-    const invalidTasks = scheduledStudies.filter(s => 
-      s.status !== 'realizado' && 
-      s.activityType !== 'Simulado' && 
-      (!s.topicId || s.notes?.includes('Conteúdo geral da disciplina') || s.notes?.includes('dos tópicos prioritários'))
-    );
-    if (invalidTasks.length > 0) {
-      const idsToDelete = invalidTasks.map(t => t.id);
-      onDeleteScheduledStudiesBatch(idsToDelete).catch(e => console.error('Error cleaning invalid tasks without topic:', e));
-    }
-  }, [scheduledStudies, onDeleteScheduledStudiesBatch]);
 
   // Find start and end dates of the generated schedule
   const scheduleBounds = useMemo(() => {
@@ -595,20 +583,20 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
                 profile.queueIndex++;
               }
 
-              // EXPLICIT CHECK: Pular criação se não houver um tópico válido com ID e Título
-              if (!topic || !topic.id || !topic.title) {
-                continue;
-              }
+              const topicTitle = topic?.title;
+              const topicId = topic?.id;
 
-              accumStudiedTopics.add(topic.title);
+              if (topicTitle) {
+                accumStudiedTopics.add(topicTitle);
+              }
 
               // Group reading and questions into a single planner task
               items.push({
                 date: dateStr,
                 subjectId: profile.subject.id,
-                topicId: topic.id,
+                topicId: topicId,
                 activityType: 'Leitura, Questões',
-                notes: `Leitura e Questões: ${topic.title}`,
+                notes: `Leitura e Questões: ${topicTitle ? `${profile.subject.name} - ${topicTitle}` : profile.subject.name}`,
                 durationInMinutes: totalMinutesPerTopic,
                 questionsDone: undefined,
                 questionsCorrect: undefined,

@@ -2020,7 +2020,17 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
             } catch (e) {}
 
             setScheduledStudies(prev => {
-                const combined = [...prev, ...savedItems];
+                const targetConcursoId = items[0]?.concursoId;
+                const targetSubjectIds = new Set(items.map(i => i.subjectId));
+
+                const cleanedPrev = prev.filter(s => {
+                    if (s.status === 'realizado') return true;
+                    if (targetConcursoId && s.concursoId === targetConcursoId) return false;
+                    if (s.subjectId && targetSubjectIds.has(s.subjectId) && (s.generatedByCronograma || s.activityType === 'Simulado')) return false;
+                    return true;
+                });
+
+                const combined = [...cleanedPrev, ...savedItems];
                 localStorage.setItem('cp_scheduled_studies', JSON.stringify(combined));
                 return combined;
             });

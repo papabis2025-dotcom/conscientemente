@@ -510,9 +510,9 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
         const isStudyDay = activeDays.includes(weekdayName);
 
         // Check if today should trigger a Simulado based on user defined interval
-        const shouldRunSimulado = daysSinceSimulado >= simuladoIntervalDays || (!isStudyDay && daysSinceSimulado >= Math.max(1, simuladoIntervalDays - 1));
+        const shouldRunSimulado = daysSinceSimulado >= simuladoIntervalDays;
 
-        if (shouldRunSimulado && (!isStudyDay || daysSinceSimulado >= simuladoIntervalDays)) {
+        if (shouldRunSimulado) {
           daysSinceSimulado = 0;
           const fallbackSubject = subjects[0] || { id: '' };
           const studiedListStr = accumStudiedSubjects.size > 0 

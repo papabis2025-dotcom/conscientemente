@@ -12,6 +12,7 @@ import type { Session } from '@supabase/supabase-js';
 import { playSound } from './utils/audio';
 import { Brain } from 'lucide-react';
 import GlobalSidebar from './components/GlobalSidebar';
+import FaviconIcon from './components/FaviconIcon';
 
 interface SyncedPayload {
   updatedAt: number;
@@ -905,7 +906,7 @@ const App: React.FC = () => {
   if (loading || (session && !isPrefsLoaded)) {
     return (
       <div className="fixed inset-0 bg-zinc-50 dark:bg-zinc-950 flex items-center justify-center">
-        <Brain className="w-10 h-10 text-zinc-700 dark:text-zinc-300 animate-pulse" />
+        <FaviconIcon size={40} className="text-zinc-700 dark:text-zinc-300 animate-pulse" />
       </div>
     );
   }

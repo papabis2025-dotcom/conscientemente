@@ -505,24 +505,55 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                       const isRevisao = task.activityType && (task.activityType.toLowerCase().includes('revisão') || task.activityType.toLowerCase().includes('revisao'));
 
                       if (isRevisao && !isAulao) {
+                        const { style, className } = sub ? getBadgeStyle(sub.color) : { style: {}, className: 'bg-amber-600 text-white' };
+                        const topicTitle = sub?.topics?.find(t => t.id === task.topicId)?.title;
                         return (
                           <div 
                             key={task.id} 
-                            onClick={(e) => handleTaskClick(e, task)}
-                            className="p-3.5 rounded-2xl text-xs font-bold border-l-[6px] border-amber-500 dark:border-amber-400 bg-amber-50/80 dark:bg-amber-950/30 text-amber-950 dark:text-amber-200 border border-zinc-200/80 dark:border-zinc-700/80 cursor-pointer transition-all hover:scale-[1.02] active:scale-95 shadow-xs"
+                            style={{ ...style, opacity: task.status === 'realizado' ? 0.45 : 1 }} 
+                            draggable={true}
+                            onDragStart={(e) => handleDragStart(e, task.isGroupedVirtual ? task.taskIds.join(',') : task.id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (onToggleStatus) onToggleStatus(task.isGroupedVirtual ? task.taskIds : task.id);
+                            }}
+                            className={`p-4 rounded-2xl text-xs font-bold border-l-[6px] border-amber-500 dark:border-amber-400 border-2 border-amber-500/40 ${className} cursor-pointer transition-all hover:scale-[1.02] active:scale-95 shadow-sm`}
                           >
-                            <span className="font-black text-amber-600 dark:text-amber-400 text-[10px] uppercase tracking-wider block">
+                            <span className="opacity-80 flex items-center gap-1 font-black text-[10px] uppercase tracking-wider">
                               REVISÃO
                             </span>
-                            <p className="font-black truncate mt-1 text-sm">{sub ? sub.name : 'Disciplina'}</p>
-                            {task.topicId && sub && (
+                            <p className="truncate font-black text-sm mt-0.5">{sub ? sub.name : 'Disciplina Removida'}</p>
+                            {task.isGroupedVirtual && sub && task.topicIds && task.topicIds.length > 0 && (
                               <p className="text-[10px] opacity-80 mt-0.5 line-clamp-1 font-medium italic">
-                                {sub.topics?.find(t => t.id === task.topicId)?.title}
+                                {task.topicIds.map((id: string) => sub.topics.find(t => t.id === id)?.title).filter(Boolean).join(', ')}
                               </p>
                             )}
-                            <p className="text-[10px] opacity-90 mt-1 font-bold flex items-center gap-1 font-mono">
-                              <Clock size={10} /> {task.durationInMinutes} min
-                            </p>
+                            {!task.isGroupedVirtual && topicTitle && (
+                              <p className="text-[10px] opacity-80 mt-0.5 line-clamp-1 font-medium italic">
+                                {topicTitle}
+                              </p>
+                            )}
+                            {(() => {
+                              const links = getTaskAllLinks(task);
+                              if (links.length === 0) return null;
+                              return (
+                                <div className="mt-2 pt-1.5 border-t border-black/10 dark:border-white/10 flex flex-wrap gap-1 shrink-0">
+                                  {links.map((link, idx) => (
+                                    <a
+                                      key={idx}
+                                      href={link}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      onClick={(e) => e.stopPropagation()}
+                                      className="px-1.5 py-0.5 rounded bg-white/20 hover:bg-white/35 text-[8px] font-black tracking-tight text-inherit transition-colors flex items-center gap-0.5 cursor-pointer"
+                                      title={link}
+                                    >
+                                      <ExternalLink size={7} /> Q{idx + 1}
+                                    </a>
+                                  ))}
+                                </div>
+                              );
+                            })()}
                           </div>
                         );
                       }
@@ -677,17 +708,20 @@ const CalendarView: React.FC<CalendarViewProps> = ({
 
                         if (isRevisao && !isAulao) {
                           const subObj = lookupSubjects.find(s => s.id === t.subjectId);
+                          const { style, className } = subObj ? getBadgeStyle(subObj.color) : { style: {}, className: 'bg-amber-600 text-white' };
+                          const topicTitle = subObj?.topics?.find(top => top.id === t.topicId)?.title;
                           return (
                             <div 
                               key={t.id} 
-                              style={{ opacity: t.status === 'realizado' ? 0.45 : 1 }} 
+                              style={{ ...style, opacity: t.status === 'realizado' ? 0.45 : 1 }} 
                               draggable={true}
                               onDragStart={(e) => handleDragStart(e, t.isGroupedVirtual ? t.taskIds.join(',') : t.id)}
                               onClick={(e) => handleTaskClick(e, t)}
-                              className="px-2 py-1.5 rounded-lg text-[10px] leading-tight font-black border-l-4 border-amber-500 bg-amber-50 dark:bg-amber-950/30 text-amber-950 dark:text-amber-200 border border-zinc-200/80 dark:border-zinc-700/80 cursor-pointer transition-all hover:scale-[1.02] active:scale-95 shadow-xs truncate"
+                              className={`px-2 py-1.5 rounded-lg text-[10px] leading-tight font-black border-l-4 border-amber-500 border-2 border-amber-500/40 ${className} cursor-pointer transition-all hover:scale-[1.02] active:scale-95 shadow-xs truncate`}
                             >
                               <div className="flex flex-col gap-0.5">
                                 <span className="truncate">{subObj ? subObj.name : 'Revisão'}</span>
+                                {topicTitle && <span className="text-[8px] opacity-80 truncate font-medium italic">{topicTitle}</span>}
                               </div>
                             </div>
                           );

@@ -7,6 +7,7 @@ import { LogOut, Sun, Moon, ArrowUpRight, Lock, BookOpen, Wallet, ListTodo, Brai
 import { api } from '../modules/estudos/services/api';
 import { supabase } from '../modules/estudos/services/supabase';
 import { playSound } from '../utils/audio';
+import FaviconIcon from '../components/FaviconIcon';
 
 interface AppNotification {
   id: string;
@@ -1802,7 +1803,7 @@ const HubHome: React.FC<HubHomeProps> = ({
           </button>
           
           <div className="flex items-center gap-2">
-            <Brain size={18} className="text-zinc-800 dark:text-white" />
+            <FaviconIcon size={18} className="text-zinc-800 dark:text-white" />
             <span className="text-xs font-black uppercase tracking-widest text-zinc-800 dark:text-white leading-none">Conscientemente</span>
           </div>
 

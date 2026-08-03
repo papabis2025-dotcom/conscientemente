@@ -507,7 +507,11 @@ export const api = {
             if (ids.length === 0) return;
             const user = await getAuthUser();
             if (!user) return null;
-            return handleRequest(supabase.from('scheduled_studies').delete().in('id', ids).eq('user_id', user.id));
+            const chunkSize = 30;
+            for (let i = 0; i < ids.length; i += chunkSize) {
+                const chunk = ids.slice(i, i + chunkSize);
+                await handleRequest(supabase.from('scheduled_studies').delete().in('id', chunk).eq('user_id', user.id));
+            }
         },
     },
 

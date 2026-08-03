@@ -645,8 +645,12 @@ const HubHome: React.FC<HubHomeProps> = ({
         .select('id')
         .eq('user_id', user.id);
 
-      const studyTasksFiltered = JSON.parse(localStorage.getItem('cp_study_tasks') || '[]');
+      const deletedTaskIds = new Set<string>(JSON.parse(localStorage.getItem('cp_deleted_study_task_ids') || '[]'));
+      const studyTasksFiltered = (JSON.parse(localStorage.getItem('cp_study_tasks') || '[]'))
+        .filter((t: any) => !deletedTaskIds.has(t.id));
       
+      const deletedScheduledIds = new Set<string>(JSON.parse(localStorage.getItem('cp_deleted_scheduled_ids') || '[]'));
+
       let scheduledStudiesFiltered: any[] = [];
       if (dbScheduled) {
         const localRaw = localStorage.getItem('cp_scheduled_studies');
@@ -674,13 +678,36 @@ const HubHome: React.FC<HubHomeProps> = ({
             status
           };
         });
-        // IMPORTANTE: Não gravar no localStorage aqui dentro do fetchCalendarData.
-        // Escrever no localStorage dispararia o evento 'storage', que acionaria o
-        // handleSync, que chamaria fetchCalendarData novamente — criando um loop infinito.
-        // O localStorage de cp_scheduled_studies é atualizado pelo módulo de estudos.
       } else {
         scheduledStudiesFiltered = JSON.parse(localStorage.getItem('cp_scheduled_studies') || '[]');
       }
+
+      // Filter out deleted tasks and tasks from disabled cronogramas
+      const subjectToConcursoMap = new Map<string, string>();
+      (normalizedConcursos || []).forEach((c: any) => {
+        (c.subjects || []).forEach((sub: any) => subjectToConcursoMap.set(sub.id, c.id));
+      });
+
+      const isCronogramaEnabledForConcurso = (concursoId?: string) => {
+        if (!concursoId || concursoId === 'all') return true;
+        try {
+          const saved = localStorage.getItem(`cp_cronograma_prefs_${concursoId}`);
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            if (parsed.isCronogramaEnabled === false) return false;
+          }
+        } catch (e) {}
+        return true;
+      };
+
+      scheduledStudiesFiltered = scheduledStudiesFiltered.filter((s: any) => {
+        if (deletedScheduledIds.has(s.id)) return false;
+        if (s.status !== 'realizado') {
+          const concId = s.concursoId || (s.subjectId ? subjectToConcursoMap.get(s.subjectId) : undefined);
+          if (concId && !isCronogramaEnabledForConcurso(concId)) return false;
+        }
+        return true;
+      });
 
       const simuladosFiltered = normalizedSimulados;
 
@@ -731,7 +758,6 @@ const HubHome: React.FC<HubHomeProps> = ({
       const consolidatedStudies = [...nonGroupedStudies, ...groupedStudies];
 
       const subjectMap = new Map<string, any>();
-      const subjectToConcursoMap = new Map<string, any>();
       if (dbConcursos) {
         dbConcursos.forEach((c: any) => {
           const subjectsList = c.subjects || [];
@@ -1526,15 +1552,31 @@ const HubHome: React.FC<HubHomeProps> = ({
     setTomorrowTasks((tTasks || []).map(t => ({ id: t.id, text: t.text, dueTime: t.due_time, category: t.category })));
 
     // 2. Pending Estudos
+    const deletedStudyTaskIds = new Set<string>(JSON.parse(localStorage.getItem('cp_deleted_study_task_ids') || '[]'));
     const estudosRaw = JSON.parse(localStorage.getItem('cp_study_tasks') || '[]');
     const estudos = Array.isArray(estudosRaw) ? estudosRaw : [];
-    const pendingStudyTasks = estudos.filter((t: any) => t.date <= localTodayStr && !t.done).length;
+    const pendingStudyTasks = estudos.filter((t: any) => !deletedStudyTaskIds.has(t.id) && t.date <= localTodayStr && !t.done).length;
 
+    const deletedScheduledIds = new Set<string>(JSON.parse(localStorage.getItem('cp_deleted_scheduled_ids') || '[]'));
     const scheduledRaw = JSON.parse(localStorage.getItem('cp_scheduled_studies') || '[]');
     const scheduled = Array.isArray(scheduledRaw) ? scheduledRaw : [];
     const pendingScheduled = scheduled.filter((s: any) => {
+      if (deletedScheduledIds.has(s.id)) return false;
       const sDate = s.date?.split('T')[0];
-      return sDate <= localTodayStr && s.status !== 'realizado';
+      if (sDate <= localTodayStr && s.status !== 'realizado') {
+        const concId = s.concursoId || s.subjectId;
+        if (concId) {
+          try {
+            const saved = localStorage.getItem(`cp_cronograma_prefs_${concId}`);
+            if (saved) {
+              const parsed = JSON.parse(saved);
+              if (parsed.isCronogramaEnabled === false) return false;
+            }
+          } catch (e) {}
+        }
+        return true;
+      }
+      return false;
     }).length;
     setPendingEstudos(pendingStudyTasks + pendingScheduled);
 
@@ -1614,15 +1656,31 @@ const HubHome: React.FC<HubHomeProps> = ({
         const now = new Date();
         const localTodayStr = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().split('T')[0];
 
+        const deletedStudyTaskIds = new Set<string>(JSON.parse(localStorage.getItem('cp_deleted_study_task_ids') || '[]'));
         const estudosRaw = JSON.parse(localStorage.getItem('cp_study_tasks') || '[]');
         const estudos = Array.isArray(estudosRaw) ? estudosRaw : [];
-        const pendingStudyTasks = estudos.filter((t: any) => t.date <= localTodayStr && !t.done).length;
+        const pendingStudyTasks = estudos.filter((t: any) => !deletedStudyTaskIds.has(t.id) && t.date <= localTodayStr && !t.done).length;
 
+        const deletedScheduledIds = new Set<string>(JSON.parse(localStorage.getItem('cp_deleted_scheduled_ids') || '[]'));
         const scheduledRaw = JSON.parse(localStorage.getItem('cp_scheduled_studies') || '[]');
         const scheduled = Array.isArray(scheduledRaw) ? scheduledRaw : [];
         const pendingScheduled = scheduled.filter((s: any) => {
+          if (deletedScheduledIds.has(s.id)) return false;
           const sDate = s.date?.split('T')[0];
-          return sDate && sDate <= localTodayStr && s.status !== 'realizado';
+          if (sDate && sDate <= localTodayStr && s.status !== 'realizado') {
+            const concId = s.concursoId || s.subjectId;
+            if (concId) {
+              try {
+                const saved = localStorage.getItem(`cp_cronograma_prefs_${concId}`);
+                if (saved) {
+                  const parsed = JSON.parse(saved);
+                  if (parsed.isCronogramaEnabled === false) return false;
+                }
+              } catch (e) {}
+            }
+            return true;
+          }
+          return false;
         }).length;
 
         setPendingEstudos(pendingStudyTasks + pendingScheduled);

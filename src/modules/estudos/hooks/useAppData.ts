@@ -759,13 +759,20 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                     };
                 });
 
-                // Filter out uncompleted tasks for any concurso whose schedule is currently disabled
+                // Filter out uncompleted tasks for any concurso whose schedule is currently disabled, or deleted tasks
+                let deletedIdsSet = new Set<string>();
+                try {
+                    const savedDeleted = localStorage.getItem('cp_deleted_scheduled_ids');
+                    if (savedDeleted) deletedIdsSet = new Set(JSON.parse(savedDeleted));
+                } catch (e) {}
+
                 const subjectToConcursoMap = new Map<string, string>();
                 (concursosData || []).forEach(c => {
                     (c.subjects || []).forEach(sub => subjectToConcursoMap.set(sub.id, c.id));
                 });
 
                 const filteredFinalSchedule = finalSchedule.filter(s => {
+                    if (deletedIdsSet.has(s.id)) return false;
                     if (s.status === 'realizado') return true;
                     const concId = s.concursoId || (s.subjectId ? subjectToConcursoMap.get(s.subjectId) : undefined);
                     if (concId) {
@@ -782,6 +789,10 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
 
                 setScheduledStudies(filteredFinalSchedule);
                 localStorage.setItem('cp_scheduled_studies', JSON.stringify(filteredFinalSchedule));
+
+                if (deletedIdsSet.size > 0) {
+                    api.schedule.deleteBatch(Array.from(deletedIdsSet)).catch(() => {});
+                }
             }
             if (goalsData) setDailyGoals(goalsData);
             if (logsData) setLogs(logsData);
@@ -1444,6 +1455,13 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
             }
         }
 
+        try {
+            const savedDeleted = localStorage.getItem('cp_deleted_scheduled_ids') || '[]';
+            const deletedSet = new Set(JSON.parse(savedDeleted));
+            ids.forEach(id => deletedSet.add(id));
+            localStorage.setItem('cp_deleted_scheduled_ids', JSON.stringify(Array.from(deletedSet)));
+        } catch (e) {}
+
         const updatedSchedule = scheduledStudies.filter(s => !ids.includes(s.id));
         const updatedSessions = sessions.filter(s => !ids.includes(s.id));
 
@@ -1451,6 +1469,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         setScheduledStudies(updatedSchedule);
         localStorage.setItem('cp_scheduled_studies', JSON.stringify(updatedSchedule));
         setSessions(updatedSessions);
+        window.dispatchEvent(new Event('local-settings-changed'));
 
         try {
             await Promise.all(ids.map(async id => {
@@ -2016,6 +2035,14 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
             return;
         }
 
+        // Persistir IDs deletados no localStorage para evitar re-hidratação
+        try {
+            const savedDeleted = localStorage.getItem('cp_deleted_scheduled_ids') || '[]';
+            const deletedSet = new Set(JSON.parse(savedDeleted));
+            uncompletedIdsToDelete.forEach(id => deletedSet.add(id));
+            localStorage.setItem('cp_deleted_scheduled_ids', JSON.stringify(Array.from(deletedSet)));
+        } catch (e) {}
+
         // 1. Atualizar estado local e localStorage de forma GARANTIDA e IMEDIATA
         setScheduledStudies(prev => {
             const filtered = prev.filter(s => !uncompletedIdsToDelete.includes(s.id));
@@ -2024,6 +2051,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         });
         setSessions(prev => prev.filter(s => !uncompletedIdsToDelete.includes(s.id) || completedIds.has(s.id)));
         setLastSaved(new Date().toLocaleTimeString());
+        window.dispatchEvent(new Event('local-settings-changed'));
 
         // 2. Tentar deletar no Supabase DB de forma assíncrona (com tratamento de exceção sem bloquear a UI)
         try {

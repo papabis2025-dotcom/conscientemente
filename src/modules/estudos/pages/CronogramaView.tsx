@@ -474,14 +474,15 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
           subjectWeight: weight,
           doneQuestions: done,
           accuracy,
-          priorityScore,
+          basePriority: priorityScore,
+          daysSinceLastScheduled: 0,
+          scheduledCount: 0,
           queue: sortedQueue,
-          queueIndex: 0,
-          simulatedMinutes: minutes // used to balance subject selection dynamically
+          queueIndex: 0
         };
       });
 
-      const totalPriority = subjectProfiles.reduce((acc, p) => acc + p.priorityScore, 0);
+      const totalPriority = subjectProfiles.reduce((acc, p) => acc + p.basePriority, 0);
 
       // 3. Determine targetDate limits
       const start = new Date(`${startDateStr}T12:00:00`);
@@ -531,24 +532,34 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
             concursoId: selectedConcursoId
           });
         } else if (isStudyDay) {
-          // Select todays subjects dynamically based on priority scores
+          // Select todays subjects dynamically based on priority scores and recency rotation
+          const numSubjectsToday = Math.min(subjectsPerDay, subjectProfiles.length);
           const todaysSubjects: typeof subjectProfiles[0][] = [];
-          for (let s = 0; s < subjectsPerDay; s++) {
-            const profilesWithUpdatedPriority = subjectProfiles.map(p => {
-              const priorityScore = getStatisticalPriority(p.subjectWeight, p.accuracy, p.doneQuestions, p.simulatedMinutes);
-              return { ...p, priorityScore };
-            });
 
-            const available = profilesWithUpdatedPriority
+          for (let s = 0; s < numSubjectsToday; s++) {
+            const available = subjectProfiles
               .filter(p => !todaysSubjects.find(ts => ts.subject.id === p.subject.id))
-              .sort((a, b) => b.priorityScore - a.priorityScore);
+              .map(p => ({
+                profile: p,
+                dynamicScore: p.basePriority * (1 + 0.5 * p.daysSinceLastScheduled)
+              }))
+              .sort((a, b) => b.dynamicScore - a.dynamicScore);
 
             if (available.length > 0) {
-              const selected = subjectProfiles.find(p => p.subject.id === available[0].subject.id)!;
-              todaysSubjects.push(selected);
-              selected.simulatedMinutes += 60; // offset weight
+              todaysSubjects.push(available[0].profile);
             }
           }
+
+          // Reset recency for selected, increment for unselected
+          const selectedSubjectIds = new Set(todaysSubjects.map(ts => ts.subject.id));
+          subjectProfiles.forEach(p => {
+            if (selectedSubjectIds.has(p.subject.id)) {
+              p.daysSinceLastScheduled = 0;
+              p.scheduledCount += 1;
+            } else {
+              p.daysSinceLastScheduled += 1;
+            }
+          });
 
           // Study slots per subject
           const totalTopicsCount = todaysSubjects.length * topicsPerSubjectPerDay;

@@ -505,18 +505,6 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
         const dateStr = currentDate.toISOString().split('T')[0];
         daysSinceSimulado++;
 
-        // Se este dia já tem alguma atividade cadastrada que NÃO está sendo deletada, pular a geração automática
-        const hasExistingActivity = (scheduledStudies || []).some(s => {
-          if (idsBeingDeleted.has(s.id)) return false;
-          if (!s.date) return false;
-          const sDateOnly = s.date.includes('T') ? s.date.split('T')[0] : s.date;
-          return sDateOnly === dateStr;
-        });
-
-        if (hasExistingActivity) {
-          continue;
-        }
-
         // Determine weekday
         const weekdayName = currentDate.toLocaleDateString('en-US', { weekday: 'long' });
         const isStudyDay = activeDays.includes(weekdayName);

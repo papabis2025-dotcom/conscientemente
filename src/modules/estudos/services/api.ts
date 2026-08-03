@@ -489,7 +489,7 @@ export const api = {
                 throw result.error;
             }
 
-            return rData!.map((r: any) => ({
+            return rData!.map((r: any, idx: number) => ({
                 id: r.id,
                 date: r.date.split('T')[0],
                 subjectId: r.subject_id,
@@ -500,7 +500,9 @@ export const api = {
                 questionsDone: r.questions_done,
                 questionsCorrect: r.questions_correct,
                 questionsLink: r.questions_link || undefined,
-                status: 'planejado' as const
+                status: 'planejado' as const,
+                concursoId: items[idx]?.concursoId || r.concurso_id || undefined,
+                generatedByCronograma: items[idx]?.generatedByCronograma || r.generated_by_cronograma || undefined
             }));
         },
         deleteBatch: async (ids: string[]) => {

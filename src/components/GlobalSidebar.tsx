@@ -507,11 +507,11 @@ const GlobalSidebar: React.FC<GlobalSidebarProps> = ({
             const m2 = minutesStr[1];
 
             const renderFlipTile = (digit: string) => (
-              <div className="relative w-8 h-11 md:w-9 md:h-12 bg-[#222226] rounded-xl border border-zinc-800/80 shadow-md flex items-center justify-center overflow-hidden select-none">
+              <div className="relative w-7 h-10 md:w-8 md:h-11 bg-[#222226] rounded-md border border-zinc-800/80 shadow-sm flex items-center justify-center overflow-hidden select-none">
                 {/* Horizontal slit seam */}
                 <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-[1.5px] bg-[#111113] z-10" />
                 {/* Flip digit number */}
-                <span className="text-xl md:text-2xl font-black text-white font-mono tracking-tight z-0">
+                <span className="text-lg md:text-xl font-black text-white font-mono tracking-tighter z-0">
                   {digit}
                 </span>
               </div>
@@ -519,12 +519,17 @@ const GlobalSidebar: React.FC<GlobalSidebarProps> = ({
 
             if (sidebarExpanded) {
               return (
-                <div className="flex flex-col items-center gap-2 py-2 animate-in fade-in duration-200 select-none">
-                  <div className="flex items-center gap-1.5 justify-center">
-                    {renderFlipTile(h1)}
-                    {renderFlipTile(h2)}
-                    {renderFlipTile(m1)}
-                    {renderFlipTile(m2)}
+                <div className="flex flex-col items-center gap-1.5 py-2 animate-in fade-in duration-200 select-none">
+                  <div className="flex items-center gap-1 justify-center">
+                    <div className="flex items-center gap-0.5">
+                      {renderFlipTile(h1)}
+                      {renderFlipTile(h2)}
+                    </div>
+                    <span className="text-zinc-500 font-mono font-black text-sm animate-pulse mx-0.5">:</span>
+                    <div className="flex items-center gap-0.5">
+                      {renderFlipTile(m1)}
+                      {renderFlipTile(m2)}
+                    </div>
                   </div>
                   <span className="text-[10px] font-semibold text-zinc-400 capitalize tracking-wide">
                     {dateStr}
@@ -842,10 +847,10 @@ const GlobalSidebar: React.FC<GlobalSidebarProps> = ({
              <div className="space-y-6">
                <div className="bg-zinc-100 dark:bg-zinc-800/50 rounded-2xl p-4 flex items-center gap-4 border border-zinc-200 dark:border-zinc-800">
                   <div className="w-12 h-12 bg-indigo-500 text-white rounded-full flex items-center justify-center text-xl font-black shadow-lg">
-                    {userName[0].toUpperCase()}
+                    {((userName && userName[0]) || 'U').toUpperCase()}
                   </div>
                   <div>
-                    <p className="font-bold text-zinc-800 dark:text-white">{userName}</p>
+                    <p className="font-bold text-zinc-800 dark:text-white">{userName || 'Usuário'}</p>
                     <p className="text-xs text-zinc-500 dark:text-zinc-450">Usuário Autenticado</p>
                   </div>
                </div>

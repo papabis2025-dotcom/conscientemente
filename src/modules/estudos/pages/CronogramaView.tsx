@@ -28,7 +28,7 @@ import {
   RotateCcw
 } from 'lucide-react';
 import { exportToPdf } from '../utils/exportUtils';
-import { getBadgeStyle } from '../utils/colors';
+import { getColorHex, getBadgeStyle } from '../utils/colors';
 
 interface CronogramaViewProps {
   subjects: Subject[];
@@ -1459,6 +1459,13 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
                   const isSimulado = act.activityType === 'Simulado';
                   const isRevisao = act.activityType && (act.activityType.toLowerCase().includes('revisão') || act.activityType.toLowerCase().includes('revisao'));
                   const badgeStyle = sub ? getBadgeStyle(sub.color) : { style: {}, className: 'bg-amber-500 text-white' };
+                  const subHex = getColorHex(sub?.color || 'bg-amber-500');
+
+                  const revisionStyle = isRevisao ? {
+                    borderColor: subHex,
+                    borderWidth: '3px',
+                    boxShadow: `0 0 15px ${subHex}95, 0 0 5px ${subHex}70`
+                  } : {};
 
                   const taskLinks = getTaskAllLinks(act);
                   const isExpanded = expandedTaskId === act.id;
@@ -1468,14 +1475,15 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
                       <div
                         style={{
                           ...(isRevisao ? badgeStyle.style : {}),
-                          borderLeftColor: isSimulado ? '#A855F7' : isRevisao ? '#000000' : (sub?.color || '#10B981')
+                          ...(isRevisao ? revisionStyle : {}),
+                          borderLeftColor: isSimulado ? '#A855F7' : (subHex || '#10B981')
                         }}
                         onClick={() => toggleExpandTask(act.id)}
                         className={`p-4 border flex justify-between items-start gap-4 transition-all cursor-pointer hover:bg-zinc-100/80 dark:hover:bg-zinc-800/50 ${
                           isSimulado
                             ? 'border-l-4 border-purple-500 ring-2 ring-purple-500/40 bg-purple-50/50 dark:bg-purple-950/30 shadow-md shadow-purple-500/10'
                             : isRevisao
-                              ? `border-l-[6px] border-4 border-black dark:border-black shadow-md font-bold ${badgeStyle.className}`
+                              ? `border-l-[6px] shadow-xl font-bold ${badgeStyle.className}`
                               : 'border-l-4 bg-zinc-50 dark:bg-zinc-800/20 border-zinc-200/50 dark:border-zinc-700/50'
                         } ${
                           isDone ? 'opacity-40' : ''

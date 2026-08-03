@@ -2441,7 +2441,7 @@ const HubHome: React.FC<HubHomeProps> = ({
                                        if (s.concursoId) {
                                          localStorage.setItem('cp_selected_concurso_id', s.concursoId);
                                        }
-                                       sessionStorage.setItem('estudosActiveTab', 'cronograma');
+                                       sessionStorage.setItem('estudosActiveTab', 'calendar');
                                        if (s.id) {
                                          sessionStorage.setItem('targetTaskId', s.id);
                                        }

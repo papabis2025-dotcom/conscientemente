@@ -478,12 +478,24 @@ const App: React.FC = () => {
     prefsLoadedForUserRef.current = session.user.id;
 
     const loadPreferences = async () => {
-      // Safety timeout: show the app after 4s no matter what
-      const safetyTimeout = setTimeout(() => {
-        console.warn('loadPreferences timed out after 4 seconds. Proceeding.');
+      // 1. Immediately apply local settings so UI renders without delay
+      try {
+        const savedBgType = (localStorage.getItem('cn_custom_bg_type') as any) || 'default';
+        const savedBgColor = localStorage.getItem('cn_custom_bg_color') || '#ffffff';
+        const savedBgImage = localStorage.getItem('cn_custom_bg_image') || '';
+        const savedBgStyle = localStorage.getItem('cn_custom_bg_style') || 'cover';
+        setBgType(savedBgType);
+        setBgColor(savedBgColor);
+        setBgImage(savedBgImage);
+        setBgImageStyle(savedBgStyle);
+        initialBgRef.current = { bgType: savedBgType, bgColor: savedBgColor };
+      } catch (e) {
+        console.warn('Error reading initial local settings:', e);
+      } finally {
         setIsPrefsLoaded(true);
-      }, 4000);
+      }
 
+      // 2. Optional background sync with Supabase (never blocks UI)
       try {
         const { data: prefs, error: selectError } = await supabase
           .from('user_preferences')
@@ -491,107 +503,34 @@ const App: React.FC = () => {
           .eq('user_id', session.user.id)
           .maybeSingle();
 
-        if (selectError) {
-          throw selectError;
+        if (selectError || !prefs) return;
+
+        const localSettings = getSanitizedLocalSettings();
+        let remotePayload: SyncedPayload | null = null;
+        if (prefs.hub_bg_image_url) {
+          try {
+            remotePayload = JSON.parse(prefs.hub_bg_image_url);
+          } catch (e) {}
         }
 
-        if (prefs) {
-          const localSettings = getSanitizedLocalSettings();
+        const remoteSettings = remotePayload?.settings || {};
+        const remoteUpdatedAt = remotePayload?.updatedAt || 0;
+        const merged = mergeSettings(localSettings, remoteSettings, remoteUpdatedAt > 0);
 
-          let remotePayload: SyncedPayload | null = null;
-          if (prefs.hub_bg_image_url) {
-            try {
-              remotePayload = JSON.parse(prefs.hub_bg_image_url);
-            } catch (e) {
-              console.error('Failed to parse remote settings JSON:', e);
-            }
+        const finalBgType = (merged['cn_custom_bg_type'] as any) || prefs.hub_bg_type || 'default';
+        const finalBgColor = merged['cn_custom_bg_color'] || prefs.hub_bg_color || '#ffffff';
+        setBgType(finalBgType);
+        setBgColor(finalBgColor);
+
+        SYNC_KEYS.forEach(key => {
+          const val = merged[key];
+          if (val !== null && val !== undefined) {
+            localStorage.setItem(key, val);
           }
-
-          const remoteSettings = remotePayload?.settings || {};
-          const remoteUpdatedAt = remotePayload?.updatedAt || 0;
-
-          // Merge local and remote
-          const merged = mergeSettings(localSettings, remoteSettings, remoteUpdatedAt > 0);
-
-          const finalBgType = (merged['cn_custom_bg_type'] as any) || prefs.hub_bg_type || 'default';
-          const finalBgColor = merged['cn_custom_bg_color'] || prefs.hub_bg_color || '#ffffff';
-          setBgType(finalBgType);
-          setBgColor(finalBgColor);
-          initialBgRef.current = { bgType: finalBgType, bgColor: finalBgColor };
-
-          // Save merged to localStorage
-          SYNC_KEYS.forEach(key => {
-            const val = merged[key];
-            if (val !== null && val !== undefined) {
-              localStorage.setItem(key, val);
-            } else {
-              localStorage.removeItem(key);
-            }
-          });
-          window.dispatchEvent(new Event('local-storage-sync'));
-
-          const mergedTheme = merged['cn_theme'];
-          if (mergedTheme && (mergedTheme === 'light' || mergedTheme === 'dark')) {
-            setTheme(mergedTheme);
-          }
-
-          if (merged['cn_custom_bg_image']) setBgImage(merged['cn_custom_bg_image']);
-          if (merged['cn_custom_bg_style']) setBgImageStyle(merged['cn_custom_bg_style']);
-
-          const updatedTime = Date.now();
-          setLastSyncTime(updatedTime);
-          setLastKnownSettings(JSON.stringify(merged));
-
-          // ✅ Mark UI as ready BEFORE the write so the app never hangs on upsert
-          clearTimeout(safetyTimeout);
-          setIsPrefsLoaded(true);
-
-          // Fire-and-forget: write merged settings back to DB in background
-          const dbSettings = getSupabaseSanitizedSettings(merged);
-          const payload: SyncedPayload = {
-            updatedAt: updatedTime,
-            settings: dbSettings
-          };
-          supabase.from('user_preferences').upsert({
-            user_id: session.user.id,
-            hub_bg_type: finalBgType,
-            hub_bg_color: finalBgColor,
-            hub_bg_image_url: JSON.stringify(payload)
-          }, { onConflict: 'user_id' }).then(({ error }) => {
-            if (error) console.error('Background upsert failed:', error);
-          });
-
-        } else {
-          // Initialize DB row with local settings
-          initialBgRef.current = { bgType, bgColor };
-          const localSettings = getSanitizedLocalSettings();
-
-          const updatedTime = Date.now();
-          setLastSyncTime(updatedTime);
-          setLastKnownSettings(JSON.stringify(localSettings));
-
-          // ✅ Mark UI as ready BEFORE the write
-          clearTimeout(safetyTimeout);
-          setIsPrefsLoaded(true);
-
-          // Fire-and-forget: initialize preferences row in DB
-          const payload: SyncedPayload = {
-            updatedAt: updatedTime,
-            settings: localSettings
-          };
-          supabase.from('user_preferences').upsert({
-            user_id: session.user.id,
-            hub_bg_type: bgType,
-            hub_bg_color: bgColor,
-            hub_bg_image_url: JSON.stringify(payload)
-          }, { onConflict: 'user_id' }).then(({ error }) => {
-            if (error) console.error('Background upsert failed:', error);
-          });
-        }
+        });
+        window.dispatchEvent(new Event('local-storage-sync'));
       } catch (err) {
-        console.error('Error loading and syncing preferences:', err);
-        clearTimeout(safetyTimeout);
-        setIsPrefsLoaded(true);
+        console.warn('Supabase preferences sync bypassed (using local storage):', err);
       }
     };
     loadPreferences();

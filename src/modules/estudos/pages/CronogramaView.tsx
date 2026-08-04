@@ -1470,14 +1470,14 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
                   return (
                     <div key={act.id} id={`task-card-${act.id}`} className="space-y-0">
                       <div
-                        style={{
-                          borderLeftColor: isSimulado ? '#A855F7' : (subHex || '#10B981')
-                        }}
+                        style={isRevisao ? { borderColor: subHex || '#f59e0b' } : !isSimulado ? { borderLeftColor: subHex || '#10B981' } : {}}
                         onClick={() => toggleExpandTask(act.id)}
-                        className={`p-4 border flex justify-between items-start gap-4 transition-all cursor-pointer hover:bg-zinc-100/80 dark:hover:bg-zinc-800/50 ${
+                        className={`p-4 flex justify-between items-start gap-4 transition-all cursor-pointer hover:bg-zinc-100/80 dark:hover:bg-zinc-800/50 ${
                           isSimulado
-                            ? 'border-l-4 border-purple-500 ring-2 ring-purple-500/40 bg-purple-50/50 dark:bg-purple-950/30 shadow-md shadow-purple-500/10'
-                            : 'border-l-4 bg-zinc-50 dark:bg-zinc-800/20 border-zinc-200/50 dark:border-zinc-700/50'
+                            ? 'border-2 border-black dark:border-white animate-pulse bg-transparent shadow-[0_0_12px_rgba(0,0,0,0.25)] dark:shadow-[0_0_14px_rgba(255,255,255,0.45)] text-zinc-950 dark:text-white font-black'
+                            : isRevisao
+                              ? 'border-2 bg-transparent text-zinc-950 dark:text-white font-black'
+                              : 'border-l-4 bg-zinc-50 dark:bg-zinc-800/20 border-zinc-200/50 dark:border-zinc-700/50 text-zinc-800 dark:text-white'
                         } ${
                           isDone ? 'opacity-40' : ''
                         } ${
@@ -1488,29 +1488,15 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
                           <div className="flex items-center gap-2 mb-2 flex-wrap">
                             <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${
                               act.activityType === 'Simulado'
-                                ? 'bg-purple-100 text-purple-800 dark:bg-purple-950/40 dark:text-purple-300 ring-1 ring-purple-400/50 font-black'
+                                ? 'border border-black dark:border-white text-zinc-950 dark:text-white font-black'
                                 : isRevisao
-                                  ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 ring-1 ring-amber-400/50 font-black'
+                                  ? 'border border-current text-zinc-950 dark:text-white font-black'
                                   : act.activityType === 'Leitura'
                                     ? 'bg-blue-100 text-blue-755 dark:bg-blue-950/20 dark:text-blue-400'
                                     : act.activityType === 'Questões'
                                       ? 'bg-emerald-100 text-emerald-755 dark:bg-emerald-950/20 dark:text-emerald-400'
                                       : 'bg-zinc-200 text-zinc-700 dark:bg-zinc-700 dark:text-zinc-300'
                             }`}>
-                              {isRevisao && (
-                                <span className="relative flex h-3.5 w-3.5 items-center justify-center shrink-0 mr-1">
-                                  <span
-                                    className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75"
-                                    style={{ backgroundColor: subHex || '#f59e0b' }}
-                                  />
-                                  <span
-                                    className="relative inline-flex items-center justify-center rounded-full h-3.5 w-3.5 border-2 border-white dark:border-zinc-900 shadow-[0_0_12px_#f59e0b]"
-                                    style={{ backgroundColor: subHex || '#f59e0b' }}
-                                  >
-                                    <span className="w-1.5 h-1.5 rounded-full bg-white dark:bg-zinc-950 shadow-inner" />
-                                  </span>
-                                </span>
-                              )}
                               {act.activityType}
                             </span>
                             {sub && (

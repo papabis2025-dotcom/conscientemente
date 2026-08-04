@@ -490,13 +490,13 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                           <div 
                             key={task.id} 
                             onClick={(e) => handleTaskClick(e, task)}
-                            className="p-3.5 rounded-2xl text-xs font-bold border-2 border-purple-500 ring-2 ring-purple-500/40 bg-purple-50/70 dark:bg-purple-950/40 text-purple-950 dark:text-purple-200 cursor-pointer transition-all hover:scale-[1.02] active:scale-95 shadow-md shadow-purple-500/10"
+                            className="p-3.5 rounded-2xl text-xs font-bold border-2 border-black dark:border-white animate-pulse bg-transparent shadow-[0_0_12px_rgba(0,0,0,0.25)] dark:shadow-[0_0_14px_rgba(255,255,255,0.45)] text-zinc-950 dark:text-white cursor-pointer transition-all hover:scale-[1.02] active:scale-95"
                           >
-                            <span className="font-black text-purple-600 dark:text-purple-400 text-[10px] uppercase tracking-wider block">
+                            <span className="font-black text-zinc-950 dark:text-white text-[10px] uppercase tracking-wider block">
                               SIMULADO
                             </span>
-                            <p className="font-black truncate mt-1 text-sm">{task.name || task.notes || 'Simulado'}</p>
-                            <p className="text-[10px] opacity-90 mt-1 font-bold flex items-center gap-1 font-mono">
+                            <p className="font-black truncate mt-1 text-sm text-zinc-950 dark:text-white">{task.name || task.notes || 'Simulado'}</p>
+                            <p className="text-[10px] text-zinc-950 dark:text-white mt-1 font-bold flex items-center gap-1 font-mono">
                               <Clock size={10} /> {task.durationInMinutes} min
                               {task.questionsDone !== undefined && task.questionsDone > 0 && (
                                 <> | <FileText size={10} /> {task.questionsCorrect}/{task.questionsDone} Qs</>
@@ -507,7 +507,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                                 {(task.results || []).map((r: any, idx: number) => {
                                   const sub = lookupSubjects.find(s => s.id === r.subjectId);
                                   return (
-                                    <span key={idx} className="px-1.5 py-0.5 rounded-full text-[8px] bg-purple-200/50 dark:bg-purple-900/40 text-purple-800 dark:text-purple-200 font-bold">
+                                    <span key={idx} className="px-1.5 py-0.5 rounded-full text-[8px] border border-black/30 dark:border-white/40 text-zinc-950 dark:text-white font-bold">
                                       {sub?.name || 'Matéria'}
                                     </span>
                                   );
@@ -523,44 +523,32 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                       const isRevisao = task.activityType && (task.activityType.toLowerCase().includes('revisão') || task.activityType.toLowerCase().includes('revisao'));
 
                       if (isRevisao && !isAulao) {
-                        const { style, className } = sub ? getBadgeStyle(sub.color) : { style: {}, className: 'bg-amber-600 text-white' };
+                        const borderColor = getColorHex(sub?.color || 'bg-amber-500');
                         const topicTitle = sub?.topics?.find(t => t.id === task.topicId)?.title;
                         return (
                           <div 
                             key={task.id} 
                             id={`task-card-${task.id}`}
-                            style={{ ...style, opacity: task.status === 'realizado' ? 0.45 : 1 }} 
+                            style={{ borderColor: borderColor, opacity: task.status === 'realizado' ? 0.45 : 1 }} 
                             draggable={true}
                             onDragStart={(e) => handleDragStart(e, task.isGroupedVirtual ? task.taskIds.join(',') : task.id)}
                             onClick={(e) => {
                               e.stopPropagation();
                               if (onToggleStatus) onToggleStatus(task.isGroupedVirtual ? task.taskIds : task.id);
                             }}
-                            className={`p-4 rounded-2xl text-xs font-bold ${className} cursor-pointer transition-all hover:scale-[1.02] active:scale-95 shadow-md`}
+                            className="p-4 rounded-2xl text-xs font-bold bg-transparent border-2 text-zinc-950 dark:text-white cursor-pointer transition-all hover:scale-[1.02] active:scale-95 shadow-sm"
                           >
-                            <span className="opacity-95 flex items-center gap-1.5 font-black text-[10px] uppercase tracking-wider">
-                              <span className="relative flex h-3.5 w-3.5 items-center justify-center shrink-0">
-                                <span
-                                  className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75"
-                                  style={{ backgroundColor: getColorHex(sub?.color || 'bg-amber-500') }}
-                                />
-                                <span
-                                  className="relative inline-flex items-center justify-center rounded-full h-3.5 w-3.5 border-2 border-white dark:border-zinc-900 shadow-[0_0_12px_#f59e0b]"
-                                  style={{ backgroundColor: getColorHex(sub?.color || 'bg-amber-500') }}
-                                >
-                                  <span className="w-1.5 h-1.5 rounded-full bg-white dark:bg-zinc-950 shadow-inner" />
-                                </span>
-                              </span>
+                            <span className="font-black text-[10px] uppercase tracking-wider text-zinc-950 dark:text-white opacity-80 block">
                               REVISÃO
                             </span>
-                            <p className="truncate font-black text-sm mt-0.5">{sub ? sub.name : 'Disciplina Removida'}</p>
+                            <p className="truncate font-black text-sm mt-0.5 text-zinc-950 dark:text-white">{sub ? sub.name : 'Disciplina Removida'}</p>
                             {task.isGroupedVirtual && sub && task.topicIds && task.topicIds.length > 0 && (
-                              <p className="text-[10px] opacity-80 mt-0.5 line-clamp-1 font-medium italic">
+                              <p className="text-[10px] text-zinc-700 dark:text-zinc-300 mt-0.5 line-clamp-1 font-medium italic">
                                 {task.topicIds.map((id: string) => sub.topics.find(t => t.id === id)?.title).filter(Boolean).join(', ')}
                               </p>
                             )}
                             {!task.isGroupedVirtual && topicTitle && (
-                              <p className="text-[10px] opacity-80 mt-0.5 line-clamp-1 font-medium italic">
+                              <p className="text-[10px] text-zinc-700 dark:text-zinc-300 mt-0.5 line-clamp-1 font-medium italic">
                                 {topicTitle}
                               </p>
                             )}
@@ -728,10 +716,10 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                             <div 
                               key={t.id}
                               onClick={(e) => handleTaskClick(e, t)}
-                              className="px-2 py-1.5 rounded-lg text-[10px] leading-tight font-black border-2 border-purple-500 ring-1 ring-purple-500/40 bg-purple-50 dark:bg-purple-950/40 text-purple-950 dark:text-purple-200 cursor-pointer transition-all hover:scale-[1.02] active:scale-95 shadow-sm"
+                              className="px-2 py-1.5 rounded-lg text-[10px] leading-tight font-black border-2 border-black dark:border-white animate-pulse bg-transparent shadow-[0_0_10px_rgba(0,0,0,0.25)] dark:shadow-[0_0_12px_rgba(255,255,255,0.45)] text-zinc-950 dark:text-white cursor-pointer transition-all hover:scale-[1.02] active:scale-95 shadow-xs truncate"
                             >
                               <div className="flex flex-col gap-0.5">
-                                <span className="truncate">{t.name || t.notes || 'Simulado'}</span>
+                                <span className="truncate font-black text-zinc-950 dark:text-white">{t.name || t.notes || 'Simulado'}</span>
                               </div>
                             </div>
                           );
@@ -739,35 +727,23 @@ const CalendarView: React.FC<CalendarViewProps> = ({
 
                         if (isRevisao && !isAulao) {
                           const subObj = lookupSubjects.find(s => s.id === t.subjectId);
-                          const { style, className } = subObj ? getBadgeStyle(subObj.color) : { style: {}, className: 'bg-amber-600 text-white' };
+                          const borderColor = getColorHex(subObj?.color || 'bg-amber-500');
                           const topicTitle = subObj?.topics?.find(top => top.id === t.topicId)?.title;
                           return (
                             <div 
                               key={t.id} 
                               id={`task-card-${t.id}`}
-                              style={{ ...style, opacity: t.status === 'realizado' ? 0.45 : 1 }} 
+                              style={{ borderColor: borderColor, opacity: t.status === 'realizado' ? 0.45 : 1 }} 
                               draggable={true}
                               onDragStart={(e) => handleDragStart(e, t.isGroupedVirtual ? t.taskIds.join(',') : t.id)}
                               onClick={(e) => handleTaskClick(e, t)}
-                              className={`px-2 py-1.5 rounded-lg text-[10px] leading-tight font-black ${className} cursor-pointer transition-all hover:scale-[1.02] active:scale-95 shadow-xs truncate`}
+                              className="px-2 py-1.5 rounded-lg text-[10px] leading-tight font-black bg-transparent border-2 text-zinc-950 dark:text-white cursor-pointer transition-all hover:scale-[1.02] active:scale-95 shadow-xs truncate"
                             >
                               <div className="flex flex-col gap-0.5">
-                                <span className="truncate flex items-center gap-1.5">
-                                  <span className="relative flex h-3 w-3 items-center justify-center shrink-0">
-                                    <span
-                                      className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75"
-                                      style={{ backgroundColor: getColorHex(subObj?.color || 'bg-amber-500') }}
-                                    />
-                                    <span
-                                      className="relative inline-flex items-center justify-center rounded-full h-3 w-3 border border-white dark:border-zinc-900 shadow-[0_0_10px_#f59e0b]"
-                                      style={{ backgroundColor: getColorHex(subObj?.color || 'bg-amber-500') }}
-                                    >
-                                      <span className="w-1 h-1 rounded-full bg-white dark:bg-zinc-950" />
-                                    </span>
-                                  </span>
+                                <span className="truncate font-black text-zinc-950 dark:text-white">
                                   {subObj ? subObj.name : 'Revisão'}
                                 </span>
-                                {topicTitle && <span className="text-[8px] opacity-80 truncate font-medium italic">{topicTitle}</span>}
+                                {topicTitle && <span className="text-[8px] text-zinc-700 dark:text-zinc-300 truncate font-medium italic">{topicTitle}</span>}
                               </div>
                             </div>
                           );

@@ -17,7 +17,7 @@ import AtividadesView from './pages/AtividadesView';
 import { Concurso, ActivityType, StudySession, Topic } from './types';
 import { useAppData } from './hooks/useAppData';
 import { useTimer } from './hooks/useTimer';
-import { Clock, Save, X, Plus, Trash2 } from 'lucide-react';
+import { Clock, Save, X, Plus } from 'lucide-react';
 
 interface AppProps {
   theme?: 'light' | 'dark';

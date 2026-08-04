@@ -412,7 +412,7 @@ const App: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('cn_custom_bg_color', bgColor);
   }, [bgColor]);
-  const [isPrefsLoaded, setIsPrefsLoaded] = useState(false);
+  const [isPrefsLoaded, setIsPrefsLoaded] = useState(true);
   const [unlockedModules, setUnlockedModules] = useState<Set<string>>(() => new Set());
   const [pinInput, setPinInput] = useState('');
   const [pinError, setPinError] = useState('');
@@ -849,7 +849,7 @@ const App: React.FC = () => {
 
   const toggleTheme = () => setTheme(t => t === 'dark' ? 'light' : 'dark');
 
-  if (loading || (session && !isPrefsLoaded)) {
+  if (loading) {
     return (
       <div className="fixed inset-0 bg-zinc-50 dark:bg-zinc-950 flex items-center justify-center">
         <FaviconIcon size={40} className="text-zinc-700 dark:text-zinc-300 animate-pulse" />

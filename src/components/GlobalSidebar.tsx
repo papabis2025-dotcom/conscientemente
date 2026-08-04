@@ -241,8 +241,13 @@ const GlobalSidebar: React.FC<GlobalSidebarProps> = ({
   };
 
   const fetchLogs = async () => {
-    const data = await api.logs.list();
-    if (data) setLogs(data);
+    try {
+      const data = await api.logs.list();
+      if (Array.isArray(data)) setLogs(data);
+    } catch (e) {
+      console.warn('Error fetching logs:', e);
+      setLogs([]);
+    }
   };
 
   const handleClearLogs = async () => {

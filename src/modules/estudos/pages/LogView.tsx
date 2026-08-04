@@ -9,9 +9,10 @@ interface LogViewProps {
 }
 
 const LogView: React.FC<LogViewProps> = ({ logs, onClearLogs, onDeleteLog }) => {
+  const safeLogs = Array.isArray(logs) ? logs : [];
   const sortedLogs = useMemo(() => {
-    return [...logs].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-  }, [logs]);
+    return [...safeLogs].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  }, [safeLogs]);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -20,7 +21,7 @@ const LogView: React.FC<LogViewProps> = ({ logs, onClearLogs, onDeleteLog }) => 
         <button
           onClick={() => confirm('Limpar todos os logs?') && onClearLogs()}
           className="px-4 py-2 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl font-bold uppercase text-xs transition-colors"
-          disabled={logs.length === 0}
+          disabled={safeLogs.length === 0}
         >
           Limpar Histórico
         </button>

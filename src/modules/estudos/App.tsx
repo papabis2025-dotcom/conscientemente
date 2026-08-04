@@ -299,8 +299,11 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
         return <CalendarView
           subjects={filteredSubjects}
           allSubjects={allSubjects}
-          scheduledStudies={scheduledStudies}
-          sessions={sessions}
+          scheduledStudies={allScheduledStudies || scheduledStudies}
+          sessions={allSessions || sessions}
+          concursos={concursos}
+          selectedConcursoId={selectedConcursoId}
+          onSelectConcursoId={setSelectedConcursoId}
           onSaveActivity={saveCalendarActivity}
           onDelete={deleteScheduledStudy}
           onToggleStatus={toggleScheduledStudyStatus}

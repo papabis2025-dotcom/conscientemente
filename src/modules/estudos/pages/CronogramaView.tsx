@@ -1498,18 +1498,17 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
                                       : 'bg-zinc-200 text-zinc-700 dark:bg-zinc-700 dark:text-zinc-300'
                             }`}>
                               {isRevisao && (
-                                <span className="relative flex h-2.5 w-2.5 items-center justify-center shrink-0 mr-0.5">
+                                <span className="relative flex h-3.5 w-3.5 items-center justify-center shrink-0 mr-1">
                                   <span
                                     className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75"
                                     style={{ backgroundColor: subHex || '#f59e0b' }}
                                   />
                                   <span
-                                    className="relative inline-flex rounded-full h-2 w-2"
-                                    style={{
-                                      backgroundColor: subHex || '#f59e0b',
-                                      boxShadow: `0 0 10px ${subHex || '#f59e0b'}, 0 0 4px ${subHex || '#f59e0b'}`
-                                    }}
-                                  />
+                                    className="relative inline-flex items-center justify-center rounded-full h-3.5 w-3.5 border-2 border-white dark:border-zinc-900 shadow-[0_0_12px_#f59e0b]"
+                                    style={{ backgroundColor: subHex || '#f59e0b' }}
+                                  >
+                                    <span className="w-1.5 h-1.5 rounded-full bg-white dark:bg-zinc-950 shadow-inner" />
+                                  </span>
                                 </span>
                               )}
                               {act.activityType}

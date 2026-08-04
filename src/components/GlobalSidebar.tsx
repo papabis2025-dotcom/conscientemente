@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   Brain, Bell, Settings, User, Sun, Moon, Sliders, LogOut, 
   ChevronLeft, ChevronRight, X, Database, Cloud, CheckCircle2, 
-  AlertTriangle, FileText, Check 
+  AlertTriangle, FileText, Check, Lock 
 } from 'lucide-react';
 import { LogEntry } from '../modules/estudos/types';
 import LogView from '../modules/estudos/pages/LogView';

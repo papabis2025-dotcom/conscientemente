@@ -702,7 +702,16 @@ const GlobalSidebar: React.FC<GlobalSidebarProps> = ({
 
             {/* Preferências de Usuário */}
             <button
-              onClick={() => { setShowProfileModal(true); setMobileMenuOpen(false); }}
+              onClick={() => {
+                try {
+                  const savedPins = JSON.parse(localStorage.getItem('cn_module_pins') || '{}');
+                  setModulePins(typeof savedPins === 'object' ? savedPins : {});
+                  setPushEnabled(localStorage.getItem('cn_push_notifications_enabled') === 'true');
+                  setSoundEnabled(localStorage.getItem('cn_sound_enabled') !== 'false');
+                } catch (e) {}
+                setShowProfileModal(true);
+                setMobileMenuOpen(false);
+              }}
               className={`w-full h-11 rounded-xl flex items-center gap-3 border border-zinc-200/60 dark:border-zinc-800 bg-white/40 dark:bg-zinc-900/30 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white transition-all hover:scale-102 hover:shadow-sm ${
                 sidebarExpanded ? 'px-4 justify-start' : 'justify-center'
               }`}

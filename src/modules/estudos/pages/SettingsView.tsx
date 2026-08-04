@@ -3,14 +3,19 @@ import React, { useRef, useState } from 'react';
 import { Settings, Target, Sparkles } from 'lucide-react';
 import { supabase } from '../services/supabase';
 import { api } from '../services/api';
-import { useAppData } from '../hooks/useAppData';
-
 interface SettingsViewProps {
   currentUserEmail: string;
+  globalDailyGoal?: number;
+  setGlobalDailyGoal?: (val: number) => void;
+  resetAllData?: () => void;
 }
 
-const SettingsView: React.FC<SettingsViewProps> = ({ currentUserEmail }) => {
-  const { resetAllData, globalDailyGoal, setGlobalDailyGoal } = useAppData();
+const SettingsView: React.FC<SettingsViewProps> = ({
+  currentUserEmail,
+  globalDailyGoal = 0,
+  setGlobalDailyGoal = () => {},
+  resetAllData = () => {}
+}) => {
   const fileRef = useRef<HTMLInputElement>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);

@@ -91,17 +91,21 @@ export const financasApi = {
   },
 
   loadConfig: async () => {
-    const user = await getAuthUser();
-    if (!user) return null;
+    try {
+      const user = await getAuthUser();
+      if (!user) return null;
 
-    const { data, error } = await supabase
-      .from('user_preferences')
-      .select('fin_in_categories, fin_out_categories, fin_payment_methods')
-      .eq('user_id', user.id)
-      .maybeSingle();
+      const { data, error } = await supabase
+        .from('user_preferences')
+        .select('fin_in_categories, fin_out_categories, fin_payment_methods')
+        .eq('user_id', user.id)
+        .maybeSingle();
 
-    if (error) throw error;
-    return data;
+      if (error) return null;
+      return data;
+    } catch {
+      return null;
+    }
   },
 
   saveConfig: async (configs: {
@@ -109,13 +113,16 @@ export const financasApi = {
     fin_out_categories?: FinCategoria[];
     fin_payment_methods?: FinCategoria[];
   }) => {
-    const user = await getAuthUser();
-    if (!user) return;
+    try {
+      const user = await getAuthUser();
+      if (!user) return;
 
-    const { error } = await supabase.from('user_preferences').upsert({
-      user_id: user.id,
-      ...configs
-    }, { onConflict: 'user_id' });
-    if (error) throw error;
+      await supabase.from('user_preferences').upsert({
+        user_id: user.id,
+        ...configs
+      }, { onConflict: 'user_id' });
+    } catch (e) {
+      console.warn('Financas saveConfig bypassed Supabase (using local state):', e);
+    }
   }
 };

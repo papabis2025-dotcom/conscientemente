@@ -335,7 +335,12 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
       case 'statistics':
         return <StatisticsView subjects={filteredSubjects} sessions={sessions} simulados={simulados} concursos={concursos} selectedConcursoId={selectedConcursoId} onSelectConcursoId={setSelectedConcursoId} />;
       case 'settings':
-        return <SettingsView currentUserEmail={currentUser?.email || ''} />;
+        return <SettingsView
+          currentUserEmail={currentUser?.email || ''}
+          globalDailyGoal={globalDailyGoal}
+          setGlobalDailyGoal={setGlobalDailyGoal}
+          resetAllData={resetStudyHubDataOnly}
+        />;
       default: return null;
     }
   };

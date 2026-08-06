@@ -442,6 +442,8 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
       };
 
       // 2. Calculate statistical profiles for each subject
+      // A acurácia é calculada de forma ponderada pelos pesos dos tópicos,
+      // idêntico ao cálculo da guia Análise Estatística.
       const subjectProfiles = subjects.map(sub => {
         const subSessions = sessions.filter(s => s.subjectId === sub.id);
         let done = subSessions.reduce((acc, s) => acc + (s.questionsDone || 0), 0);
@@ -457,8 +459,7 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
           });
         });
 
-        const accuracy = done > 0 ? Math.min(100, Math.round((correct / done) * 100)) : 70;
-        
+        // --- Cálculo de acurácia ponderada por peso dos tópicos (igual à Análise Estatística) ---
         const subTopics = sub.topics || [];
         const topicWeightsSum = subTopics.reduce((acc, t) => acc + (t.weight || 0), 0);
         const baseSubjectWeight = sub.weight !== undefined && sub.weight > 0 ? sub.weight : 1;
@@ -466,17 +467,91 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
           ? parseFloat((baseSubjectWeight * (topicWeightsSum / 100)).toFixed(2))
           : baseSubjectWeight;
 
+        let accuracy = 0;
+        if (done > 0) {
+          const hasTopicWeights = subTopics.some(t => t.weight !== undefined && t.weight > 0);
+
+          if (hasTopicWeights) {
+            let weightedSum = 0;
+            let weightTotal = 0;
+            let unweightedQuestions = 0;
+            let unweightedCorrect = 0;
+
+            subTopics.forEach(topic => {
+              const topicSessions = subSessions.filter(s => s.topicId === topic.id);
+              const tDone = topicSessions.reduce((acc, s) => acc + (s.questionsDone || 0), 0);
+              const tCorrect = topicSessions.reduce((acc, s) => acc + (s.questionsCorrect || 0), 0);
+
+              if (tDone > 0) {
+                const tAcc = tCorrect / tDone;
+                if (topic.weight !== undefined && topic.weight > 0) {
+                  weightedSum += tAcc * topic.weight;
+                  weightTotal += topic.weight;
+                } else {
+                  unweightedQuestions += tDone;
+                  unweightedCorrect += tCorrect;
+                }
+              }
+            });
+
+            // Questões genéricas (não associadas a tópicos específicos) ou provenientes de simulados
+            const topicDoneTotal = subTopics.reduce((acc, topic) => {
+              const topicSessions = subSessions.filter(s => s.topicId === topic.id);
+              return acc + topicSessions.reduce((sum, s) => sum + (s.questionsDone || 0), 0);
+            }, 0);
+            const topicCorrectTotal = subTopics.reduce((acc, topic) => {
+              const topicSessions = subSessions.filter(s => s.topicId === topic.id);
+              return acc + topicSessions.reduce((sum, s) => sum + (s.questionsCorrect || 0), 0);
+            }, 0);
+            const genericDone = done - topicDoneTotal;
+            const genericCorrect = correct - topicCorrectTotal;
+
+            if (genericDone > 0) {
+              unweightedQuestions += genericDone;
+              unweightedCorrect += genericCorrect;
+            }
+
+            if (weightTotal > 0) {
+              if (unweightedQuestions > 0) {
+                const remainingWeight = Math.max(0, 100 - weightTotal);
+                const unweightedAcc = unweightedCorrect / unweightedQuestions;
+                weightedSum += unweightedAcc * remainingWeight;
+                weightTotal += remainingWeight;
+              }
+              accuracy = Math.min(100, Math.round((weightedSum / weightTotal) * 100));
+            } else {
+              accuracy = Math.round((correct / done) * 100);
+            }
+          } else {
+            accuracy = Math.round((correct / done) * 100);
+          }
+        }
+        // -------------------------------------------------------------------------------------------
+
         const priorityScore = getStatisticalPriority(weight, accuracy, done, minutes);
 
         // Queue uncompleted topics (or all if all are completed)
         const uncompletedTopics = (sub.topics || []).filter(t => !t.isCompleted);
         const topicQueue = uncompletedTopics.length > 0 ? uncompletedTopics : (sub.topics || []);
         
-        // Sort queue: High priority first, then medium, then low
+        // Calcula a acurácia individual de cada tópico para usar como critério de desempate na ordenação
+        const getTopicAccuracy = (topic: Topic): number => {
+          const topicSessions = subSessions.filter(s => s.topicId === topic.id);
+          const tDone = topicSessions.reduce((acc, s) => acc + (s.questionsDone || 0), 0);
+          const tCorrect = topicSessions.reduce((acc, s) => acc + (s.questionsCorrect || 0), 0);
+          // Sem dados: assume 50% (neutro — nem urgente, nem ótimo)
+          return tDone > 0 ? (tCorrect / tDone) * 100 : 50;
+        };
+
+        // Ordenação dos assuntos:
+        // 1º critério: prioridade manual (Alta > Média > Baixa/sem prioridade)
+        // 2º critério (desempate): menor acurácia individual → precisa de mais atenção
         const sortedQueue = [...topicQueue].sort((a, b) => {
           const valA = a.priority === 'Alta' ? 3 : a.priority === 'Média' ? 2 : 1;
           const valB = b.priority === 'Alta' ? 3 : b.priority === 'Média' ? 2 : 1;
-          return valB - valA;
+          if (valB !== valA) return valB - valA;
+          // Desempate: menor acurácia primeiro (mais urgente)
+          return getTopicAccuracy(a) - getTopicAccuracy(b);
         });
 
         return {
@@ -494,7 +569,6 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
 
       const totalPriority = subjectProfiles.reduce((acc, p) => acc + p.basePriority, 0);
 
-      // 3. Determine targetDate limits
       const start = new Date(`${startDateStr}T12:00:00`);
       let end = activeConcurso?.targetDate ? new Date(`${activeConcurso.targetDate.split('T')[0]}T12:00:00`) : null;
       

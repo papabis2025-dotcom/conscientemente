@@ -483,12 +483,9 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
 
         const priorityScore = getStatisticalPriority(weight, accuracy, done, minutes);
 
-        // Fila de tópicos: apenas os não concluídos (ou todos, se todos já foram concluídos)
         const uncompletedTopics = subTopics.filter(t => !t.isCompleted);
         const topicPool = uncompletedTopics.length > 0 ? uncompletedTopics : subTopics;
 
-        // Função de prioridade estatística por tópico idêntica à Análise Estatística:
-        // Considera peso efetivo do tópico no edital (tEffectiveWeight), acurácia (tAccuracy), questões (tDone) e tempo (tMinutes)
         const getTopicStatisticalScore = (topic: Topic): number => {
           const tSessions = subSessions.filter(s => s.topicId === topic.id);
           const tDone    = tSessions.reduce((a, s) => a + (s.questionsDone    || 0), 0);
@@ -505,8 +502,55 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
           return manualTier + (statPriority * 100);
         };
 
-        // Ordena os tópicos do mais prioritário para o menos prioritário
-        const topicQueue = [...topicPool].sort((a, b) => getTopicStatisticalScore(b) - getTopicStatisticalScore(a));
+        const sortedTopics = [...topicPool].sort((a, b) => getTopicStatisticalScore(b) - getTopicStatisticalScore(a));
+
+        // Constrói fila intercalada proporcional:
+        // - Tópicos com prioridade MUITO maior aparecem mais vezes no ciclo (proporcional ao score)
+        // - São INTERCALADOS (nunca consecutivos): cobre todo o edital antes de repetir assuntos urgentes
+        // - Todos os tópicos aparecem pelo menos 1x por ciclo (cobertura completa garantida)
+        //
+        // Exemplo: T1(score=390), T2(score=210), T3(score=105), T4(score=100)
+        //   minScore=100 → T1:4x, T2:2x, T3:1x, T4:1x
+        //   Resultado: [T1, T2, T1, T3, T1, T2, T4, T1] ← proporcional e sem consecutivos
+        const topicQueue: Topic[] = [];
+        if (sortedTopics.length > 0) {
+          const scores = sortedTopics.map(t => getTopicStatisticalScore(t));
+          const minScore = Math.max(1, scores[scores.length - 1]);
+
+          // Slots proporcionais: mínimo 1, máximo 4
+          const slots = sortedTopics.map((topic, i) => ({
+            topic,
+            remaining: Math.min(4, Math.max(1, Math.round(scores[i] / minScore)))
+          }));
+
+          const totalSlots = slots.reduce((sum, s) => sum + s.remaining, 0);
+          let prevTopicId: string | null = null;
+
+          for (let i = 0; i < totalSlots; i++) {
+            // Greedy: escolhe o tópico com mais slots restantes que NÃO seja o mesmo que o anterior
+            let bestIdx = -1;
+            let bestRemaining = 0;
+            for (let j = 0; j < slots.length; j++) {
+              if (
+                slots[j].remaining > 0 &&
+                slots[j].topic.id !== prevTopicId &&
+                slots[j].remaining > bestRemaining
+              ) {
+                bestIdx = j;
+                bestRemaining = slots[j].remaining;
+              }
+            }
+            // Fallback: se só restar o mesmo tópico (caso de 1 tópico único), aceita repetição
+            if (bestIdx === -1) {
+              bestIdx = slots.findIndex(s => s.remaining > 0);
+            }
+            if (bestIdx !== -1) {
+              topicQueue.push(slots[bestIdx].topic);
+              prevTopicId = slots[bestIdx].topic.id;
+              slots[bestIdx].remaining--;
+            }
+          }
+        }
 
         return {
           subject: sub,
@@ -514,7 +558,6 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
           doneQuestions: done,
           accuracy,
           basePriority: priorityScore,
-          // Gap mínimo: disciplina não pode aparecer no dia seguinte
           daysSinceLastScheduled: 1,
           scheduledCount: 0,
           queue: topicQueue,

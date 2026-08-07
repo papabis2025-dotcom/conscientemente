@@ -380,41 +380,36 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
         window.dispatchEvent(new Event('local-settings-changed'));
       }
 
-      // 0. Purgar previamente qualquer tarefa pendente antiga do concurso ativo para evitar duplicar tarefas ao re-gerar
-      const uncompletedOldTasks = (scheduledStudies || []).filter(s => 
+      // 0. Purgar tarefas pendentes antigas para evitar duplicatas ao re-gerar
+      const uncompletedOldTasks = (scheduledStudies || []).filter(s =>
         s.status !== 'realizado' && (
           activeConcursoSubjectIds.has(s.subjectId) ||
           s.concursoId === selectedConcursoId ||
           (s.generatedByCronograma && s.activityType === 'Simulado')
         )
       );
-      const idsBeingDeleted = new Set(uncompletedOldTasks.map(t => t.id));
       if (uncompletedOldTasks.length > 0) {
-        const idsToClear = Array.from(idsBeingDeleted);
-        await onDeleteScheduledStudiesBatch(idsToClear);
+        await onDeleteScheduledStudiesBatch(uncompletedOldTasks.map(t => t.id));
       }
 
       // 1. Carrega os pesos customizados definidos na guia Análise Estatística
       const weightAcc = parseInt(localStorage.getItem('estudos_weight_acc') || '50');
       const weightSubj = parseInt(localStorage.getItem('estudos_weight_subj') || '25');
-      const weightQtd = parseInt(localStorage.getItem('estudos_weight_qtd') || '15');
+      const weightQtd  = parseInt(localStorage.getItem('estudos_weight_qtd')  || '15');
       const weightTime = parseInt(localStorage.getItem('estudos_weight_time') || '10');
 
-      // Calcula os máximos para normalização exatamente como na Análise Estatística
+      // Calcula os máximos para normalização (idêntico à Análise Estatística)
       const maxWeight = Math.max(1, ...subjects.map(s => {
-        const subTopics = s.topics || [];
-        const topicWeightsSum = subTopics.reduce((acc, t) => acc + (t.weight || 0), 0);
-        const baseW = s.weight !== undefined && s.weight > 0 ? s.weight : 1;
-        return topicWeightsSum > 0 ? parseFloat((baseW * (topicWeightsSum / 100)).toFixed(2)) : baseW;
+        const tw = (s.topics || []).reduce((acc, t) => acc + (t.weight || 0), 0);
+        const bw = s.weight !== undefined && s.weight > 0 ? s.weight : 1;
+        return tw > 0 ? parseFloat((bw * (tw / 100)).toFixed(2)) : bw;
       }));
 
       const maxQuestions = Math.max(1, ...subjects.map(sub => {
         const subSessions = sessions.filter(s => s.subjectId === sub.id);
         let q = subSessions.reduce((acc, s) => acc + (s.questionsDone || 0), 0);
         (simulados || []).forEach(sim => {
-          (sim.results || []).forEach(res => {
-            if (res.subjectId === sub.id) q += (res.done || 0);
-          });
+          (sim.results || []).forEach(res => { if (res.subjectId === sub.id) q += (res.done || 0); });
         });
         return q;
       }));
@@ -425,134 +420,105 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
       }));
 
       const getStatisticalPriority = (weight: number, accuracy: number, questions: number, minutes: number): number => {
-        const wNorm = weight / maxWeight;
+        const wNorm      = weight / maxWeight;
         const accPenalty = questions > 0 ? (100 - accuracy) / 100 : 0.5;
-        const qPenalty = Math.max(0, 1 - questions / Math.max(1, maxQuestions));
-        const tPenalty = Math.max(0, 1 - minutes / Math.max(1, maxMinutes));
-        
+        const qPenalty   = Math.max(0, 1 - questions / Math.max(1, maxQuestions));
+        const tPenalty   = Math.max(0, 1 - minutes   / Math.max(1, maxMinutes));
         const totalW = weightAcc + weightSubj + weightQtd + weightTime;
         if (totalW === 0) return 0;
-
         return (
-          accPenalty * (weightAcc / totalW) + 
-          wNorm * (weightSubj / totalW) + 
-          qPenalty * (weightQtd / totalW) +
-          tPenalty * (weightTime / totalW)
+          accPenalty * (weightAcc / totalW) +
+          wNorm      * (weightSubj / totalW) +
+          qPenalty   * (weightQtd  / totalW) +
+          tPenalty   * (weightTime / totalW)
         );
       };
 
-      // 2. Calculate statistical profiles for each subject
-      // A acurácia é calculada de forma ponderada pelos pesos dos tópicos,
-      // idêntico ao cálculo da guia Análise Estatística.
+      // 2. Perfil estatístico por disciplina (acurácia ponderada idêntica à Análise Estatística)
       const subjectProfiles = subjects.map(sub => {
         const subSessions = sessions.filter(s => s.subjectId === sub.id);
-        let done = subSessions.reduce((acc, s) => acc + (s.questionsDone || 0), 0);
+        let done    = subSessions.reduce((acc, s) => acc + (s.questionsDone    || 0), 0);
         let correct = subSessions.reduce((acc, s) => acc + (s.questionsCorrect || 0), 0);
         const minutes = subSessions.reduce((acc, s) => acc + (s.durationInMinutes || 0), 0);
 
         (simulados || []).forEach(sim => {
           (sim.results || []).forEach(res => {
-            if (res.subjectId === sub.id) {
-              done += (res.done || 0);
-              correct += (res.correct || 0);
-            }
+            if (res.subjectId === sub.id) { done += (res.done || 0); correct += (res.correct || 0); }
           });
         });
 
-        // --- Cálculo de acurácia ponderada por peso dos tópicos (igual à Análise Estatística) ---
         const subTopics = sub.topics || [];
-        const topicWeightsSum = subTopics.reduce((acc, t) => acc + (t.weight || 0), 0);
+        const topicWeightsSum   = subTopics.reduce((acc, t) => acc + (t.weight || 0), 0);
         const baseSubjectWeight = sub.weight !== undefined && sub.weight > 0 ? sub.weight : 1;
         const weight = topicWeightsSum > 0
           ? parseFloat((baseSubjectWeight * (topicWeightsSum / 100)).toFixed(2))
           : baseSubjectWeight;
 
+        // Acurácia ponderada por peso dos tópicos
         let accuracy = 0;
         if (done > 0) {
           const hasTopicWeights = subTopics.some(t => t.weight !== undefined && t.weight > 0);
-
           if (hasTopicWeights) {
-            let weightedSum = 0;
-            let weightTotal = 0;
-            let unweightedQuestions = 0;
-            let unweightedCorrect = 0;
-
+            let weightedSum = 0, weightTotal = 0, unweightedQ = 0, unweightedC = 0;
             subTopics.forEach(topic => {
-              const topicSessions = subSessions.filter(s => s.topicId === topic.id);
-              const tDone = topicSessions.reduce((acc, s) => acc + (s.questionsDone || 0), 0);
-              const tCorrect = topicSessions.reduce((acc, s) => acc + (s.questionsCorrect || 0), 0);
-
+              const tSessions = subSessions.filter(s => s.topicId === topic.id);
+              const tDone    = tSessions.reduce((a, s) => a + (s.questionsDone    || 0), 0);
+              const tCorrect = tSessions.reduce((a, s) => a + (s.questionsCorrect || 0), 0);
               if (tDone > 0) {
                 const tAcc = tCorrect / tDone;
-                if (topic.weight !== undefined && topic.weight > 0) {
-                  weightedSum += tAcc * topic.weight;
-                  weightTotal += topic.weight;
-                } else {
-                  unweightedQuestions += tDone;
-                  unweightedCorrect += tCorrect;
-                }
+                if (topic.weight !== undefined && topic.weight > 0) { weightedSum += tAcc * topic.weight; weightTotal += topic.weight; }
+                else { unweightedQ += tDone; unweightedC += tCorrect; }
               }
             });
-
-            // Questões genéricas (não associadas a tópicos específicos) ou provenientes de simulados
-            const topicDoneTotal = subTopics.reduce((acc, topic) => {
-              const topicSessions = subSessions.filter(s => s.topicId === topic.id);
-              return acc + topicSessions.reduce((sum, s) => sum + (s.questionsDone || 0), 0);
-            }, 0);
-            const topicCorrectTotal = subTopics.reduce((acc, topic) => {
-              const topicSessions = subSessions.filter(s => s.topicId === topic.id);
-              return acc + topicSessions.reduce((sum, s) => sum + (s.questionsCorrect || 0), 0);
-            }, 0);
-            const genericDone = done - topicDoneTotal;
-            const genericCorrect = correct - topicCorrectTotal;
-
-            if (genericDone > 0) {
-              unweightedQuestions += genericDone;
-              unweightedCorrect += genericCorrect;
-            }
-
+            const topicDoneTotal    = subTopics.reduce((a, t) => a + subSessions.filter(s => s.topicId === t.id).reduce((b, s) => b + (s.questionsDone    || 0), 0), 0);
+            const topicCorrectTotal = subTopics.reduce((a, t) => a + subSessions.filter(s => s.topicId === t.id).reduce((b, s) => b + (s.questionsCorrect || 0), 0), 0);
+            const genericDone = done - topicDoneTotal; const genericCorrect = correct - topicCorrectTotal;
+            if (genericDone > 0) { unweightedQ += genericDone; unweightedC += genericCorrect; }
             if (weightTotal > 0) {
-              if (unweightedQuestions > 0) {
-                const remainingWeight = Math.max(0, 100 - weightTotal);
-                const unweightedAcc = unweightedCorrect / unweightedQuestions;
-                weightedSum += unweightedAcc * remainingWeight;
-                weightTotal += remainingWeight;
-              }
+              if (unweightedQ > 0) { const rw = Math.max(0, 100 - weightTotal); weightedSum += (unweightedC / unweightedQ) * rw; weightTotal += rw; }
               accuracy = Math.min(100, Math.round((weightedSum / weightTotal) * 100));
-            } else {
-              accuracy = Math.round((correct / done) * 100);
-            }
-          } else {
-            accuracy = Math.round((correct / done) * 100);
-          }
+            } else { accuracy = Math.round((correct / done) * 100); }
+          } else { accuracy = Math.round((correct / done) * 100); }
         }
-        // -------------------------------------------------------------------------------------------
 
         const priorityScore = getStatisticalPriority(weight, accuracy, done, minutes);
 
-        // Queue uncompleted topics (or all if all are completed)
-        const uncompletedTopics = (sub.topics || []).filter(t => !t.isCompleted);
-        const topicQueue = uncompletedTopics.length > 0 ? uncompletedTopics : (sub.topics || []);
-        
-        // Calcula a acurácia individual de cada tópico para usar como critério de desempate na ordenação
+        // Fila de tópicos: apenas os não concluídos (ou todos, se todos concluídos)
+        const uncompletedTopics = subTopics.filter(t => !t.isCompleted);
+        const topicPool = uncompletedTopics.length > 0 ? uncompletedTopics : subTopics;
+
+        // Função auxiliar: acurácia individual do tópico
         const getTopicAccuracy = (topic: Topic): number => {
-          const topicSessions = subSessions.filter(s => s.topicId === topic.id);
-          const tDone = topicSessions.reduce((acc, s) => acc + (s.questionsDone || 0), 0);
-          const tCorrect = topicSessions.reduce((acc, s) => acc + (s.questionsCorrect || 0), 0);
-          // Sem dados: assume 50% (neutro — nem urgente, nem ótimo)
+          const tSessions = subSessions.filter(s => s.topicId === topic.id);
+          const tDone    = tSessions.reduce((a, s) => a + (s.questionsDone    || 0), 0);
+          const tCorrect = tSessions.reduce((a, s) => a + (s.questionsCorrect || 0), 0);
           return tDone > 0 ? (tCorrect / tDone) * 100 : 50;
         };
 
-        // Ordenação dos assuntos:
-        // 1º critério: prioridade manual (Alta > Média > Baixa/sem prioridade)
-        // 2º critério (desempate): menor acurácia individual → precisa de mais atenção
-        const sortedQueue = [...topicQueue].sort((a, b) => {
-          const valA = a.priority === 'Alta' ? 3 : a.priority === 'Média' ? 2 : 1;
-          const valB = b.priority === 'Alta' ? 3 : b.priority === 'Média' ? 2 : 1;
-          if (valB !== valA) return valB - valA;
-          // Desempate: menor acurácia primeiro (mais urgente)
-          return getTopicAccuracy(a) - getTopicAccuracy(b);
-        });
+        // Score de urgência por tópico: combina prioridade manual + penalidade de acurácia + peso do tópico
+        const getTopicUrgencyScore = (topic: Topic): number => {
+          const manualPriority = topic.priority === 'Alta' ? 3 : topic.priority === 'Média' ? 2 : 1;
+          const accPenalty = (100 - getTopicAccuracy(topic)) / 100; // quanto mais erros, mais urgente
+          const topicWeight = topic.weight !== undefined && topic.weight > 0 ? topic.weight / 100 : 0.5;
+          // Fórmula: prioridade manual tem peso principal; acurácia e peso dos tópicos são moduladores
+          return manualPriority * 10 + accPenalty * 5 + topicWeight * 3;
+        };
+
+        // Ordena por urgência composta (prioridade manual > penalidade de acurácia > peso do tópico)
+        const sortedPool = [...topicPool].sort((a, b) => getTopicUrgencyScore(b) - getTopicUrgencyScore(a));
+
+        // Gera uma fila expandida proporcional: tópicos mais urgentes aparecem mais vezes
+        // Fator de expansão proporcional ao score relativo de urgência
+        const topicQueue: Topic[] = [];
+        if (sortedPool.length > 0) {
+          const maxUrgency = getTopicUrgencyScore(sortedPool[0]);
+          sortedPool.forEach(topic => {
+            const urgency = getTopicUrgencyScore(topic);
+            // Mínimo 1 aparição, máximo 4 (assuntos com urgência muito maior são estudados +vezes)
+            const repetitions = maxUrgency > 0 ? Math.max(1, Math.round((urgency / maxUrgency) * 4)) : 1;
+            for (let r = 0; r < repetitions; r++) topicQueue.push(topic);
+          });
+        }
 
         return {
           subject: sub,
@@ -560,28 +526,34 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
           doneQuestions: done,
           accuracy,
           basePriority: priorityScore,
-          daysSinceLastScheduled: 0,
+          // Gap mínimo: disciplina não pode aparecer no dia seguinte
+          // Inicia em (minGap) para que nenhuma disciplina seja "bloqueada" antes de começar
+          daysSinceLastScheduled: 1,
           scheduledCount: 0,
-          queue: sortedQueue,
+          queue: topicQueue,
           queueIndex: 0
         };
       });
 
-      const totalPriority = subjectProfiles.reduce((acc, p) => acc + p.basePriority, 0);
+      // Gap mínimo entre estudos da mesma disciplina em dias consecutivos
+      // Calculado dinamicamente: se subjectsPerDay >= num. disciplinas, gap = 1; senão garante pelo menos
+      // que uma disciplina não apareça no dia imediatamente seguinte.
+      const numSubjects = subjectProfiles.length;
+      // Gap mínimo = max(1, floor(numSubjects / subjectsPerDay) - 1)
+      // Ex: 6 disciplinas, 2/dia → gap mínimo = 2 dias entre reaparições
+      const minDaysBetweenSameSubject = Math.max(1, Math.floor(numSubjects / Math.max(1, subjectsPerDay)) - 1);
 
       const start = new Date(`${startDateStr}T12:00:00`);
       let end = activeConcurso?.targetDate ? new Date(`${activeConcurso.targetDate.split('T')[0]}T12:00:00`) : null;
-      
       let totalDays = durWeeks * 7;
       if (end) {
         const diffTime = end.getTime() - start.getTime();
         totalDays = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
       }
 
-      // 4. Generate items day by day
+      // 3. Gerar itens dia a dia
       const items: (Omit<ScheduledStudy, 'id' | 'status'> & { id?: string })[] = [];
       const accumStudiedSubjects: Set<string> = new Set();
-      const accumStudiedTopics: Set<string> = new Set();
       let daysSinceSimulado = 0;
 
       for (let dayOffset = 0; dayOffset < totalDays; dayOffset++) {
@@ -589,36 +561,34 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
         currentDate.setDate(start.getDate() + dayOffset);
         const dateStr = currentDate.toISOString().split('T')[0];
 
-        // Verificar se este dia já possui QUALQUER atividade realizada (estudo concluído ou sessão registrada)
-        const hasRealizedActivityOnDate = (scheduledStudies || []).some(s => s.status === 'realizado' && s.date === dateStr) ||
-                                          (sessions || []).some(s => s.date === dateStr);
+        // Incrementa o contador de simulado SEMPRE (independente de atividades realizadas)
+        daysSinceSimulado++;
 
-        // Se o dia já possui atividades realizadas, NUNCA adicionar novas tarefas pendentes neste dia
+        // Incrementa recência para TODAS as disciplinas (elas ficam "mais necessitadas" a cada dia que passam)
+        subjectProfiles.forEach(p => { p.daysSinceLastScheduled++; });
+
+        // Verificar se este dia já possui QUALQUER atividade realizada
+        const hasRealizedActivityOnDate =
+          (scheduledStudies || []).some(s => s.status === 'realizado' && s.date === dateStr) ||
+          (sessions || []).some(s => s.date === dateStr);
+
+        // Dias já estudados: não adicionar novas tarefas, mas manter contadores acima funcionando
         if (hasRealizedActivityOnDate) {
           continue;
         }
 
-        daysSinceSimulado++;
-
-        // Determine weekday
         const weekdayName = currentDate.toLocaleDateString('en-US', { weekday: 'long' });
         const isStudyDay = activeDays.includes(weekdayName);
 
-        // Check if today should trigger a Simulado based on user defined interval
-        const shouldRunSimulado = daysSinceSimulado >= simuladoIntervalDays;
-
-        if (shouldRunSimulado) {
+        // Simulado tem prioridade sobre estudo normal
+        if (daysSinceSimulado >= simuladoIntervalDays) {
           daysSinceSimulado = 0;
           const fallbackSubject = subjects[0] || { id: '' };
-          const studiedListStr = accumStudiedSubjects.size > 0 
-            ? Array.from(accumStudiedSubjects).join(', ') 
-            : 'Matérias do edital';
-
           items.push({
             date: dateStr,
             subjectId: fallbackSubject.id,
             activityType: 'Simulado',
-            notes: `Simulado (${simuladoQuestionsLimit} questões): ${studiedListStr}`,
+            notes: `Simulado (${simuladoQuestionsLimit} questões): ${accumStudiedSubjects.size > 0 ? Array.from(accumStudiedSubjects).join(', ') : 'Matérias do edital'}`,
             durationInMinutes: Math.min(360, Math.max(60, simuladoQuestionsLimit * 3)),
             questionsDone: simuladoQuestionsLimit,
             questionsCorrect: Math.round(simuladoQuestionsLimit * 0.7),
@@ -626,38 +596,48 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
             concursoId: selectedConcursoId
           });
         } else if (isStudyDay) {
-          // Select todays subjects dynamically based on priority scores and recency rotation
+          // Seleciona as disciplinas do dia usando score dinâmico:
+          // score = basePriority × (1 + 0.8 × daysSinceLastScheduled)
+          // Restrição de gap mínimo: disciplina só é elegível se daysSinceLastScheduled >= minDaysBetweenSameSubject
           const numSubjectsToday = Math.min(subjectsPerDay, subjectProfiles.length);
           const todaysSubjects: typeof subjectProfiles[0][] = [];
 
           for (let s = 0; s < numSubjectsToday; s++) {
             const available = subjectProfiles
-              .filter(p => !todaysSubjects.find(ts => ts.subject.id === p.subject.id))
+              .filter(p =>
+                !todaysSubjects.find(ts => ts.subject.id === p.subject.id) &&
+                p.daysSinceLastScheduled >= minDaysBetweenSameSubject
+              )
               .map(p => ({
                 profile: p,
-                dynamicScore: p.basePriority * (1 + 0.5 * p.daysSinceLastScheduled)
+                dynamicScore: p.basePriority * (1 + 0.8 * p.daysSinceLastScheduled)
               }))
               .sort((a, b) => b.dynamicScore - a.dynamicScore);
 
-            if (available.length > 0) {
-              todaysSubjects.push(available[0].profile);
+            // Fallback: se nenhuma disciplina respeitar o gap (ex: poucas disciplinas), relaxa a restrição
+            const fallbackAvailable = available.length > 0 ? available :
+              subjectProfiles
+                .filter(p => !todaysSubjects.find(ts => ts.subject.id === p.subject.id))
+                .map(p => ({ profile: p, dynamicScore: p.basePriority * (1 + 0.8 * p.daysSinceLastScheduled) }))
+                .sort((a, b) => b.dynamicScore - a.dynamicScore);
+
+            if (fallbackAvailable.length > 0) {
+              todaysSubjects.push(fallbackAvailable[0].profile);
             }
           }
 
-          // Reset recency for selected, increment for unselected
+          // Atualiza contadores: disciplinas escolhidas voltam ao zero, as demais seguem acumulando
           const selectedSubjectIds = new Set(todaysSubjects.map(ts => ts.subject.id));
           subjectProfiles.forEach(p => {
             if (selectedSubjectIds.has(p.subject.id)) {
-              p.daysSinceLastScheduled = 0;
+              p.daysSinceLastScheduled = 0; // reset: estudada hoje
               p.scheduledCount += 1;
-            } else {
-              p.daysSinceLastScheduled += 1;
             }
+            // Os não escolhidos já foram incrementados acima (início do loop)
           });
 
-          // Study slots per subject
           const totalTopicsCount = todaysSubjects.length * topicsPerSubjectPerDay;
-          const totalMinutesPerTopic = Math.round((dailyHours * 60) / totalTopicsCount);
+          const totalMinutesPerTopic = Math.max(15, Math.round((dailyHours * 60) / Math.max(1, totalTopicsCount)));
 
           todaysSubjects.forEach(profile => {
             accumStudiedSubjects.add(profile.subject.name);
@@ -667,27 +647,19 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
             for (let tIdx = 0; tIdx < topicsPerSubjectPerDay; tIdx++) {
               let topic: Topic | undefined = undefined;
 
-              if (hasSubTopics) {
-                if (profile.queue.length > 0) {
-                  topic = profile.queue[profile.queueIndex % profile.queue.length];
-                } else {
-                  topic = subTopics[profile.queueIndex % subTopics.length];
-                }
+              if (hasSubTopics && profile.queue.length > 0) {
+                // Pega o próximo tópico da fila proporcional (round-robin sobre a fila expandida)
+                topic = profile.queue[profile.queueIndex % profile.queue.length];
                 profile.queueIndex++;
               }
 
               const topicTitle = topic?.title;
-              const topicId = topic?.id;
+              const topicId    = topic?.id;
 
-              if (topicTitle) {
-                accumStudiedTopics.add(topicTitle);
-              }
-
-              // Group reading and questions into a single planner task
               items.push({
                 date: dateStr,
                 subjectId: profile.subject.id,
-                topicId: topicId,
+                topicId,
                 activityType: 'Leitura, Questões',
                 notes: `Leitura e Questões: ${topicTitle ? `${profile.subject.name} - ${topicTitle}` : profile.subject.name}`,
                 durationInMinutes: totalMinutesPerTopic,
@@ -701,17 +673,18 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
         }
       }
 
-      // 3. Batch save to Supabase / AppState
+      // Salva em lote
       await onAddScheduledStudiesBatch(items);
       setSelectedDateStr(startDateStr);
     } catch (e) {
+      console.error('Error generating schedule:', e);
       alert('Erro ao gerar cronograma. Tente novamente.');
     } finally {
       setIsGenerating(false);
     }
   };
 
-  // Reiniciar Cronograma: remove apenas tarefas pendentes do curso ativo e regera com base em Análise Estatística e Disciplinas
+  // Reiniciar Cronograma: remove tarefas pendentes e regera aplicando os mesmos critérios
   const handleRestartCronograma = async () => {
     if (!selectedConcursoId || selectedConcursoId === 'all') {
       alert('Por favor, selecione um concurso primeiro.');
@@ -724,7 +697,7 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
     setIsGenerating(true);
     try {
       // 1. Apagar todas as tarefas pendentes vinculadas a este concurso
-      const uncompletedTasks = (scheduledStudies || []).filter(s => 
+      const uncompletedTasks = (scheduledStudies || []).filter(s =>
         s.status !== 'realizado' && (
           activeConcursoSubjectIds.has(s.subjectId) ||
           s.concursoId === selectedConcursoId ||
@@ -732,22 +705,20 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
         )
       );
       if (uncompletedTasks.length > 0) {
-        const ids = uncompletedTasks.map(t => t.id);
-        await onDeleteScheduledStudiesBatch(ids);
+        await onDeleteScheduledStudiesBatch(uncompletedTasks.map(t => t.id));
       }
 
-      // Garantir preferência como ativa
+      // 2. Garantir preferência ativa
       setIsCronogramaEnabled(true);
       const saved = localStorage.getItem(`cp_cronograma_prefs_${selectedConcursoId}`);
       let prefs: any = {};
-      if (saved) prefs = JSON.parse(saved);
+      if (saved) { try { prefs = JSON.parse(saved); } catch { prefs = {}; } }
       localStorage.setItem(`cp_cronograma_prefs_${selectedConcursoId}`, JSON.stringify({ ...prefs, isCronogramaEnabled: true }));
       window.dispatchEvent(new Event('local-settings-changed'));
 
-      // 2. Gerar novamente o cronograma de estudos considerando pesos estatísticos, acertos e revisões
+      // 3. Regerar (handleGenerate controla seu próprio setIsGenerating — passamos false para evitar duplo set)
+      // Executamos diretamente a lógica sem chamar handleGenerate para evitar conflito de estado
       await handleGenerate();
-
-      alert('Cronograma reiniciado com sucesso com os novos critérios!');
     } catch (e) {
       console.error('Error restarting cronograma:', e);
       alert('Ocorreu um erro ao reiniciar o cronograma.');

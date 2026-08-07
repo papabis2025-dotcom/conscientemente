@@ -586,6 +586,18 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
       const accumStudiedSubjects: Set<string> = new Set();
       let daysSinceSimulado = 0;
 
+      // Armazena os eventos de estudo para geração de revisões espaçadas
+      const topicStudyEvents: {
+        dateStr: string;
+        dayOffset: number;
+        subjectId: string;
+        subjectName: string;
+        topicId?: string;
+        topicTitle?: string;
+      }[] = [];
+
+      const simuladoDateStrs = new Set<string>();
+
       for (let dayOffset = 0; dayOffset < totalDays; dayOffset++) {
         const currentDate = new Date(start);
         currentDate.setDate(start.getDate() + dayOffset);
@@ -613,6 +625,7 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
         // Simulado tem prioridade sobre estudo normal
         if (daysSinceSimulado >= simuladoIntervalDays) {
           daysSinceSimulado = 0;
+          simuladoDateStrs.add(dateStr);
           const fallbackSubject = subjects[0] || { id: '' };
           items.push({
             date: dateStr,
@@ -698,9 +711,83 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
                 generatedByCronograma: true,
                 concursoId: selectedConcursoId
               });
+
+              // Registra o evento para agendamento de revisões espaçadas
+              topicStudyEvents.push({
+                dateStr,
+                dayOffset,
+                subjectId: profile.subject.id,
+                subjectName: profile.subject.name,
+                topicId,
+                topicTitle
+              });
             }
           });
         }
+      }
+
+      // 4. Gerar Revisões Espaçadas Automáticas seguindo estritamente a guia Disciplinas
+      const isReviewsDisabled = (selectedConcursoId && selectedConcursoId !== 'all')
+        ? localStorage.getItem(`estudos_disabled_reviews_${selectedConcursoId}`) === 'true'
+        : false;
+
+      if (!isReviewsDisabled) {
+        let customReviewDays: number[] = [7, 30, 90, 15, 45];
+        try {
+          const saved = localStorage.getItem('estudos_custom_review_days');
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              customReviewDays = parsed;
+            }
+          }
+        } catch (e) {}
+
+        const scheduledRevisionKeys = new Set<string>();
+
+        topicStudyEvents.forEach(event => {
+          customReviewDays.forEach(days => {
+            const targetDayOffset = event.dayOffset + days;
+            if (targetDayOffset >= totalDays) return;
+
+            // Procura o próximo dia de estudo ativo que não seja dia de simulado
+            let validOffset = -1;
+            for (let checkOffset = targetDayOffset; checkOffset < totalDays; checkOffset++) {
+              const checkDate = new Date(start);
+              checkDate.setDate(start.getDate() + checkOffset);
+              const checkDateStr = checkDate.toISOString().split('T')[0];
+              const checkWeekday = checkDate.toLocaleDateString('en-US', { weekday: 'long' });
+
+              if (activeDays.includes(checkWeekday) && !simuladoDateStrs.has(checkDateStr)) {
+                validOffset = checkOffset;
+                break;
+              }
+            }
+
+            if (validOffset !== -1) {
+              const revDate = new Date(start);
+              revDate.setDate(start.getDate() + validOffset);
+              const revDateStr = revDate.toISOString().split('T')[0];
+
+              const revKey = `${revDateStr}_${event.subjectId}_${event.topicId || 'geral'}_${days}d`;
+              if (!scheduledRevisionKeys.has(revKey)) {
+                scheduledRevisionKeys.add(revKey);
+                items.push({
+                  date: revDateStr,
+                  subjectId: event.subjectId,
+                  topicId: event.topicId,
+                  activityType: 'Revisão',
+                  notes: `Revisão (${days}d): ${event.subjectName}${event.topicTitle ? ' - ' + event.topicTitle : ''}`,
+                  durationInMinutes: 20,
+                  questionsDone: undefined,
+                  questionsCorrect: undefined,
+                  generatedByCronograma: true,
+                  concursoId: selectedConcursoId
+                });
+              }
+            }
+          });
+        });
       }
 
       // Salva em lote

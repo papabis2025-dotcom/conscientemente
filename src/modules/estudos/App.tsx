@@ -61,7 +61,7 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
     activeConcurso,
     handleLogout: logout, addSession, addSessionsBatch, addSimulado, updateSimulado,
     deleteSimulado, deleteSession, clearLogs, deleteLog, updateProfile,
-    globalDailyGoal, studyTasks, setStudyTasks, toggleScheduledStudyStatus, updateScheduledStudy, saveCalendarActivity,
+    globalDailyGoal, setGlobalDailyGoal, studyTasks, setStudyTasks, toggleScheduledStudyStatus, updateScheduledStudy, saveCalendarActivity,
     resetStudyHubDataOnly, syncPlannedReviews,
     addScheduledStudiesBatch, deleteScheduledStudiesBatch, resetConcursoSchedule
   } = useAppData(extTheme, extToggleTheme);

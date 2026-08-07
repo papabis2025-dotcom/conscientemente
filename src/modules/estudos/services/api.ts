@@ -619,5 +619,80 @@ export const api = {
             if (!user) return;
             return handleRequest(supabase.from('logs').delete().eq('user_id', user.id));
         }
+    },
+
+    // Study Plan Tasks (Tarefas do Plano de Estudos)
+    studyPlanTasks: {
+        list: async () => {
+            const user = await getAuthUser();
+            if (!user) return [];
+            try {
+                const { data, error } = await supabase
+                    .from('study_plan_tasks')
+                    .select('id, subject_id, subject_name, topic_id, topic_name, done, date, concurso_id')
+                    .eq('user_id', user.id);
+                if (error) {
+                    if (error.code === '42P01') {
+                        // Tabela não existe ainda no Supabase (migração pendente)
+                        console.warn('Tabela study_plan_tasks não encontrada no Supabase. Execute a migração migration_study_plan_tasks.sql');
+                        return [];
+                    }
+                    console.error('Supabase studyPlanTasks.list error:', error);
+                    return [];
+                }
+                return (data || []).map((t: any) => ({
+                    id: t.id,
+                    subjectId: t.subject_id,
+                    subjectName: t.subject_name,
+                    topicId: t.topic_id || undefined,
+                    topicName: t.topic_name || undefined,
+                    done: t.done,
+                    date: t.date,
+                    concursoId: t.concurso_id || undefined
+                }));
+            } catch (err) {
+                console.error('Failed to list study plan tasks:', err);
+                return [];
+            }
+        },
+        upsertBatch: async (tasks: any[]) => {
+            if (!tasks || tasks.length === 0) return;
+            const user = await getAuthUser();
+            if (!user) return;
+            const payloads = tasks.map(t => ({
+                id: t.id,
+                user_id: user.id,
+                subject_id: t.subjectId,
+                subject_name: t.subjectName,
+                topic_id: t.topicId || null,
+                topic_name: t.topicName || null,
+                done: t.done,
+                date: t.date,
+                concurso_id: t.concursoId || null,
+                updated_at: new Date().toISOString()
+            }));
+            try {
+                const { error } = await supabase.from('study_plan_tasks').upsert(payloads, { onConflict: 'id' });
+                if (error && error.code !== '42P01') {
+                    console.error('Supabase studyPlanTasks.upsertBatch error:', error);
+                }
+            } catch (err) {
+                console.error('Failed to upsert study plan tasks batch:', err);
+            }
+        },
+        deleteBatch: async (ids: string[]) => {
+            if (!ids || ids.length === 0) return;
+            const user = await getAuthUser();
+            if (!user) return;
+            try {
+                const { error } = await supabase.from('study_plan_tasks').delete().in('id', ids).eq('user_id', user.id);
+                if (error && error.code !== '42P01') {
+                    console.error('Supabase studyPlanTasks.deleteBatch error:', error);
+                }
+            } catch (err) {
+                console.error('Failed to delete study plan tasks batch:', err);
+            }
+        }
     }
 };
+

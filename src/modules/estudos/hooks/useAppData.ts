@@ -190,12 +190,20 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         return saved ? JSON.parse(saved) : [];
     });
 
-    const updateStudyTasks = (newTasks: { id: string, subjectId: string, subjectName: string, topicId?: string, topicName?: string, done: boolean, date: string }[]) => {
-        const subIds = new Set((concursos.find(c => c.id === selectedConcursoId)?.subjects || []).map(s => s.id));
+    const updateStudyTasks = (newTasks: { id: string, subjectId: string, subjectName: string, topicId?: string, topicName?: string, done: boolean, date: string, concursoId?: string }[]) => {
+        const selectedConc = concursos.find(c => c.id === selectedConcursoId);
+        const subIds = new Set((selectedConc?.subjects || []).map(s => s.id));
+
+        const tasksWithConcurso = newTasks.map(t => ({
+            ...t,
+            concursoId: t.concursoId || selectedConcursoId
+        }));
         
         // Find deleted tasks: tasks for these subjects that are not in newTasks
-        const tasksToDelete = studyTasks.filter(t => subIds.has(t.subjectId) && !newTasks.find(nt => nt.id === t.id));
+        const tasksToDelete = studyTasks.filter(t => subIds.has(t.subjectId) && !tasksWithConcurso.find(nt => nt.id === t.id));
         if (tasksToDelete.length > 0) {
+            const deleteIds = tasksToDelete.map(t => t.id);
+            api.studyPlanTasks.deleteBatch(deleteIds).catch(e => console.error('Error deleting study plan tasks from Supabase:', e));
             try {
                 const deletedRaw = localStorage.getItem('cp_deleted_study_task_ids') || '[]';
                 const deletedList = JSON.parse(deletedRaw);
@@ -214,9 +222,14 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
             }
         }
 
+        // Upsert new and updated tasks to Supabase
+        if (tasksWithConcurso.length > 0) {
+            api.studyPlanTasks.upsertBatch(tasksWithConcurso).catch(e => console.error('Error upserting study plan tasks to Supabase:', e));
+        }
+
         setStudyTasks(prev => {
             const preserved = prev.filter(t => !subIds.has(t.subjectId));
-            const updated = [...preserved, ...newTasks];
+            const updated = [...preserved, ...tasksWithConcurso];
             localStorage.setItem('cp_study_tasks', JSON.stringify(updated));
             window.dispatchEvent(new Event('local-settings-changed'));
             return updated;
@@ -720,13 +733,14 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         if (!currentUser) return;
         if (!silent) setIsLoading(true);
         try {
-            const [concursosData, sessionsData, simuladosData, scheduleData, goalsData, logsData] = await Promise.all([
+            const [concursosData, sessionsData, simuladosData, scheduleData, goalsData, logsData, studyPlanTasksData] = await Promise.all([
                 api.concursos.list(),
                 api.sessions.list(),
                 api.simulados.list(),
                 api.schedule.list(),
                 api.dailyGoals.list(),
-                api.logs.list()
+                api.logs.list(),
+                api.studyPlanTasks.list()
             ]);
 
             if (concursosData) {
@@ -742,6 +756,25 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
 
             if (sessionsData) setSessions(finalSessions);
             if (simuladosData) setSimulados(simuladosData);
+
+            // Handle study plan tasks from Supabase
+            if (studyPlanTasksData && studyPlanTasksData.length > 0) {
+                setStudyTasks(studyPlanTasksData);
+                localStorage.setItem('cp_study_tasks', JSON.stringify(studyPlanTasksData));
+            } else {
+                // Se a busca no Supabase não trouxe tarefas (ex: migração ainda não rodada ou offline),
+                // tenta manter as locais e enviar para o banco se houver
+                const savedTasks = localStorage.getItem('cp_study_tasks');
+                if (savedTasks) {
+                    try {
+                        const localTasks = JSON.parse(savedTasks);
+                        if (Array.isArray(localTasks) && localTasks.length > 0) {
+                            setStudyTasks(localTasks);
+                            api.studyPlanTasks.upsertBatch(localTasks).catch(() => {});
+                        }
+                    } catch (e) {}
+                }
+            }
             let finalSchedule: ScheduledStudy[] = [];
             if (scheduleData) {
                 // Server is the source of truth for WHICH items exist.
@@ -775,7 +808,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
 
                 const subjectToConcursoMap = new Map<string, string>();
                 (concursosData || []).forEach(c => {
-                    (c.subjects || []).forEach(sub => subjectToConcursoMap.set(sub.id, c.id));
+                    (c.subjects || []).forEach((sub: any) => subjectToConcursoMap.set(sub.id, c.id));
                 });
 
                 const filteredFinalSchedule = finalSchedule.filter(s => {

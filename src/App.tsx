@@ -49,12 +49,7 @@ const SYNC_KEYS = [
   'cn_home_cards_layout',
   'cn_home_widgets_order',
   'cn_home_widgets_visibility',
-  'cp_questoes_selected_subject',
   'estudos_deleted_review_ids',
-  'cp_active_tab_estudos',
-  'financas_active_tab',
-  'saude_active_tab',
-  'tarefas_active_tab',
   'cn_sound_enabled',
   'estudos_custom_review_days',
 ];
@@ -476,6 +471,7 @@ const App: React.FC = () => {
     }
     localStorage.setItem('cn_last_user_id', session.user.id);
     prefsLoadedForUserRef.current = session.user.id;
+    lastPullAtRef.current = 0; // Permite sincronização imediata sem esperar o throttle na primeira carga
 
     const loadPreferences = async () => {
       // 1. Immediately apply local settings so UI renders without delay
@@ -582,9 +578,9 @@ const App: React.FC = () => {
 
         const payloadJson = JSON.stringify(payload);
 
-        // Safety guard: skip write if payload is larger than 500 KB.
+        // Safety guard: skip write if payload is larger than 800 KB.
         // A large payload indicates corrupted/duplicated data in localStorage.
-        if (payloadJson.length > 500_000) {
+        if (payloadJson.length > 800_000) {
           console.warn(
             `Sync skipped: payload too large (${(payloadJson.length / 1024).toFixed(0)} KB). ` +
             'Clear corrupted localStorage keys to resume sync.'
@@ -677,8 +673,8 @@ const App: React.FC = () => {
 
             const payloadJson = JSON.stringify(payload);
 
-            // Safety guard: skip write if payload exceeds 500 KB
-            if (payloadJson.length > 500_000) {
+            // Safety guard: skip write if payload exceeds 800 KB
+            if (payloadJson.length > 800_000) {
               console.warn(`pullAndMerge: payload too large (${(payloadJson.length / 1024).toFixed(0)} KB), skipping write.`);
               return;
             }
@@ -736,7 +732,7 @@ const App: React.FC = () => {
           };
 
           const payloadJson = JSON.stringify(payload);
-          if (payloadJson.length > 500_000) return;
+          if (payloadJson.length > 800_000) return;
 
           try {
             await supabase.from('user_preferences').upsert({

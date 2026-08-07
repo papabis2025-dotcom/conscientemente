@@ -588,6 +588,16 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
         const currentDate = new Date(start);
         currentDate.setDate(start.getDate() + dayOffset);
         const dateStr = currentDate.toISOString().split('T')[0];
+
+        // Verificar se este dia já possui QUALQUER atividade realizada (estudo concluído ou sessão registrada)
+        const hasRealizedActivityOnDate = (scheduledStudies || []).some(s => s.status === 'realizado' && s.date === dateStr) ||
+                                          (sessions || []).some(s => s.date === dateStr);
+
+        // Se o dia já possui atividades realizadas, NUNCA adicionar novas tarefas pendentes neste dia
+        if (hasRealizedActivityOnDate) {
+          continue;
+        }
+
         daysSinceSimulado++;
 
         // Determine weekday
@@ -671,18 +681,6 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
 
               if (topicTitle) {
                 accumStudiedTopics.add(topicTitle);
-              }
-
-              // Evitar duplicidade com atividades já realizadas no mesmo dia para a mesma disciplina/tópico
-              const isAlreadyRealized = (scheduledStudies || []).some(s => 
-                s.status === 'realizado' && 
-                s.date === dateStr && 
-                s.subjectId === profile.subject.id &&
-                (topicId ? s.topicId === topicId : true)
-              );
-
-              if (isAlreadyRealized) {
-                continue;
               }
 
               // Group reading and questions into a single planner task

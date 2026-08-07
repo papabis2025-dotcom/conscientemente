@@ -483,42 +483,30 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
 
         const priorityScore = getStatisticalPriority(weight, accuracy, done, minutes);
 
-        // Fila de tópicos: apenas os não concluídos (ou todos, se todos concluídos)
+        // Fila de tópicos: apenas os não concluídos (ou todos, se todos já foram concluídos)
         const uncompletedTopics = subTopics.filter(t => !t.isCompleted);
         const topicPool = uncompletedTopics.length > 0 ? uncompletedTopics : subTopics;
 
-        // Função auxiliar: acurácia individual do tópico
-        const getTopicAccuracy = (topic: Topic): number => {
+        // Função de prioridade estatística por tópico idêntica à Análise Estatística:
+        // Considera peso efetivo do tópico no edital (tEffectiveWeight), acurácia (tAccuracy), questões (tDone) e tempo (tMinutes)
+        const getTopicStatisticalScore = (topic: Topic): number => {
           const tSessions = subSessions.filter(s => s.topicId === topic.id);
           const tDone    = tSessions.reduce((a, s) => a + (s.questionsDone    || 0), 0);
           const tCorrect = tSessions.reduce((a, s) => a + (s.questionsCorrect || 0), 0);
-          return tDone > 0 ? (tCorrect / tDone) * 100 : 50;
+          const tMinutes = tSessions.reduce((a, s) => a + (s.durationInMinutes || 0), 0);
+          const tAccuracy = tDone > 0 ? Math.round((tCorrect / tDone) * 100) : 0;
+
+          const tEffectiveWeight = topic.weight !== undefined && topic.weight > 0
+            ? baseSubjectWeight * (topic.weight / 100)
+            : baseSubjectWeight / Math.max(1, subTopics.length);
+
+          const statPriority = getStatisticalPriority(tEffectiveWeight, tAccuracy, tDone, tMinutes);
+          const manualTier   = topic.priority === 'Alta' ? 300 : topic.priority === 'Média' ? 200 : 100;
+          return manualTier + (statPriority * 100);
         };
 
-        // Score de urgência por tópico: combina prioridade manual + penalidade de acurácia + peso do tópico
-        const getTopicUrgencyScore = (topic: Topic): number => {
-          const manualPriority = topic.priority === 'Alta' ? 3 : topic.priority === 'Média' ? 2 : 1;
-          const accPenalty = (100 - getTopicAccuracy(topic)) / 100; // quanto mais erros, mais urgente
-          const topicWeight = topic.weight !== undefined && topic.weight > 0 ? topic.weight / 100 : 0.5;
-          // Fórmula: prioridade manual tem peso principal; acurácia e peso dos tópicos são moduladores
-          return manualPriority * 10 + accPenalty * 5 + topicWeight * 3;
-        };
-
-        // Ordena por urgência composta (prioridade manual > penalidade de acurácia > peso do tópico)
-        const sortedPool = [...topicPool].sort((a, b) => getTopicUrgencyScore(b) - getTopicUrgencyScore(a));
-
-        // Gera uma fila expandida proporcional: tópicos mais urgentes aparecem mais vezes
-        // Fator de expansão proporcional ao score relativo de urgência
-        const topicQueue: Topic[] = [];
-        if (sortedPool.length > 0) {
-          const maxUrgency = getTopicUrgencyScore(sortedPool[0]);
-          sortedPool.forEach(topic => {
-            const urgency = getTopicUrgencyScore(topic);
-            // Mínimo 1 aparição, máximo 4 (assuntos com urgência muito maior são estudados +vezes)
-            const repetitions = maxUrgency > 0 ? Math.max(1, Math.round((urgency / maxUrgency) * 4)) : 1;
-            for (let r = 0; r < repetitions; r++) topicQueue.push(topic);
-          });
-        }
+        // Ordena os tópicos do mais prioritário para o menos prioritário
+        const topicQueue = [...topicPool].sort((a, b) => getTopicStatisticalScore(b) - getTopicStatisticalScore(a));
 
         return {
           subject: sub,
@@ -527,7 +515,6 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
           accuracy,
           basePriority: priorityScore,
           // Gap mínimo: disciplina não pode aparecer no dia seguinte
-          // Inicia em (minGap) para que nenhuma disciplina seja "bloqueada" antes de começar
           daysSinceLastScheduled: 1,
           scheduledCount: 0,
           queue: topicQueue,

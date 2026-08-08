@@ -1493,7 +1493,7 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
                         return (
                           <div key={act.id} className="space-y-0">
                             <div
-                              style={{ borderLeftColor: sub?.color || '#10B981' }}
+                              style={{ borderLeftColor: getColorHex(sub?.color || 'bg-amber-500') }}
                               onClick={() => toggleExpandTask(act.id)}
                               className={`p-3.5 rounded-2xl border-l-4 bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200/50 dark:border-zinc-700/50 flex justify-between items-center transition-all cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800/70 ${
                                 isDone ? 'opacity-40 hover:opacity-60' : ''
@@ -1558,7 +1558,7 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
                             {/* Painel colapsável de links do Caderno de Questões */}
                             {isExpanded && (
                               <div
-                                style={{ borderLeftColor: sub?.color || '#10B981' }}
+                                style={{ borderLeftColor: getColorHex(sub?.color || 'bg-amber-500') }}
                                 className="border-l-4 border border-t-0 border-amber-300/70 dark:border-amber-800/50 bg-amber-50/90 dark:bg-amber-950/30 rounded-b-2xl px-3 pb-3 pt-2.5 space-y-1.5 animate-in fade-in duration-150"
                               >
                                 <p className="text-[8px] font-black uppercase tracking-widest text-amber-700 dark:text-amber-300 flex items-center gap-1">
@@ -1709,7 +1709,7 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
                       {/* Painel colapsável de links do Caderno de Questões */}
                       {isExpanded && (
                         <div
-                          style={{ borderLeftColor: sub?.color || '#10B981' }}
+                          style={{ borderLeftColor: getColorHex(sub?.color || 'bg-amber-500') }}
                           className="border-l-4 border border-t-0 border-amber-300/70 dark:border-amber-800/50 bg-amber-50/80 dark:bg-amber-950/20 rounded-b-3xl px-5 pb-4 pt-3 space-y-2 animate-in fade-in duration-150"
                         >
                           <p className="text-[9px] font-black uppercase tracking-widest text-amber-700 dark:text-amber-300 flex items-center gap-1.5">

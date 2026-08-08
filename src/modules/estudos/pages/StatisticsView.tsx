@@ -36,7 +36,17 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, sim
   const [sortBy, setSortBy] = useState<'name' | 'questions' | 'correct' | 'questionsGoal' | 'time' | 'accuracy' | 'weight' | 'priority'>('priority');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [showTopics, setShowTopics] = useState(false);
+  const [expandedSubjectIds, setExpandedSubjectIds] = useState<Set<string>>(new Set());
   const [viewTab, setViewTab] = useState<'table' | 'chart'>('table');
+
+  const toggleSubjectExpanded = (subId: string) => {
+    setExpandedSubjectIds(prev => {
+      const next = new Set(prev);
+      if (next.has(subId)) next.delete(subId);
+      else next.add(subId);
+      return next;
+    });
+  };
 
   // Dynamic weights loaded from localStorage with default sum of 100
   const [weightAcc, setWeightAcc] = useState(() => {
@@ -468,14 +478,22 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, sim
               </div>
             )}
             <button
-              onClick={() => setShowTopics(!showTopics)}
+              onClick={() => {
+                if (showTopics) {
+                  setShowTopics(false);
+                  setExpandedSubjectIds(new Set());
+                } else {
+                  setShowTopics(true);
+                  setExpandedSubjectIds(new Set(subjects.map(s => s.id)));
+                }
+              }}
               className={`px-3 py-1.5 rounded-xl border text-xs font-black uppercase tracking-wider transition-all shadow-sm ${
-                showTopics
+                showTopics || expandedSubjectIds.size > 0
                   ? 'bg-zinc-900 border-zinc-900 text-white dark:bg-zinc-700 dark:border-zinc-700 hover:opacity-90'
                   : 'bg-white border-zinc-200 text-zinc-700 hover:bg-zinc-50 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-350 dark:hover:bg-zinc-800/50'
               }`}
             >
-              {showTopics ? 'Ocultar Assuntos' : 'Mostrar Assuntos'}
+              {showTopics || expandedSubjectIds.size > 0 ? 'Ocultar Assuntos' : 'Mostrar Todos Assuntos'}
             </button>
 
             <button
@@ -575,11 +593,27 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, sim
                 const priorityPct = Math.round(priority * 100);
                 const hasData = questions > 0;
 
+                const isSubjectExpanded = showTopics || expandedSubjectIds.has(sub.id);
+
                 return (
                   <React.Fragment key={sub.id}>
-                    <tr className="hover:bg-zinc-50/50 dark:hover:bg-zinc-850/50 transition-colors border-b border-zinc-100 dark:border-zinc-850 font-medium">
-                      <td className="px-4 py-3 font-bold text-zinc-800 dark:text-zinc-200">
-                        {sub.name}
+                    <tr
+                      onClick={() => toggleSubjectExpanded(sub.id)}
+                      className="hover:bg-zinc-100/70 dark:hover:bg-zinc-800/60 transition-colors border-b border-zinc-100 dark:border-zinc-850 font-medium cursor-pointer group select-none"
+                      title="Clique para ver os assuntos desta disciplina"
+                    >
+                      <td className="px-4 py-3 font-bold text-zinc-800 dark:text-zinc-200 flex items-center gap-2">
+                        {isSubjectExpanded ? (
+                          <ChevronDown size={14} className="text-zinc-400 group-hover:text-zinc-700 dark:group-hover:text-zinc-200 shrink-0 transition-transform" />
+                        ) : (
+                          <ChevronRight size={14} className="text-zinc-400 group-hover:text-zinc-700 dark:group-hover:text-zinc-200 shrink-0 transition-transform" />
+                        )}
+                        <span>{sub.name}</span>
+                        {sub.topics && sub.topics.length > 0 && (
+                          <span className="text-[10px] font-bold text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded-md">
+                            {sub.topics.length} {sub.topics.length === 1 ? 'assunto' : 'assuntos'}
+                          </span>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-right text-zinc-600 dark:text-zinc-400 font-mono">{questions}</td>
                       <td className="px-4 py-3 text-right text-zinc-650 dark:text-zinc-400 font-mono">{correct}</td>
@@ -603,7 +637,7 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, sim
                       </td>
                     </tr>
 
-                    {showTopics && sub.topics && sub.topics.length > 0 && (
+                    {isSubjectExpanded && sub.topics && sub.topics.length > 0 && (
                       <>
                         {[...sub.topics]
                           .map(topic => {

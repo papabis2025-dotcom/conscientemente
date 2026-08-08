@@ -60,6 +60,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
     const setSelectedConcursoId = (id: string | 'all') => {
         setSelectedConcursoIdState(id);
         localStorage.setItem('cp_selected_concurso_id', id);
+        api.settings.update({ selectedConcursoId: id }).catch(() => {});
         window.dispatchEvent(new Event('local-storage-sync'));
         window.dispatchEvent(new Event('local-settings-changed'));
     };
@@ -86,6 +87,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
     const setGlobalDailyGoal = (goal: number) => {
         setGlobalDailyGoalState(goal);
         localStorage.setItem('cp_global_daily_goal', goal.toString());
+        api.settings.update({ globalDailyGoal: goal }).catch(() => {});
         window.dispatchEvent(new Event('local-settings-changed'));
     };
 
@@ -402,6 +404,32 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                 return combined;
             });
         }
+
+        // Marcar também tarefas agendadas de Simulado para datas onde o simulado foi realizado
+        const completedSimuladoDates = new Set(
+            activeSims
+                .filter(sim => (sim.results || []).some(r => (r.done || 0) > 0))
+                .map(sim => sim.date ? sim.date.split('T')[0] : '')
+        );
+
+        if (completedSimuladoDates.size > 0) {
+            setScheduledStudies(prev => {
+                let hasChanges = false;
+                const updated = prev.map(s => {
+                    if (s.activityType === 'Simulado' && s.status === 'planejado' && completedSimuladoDates.has(s.date)) {
+                        hasChanges = true;
+                        api.schedule.update(s.id, { status: 'realizado' }).catch(() => {});
+                        return { ...s, status: 'realizado' as const };
+                    }
+                    return s;
+                });
+                if (hasChanges) {
+                    localStorage.setItem('cp_scheduled_studies', JSON.stringify(updated));
+                    window.dispatchEvent(new Event('local-settings-changed'));
+                }
+                return updated;
+            });
+        }
     }, []);
 
     const syncPlannedReviewsDb = useCallback(async (allSess: StudySession[], allSchedule: ScheduledStudy[], allConcursos: Concurso[]) => {
@@ -472,6 +500,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                             const day = parseInt(parts[2], 10);
 
                             customReviewDays.forEach((days, idx) => {
+                                if (!days || days <= 0) return;
                                 const plannedDate = new Date(year, month, day);
                                 plannedDate.setDate(plannedDate.getDate() + days);
 
@@ -744,11 +773,26 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
             ]);
 
             if (concursosData) {
-                const loadedConcursos = concursosData.map(c => {
+                let mergedConcursos = [...concursosData];
+                const dbIds = new Set(concursosData.map(c => c.id));
+                const savedLocalConcursosRaw = localStorage.getItem('cp_concursos_backup');
+                if (savedLocalConcursosRaw) {
+                    try {
+                        const localConcursos: Concurso[] = JSON.parse(savedLocalConcursosRaw);
+                        localConcursos.forEach(lc => {
+                            if (!dbIds.has(lc.id)) {
+                                mergedConcursos.push(lc);
+                                api.concursos.upsert(lc).catch(err => console.error('Error auto-pushing local concurso to cloud:', err));
+                            }
+                        });
+                    } catch (e) {}
+                }
+                const loadedConcursos = mergedConcursos.map(c => {
                     const localImg = localStorage.getItem(`gp_concurso_img_${c.id}`);
                     return localImg ? { ...c, imageUrl: localImg } : c;
                 });
                 setConcursos(loadedConcursos);
+                localStorage.setItem('cp_concursos_backup', JSON.stringify(loadedConcursos));
             }
             let finalSessions = sessionsData || [];
             let finalScheduleRaw = scheduleData || [];
@@ -842,6 +886,24 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
 
             // Sync planned reviews
             await syncPlannedReviewsDb(sessionsData || [], finalSchedule, concursosData || []);
+
+            // Sync user preferences from cloud
+            try {
+                const userSettings = await api.settings.get();
+                if (userSettings) {
+                    if (userSettings.selectedConcursoId && userSettings.selectedConcursoId !== selectedConcursoId) {
+                        setSelectedConcursoIdState(userSettings.selectedConcursoId);
+                        localStorage.setItem('cp_selected_concurso_id', userSettings.selectedConcursoId);
+                    }
+                    if (userSettings.customReviewDays) {
+                        localStorage.setItem('estudos_custom_review_days', JSON.stringify(userSettings.customReviewDays));
+                    }
+                    if (userSettings.globalDailyGoal) {
+                        setGlobalDailyGoalState(userSettings.globalDailyGoal);
+                        localStorage.setItem('cp_global_daily_goal', String(userSettings.globalDailyGoal));
+                    }
+                }
+            } catch (e) {}
 
             setLastSaved(new Date().toLocaleTimeString());
         } catch (error) {
@@ -1460,6 +1522,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                     }
                 }
             }
+            localStorage.setItem('cp_concursos_backup', JSON.stringify(newConcursos));
             setLastSaved(new Date().toLocaleTimeString());
         } catch (e) {
             console.error('Error updating concursos:', e);

@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Subject, Topic, StudySession, Concurso } from '../types';
 import { playSound } from '../../../utils/audio';
 import { getDeterministicReviewId } from '../hooks/useAppData';
+import { api } from '../services/api';
 
 import { COLORS } from '../constants';
 import { getColorHex, getBadgeStyle } from '../utils/colors';
@@ -204,6 +205,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
     // 3. Salvar no Supabase e localStorage
     onUpdateSubjects(updatedSubjects);
     localStorage.setItem('estudos_custom_review_days', JSON.stringify(customReviewDays));
+    api.settings.update({ customReviewDays }).catch(() => {});
     window.dispatchEvent(new Event('local-reviews-toggled'));
     window.dispatchEvent(new Event('local-settings-changed'));
     if (showToast) {
@@ -802,12 +804,12 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                 Rev. {idx + 1}
                 <input
                   type="number"
-                  min="1"
+                  min="0"
                   max="365"
                   value={days}
                   disabled={reviewsDisabled || isReviewDaysLocked}
                   onChange={(e) => {
-                    const newVal = Math.max(1, parseInt(e.target.value) || 1);
+                    const newVal = Math.max(0, parseInt(e.target.value) || 0);
                     const updated = [...customReviewDays];
                     updated[idx] = newVal;
                     setCustomReviewDays(updated);

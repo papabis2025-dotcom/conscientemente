@@ -1,10 +1,9 @@
-
 import React, { useMemo, useState, useEffect } from 'react';
 import { Subject, StudySession, Concurso } from '../types';
 import { api } from '../services/api';
 import { ChevronDown, ChevronRight, Trophy, PieChart as PieChartIcon, Table, Lock, Unlock, FileSpreadsheet } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import { exportToCsv } from '../utils/exportUtils';
+import { exportToXlsx, exportToCsv } from '../utils/exportUtils';
 
 interface StatisticsViewProps {
   subjects: Subject[];
@@ -48,27 +47,55 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, sim
     });
   };
 
-  // Dynamic weights loaded from localStorage with default sum of 100
-  const [weightAcc, setWeightAcc] = useState(() => {
-    const saved = localStorage.getItem('estudos_weight_acc');
-    return saved !== null ? parseInt(saved) : 50;
-  });
-  const [weightSubj, setWeightSubj] = useState(() => {
-    const saved = localStorage.getItem('estudos_weight_subj');
-    return saved !== null ? parseInt(saved) : 25;
-  });
-  const [weightQtd, setWeightQtd] = useState(() => {
-    const saved = localStorage.getItem('estudos_weight_qtd');
-    return saved !== null ? parseInt(saved) : 15;
-  });
-  const [weightTime, setWeightTime] = useState(() => {
-    const saved = localStorage.getItem('estudos_weight_time');
-    return saved !== null ? parseInt(saved) : 10;
-  });
+  const activeCourseKey = (!selectedConcursoId || selectedConcursoId === 'all') ? 'global' : selectedConcursoId;
+
+  // Carrega o mapa de pesos por concurso do localStorage
+  const getWeightsMapFromStorage = () => {
+    try {
+      const saved = localStorage.getItem('estudos_weights_by_course');
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  };
+
+  const loadCourseWeights = (key: string) => {
+    const map = getWeightsMapFromStorage();
+    if (map[key]) {
+      return map[key];
+    }
+    // Fallback para as chaves legadas ou padrão se não houver salvo
+    const legacyAcc = localStorage.getItem('estudos_weight_acc');
+    const legacySubj = localStorage.getItem('estudos_weight_subj');
+    const legacyQtd = localStorage.getItem('estudos_weight_qtd');
+    const legacyTime = localStorage.getItem('estudos_weight_time');
+    return {
+      acc: legacyAcc !== null ? parseInt(legacyAcc) : 50,
+      subj: legacySubj !== null ? parseInt(legacySubj) : 25,
+      qtd: legacyQtd !== null ? parseInt(legacyQtd) : 15,
+      time: legacyTime !== null ? parseInt(legacyTime) : 10,
+    };
+  };
+
+  const initialWeights = loadCourseWeights(activeCourseKey);
+
+  const [weightAcc, setWeightAcc] = useState(initialWeights.acc);
+  const [weightSubj, setWeightSubj] = useState(initialWeights.subj);
+  const [weightQtd, setWeightQtd] = useState(initialWeights.qtd);
+  const [weightTime, setWeightTime] = useState(initialWeights.time);
 
   const [isWeightsLocked, setIsWeightsLocked] = useState(() => {
     return localStorage.getItem('estudos_weights_locked') === 'true';
   });
+
+  // Atualiza os estados quando o concurso selecionado (activeCourseKey) muda
+  useEffect(() => {
+    const w = loadCourseWeights(activeCourseKey);
+    setWeightAcc(w.acc);
+    setWeightSubj(w.subj);
+    setWeightQtd(w.qtd);
+    setWeightTime(w.time);
+  }, [activeCourseKey]);
 
   const toggleWeightsLock = () => {
     setIsWeightsLocked(prev => {
@@ -78,20 +105,49 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, sim
     });
   };
 
-  // Sync with Supabase on mount
+  // Sincroniza com Supabase ao montar
   useEffect(() => {
     api.settings.get().then(meta => {
-      if (meta && meta.estudos_weights) {
-        setWeightAcc(meta.estudos_weights.acc ?? weightAcc);
-        setWeightSubj(meta.estudos_weights.subj ?? weightSubj);
-        setWeightQtd(meta.estudos_weights.qtd ?? weightQtd);
-        setWeightTime(meta.estudos_weights.time ?? weightTime);
+      if (meta && meta.estudos_weights_by_course) {
+        localStorage.setItem('estudos_weights_by_course', JSON.stringify(meta.estudos_weights_by_course));
+        const w = meta.estudos_weights_by_course[activeCourseKey];
+        if (w) {
+          setWeightAcc(w.acc ?? 50);
+          setWeightSubj(w.subj ?? 25);
+          setWeightQtd(w.qtd ?? 15);
+          setWeightTime(w.time ?? 10);
+        }
+      } else if (meta && meta.estudos_weights && activeCourseKey === 'global') {
+        setWeightAcc(meta.estudos_weights.acc ?? 50);
+        setWeightSubj(meta.estudos_weights.subj ?? 25);
+        setWeightQtd(meta.estudos_weights.qtd ?? 15);
+        setWeightTime(meta.estudos_weights.time ?? 10);
       }
     }).catch(err => console.error('Error loading weights from DB:', err));
   }, []);
 
-  const saveWeightsToDb = (newWeights: any) => {
-    api.settings.update({ estudos_weights: newWeights }).catch(err => console.error('Error saving weights to DB:', err));
+  const saveWeightsForCourse = (newWeights: { acc: number; subj: number; qtd: number; time: number }) => {
+    const map = getWeightsMapFromStorage();
+    map[activeCourseKey] = newWeights;
+    localStorage.setItem('estudos_weights_by_course', JSON.stringify(map));
+
+    if (activeCourseKey === 'global') {
+      localStorage.setItem('estudos_weight_acc', String(newWeights.acc));
+      localStorage.setItem('estudos_weight_subj', String(newWeights.subj));
+      localStorage.setItem('estudos_weight_qtd', String(newWeights.qtd));
+      localStorage.setItem('estudos_weight_time', String(newWeights.time));
+    }
+
+    // Dispara eventos locais para o CronogramaView e outras partes reagirem dinamicamente
+    window.dispatchEvent(new CustomEvent('estudos-criteria-updated', {
+      detail: { courseKey: activeCourseKey, weights: newWeights }
+    }));
+    window.dispatchEvent(new Event('local-settings-changed'));
+
+    api.settings.update({
+      estudos_weights_by_course: map,
+      estudos_weights: newWeights
+    }).catch(err => console.error('Error saving weights to DB:', err));
   };
 
   const handleWeightAccChange = (val: number) => {
@@ -99,8 +155,7 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, sim
     const sumOthers = weightSubj + weightQtd + weightTime;
     const finalVal = safeVal + sumOthers > 100 ? 100 - sumOthers : safeVal;
     setWeightAcc(finalVal);
-    localStorage.setItem('estudos_weight_acc', String(finalVal));
-    saveWeightsToDb({ acc: finalVal, subj: weightSubj, qtd: weightQtd, time: weightTime });
+    saveWeightsForCourse({ acc: finalVal, subj: weightSubj, qtd: weightQtd, time: weightTime });
   };
 
   const handleWeightSubjChange = (val: number) => {
@@ -108,8 +163,7 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, sim
     const sumOthers = weightAcc + weightQtd + weightTime;
     const finalVal = safeVal + sumOthers > 100 ? 100 - sumOthers : safeVal;
     setWeightSubj(finalVal);
-    localStorage.setItem('estudos_weight_subj', String(finalVal));
-    saveWeightsToDb({ acc: weightAcc, subj: finalVal, qtd: weightQtd, time: weightTime });
+    saveWeightsForCourse({ acc: weightAcc, subj: finalVal, qtd: weightQtd, time: weightTime });
   };
 
   const handleWeightQtdChange = (val: number) => {
@@ -117,8 +171,7 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, sim
     const sumOthers = weightAcc + weightSubj + weightTime;
     const finalVal = safeVal + sumOthers > 100 ? 100 - sumOthers : safeVal;
     setWeightQtd(finalVal);
-    localStorage.setItem('estudos_weight_qtd', String(finalVal));
-    saveWeightsToDb({ acc: weightAcc, subj: weightSubj, qtd: finalVal, time: weightTime });
+    saveWeightsForCourse({ acc: weightAcc, subj: weightSubj, qtd: finalVal, time: weightTime });
   };
 
   const handleWeightTimeChange = (val: number) => {
@@ -126,8 +179,7 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, sim
     const sumOthers = weightAcc + weightSubj + weightQtd;
     const finalVal = safeVal + sumOthers > 100 ? 100 - sumOthers : safeVal;
     setWeightTime(finalVal);
-    localStorage.setItem('estudos_weight_time', String(finalVal));
-    saveWeightsToDb({ acc: weightAcc, subj: weightSubj, qtd: weightQtd, time: finalVal });
+    saveWeightsForCourse({ acc: weightAcc, subj: weightSubj, qtd: weightQtd, time: finalVal });
   };
 
   const subjectData = useMemo(() => {
@@ -452,7 +504,7 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, sim
     });
 
     const concursoName = (concursos || []).find(c => c.id === selectedConcursoId)?.name || 'Visao_Global';
-    exportToCsv(`Analise_Estatistica_${concursoName.replace(/[^a-zA-Z0-9_-]/g, '_')}`, headers, rows);
+    exportToXlsx(`Analise_Estatistica_${concursoName.replace(/[^a-zA-Z0-9_-]/g, '_')}`, 'Análise Estatística', headers, rows);
   };
 
   return (

@@ -23,7 +23,7 @@ import {
   Unlock,
   FileSpreadsheet
 } from 'lucide-react';
-import { exportToCsv } from '../utils/exportUtils';
+import { exportToXlsx, exportToCsv } from '../utils/exportUtils';
 
 interface SubjectsViewProps {
   subjects: Subject[];
@@ -750,7 +750,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
     });
 
     const concursoName = (concursos || []).find(c => c.id === selectedConcursoId)?.name || 'Geral';
-    exportToCsv(`Disciplinas_${concursoName.replace(/[^a-zA-Z0-9_-]/g, '_')}`, headers, rows);
+    exportToXlsx(`Disciplinas_${concursoName.replace(/[^a-zA-Z0-9_-]/g, '_')}`, 'Disciplinas', headers, rows);
   };
 
   return (

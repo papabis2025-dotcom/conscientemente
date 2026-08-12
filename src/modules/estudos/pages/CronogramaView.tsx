@@ -392,11 +392,30 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
         await onDeleteScheduledStudiesBatch(uncompletedOldTasks.map(t => t.id));
       }
 
-      // 1. Carrega os pesos customizados definidos na guia Análise Estatística
-      const weightAcc = parseInt(localStorage.getItem('estudos_weight_acc') || '50');
-      const weightSubj = parseInt(localStorage.getItem('estudos_weight_subj') || '25');
-      const weightQtd  = parseInt(localStorage.getItem('estudos_weight_qtd')  || '15');
-      const weightTime = parseInt(localStorage.getItem('estudos_weight_time') || '10');
+      // 1. Carrega os pesos customizados definidos na guia Análise Estatística para o concurso ativo (ou global)
+      let weightAcc = 50, weightSubj = 25, weightQtd = 15, weightTime = 10;
+      try {
+        const mapSaved = localStorage.getItem('estudos_weights_by_course');
+        const weightsMap = mapSaved ? JSON.parse(mapSaved) : {};
+        const courseKey = selectedConcursoId || 'global';
+        const courseW = weightsMap[courseKey] || weightsMap['global'];
+        if (courseW) {
+          weightAcc = courseW.acc ?? 50;
+          weightSubj = courseW.subj ?? 25;
+          weightQtd = courseW.qtd ?? 15;
+          weightTime = courseW.time ?? 10;
+        } else {
+          weightAcc = parseInt(localStorage.getItem('estudos_weight_acc') || '50');
+          weightSubj = parseInt(localStorage.getItem('estudos_weight_subj') || '25');
+          weightQtd  = parseInt(localStorage.getItem('estudos_weight_qtd')  || '15');
+          weightTime = parseInt(localStorage.getItem('estudos_weight_time') || '10');
+        }
+      } catch {
+        weightAcc = parseInt(localStorage.getItem('estudos_weight_acc') || '50');
+        weightSubj = parseInt(localStorage.getItem('estudos_weight_subj') || '25');
+        weightQtd  = parseInt(localStorage.getItem('estudos_weight_qtd')  || '15');
+        weightTime = parseInt(localStorage.getItem('estudos_weight_time') || '10');
+      }
 
       // Calcula os máximos para normalização (idêntico à Análise Estatística)
       const maxWeight = Math.max(1, ...subjects.map(s => {
@@ -807,7 +826,7 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
       alert('Por favor, selecione um concurso primeiro.');
       return;
     }
-    if (!confirm('Deseja reiniciar o cronograma? As tarefas pendentes do curso serão removidas e um novo cronograma será gerado com base nos critérios da Análise Estatística e Disciplinas. Suas tarefas com status "Realizado" serão mantidas.')) {
+    if (!confirm('Deseja atualizar o cronograma? As tarefas pendentes serão reorganizadas com base nos critérios mais recentes da Análise Estatística e Disciplinas. Suas tarefas com status "Realizado" serão mantidas.')) {
       return;
     }
 
@@ -1328,9 +1347,9 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
             onClick={handleRestartCronograma}
             disabled={isGenerating}
             className="bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 font-black uppercase tracking-widest text-xs p-2 rounded-xl px-3 flex items-center gap-1.5 transition-all active:scale-95 disabled:opacity-50"
-            title="Reiniciar o cronograma com base nos critérios da Análise Estatística e Disciplinas"
+            title="Atualizar e recalcular as prioridades do cronograma com base nos critérios mais recentes da Análise Estatística e Disciplinas"
           >
-            <RotateCcw size={14} /> Reiniciar Cronograma
+            <RotateCcw size={14} className={isGenerating ? "animate-spin" : ""} /> Atualizar Cronograma
           </button>
           <button
             type="button"

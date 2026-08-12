@@ -132,3 +132,35 @@
   margin-left: auto !important;
   margin-right: 0 !important;
 }
+
+/* ─── Media Print Styles for Complete PDF Export ─── */
+@media print {
+  aside, nav, header, button, .no-print, [data-no-print="true"] {
+    display: none !important;
+  }
+
+  html, body, #root, main, .is-printing, .is-printing * {
+    overflow: visible !important;
+    height: auto !important;
+    max-height: none !important;
+    position: static !important;
+  }
+
+  body {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .avoid-break {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .page-break-before {
+    page-break-before: always !important;
+    break-before: page !important;
+  }
+}
+

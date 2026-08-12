@@ -1,15 +1,41 @@
+import * as XLSX from 'xlsx';
+
 /**
  * Utilitários para exportação de dados em planilhas (Excel / Google Planilhas) e PDF
  */
 
 /**
- * Exporta dados tabulares para um arquivo CSV codificado em UTF-8 com BOM (compatível com Excel PT-BR e Google Planilhas)
+ * Exporta dados tabulares para um arquivo nativo do Excel (.xlsx) 100% compatível com o Google Planilhas
+ */
+export function exportToXlsx(filename: string, sheetName: string, headers: string[], rows: (string | number | boolean | null | undefined)[][]) {
+  const data = [headers, ...rows];
+  const worksheet = XLSX.utils.aoa_to_sheet(data);
+
+  // Ajusta a largura das colunas dinamicamente com base no maior conteúdo
+  const colWidths = headers.map((h, colIdx) => {
+    let maxLen = String(h || '').length;
+    rows.forEach(r => {
+      const cellVal = String(r[colIdx] ?? '');
+      if (cellVal.length > maxLen) maxLen = cellVal.length;
+    });
+    return { wch: Math.min(60, Math.max(12, maxLen + 3)) };
+  });
+  worksheet['!cols'] = colWidths;
+
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, sheetName.slice(0, 31));
+
+  const finalFilename = filename.endsWith('.xlsx') ? filename : `${filename}.xlsx`;
+  XLSX.writeFile(workbook, finalFilename);
+}
+
+/**
+ * Exporta dados tabulares para um arquivo CSV codificado em UTF-8 com BOM
  */
 export function exportToCsv(filename: string, headers: string[], rows: (string | number | boolean | null | undefined)[][]) {
   const sanitizeCell = (val: string | number | boolean | null | undefined): string => {
     if (val === null || val === undefined) return '';
     const str = String(val);
-    // Se a célula contiver ponto e vírgula, quebras de linha ou aspas, envolver em aspas e duplicar aspas internas
     if (str.includes(';') || str.includes('\n') || str.includes('"')) {
       return `"${str.replace(/"/g, '""')}"`;
     }
@@ -32,17 +58,24 @@ export function exportToCsv(filename: string, headers: string[], rows: (string |
 }
 
 /**
- * Aciona o diálogo de impressão/salvamento em PDF nativo do navegador
+ * Aciona o diálogo de impressão/salvamento em PDF nativo do navegador desbloqueando o conteúdo completo da página
  */
 export function exportToPdf(documentTitle?: string) {
   const originalTitle = document.title;
   if (documentTitle) {
     document.title = documentTitle;
   }
+
+  // Adiciona temporariamente a classe is-printing ao body para liberar rolagens internas
+  document.body.classList.add('is-printing');
+
   window.print();
-  if (documentTitle) {
-    setTimeout(() => {
+
+  setTimeout(() => {
+    document.body.classList.remove('is-printing');
+    if (documentTitle) {
       document.title = originalTitle;
-    }, 1000);
-  }
+    }
+  }, 1000);
 }
+

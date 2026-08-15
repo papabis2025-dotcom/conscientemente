@@ -502,7 +502,11 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
 
         const priorityScore = getStatisticalPriority(weight, accuracy, done, minutes);
 
-        const uncompletedTopics = subTopics.filter(t => !t.isCompleted);
+        const isTopicDone = (topicId: string, isCompletedFlag?: boolean) => {
+          if (isCompletedFlag) return true;
+          return subSessions.some(s => s.topicId === topicId);
+        };
+        const uncompletedTopics = subTopics.filter(t => !isTopicDone(t.id, t.isCompleted));
         const topicPool = uncompletedTopics.length > 0 ? uncompletedTopics : subTopics;
 
         const getTopicStatisticalScore = (topic: Topic): number => {

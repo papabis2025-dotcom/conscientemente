@@ -927,19 +927,22 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                         setSelectedConcursoIdState(userSettings.selectedConcursoId);
                         localStorage.setItem('cp_selected_concurso_id', userSettings.selectedConcursoId);
                     }
-                    if (userSettings.customReviewDays && Array.isArray(userSettings.customReviewDays) && userSettings.customReviewDays.length > 0) {
+                    // PRIORIDADE: localStorage tem prioridade sobre a nuvem para customReviewDays
+                    // Só usamos o valor da nuvem se o localStorage estiver vazio (sem configuração local)
+                    const localSavedReviewDays = localStorage.getItem('estudos_custom_review_days');
+                    const hasLocalReviewDays = !!localSavedReviewDays && localSavedReviewDays !== '[]';
+                    if (!hasLocalReviewDays && userSettings.customReviewDays && Array.isArray(userSettings.customReviewDays) && userSettings.customReviewDays.length > 0) {
+                        // Só importa da nuvem se não há nada salvo localmente
                         localStorage.setItem('estudos_custom_review_days', JSON.stringify(userSettings.customReviewDays));
                         window.dispatchEvent(new Event('local-reviews-toggled'));
-                    } else {
-                        const localSaved = localStorage.getItem('estudos_custom_review_days');
-                        if (localSaved) {
-                            try {
-                                const parsed = JSON.parse(localSaved);
-                                if (Array.isArray(parsed) && parsed.length > 0) {
-                                    api.settings.update({ customReviewDays: parsed }).catch(() => {});
-                                }
-                            } catch (e) {}
-                        }
+                    } else if (hasLocalReviewDays) {
+                        // Publica o valor local na nuvem para mantê-la sincronizada
+                        try {
+                            const parsed = JSON.parse(localSavedReviewDays!);
+                            if (Array.isArray(parsed) && parsed.length > 0) {
+                                api.settings.update({ customReviewDays: parsed }).catch(() => {});
+                            }
+                        } catch (e) {}
                     }
                     if (userSettings.globalDailyGoal) {
                         setGlobalDailyGoalState(userSettings.globalDailyGoal);
@@ -1580,8 +1583,17 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         if (ids.length === 0) return;
         setSaveError(null);
 
+        // PROTEÇÃO: Nunca apagar tarefas realizadas (status === 'realizado')
+        const completedIds = new Set(
+            scheduledStudies
+                .filter(s => ids.includes(s.id) && s.status === 'realizado')
+                .map(s => s.id)
+        );
+        const safeIdsToDelete = ids.filter(id => !completedIds.has(id));
+        if (safeIdsToDelete.length === 0) return;
+
         // If any of them are reviews, track them as deleted so they are not auto-recreated
-        const reviewsToDelete = scheduledStudies.filter(s => ids.includes(s.id) && s.activityType && (s.activityType.toLowerCase().includes('revisão') || s.activityType.toLowerCase().includes('revisao')));
+        const reviewsToDelete = scheduledStudies.filter(s => safeIdsToDelete.includes(s.id) && s.activityType && (s.activityType.toLowerCase().includes('revisão') || s.activityType.toLowerCase().includes('revisao')));
         if (reviewsToDelete.length > 0) {
             try {
                 const deletedRaw = localStorage.getItem('estudos_deleted_review_ids') || '[]';
@@ -1604,12 +1616,12 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         try {
             const savedDeleted = localStorage.getItem('cp_deleted_scheduled_ids') || '[]';
             const deletedSet = new Set(JSON.parse(savedDeleted));
-            ids.forEach(id => deletedSet.add(id));
+            safeIdsToDelete.forEach(id => deletedSet.add(id));
             localStorage.setItem('cp_deleted_scheduled_ids', JSON.stringify(Array.from(deletedSet)));
         } catch (e) {}
 
-        const updatedSchedule = scheduledStudies.filter(s => !ids.includes(s.id));
-        const updatedSessions = sessions.filter(s => !ids.includes(s.id));
+        const updatedSchedule = scheduledStudies.filter(s => !safeIdsToDelete.includes(s.id));
+        const updatedSessions = sessions.filter(s => !safeIdsToDelete.includes(s.id));
 
         // Cascade: Remove from schedule AND sessions in local state
         setScheduledStudies(updatedSchedule);
@@ -1618,7 +1630,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         window.dispatchEvent(new Event('local-settings-changed'));
 
         try {
-            await Promise.all(ids.map(async id => {
+            await Promise.all(safeIdsToDelete.map(async id => {
                 await api.schedule.delete(id);
                 await api.sessions.delete(id);
             }));

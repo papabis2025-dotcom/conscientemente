@@ -48,7 +48,7 @@ export const api = {
 
     // Concursos
     concursos: {
-        list: async () => {
+        list: async (): Promise<Concurso[]> => {
             const user = await getAuthUser();
             if (!user) return [];
             const data = await handleRequest<any[]>(supabase.from('concursos').select('id, name, banca, start_date, target_date, subjects, category_id, image_url').eq('user_id', user.id).order('created_at', { ascending: false }));

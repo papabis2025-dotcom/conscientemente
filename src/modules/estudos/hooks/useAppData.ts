@@ -591,17 +591,18 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
 
         const uniqueToDeleteMap = new Map<string, ScheduledStudy>();
         
-        // 1. Adicionar revisões obsoletas (cujo ID determinístico não é mais esperado)
+        // 1. Adicionar revisões obsoletas (cujo ID determinístico não é mais esperado) ou geradas indevidamente por antecipação sem sessão concluída
         allSchedule.forEach(s => {
-            const isObsolete = s.activityType && (
+            const isReview = s.activityType && (
                 s.activityType.toLowerCase().includes('revisão') || 
                 s.activityType.toLowerCase().includes('revisao')
-            ) && 
-            s.status === 'planejado' && 
-            s.id && s.id.split('-')[3]?.startsWith('400') &&
-            !expectedIds.has(s.id);
+            );
+            if (!isReview || s.status === 'realizado') return;
+
+            const isDeterministicObsolete = !!(s.id && s.id.split('-')[3]?.startsWith('400') && !expectedIds.has(s.id));
+            const isSpeculativeObsolete = !!(s.generatedByCronograma && !expectedIds.has(s.id));
             
-            if (isObsolete) {
+            if (isDeterministicObsolete || isSpeculativeObsolete) {
                 uniqueToDeleteMap.set(s.id, s);
             }
         });
@@ -821,12 +822,30 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
             }
             let finalSchedule: ScheduledStudy[] = [];
             if (scheduleData) {
-                // Server is the source of truth for WHICH items exist.
-                // Reconstruct status based on matching session existence, falling back to local state.
+                // Reconstrução de tarefas para sessões de estudo que não possuam ScheduledStudy correspondente
+                const scheduledIds = new Set(finalScheduleRaw.map((s: any) => s.id));
+                finalSessions.forEach(sess => {
+                    if (!scheduledIds.has(sess.id)) {
+                        const reconstructed: ScheduledStudy = {
+                            id: sess.id,
+                            date: getLocalDateString(sess.date),
+                            subjectId: sess.subjectId,
+                            topicId: sess.topicId,
+                            activityType: sess.activityType || 'Leitura, Questões',
+                            durationInMinutes: sess.durationInMinutes,
+                            questionsDone: sess.questionsDone,
+                            questionsCorrect: sess.questionsCorrect,
+                            questionsLink: sess.questionsLink,
+                            status: 'realizado'
+                        };
+                        finalScheduleRaw.push(reconstructed);
+                        scheduledIds.add(sess.id);
+                    }
+                });
+
                 const localRaw = localStorage.getItem('cp_scheduled_studies');
                 const localStudies: ScheduledStudy[] = localRaw ? JSON.parse(localRaw) : [];
                 const localStatusMap = new Map(localStudies.map(s => [s.id, s.status]));
-                // sessionIds: IDs de sessoes realmente gravadas no banco — unica fonte confiavel de status 'realizado'
                 const sessionIds = new Set(finalSessions.map(s => s.id));
 
                 finalSchedule = finalScheduleRaw.map((s: any) => {
@@ -855,9 +874,22 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                     (c.subjects || []).forEach((sub: any) => subjectToConcursoMap.set(sub.id, c.id));
                 });
 
+                // Limpar dos IDs deletados qualquer tarefa realizada
+                let deletedModified = false;
+                finalSchedule.forEach(s => {
+                    if (s.status === 'realizado' && deletedIdsSet.has(s.id)) {
+                        deletedIdsSet.delete(s.id);
+                        deletedModified = true;
+                    }
+                });
+                if (deletedModified) {
+                    localStorage.setItem('cp_deleted_scheduled_ids', JSON.stringify(Array.from(deletedIdsSet)));
+                }
+
                 const filteredFinalSchedule = finalSchedule.filter(s => {
-                    if (deletedIdsSet.has(s.id)) return false;
+                    // Tarefas marcadas como realizadas NUNCA são removidas por filtros de deleção
                     if (s.status === 'realizado') return true;
+                    if (deletedIdsSet.has(s.id)) return false;
                     const concId = s.concursoId || (s.subjectId ? subjectToConcursoMap.get(s.subjectId) : undefined);
                     if (concId) {
                         try {
@@ -895,8 +927,19 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                         setSelectedConcursoIdState(userSettings.selectedConcursoId);
                         localStorage.setItem('cp_selected_concurso_id', userSettings.selectedConcursoId);
                     }
-                    if (userSettings.customReviewDays) {
+                    if (userSettings.customReviewDays && Array.isArray(userSettings.customReviewDays) && userSettings.customReviewDays.length > 0) {
                         localStorage.setItem('estudos_custom_review_days', JSON.stringify(userSettings.customReviewDays));
+                        window.dispatchEvent(new Event('local-reviews-toggled'));
+                    } else {
+                        const localSaved = localStorage.getItem('estudos_custom_review_days');
+                        if (localSaved) {
+                            try {
+                                const parsed = JSON.parse(localSaved);
+                                if (Array.isArray(parsed) && parsed.length > 0) {
+                                    api.settings.update({ customReviewDays: parsed }).catch(() => {});
+                                }
+                            } catch (e) {}
+                        }
                     }
                     if (userSettings.globalDailyGoal) {
                         setGlobalDailyGoalState(userSettings.globalDailyGoal);

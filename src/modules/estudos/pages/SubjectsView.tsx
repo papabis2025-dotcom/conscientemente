@@ -130,6 +130,28 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
   }, [selectedConcursoId]);
 
   useEffect(() => {
+    const handleSettingsSync = () => {
+      try {
+        const saved = localStorage.getItem('estudos_custom_review_days');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setCustomReviewDays(parsed);
+          }
+        }
+      } catch (e) {}
+    };
+    window.addEventListener('local-settings-changed', handleSettingsSync);
+    window.addEventListener('local-reviews-toggled', handleSettingsSync);
+    window.addEventListener('storage', handleSettingsSync);
+    return () => {
+      window.removeEventListener('local-settings-changed', handleSettingsSync);
+      window.removeEventListener('local-reviews-toggled', handleSettingsSync);
+      window.removeEventListener('storage', handleSettingsSync);
+    };
+  }, []);
+
+  useEffect(() => {
     const weights: Record<string, string> = {};
     subjects.forEach(sub => {
       (sub.topics || []).forEach(topic => {

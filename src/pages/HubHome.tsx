@@ -660,7 +660,7 @@ const HubHome: React.FC<HubHomeProps> = ({
 
       const deletedTaskIds = new Set<string>(JSON.parse(localStorage.getItem('cp_deleted_study_task_ids') || '[]'));
       const studyTasksFiltered = (JSON.parse(localStorage.getItem('cp_study_tasks') || '[]'))
-        .filter((t: any) => !deletedTaskIds.has(t.id));
+        .filter((t: any) => t.done || !deletedTaskIds.has(t.id));
       
       const deletedScheduledIds = new Set<string>(JSON.parse(localStorage.getItem('cp_deleted_scheduled_ids') || '[]'));
 
@@ -695,7 +695,26 @@ const HubHome: React.FC<HubHomeProps> = ({
         scheduledStudiesFiltered = JSON.parse(localStorage.getItem('cp_scheduled_studies') || '[]');
       }
 
-      // Filter out deleted tasks and tasks from disabled cronogramas
+      // Reconstrução de tarefas para sessões de estudo realizadas que não estejam no scheduledStudies
+      const existingScheduledIds = new Set(scheduledStudiesFiltered.map((s: any) => s.id));
+      (dbSessions || []).forEach((sess: any) => {
+        if (!existingScheduledIds.has(sess.id)) {
+          scheduledStudiesFiltered.push({
+            id: sess.id,
+            date: sess.date?.split('T')[0],
+            subjectId: sess.subject_id,
+            topicId: sess.topic_id,
+            activityType: sess.activity_type || 'Leitura, Questões',
+            durationInMinutes: sess.duration_minutes,
+            questionsDone: sess.questions_done,
+            questionsCorrect: sess.questions_correct,
+            status: 'realizado'
+          });
+          existingScheduledIds.add(sess.id);
+        }
+      });
+
+      // Filter out deleted tasks and tasks from disabled cronogramas (mantendo realizadas ativas)
       const isCronogramaEnabledForConcurso = (concursoId?: string) => {
         if (!concursoId || concursoId === 'all') return true;
         try {
@@ -709,11 +728,10 @@ const HubHome: React.FC<HubHomeProps> = ({
       };
 
       scheduledStudiesFiltered = scheduledStudiesFiltered.filter((s: any) => {
+        if (s.status === 'realizado') return true;
         if (deletedScheduledIds.has(s.id)) return false;
-        if (s.status !== 'realizado') {
-          const concId = s.concursoId || (s.subjectId ? subjectToConcursoIdMap.get(s.subjectId) : undefined);
-          if (concId && !isCronogramaEnabledForConcurso(concId)) return false;
-        }
+        const concId = s.concursoId || (s.subjectId ? subjectToConcursoIdMap.get(s.subjectId) : undefined);
+        if (concId && !isCronogramaEnabledForConcurso(concId)) return false;
         return true;
       });
 

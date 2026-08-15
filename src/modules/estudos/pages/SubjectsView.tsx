@@ -835,6 +835,10 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                     const updated = [...customReviewDays];
                     updated[idx] = newVal;
                     setCustomReviewDays(updated);
+                    localStorage.setItem('estudos_custom_review_days', JSON.stringify(updated));
+                    api.settings.update({ customReviewDays: updated }).catch(() => {});
+                    window.dispatchEvent(new Event('local-settings-changed'));
+                    window.dispatchEvent(new Event('local-reviews-toggled'));
                   }}
                   className={`w-14 px-1.5 py-1 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg text-center text-xs font-mono font-bold text-zinc-800 dark:text-white outline-none focus:ring-1 focus:ring-zinc-400 ${
                     reviewsDisabled || isReviewDaysLocked ? 'cursor-not-allowed opacity-60' : ''

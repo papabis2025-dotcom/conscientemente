@@ -632,13 +632,14 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
         // Incrementa recência para TODAS as disciplinas (elas ficam "mais necessitadas" a cada dia que passam)
         subjectProfiles.forEach(p => { p.daysSinceLastScheduled++; });
 
-        // Verificar se este dia já possui QUALQUER atividade realizada
-        const hasRealizedActivityOnDate =
-          (scheduledStudies || []).some(s => s.status === 'realizado' && s.date === dateStr) ||
-          (sessions || []).some(s => s.date === dateStr);
+        // Verificar quantas atividades já foram REALIZADAS neste dia
+        const realizedScheduledOnDate = (scheduledStudies || []).filter(s => s.status === 'realizado' && s.date === dateStr);
+        const realizedSessionsOnDate = (sessions || []).filter(s => s.date === dateStr && !realizedScheduledOnDate.some(r => r.id === s.id));
+        const realizedCountOnDate = realizedScheduledOnDate.length + realizedSessionsOnDate.length;
+        const totalPlannedTasksForDay = subjectsPerDay * topicsPerSubjectPerDay;
 
-        // Dias já estudados: não adicionar novas tarefas, mas manter contadores acima funcionando
-        if (hasRealizedActivityOnDate) {
+        // Se o dia já tem o número total (ou mais) de tarefas realizadas, pula o agendamento de novas
+        if (realizedCountOnDate >= totalPlannedTasksForDay) {
           continue;
         }
 
@@ -704,13 +705,19 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
 
           const totalTopicsCount = todaysSubjects.length * topicsPerSubjectPerDay;
           const totalMinutesPerTopic = Math.max(15, Math.round((dailyHours * 60) / Math.max(1, totalTopicsCount)));
+          const tasksToGenerateThisDay = totalPlannedTasksForDay - realizedCountOnDate;
+          let tasksGeneratedCountForDate = 0;
 
-          todaysSubjects.forEach(profile => {
+          for (const profile of todaysSubjects) {
+            if (tasksGeneratedCountForDate >= tasksToGenerateThisDay) break;
+
             accumStudiedSubjects.add(profile.subject.name);
             const subTopics = profile.subject.topics || [];
             const hasSubTopics = subTopics.length > 0;
 
             for (let tIdx = 0; tIdx < topicsPerSubjectPerDay; tIdx++) {
+              if (tasksGeneratedCountForDate >= tasksToGenerateThisDay) break;
+
               let topic: Topic | undefined = undefined;
 
               if (hasSubTopics && profile.queue.length > 0) {
@@ -734,6 +741,7 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
                 generatedByCronograma: true,
                 concursoId: selectedConcursoId
               });
+              tasksGeneratedCountForDate++;
 
               // Registra o evento para agendamento de revisões espaçadas
               topicStudyEvents.push({
@@ -745,7 +753,7 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
                 topicTitle
               });
             }
-          });
+          }
         }
       }
 

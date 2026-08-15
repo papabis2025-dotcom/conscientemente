@@ -591,7 +591,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
 
         const uniqueToDeleteMap = new Map<string, ScheduledStudy>();
         
-        // 1. Adicionar revisões obsoletas (cujo ID determinístico não é mais esperado) ou geradas indevidamente por antecipação sem sessão concluída
+        // 1. Adicionar revisões obsoletas ou geradas indevidamente por antecipação sem sessão de estudo concluída
         allSchedule.forEach(s => {
             const isReview = s.activityType && (
                 s.activityType.toLowerCase().includes('revisão') || 
@@ -599,10 +599,8 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
             );
             if (!isReview || s.status === 'realizado') return;
 
-            const isDeterministicObsolete = !!(s.id && s.id.split('-')[3]?.startsWith('400') && !expectedIds.has(s.id));
-            const isSpeculativeObsolete = !!(s.generatedByCronograma && !expectedIds.has(s.id));
-            
-            if (isDeterministicObsolete || isSpeculativeObsolete) {
+            // Qualquer revisão planejada sem sessão de estudo concluída correspondente é inválida e deve ser expurgada
+            if (!expectedIds.has(s.id)) {
                 uniqueToDeleteMap.set(s.id, s);
             }
         });
@@ -847,10 +845,13 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                 const localStudies: ScheduledStudy[] = localRaw ? JSON.parse(localRaw) : [];
                 const localStatusMap = new Map(localStudies.map(s => [s.id, s.status]));
                 const sessionIds = new Set(finalSessions.map(s => s.id));
+                const sessionKeys = new Set(finalSessions.map(sess => `${sess.subjectId}_${getLocalDateString(sess.date)}`));
 
                 finalSchedule = finalScheduleRaw.map((s: any) => {
-                    let status: 'planejado' | 'realizado' = 'planejado';
-                    if (sessionIds.has(s.id)) {
+                    const sDate = getLocalDateString(s.date);
+                    const key = `${s.subjectId}_${sDate}`;
+                    let status: 'planejado' | 'realizado' = s.status || 'planejado';
+                    if (s.status === 'realizado' || sessionIds.has(s.id) || (key && sessionKeys.has(key))) {
                         status = 'realizado';
                     } else if (localStatusMap.has(s.id)) {
                         // Fallback: usar status salvo no localStorage (pode ter sido marcado offline)

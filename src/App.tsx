@@ -318,6 +318,20 @@ function mergeSettings(
       } catch {
         merged[key] = preferRemote ? remoteVal : localVal;
       }
+    } else if (key === 'estudos_custom_review_days') {
+      try {
+        const localArr = localVal ? JSON.parse(localVal) : null;
+        const remoteArr = remoteVal ? JSON.parse(remoteVal) : null;
+        if (Array.isArray(localArr) && localArr.length > 0) {
+          merged[key] = localVal;
+        } else if (Array.isArray(remoteArr) && remoteArr.length > 0) {
+          merged[key] = remoteVal;
+        } else {
+          merged[key] = localVal || remoteVal;
+        }
+      } catch {
+        merged[key] = localVal || remoteVal;
+      }
     } else {
       merged[key] = preferRemote ? remoteVal : localVal;
     }

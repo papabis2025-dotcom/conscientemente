@@ -565,15 +565,23 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
             }
         } catch (e) {}
 
+        // Helper para identificar revisões automáticas geradas pelo sistema (ignora Aulão de Revisão e revisões manuais)
+        const isAutomaticReview = (s: ScheduledStudy) => {
+            if (!s.activityType) return false;
+            if (s.activityType.includes('Aulão de Revisão')) return false;
+            const hasRevWord = s.activityType.toLowerCase().includes('revisão') || s.activityType.toLowerCase().includes('revisao');
+            if (!hasRevWord) return false;
+            const isDeterministic = !!(s.id && s.id.split('-')[3]?.startsWith('400'));
+            const isAutoGroup = !!(s.notes && s.notes.includes('[groupId:rev_'));
+            return isDeterministic || isAutoGroup;
+        };
+
         // Deduplicação ativa por chave única (disciplina, tópico, data e origem) para evitar duplicidade de revisões planejadas
         const activeReviewKeysFound = new Set<string>();
         const duplicateReviewsToDelete: ScheduledStudy[] = [];
 
         allSchedule.forEach(s => {
-            const isReview = s.activityType && (
-                s.activityType.toLowerCase().includes('revisão') || 
-                s.activityType.toLowerCase().includes('revisao')
-            );
+            const isReview = isAutomaticReview(s);
             if (isReview && s.status === 'planejado') {
                 let originTag = '';
                 if (s.notes) {
@@ -592,14 +600,12 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         const uniqueToDeleteMap = new Map<string, ScheduledStudy>();
         
         // 1. Adicionar revisões obsoletas ou geradas indevidamente por antecipação sem sessão de estudo concluída
+        // Afeta ESTRITAMENTE revisões automáticas geradas pelo sistema, NUNCA tarefas manuais ou Aulões
         allSchedule.forEach(s => {
-            const isReview = s.activityType && (
-                s.activityType.toLowerCase().includes('revisão') || 
-                s.activityType.toLowerCase().includes('revisao')
-            );
+            const isReview = isAutomaticReview(s);
             if (!isReview || s.status === 'realizado') return;
 
-            // Qualquer revisão planejada sem sessão de estudo concluída correspondente é inválida e deve ser expurgada
+            // Qualquer revisão automática planejada sem sessão de estudo concluída correspondente é inválida e deve ser expurgada
             if (!expectedIds.has(s.id)) {
                 uniqueToDeleteMap.set(s.id, s);
             }
@@ -614,7 +620,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
 
         const completedReviewIds = new Set(
             allSchedule
-                .filter(s => s.status === 'realizado' && s.activityType && (
+                .filter(s => s.status === 'realizado' && s.activityType && !s.activityType.includes('Aulão de Revisão') && (
                     s.activityType.toLowerCase().includes('revisão') || 
                     s.activityType.toLowerCase().includes('revisao')
                 ))
@@ -623,7 +629,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
 
         const completedReviewKeys = new Set(
             allSchedule
-                .filter(s => s.status === 'realizado' && s.activityType && (
+                .filter(s => s.status === 'realizado' && s.activityType && !s.activityType.includes('Aulão de Revisão') && (
                     s.activityType.toLowerCase().includes('revisão') || 
                     s.activityType.toLowerCase().includes('revisao')
                 ))
@@ -633,10 +639,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         // Chaves de revisões planejadas remanescentes que não serão deletadas
         const remainingPlannedKeys = new Set<string>();
         allSchedule.forEach(s => {
-            const isReview = s.activityType && (
-                s.activityType.toLowerCase().includes('revisão') || 
-                s.activityType.toLowerCase().includes('revisao')
-            );
+            const isReview = isAutomaticReview(s);
             if (isReview && s.status === 'planejado' && !uniqueToDeleteMap.has(s.id)) {
                 const key = `${s.subjectId}_${s.topicId || 'geral'}_${s.date}`;
                 remainingPlannedKeys.add(key);
@@ -845,17 +848,13 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                 const localStudies: ScheduledStudy[] = localRaw ? JSON.parse(localRaw) : [];
                 const localStatusMap = new Map(localStudies.map(s => [s.id, s.status]));
                 const sessionIds = new Set(finalSessions.map(s => s.id));
-                const sessionKeys = new Set(finalSessions.map(sess => `${sess.subjectId}_${getLocalDateString(sess.date)}`));
 
                 finalSchedule = finalScheduleRaw.map((s: any) => {
-                    const sDate = getLocalDateString(s.date);
-                    const key = `${s.subjectId}_${sDate}`;
                     let status: 'planejado' | 'realizado' = s.status || 'planejado';
-                    if (s.status === 'realizado' || sessionIds.has(s.id) || (key && sessionKeys.has(key))) {
-                        status = 'realizado';
-                    } else if (localStatusMap.has(s.id)) {
-                        // Fallback: usar status salvo no localStorage (pode ter sido marcado offline)
+                    if (localStatusMap.has(s.id)) {
                         status = localStatusMap.get(s.id) as 'planejado' | 'realizado';
+                    } else if (s.status === 'realizado' || sessionIds.has(s.id)) {
+                        status = 'realizado';
                     }
                     return {
                         ...s,
@@ -875,21 +874,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                     (c.subjects || []).forEach((sub: any) => subjectToConcursoMap.set(sub.id, c.id));
                 });
 
-                // Limpar dos IDs deletados qualquer tarefa realizada
-                let deletedModified = false;
-                finalSchedule.forEach(s => {
-                    if (s.status === 'realizado' && deletedIdsSet.has(s.id)) {
-                        deletedIdsSet.delete(s.id);
-                        deletedModified = true;
-                    }
-                });
-                if (deletedModified) {
-                    localStorage.setItem('cp_deleted_scheduled_ids', JSON.stringify(Array.from(deletedIdsSet)));
-                }
-
                 const filteredFinalSchedule = finalSchedule.filter(s => {
-                    // Tarefas marcadas como realizadas NUNCA são removidas por filtros de deleção
-                    if (s.status === 'realizado') return true;
                     if (deletedIdsSet.has(s.id)) return false;
                     const concId = s.concursoId || (s.subjectId ? subjectToConcursoMap.get(s.subjectId) : undefined);
                     if (concId) {
@@ -897,7 +882,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                             const saved = localStorage.getItem(`cp_cronograma_prefs_${concId}`);
                             if (saved) {
                                 const parsed = JSON.parse(saved);
-                                if (parsed.isCronogramaEnabled === false) return false;
+                                if (parsed.isCronogramaEnabled === false && s.status !== 'realizado') return false;
                             }
                         } catch (e) {}
                     }
@@ -1584,17 +1569,15 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         if (ids.length === 0) return;
         setSaveError(null);
 
-        // PROTEÇÃO: Nunca apagar tarefas realizadas (status === 'realizado')
-        const completedIds = new Set(
-            scheduledStudies
-                .filter(s => ids.includes(s.id) && s.status === 'realizado')
-                .map(s => s.id)
-        );
-        const safeIdsToDelete = ids.filter(id => !completedIds.has(id));
-        if (safeIdsToDelete.length === 0) return;
+        const safeIdsToDelete = [...ids];
 
-        // If any of them are reviews, track them as deleted so they are not auto-recreated
-        const reviewsToDelete = scheduledStudies.filter(s => safeIdsToDelete.includes(s.id) && s.activityType && (s.activityType.toLowerCase().includes('revisão') || s.activityType.toLowerCase().includes('revisao')));
+        // Se houver revisões automáticas deletadas, rastreá-las para não serem recriadas
+        const reviewsToDelete = scheduledStudies.filter(s => 
+            safeIdsToDelete.includes(s.id) && 
+            s.activityType && 
+            !s.activityType.includes('Aulão de Revisão') &&
+            (s.activityType.toLowerCase().includes('revisão') || s.activityType.toLowerCase().includes('revisao'))
+        );
         if (reviewsToDelete.length > 0) {
             try {
                 const deletedRaw = localStorage.getItem('estudos_deleted_review_ids') || '[]';

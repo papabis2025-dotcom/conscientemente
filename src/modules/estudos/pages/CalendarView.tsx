@@ -1220,6 +1220,20 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                         }
                       }
 
+                      let linkList: string[] = [''];
+                      if (task.questionsLink) {
+                        try {
+                          const parsed = JSON.parse(task.questionsLink);
+                          if (Array.isArray(parsed)) {
+                            linkList = parsed.length > 0 ? parsed : [''];
+                          } else if (typeof parsed === 'string') {
+                            linkList = [parsed];
+                          }
+                        } catch (e) {
+                          linkList = [task.questionsLink];
+                        }
+                      }
+
                       setFormData({
                         subjectId: task.subjectId,
                         subjectIds: groupSubjectIds,
@@ -1230,7 +1244,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                         questionsCorrect: totalQuestionsCorrect > 0 ? totalQuestionsCorrect.toString() : '',
                         notes: notesText,
                         status: task.status || 'planejado',
-                        questionsLinks: (task as any).questionsLinks || []
+                        questionsLinks: linkList
                       });
                     }}
                     className={`p-4 rounded-[1.5rem] border cursor-pointer transition-all hover:scale-[1.02] active:scale-95 group relative ${

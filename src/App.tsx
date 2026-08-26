@@ -48,11 +48,19 @@ const SYNC_KEYS = [
   'cn_saude_sleep_logs',
   'cn_home_cards_layout',
   'cn_home_widgets_order',
-  'cn_home_widgets_visibility',
   'estudos_deleted_review_ids',
   'cn_sound_enabled',
   'estudos_custom_review_days',
   'estudos_disabled_reviews_map',
+  'cp_cronograma_prefs_map',
+  'cp_deleted_scheduled_ids',
+  'estudos_weights_by_course',
+  'estudos_weight_acc',
+  'estudos_weight_subj',
+  'estudos_weight_qtd',
+  'estudos_weight_time',
+  'estudos_review_days_locked',
+  'estudos_weights_locked',
 ];
 
 function getSanitizedLocalSettings(): Record<string, string | null> {
@@ -319,6 +327,22 @@ function mergeSettings(
       } catch {
         merged[key] = preferRemote ? remoteVal : localVal;
       }
+    } else if (key === 'cp_cronograma_prefs_map' || key === 'estudos_weights_by_course' || key === 'estudos_disabled_reviews_map') {
+      try {
+        const localObj = localVal ? JSON.parse(localVal) : {};
+        const remoteObj = remoteVal ? JSON.parse(remoteVal) : {};
+        merged[key] = JSON.stringify({ ...remoteObj, ...localObj });
+      } catch {
+        merged[key] = preferRemote ? remoteVal : localVal;
+      }
+    } else if (key === 'cp_deleted_scheduled_ids' || key === 'estudos_deleted_review_ids') {
+      try {
+        const localList = localVal ? JSON.parse(localVal) : [];
+        const remoteList = remoteVal ? JSON.parse(remoteVal) : [];
+        merged[key] = JSON.stringify(Array.from(new Set([...localList, ...remoteList])));
+      } catch {
+        merged[key] = preferRemote ? remoteVal : localVal;
+      }
     } else if (key === 'estudos_custom_review_days') {
       try {
         const localArr = localVal ? JSON.parse(localVal) : null;
@@ -544,6 +568,30 @@ const App: React.FC = () => {
           const val = merged[key];
           if (val !== null && val !== undefined) {
             localStorage.setItem(key, val);
+
+            if (key === 'cp_cronograma_prefs_map') {
+              try {
+                const map = JSON.parse(val);
+                if (map && typeof map === 'object') {
+                  Object.entries(map).forEach(([concId, p]) => {
+                    if (p) localStorage.setItem(`cp_cronograma_prefs_${concId}`, typeof p === 'string' ? p : JSON.stringify(p));
+                  });
+                }
+              } catch (e) {}
+            } else if (key === 'estudos_disabled_reviews_map') {
+              try {
+                const map = JSON.parse(val);
+                if (map && typeof map === 'object') {
+                  Object.entries(map).forEach(([concId, isDisabled]) => {
+                    if (isDisabled) {
+                      localStorage.setItem(`estudos_disabled_reviews_${concId}`, 'true');
+                    } else {
+                      localStorage.removeItem(`estudos_disabled_reviews_${concId}`);
+                    }
+                  });
+                }
+              } catch (e) {}
+            }
           }
         });
         window.dispatchEvent(new Event('local-storage-sync'));
@@ -670,6 +718,30 @@ const App: React.FC = () => {
               const val = merged[key];
               if (val !== null && val !== undefined) {
                 localStorage.setItem(key, val);
+
+                if (key === 'cp_cronograma_prefs_map') {
+                  try {
+                    const map = JSON.parse(val);
+                    if (map && typeof map === 'object') {
+                      Object.entries(map).forEach(([concId, p]) => {
+                        if (p) localStorage.setItem(`cp_cronograma_prefs_${concId}`, typeof p === 'string' ? p : JSON.stringify(p));
+                      });
+                    }
+                  } catch (e) {}
+                } else if (key === 'estudos_disabled_reviews_map') {
+                  try {
+                    const map = JSON.parse(val);
+                    if (map && typeof map === 'object') {
+                      Object.entries(map).forEach(([concId, isDisabled]) => {
+                        if (isDisabled) {
+                          localStorage.setItem(`estudos_disabled_reviews_${concId}`, 'true');
+                        } else {
+                          localStorage.removeItem(`estudos_disabled_reviews_${concId}`);
+                        }
+                      });
+                    }
+                  } catch (e) {}
+                }
               } else {
                 localStorage.removeItem(key);
               }

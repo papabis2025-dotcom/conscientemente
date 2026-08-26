@@ -826,6 +826,33 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                     } catch (e) {}
                 }
 
+                // Sync cronogramaPrefsMap from cloud
+                if (userSettings.cp_cronograma_prefs_map) {
+                    try {
+                        const cronoMap = typeof userSettings.cp_cronograma_prefs_map === 'string' 
+                            ? JSON.parse(userSettings.cp_cronograma_prefs_map) 
+                            : userSettings.cp_cronograma_prefs_map;
+                        if (cronoMap && typeof cronoMap === 'object') {
+                            localStorage.setItem('cp_cronograma_prefs_map', JSON.stringify(cronoMap));
+                            Object.entries(cronoMap).forEach(([concId, prefs]) => {
+                                if (prefs) {
+                                    localStorage.setItem(`cp_cronograma_prefs_${concId}`, typeof prefs === 'string' ? prefs : JSON.stringify(prefs));
+                                }
+                            });
+                        }
+                    } catch (e) {}
+                }
+
+                // Sync pesos / weights from cloud
+                if (userSettings.estudos_weights_by_course) {
+                    try {
+                        const wVal = typeof userSettings.estudos_weights_by_course === 'string'
+                            ? userSettings.estudos_weights_by_course
+                            : JSON.stringify(userSettings.estudos_weights_by_course);
+                        localStorage.setItem('estudos_weights_by_course', wVal);
+                    } catch (e) {}
+                }
+
                 if (userSettings.globalDailyGoal) {
                     setGlobalDailyGoalState(userSettings.globalDailyGoal);
                     localStorage.setItem('cp_global_daily_goal', String(userSettings.globalDailyGoal));

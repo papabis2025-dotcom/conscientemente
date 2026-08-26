@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { Subject, Topic, StudySession, Concurso, ScheduledStudy, Simulado, ActivityType } from '../types';
+import { api } from '../services/api';
 import {
   CalendarDays,
   ChevronLeft,
@@ -133,14 +134,29 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
       simuladoIntervalDays,
       simuladoQuestionsLimit
     };
+
+    let map: Record<string, any> = {};
+    try {
+      const rawMap = localStorage.getItem('cp_cronograma_prefs_map');
+      if (rawMap) map = JSON.parse(rawMap);
+    } catch (e) {}
+
     if (selectedConcursoId && selectedConcursoId !== 'all') {
       localStorage.setItem(`cp_cronograma_prefs_${selectedConcursoId}`, JSON.stringify(prefs));
+      map[selectedConcursoId] = prefs;
     } else {
       localStorage.setItem('cp_cronograma_prefs_default', JSON.stringify(prefs));
+      map['default'] = prefs;
       concursos.forEach(conc => {
         localStorage.setItem(`cp_cronograma_prefs_${conc.id}`, JSON.stringify(prefs));
+        map[conc.id] = prefs;
       });
     }
+
+    localStorage.setItem('cp_cronograma_prefs_map', JSON.stringify(map));
+    api.settings.update({ cp_cronograma_prefs_map: map }).catch(() => {});
+    window.dispatchEvent(new Event('local-settings-changed'));
+
     alert('Preferências salvas com sucesso!');
   };
 
@@ -167,6 +183,15 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
         isCronogramaEnabled: false
       };
       localStorage.setItem(`cp_cronograma_prefs_${selectedConcursoId}`, JSON.stringify(updatedPrefs));
+
+      let map: Record<string, any> = {};
+      try {
+        const rawMap = localStorage.getItem('cp_cronograma_prefs_map');
+        if (rawMap) map = JSON.parse(rawMap);
+      } catch (e) {}
+      map[selectedConcursoId] = updatedPrefs;
+      localStorage.setItem('cp_cronograma_prefs_map', JSON.stringify(map));
+      api.settings.update({ cp_cronograma_prefs_map: map }).catch(() => {});
       window.dispatchEvent(new Event('local-settings-changed'));
 
       // Apagar todas as tarefas pendentes do concurso ativo

@@ -394,7 +394,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       case 'Leitura': return <BookOpen size={size} />;
       case 'Simulado': return <Clipboard size={size} />;
       case 'Revisão': return <RefreshCw size={size} />;
-      case 'Aulão de Revisão': return <Sparkles size={size} className="text-amber-500" />;
+      case 'Aulão de Revisão': return <RefreshCw size={size} className="text-amber-500" />;
       default: return <Book size={size} />;
     }
   };
@@ -578,6 +578,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                       }
 
                       if (isAulao) {
+                        const targetSubIds = task.subjectIds && task.subjectIds.length > 0 ? task.subjectIds : (task.subjectId ? [task.subjectId] : []);
                         return (
                           <div 
                             key={task.id} 
@@ -591,11 +592,11 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                             className="p-3.5 rounded-2xl text-xs font-bold border-2 border-fuchsia-500 bg-gradient-to-r from-violet-500/10 to-fuchsia-500/10 text-fuchsia-950 dark:text-fuchsia-200 cursor-pointer transition-all hover:scale-[1.02] active:scale-95 shadow-sm"
                           >
                             <span className="flex items-center gap-1 font-black text-fuchsia-600 dark:text-fuchsia-400">
-                              <Sparkles size={11} className="text-fuchsia-500 shrink-0" /> AULÃO DE REVISÃO
+                              AULÃO DE REVISÃO
                             </span>
-                            {task.isGroupedVirtual && task.subjectIds ? (
+                            {targetSubIds.length > 0 ? (
                               <div className="flex flex-wrap gap-1 mt-1">
-                                {task.subjectIds.map((subId: string, idx: number) => {
+                                {targetSubIds.map((subId: string, idx: number) => {
                                   const subObj = lookupSubjects.find(s => s.id === subId);
                                   const badgeStyle = subObj ? getBadgeStyle(subObj.color) : { style: {}, className: 'bg-zinc-200 text-zinc-700' };
                                   return (
@@ -749,6 +750,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                           );
                         }
                         if (isAulao) {
+                          const targetSubIds = t.subjectIds && t.subjectIds.length > 0 ? t.subjectIds : (t.subjectId ? [t.subjectId] : []);
+                          const subNames = targetSubIds.map((subId: string) => lookupSubjects.find(s => s.id === subId)?.name).filter(Boolean).join(', ');
                           return (
                             <div 
                               key={t.id} 
@@ -762,10 +765,10 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                               className="px-2 py-1.5 rounded-lg text-[10px] leading-tight font-black border-2 border-fuchsia-500 bg-fuchsia-500/10 text-fuchsia-900 dark:text-fuchsia-200 cursor-pointer transition-all hover:scale-[1.02] active:scale-95 shadow-sm line-clamp-2"
                             >
                               <div className="flex flex-col gap-0.5">
-                                <span className="truncate">🌟 Aulão de Revisão</span>
-                                {t.isGroupedVirtual && t.subjectIds && (
+                                <span className="truncate">Aulão de Revisão</span>
+                                {subNames && (
                                   <span className="text-[8px] opacity-80 font-bold truncate">
-                                    {t.subjectIds.map((subId: string) => lookupSubjects.find(s => s.id === subId)?.name).filter(Boolean).join(', ')}
+                                    {subNames}
                                   </span>
                                 )}
                               </div>

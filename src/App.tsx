@@ -52,6 +52,7 @@ const SYNC_KEYS = [
   'estudos_deleted_review_ids',
   'cn_sound_enabled',
   'estudos_custom_review_days',
+  'estudos_disabled_reviews_map',
 ];
 
 function getSanitizedLocalSettings(): Record<string, string | null> {
@@ -322,7 +323,9 @@ function mergeSettings(
       try {
         const localArr = localVal ? JSON.parse(localVal) : null;
         const remoteArr = remoteVal ? JSON.parse(remoteVal) : null;
-        if (Array.isArray(localArr) && localArr.length > 0) {
+        if (preferRemote && Array.isArray(remoteArr) && remoteArr.length > 0) {
+          merged[key] = remoteVal;
+        } else if (Array.isArray(localArr) && localArr.length > 0) {
           merged[key] = localVal;
         } else if (Array.isArray(remoteArr) && remoteArr.length > 0) {
           merged[key] = remoteVal;
@@ -330,7 +333,7 @@ function mergeSettings(
           merged[key] = localVal || remoteVal;
         }
       } catch {
-        merged[key] = localVal || remoteVal;
+        merged[key] = preferRemote ? remoteVal : localVal;
       }
     } else {
       merged[key] = preferRemote ? remoteVal : localVal;

@@ -811,6 +811,14 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                   } else {
                     localStorage.removeItem('estudos_disabled_reviews_' + selectedConcursoId);
                   }
+                  let map: Record<string, boolean> = {};
+                  try {
+                    const rawMap = localStorage.getItem('estudos_disabled_reviews_map');
+                    if (rawMap) map = JSON.parse(rawMap);
+                  } catch (err) {}
+                  map[selectedConcursoId] = newVal;
+                  localStorage.setItem('estudos_disabled_reviews_map', JSON.stringify(map));
+                  api.settings.update({ disabledReviewsMap: map }).catch(() => {});
                   window.dispatchEvent(new Event('local-reviews-toggled'));
                   window.dispatchEvent(new Event('local-settings-changed'));
                 }}

@@ -764,15 +764,69 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         if (!currentUser) return;
         if (!silent) setIsLoading(true);
         try {
-            const [concursosData, sessionsData, simuladosData, scheduleData, goalsData, logsData, studyPlanTasksData] = await Promise.all([
+            const [concursosData, sessionsData, simuladosData, scheduleData, goalsData, logsData, studyPlanTasksData, userSettings] = await Promise.all([
                 api.concursos.list(),
                 api.sessions.list(),
                 api.simulados.list(),
                 api.schedule.list(),
                 api.dailyGoals.list(),
                 api.logs.list(),
-                api.studyPlanTasks.list()
+                api.studyPlanTasks.list(),
+                api.settings.get().catch(() => null)
             ]);
+
+            // Apply cloud user preferences before processing schedule and planned reviews
+            if (userSettings) {
+                if (userSettings.selectedConcursoId && userSettings.selectedConcursoId !== selectedConcursoId) {
+                    setSelectedConcursoIdState(userSettings.selectedConcursoId);
+                    localStorage.setItem('cp_selected_concurso_id', userSettings.selectedConcursoId);
+                }
+                
+                // Cloud customReviewDays overrides local storage if set
+                if (userSettings.customReviewDays && Array.isArray(userSettings.customReviewDays) && userSettings.customReviewDays.length > 0) {
+                    localStorage.setItem('estudos_custom_review_days', JSON.stringify(userSettings.customReviewDays));
+                } else {
+                    const localSavedReviewDays = localStorage.getItem('estudos_custom_review_days');
+                    if (localSavedReviewDays) {
+                        try {
+                            const parsed = JSON.parse(localSavedReviewDays);
+                            if (Array.isArray(parsed) && parsed.length > 0) {
+                                api.settings.update({ customReviewDays: parsed }).catch(() => {});
+                            }
+                        } catch (e) {}
+                    }
+                }
+
+                // Sync disabledReviewsMap from cloud
+                if (userSettings.disabledReviewsMap && typeof userSettings.disabledReviewsMap === 'object') {
+                    localStorage.setItem('estudos_disabled_reviews_map', JSON.stringify(userSettings.disabledReviewsMap));
+                    Object.entries(userSettings.disabledReviewsMap).forEach(([concId, isDisabled]) => {
+                        if (isDisabled) {
+                            localStorage.setItem(`estudos_disabled_reviews_${concId}`, 'true');
+                        } else {
+                            localStorage.removeItem(`estudos_disabled_reviews_${concId}`);
+                        }
+                    });
+                }
+
+                // Sync deletedReviewIds from cloud
+                if (userSettings.deletedReviewIds && Array.isArray(userSettings.deletedReviewIds) && userSettings.deletedReviewIds.length > 0) {
+                    const localDeletedRaw = localStorage.getItem('estudos_deleted_review_ids') || '[]';
+                    try {
+                        const localDeleted = JSON.parse(localDeletedRaw);
+                        const mergedDeleted = Array.from(new Set([...localDeleted, ...userSettings.deletedReviewIds]));
+                        localStorage.setItem('estudos_deleted_review_ids', JSON.stringify(mergedDeleted));
+                    } catch (e) {}
+                }
+
+                if (userSettings.globalDailyGoal) {
+                    setGlobalDailyGoalState(userSettings.globalDailyGoal);
+                    localStorage.setItem('cp_global_daily_goal', String(userSettings.globalDailyGoal));
+                }
+
+                window.dispatchEvent(new Event('local-reviews-toggled'));
+                window.dispatchEvent(new Event('local-settings-changed'));
+            }
 
             if (concursosData) {
                 let mergedConcursos = [...concursosData];
@@ -904,38 +958,6 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
 
             // Sync planned reviews
             await syncPlannedReviewsDb(sessionsData || [], finalSchedule, concursosData || []);
-
-            // Sync user preferences from cloud
-            try {
-                const userSettings = await api.settings.get();
-                if (userSettings) {
-                    if (userSettings.selectedConcursoId && userSettings.selectedConcursoId !== selectedConcursoId) {
-                        setSelectedConcursoIdState(userSettings.selectedConcursoId);
-                        localStorage.setItem('cp_selected_concurso_id', userSettings.selectedConcursoId);
-                    }
-                    // PRIORIDADE: localStorage tem prioridade sobre a nuvem para customReviewDays
-                    // Só usamos o valor da nuvem se o localStorage estiver vazio (sem configuração local)
-                    const localSavedReviewDays = localStorage.getItem('estudos_custom_review_days');
-                    const hasLocalReviewDays = !!localSavedReviewDays && localSavedReviewDays !== '[]';
-                    if (!hasLocalReviewDays && userSettings.customReviewDays && Array.isArray(userSettings.customReviewDays) && userSettings.customReviewDays.length > 0) {
-                        // Só importa da nuvem se não há nada salvo localmente
-                        localStorage.setItem('estudos_custom_review_days', JSON.stringify(userSettings.customReviewDays));
-                        window.dispatchEvent(new Event('local-reviews-toggled'));
-                    } else if (hasLocalReviewDays) {
-                        // Publica o valor local na nuvem para mantê-la sincronizada
-                        try {
-                            const parsed = JSON.parse(localSavedReviewDays!);
-                            if (Array.isArray(parsed) && parsed.length > 0) {
-                                api.settings.update({ customReviewDays: parsed }).catch(() => {});
-                            }
-                        } catch (e) {}
-                    }
-                    if (userSettings.globalDailyGoal) {
-                        setGlobalDailyGoalState(userSettings.globalDailyGoal);
-                        localStorage.setItem('cp_global_daily_goal', String(userSettings.globalDailyGoal));
-                    }
-                }
-            } catch (e) {}
 
             setLastSaved(new Date().toLocaleTimeString());
         } catch (error) {
@@ -1591,6 +1613,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                 });
                 if (changed) {
                     localStorage.setItem('estudos_deleted_review_ids', JSON.stringify(deletedList));
+                    api.settings.update({ deletedReviewIds: deletedList }).catch(() => {});
                 }
             } catch (e) {
                 console.error('Error saving deleted review IDs:', e);

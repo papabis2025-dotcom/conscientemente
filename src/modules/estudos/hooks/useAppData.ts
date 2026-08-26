@@ -906,22 +906,35 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                     }
                 });
 
+                // Fonte de verdade para status: banco de dados (Supabase).
+                // O localStorage é usado apenas como fallback para itens sem status no banco,
+                // garantindo sincronização cross-device correta.
                 const localRaw = localStorage.getItem('cp_scheduled_studies');
                 const localStudies: ScheduledStudy[] = localRaw ? JSON.parse(localRaw) : [];
                 const localStatusMap = new Map(localStudies.map(s => [s.id, s.status]));
                 const sessionIds = new Set(finalSessions.map(s => s.id));
 
                 finalSchedule = finalScheduleRaw.map((s: any) => {
-                    let status: 'planejado' | 'realizado' = s.status || 'planejado';
-                    if (localStatusMap.has(s.id)) {
-                        status = localStatusMap.get(s.id) as 'planejado' | 'realizado';
-                    } else if (s.status === 'realizado' || sessionIds.has(s.id)) {
-                        status = 'realizado';
+                    // 1. Prioridade máxima: status vindo do banco (coluna status)
+                    //    Só confia no banco se o registro já foi atualizado (não é o default)
+                    const dbStatus = s.status as 'planejado' | 'realizado' | undefined;
+                    if (dbStatus === 'realizado') {
+                        return { ...s, status: 'realizado' as const };
                     }
-                    return {
-                        ...s,
-                        status
-                    };
+
+                    // 2. Segunda prioridade: existe sessão de estudo no banco com mesmo ID → realizado
+                    if (sessionIds.has(s.id)) {
+                        return { ...s, status: 'realizado' as const };
+                    }
+
+                    // 3. Terceira prioridade: localStorage local (fallback para offline/novo dispositivo sem status no banco ainda)
+                    const localStatus = localStatusMap.get(s.id);
+                    if (localStatus) {
+                        return { ...s, status: localStatus };
+                    }
+
+                    // 4. Default: planejado
+                    return { ...s, status: 'planejado' as const };
                 });
 
                 // Filter out uncompleted tasks for any concurso whose schedule is currently disabled, or deleted tasks

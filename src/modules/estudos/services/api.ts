@@ -396,15 +396,15 @@ export const api = {
             sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
             const dateLimit = sixMonthsAgo.toISOString().split('T')[0];
 
-            // Tenta primeiro com todas as colunas; se questions_link nao existir, usa fallback sem ela
+            // Tenta primeiro com todas as colunas incluindo status
             let result: any = await supabase.from('scheduled_studies')
-                .select('id,date,subject_id,topic_id,activity_type,notes,duration_minutes,questions_done,questions_correct,questions_link')
+                .select('id,date,subject_id,topic_id,activity_type,notes,duration_minutes,questions_done,questions_correct,questions_link,status')
                 .eq('user_id', user.id)
                 .gte('date', dateLimit)
                 .order('date', { ascending: true });
 
             if (result.error && result.error.code === '42703') {
-                // Coluna ausente (questions_link ou outra) -- retry sem ela
+                // Coluna ausente -- retry sem questions_link e status
                 result = await supabase.from('scheduled_studies')
                     .select('id,date,subject_id,topic_id,activity_type,notes,duration_minutes,questions_done,questions_correct')
                     .eq('user_id', user.id)
@@ -428,14 +428,13 @@ export const api = {
                 questionsDone: i.questions_done,
                 questionsCorrect: i.questions_correct,
                 questionsLink: i.questions_link || undefined,
-                status: 'planejado' as const
+                status: (i.status as 'planejado' | 'realizado') || 'planejado'
             }));
         },
-        create: async (item: Omit<ScheduledStudy, 'id' | 'status'> & { id?: string }) => {
+        create: async (item: Omit<ScheduledStudy, 'id'> & { id?: string }) => {
             const user = await getAuthUser();
             if (!user) throw new Error('Not authenticated');
 
-            // Do NOT send 'status' -- that column does not exist in the DB table.
             const dbPayload = {
                 id: item.id,
                 user_id: user.id,
@@ -447,13 +446,14 @@ export const api = {
                 duration_minutes: item.durationInMinutes,
                 questions_done: item.questionsDone,
                 questions_correct: item.questionsCorrect,
-                questions_link: item.questionsLink || null
+                questions_link: item.questionsLink || null,
+                status: (item as any).status || 'planejado'
             };
 
             let result = await supabase.from('scheduled_studies').insert(dbPayload).select().single();
             if (result.error && result.error.code === '42703') {
-                // questions_link nao existe -- retry sem ela
-                const { questions_link, ...payloadWithout } = dbPayload as any;
+                // Coluna ausente -- retry sem questions_link e status
+                const { questions_link, status: _s, ...payloadWithout } = dbPayload as any;
                 result = await supabase.from('scheduled_studies').insert(payloadWithout).select().single();
             }
 
@@ -504,6 +504,8 @@ export const api = {
             if (updates.questionsDone !== undefined) dbPayload.questions_done = updates.questionsDone;
             if (updates.questionsCorrect !== undefined) dbPayload.questions_correct = updates.questionsCorrect;
             if (updates.date) dbPayload.date = updates.date;
+            // Persistir status no banco para sincronização cross-device
+            if (updates.status !== undefined) dbPayload.status = updates.status;
             // Sempre inclui questionsLink no payload: null limpa o campo, string salva o valor
             if ('questionsLink' in updates) {
                 dbPayload.questions_link = updates.questionsLink ?? null;
@@ -511,7 +513,7 @@ export const api = {
 
             let result = await supabase.from('scheduled_studies').update(dbPayload).eq('id', id).eq('user_id', user.id);
             if (result.error && result.error.code === '42703') {
-                const { questions_link, ...payloadWithout } = dbPayload;
+                const { questions_link, status: _s, ...payloadWithout } = dbPayload;
                 result = await supabase.from('scheduled_studies').update(payloadWithout).eq('id', id).eq('user_id', user.id);
             }
             return handleRequest(Promise.resolve(result));
@@ -530,7 +532,7 @@ export const api = {
             const user = await getAuthUser();
             if (user) return handleRequest(supabase.from('scheduled_studies').delete().eq('user_id', user.id));
         },
-        createBatch: async (items: (Omit<ScheduledStudy, 'id' | 'status'> & { id?: string })[]) => {
+        createBatch: async (items: (Omit<ScheduledStudy, 'id'> & { id?: string })[]) => {
             const user = await getAuthUser();
             if (!user) throw new Error('Not authenticated');
 
@@ -545,12 +547,13 @@ export const api = {
                 duration_minutes: item.durationInMinutes || 0,
                 questions_done: item.questionsDone || 0,
                 questions_correct: item.questionsCorrect || 0,
-                questions_link: item.questionsLink || null
+                questions_link: item.questionsLink || null,
+                status: (item as any).status || 'planejado'
             }));
 
             let result = await supabase.from('scheduled_studies').insert(dbPayloads).select();
             if (result.error && result.error.code === '42703') {
-                const payloadsWithout = dbPayloads.map(({ questions_link, ...rest }) => rest);
+                const payloadsWithout = dbPayloads.map(({ questions_link, status: _s, ...rest }) => rest);
                 result = await supabase.from('scheduled_studies').insert(payloadsWithout).select();
             }
 
@@ -571,7 +574,7 @@ export const api = {
                 questionsDone: r.questions_done,
                 questionsCorrect: r.questions_correct,
                 questionsLink: r.questions_link || undefined,
-                status: 'planejado' as const,
+                status: (r.status as 'planejado' | 'realizado') || 'planejado',
                 concursoId: items[idx]?.concursoId || r.concurso_id || undefined,
                 generatedByCronograma: items[idx]?.generatedByCronograma || r.generated_by_cronograma || undefined
             }));

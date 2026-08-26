@@ -712,36 +712,35 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
             }
         }
 
+        const deleteIds = new Set(reviewsToDelete.map(r => r.id));
+        const updateMap = new Map(reviewsToUpdate.map(r => [r.id, r]));
+
+        const baseList = allSchedule || [];
+        let filtered = baseList.filter(s => !deleteIds.has(s.id));
+
+        filtered = filtered.map(s => {
+            const updatedFromReviews = updateMap.get(s.id);
+            if (updatedFromReviews) {
+                return { 
+                    ...s, 
+                    notes: updatedFromReviews.notes, 
+                    date: updatedFromReviews.date
+                };
+            }
+            return s;
+        });
+
+        const existingIds = new Set(filtered.map(s => s.id));
+        const newFromReviews = reviewsToCreate.filter(r => !existingIds.has(r.id));
+        const combined = [...filtered, ...newFromReviews];
+
         if (reviewsToDelete.length > 0 || reviewsToCreate.length > 0 || reviewsToUpdate.length > 0) {
-            const deleteIds = new Set(reviewsToDelete.map(r => r.id));
-            const updateMap = new Map(reviewsToUpdate.map(r => [r.id, r]));
-            setScheduledStudies(prev => {
-                // 1. Remover apenas as revisões obsoletas/duplicadas marcadas explicitamente
-                let filtered = prev.filter(s => !deleteIds.has(s.id));
-                
-                // 2. Atualizar notas/datas de revisões que mudaram
-                filtered = filtered.map(s => {
-                    const updatedFromReviews = updateMap.get(s.id);
-                    if (updatedFromReviews) {
-                        return { 
-                            ...s, 
-                            notes: updatedFromReviews.notes, 
-                            date: updatedFromReviews.date
-                        };
-                    }
-                    return s;
-                });
-                
-                // 3. Adicionar novas revisões criadas
-                const existingIds = new Set(filtered.map(s => s.id));
-                const newFromReviews = reviewsToCreate.filter(r => !existingIds.has(r.id));
-                
-                const combined = [...filtered, ...newFromReviews];
-                localStorage.setItem('cp_scheduled_studies', JSON.stringify(combined));
-                window.dispatchEvent(new Event('local-settings-changed'));
-                return combined;
-            });
+            localStorage.setItem('cp_scheduled_studies', JSON.stringify(combined));
+            setScheduledStudies(combined);
+            window.dispatchEvent(new Event('local-settings-changed'));
         }
+
+        return combined;
     }, [getActivityTag]);
 
     const syncPlannedReviews = useCallback(async (forceRecalculate: boolean = false) => {
@@ -836,6 +835,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                 window.dispatchEvent(new Event('local-settings-changed'));
             }
 
+            let finalConcursos: Concurso[] = [];
             if (concursosData) {
                 let mergedConcursos = [...concursosData];
                 const dbIds = new Set(concursosData.map(c => c.id));
@@ -851,12 +851,12 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                         });
                     } catch (e) {}
                 }
-                const loadedConcursos = mergedConcursos.map(c => {
+                finalConcursos = mergedConcursos.map(c => {
                     const localImg = localStorage.getItem(`gp_concurso_img_${c.id}`);
                     return localImg ? { ...c, imageUrl: localImg } : c;
                 });
-                setConcursos(loadedConcursos);
-                localStorage.setItem('cp_concursos_backup', JSON.stringify(loadedConcursos));
+                setConcursos(finalConcursos);
+                localStorage.setItem('cp_concursos_backup', JSON.stringify(finalConcursos));
             }
             let finalSessions = sessionsData || [];
             let finalScheduleRaw = scheduleData || [];
@@ -951,21 +951,20 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                     return true;
                 });
 
-                setScheduledStudies(filteredFinalSchedule);
-                localStorage.setItem('cp_scheduled_studies', JSON.stringify(filteredFinalSchedule));
-
                 if (deletedIdsSet.size > 0) {
                     api.schedule.deleteBatch(Array.from(deletedIdsSet)).catch(() => {});
                 }
+
+                // Sync planned reviews with up-to-date cloud settings and consolidate schedule
+                const consolidatedSchedule = await syncPlannedReviewsDb(finalSessions, filteredFinalSchedule, finalConcursos);
+                setScheduledStudies(consolidatedSchedule);
+                localStorage.setItem('cp_scheduled_studies', JSON.stringify(consolidatedSchedule));
             }
             if (goalsData) setDailyGoals(goalsData);
             if (logsData) setLogs(logsData);
 
             // Sync simulated sessions
             await syncSimuladoSessions(simuladosData || [], sessionsData || []);
-
-            // Sync planned reviews
-            await syncPlannedReviewsDb(sessionsData || [], finalSchedule, concursosData || []);
 
             setLastSaved(new Date().toLocaleTimeString());
         } catch (error) {

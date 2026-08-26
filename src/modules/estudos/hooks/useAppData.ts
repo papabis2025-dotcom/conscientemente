@@ -782,12 +782,13 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                     localStorage.setItem('cp_selected_concurso_id', userSettings.selectedConcursoId);
                 }
                 
-                // Cloud customReviewDays overrides local storage if set
+                // Sync customReviewDays: preserve local custom settings if present, otherwise import from cloud
+                const localSavedReviewDays = localStorage.getItem('estudos_custom_review_days');
                 if (userSettings.customReviewDays && Array.isArray(userSettings.customReviewDays) && userSettings.customReviewDays.length > 0) {
-                    localStorage.setItem('estudos_custom_review_days', JSON.stringify(userSettings.customReviewDays));
-                } else {
-                    const localSavedReviewDays = localStorage.getItem('estudos_custom_review_days');
-                    if (localSavedReviewDays) {
+                    const cloudStr = JSON.stringify(userSettings.customReviewDays);
+                    if (!localSavedReviewDays || localSavedReviewDays === '[]' || localSavedReviewDays === '[7,30,90,15,45]') {
+                        localStorage.setItem('estudos_custom_review_days', cloudStr);
+                    } else {
                         try {
                             const parsed = JSON.parse(localSavedReviewDays);
                             if (Array.isArray(parsed) && parsed.length > 0) {
@@ -795,6 +796,13 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                             }
                         } catch (e) {}
                     }
+                } else if (localSavedReviewDays) {
+                    try {
+                        const parsed = JSON.parse(localSavedReviewDays);
+                        if (Array.isArray(parsed) && parsed.length > 0) {
+                            api.settings.update({ customReviewDays: parsed }).catch(() => {});
+                        }
+                    } catch (e) {}
                 }
 
                 // Sync disabledReviewsMap from cloud

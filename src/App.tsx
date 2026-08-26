@@ -323,7 +323,12 @@ function mergeSettings(
       try {
         const localArr = localVal ? JSON.parse(localVal) : null;
         const remoteArr = remoteVal ? JSON.parse(remoteVal) : null;
-        if (preferRemote && Array.isArray(remoteArr) && remoteArr.length > 0) {
+        const isLocalCustom = Array.isArray(localArr) && localArr.length > 0 && localVal !== '[7,30,90,15,45]';
+        const isRemoteCustom = Array.isArray(remoteArr) && remoteArr.length > 0 && remoteVal !== '[7,30,90,15,45]';
+
+        if (isLocalCustom) {
+          merged[key] = localVal;
+        } else if (isRemoteCustom) {
           merged[key] = remoteVal;
         } else if (Array.isArray(localArr) && localArr.length > 0) {
           merged[key] = localVal;
@@ -333,7 +338,7 @@ function mergeSettings(
           merged[key] = localVal || remoteVal;
         }
       } catch {
-        merged[key] = preferRemote ? remoteVal : localVal;
+        merged[key] = localVal || remoteVal;
       }
     } else {
       merged[key] = preferRemote ? remoteVal : localVal;

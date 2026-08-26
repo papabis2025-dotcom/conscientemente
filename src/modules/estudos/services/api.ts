@@ -28,21 +28,92 @@ export const api = {
         update: async (updates: Partial<Profile>) => handleRequest(supabase.from('profiles').update(updates).eq('id', (await getAuthUser())?.id)),
     },
 
-    // Settings (stored in profiles.metadata)
+    // Settings (stored in user_preferences & profiles.metadata)
     settings: {
         get: async () => {
             const user = await getAuthUser();
             if (!user) return null;
-            const profile = await handleRequest<any>(supabase.from('profiles').select('metadata').eq('id', user.id).single());
+            
+            try {
+                const { data: prefs } = await supabase
+                    .from('user_preferences')
+                    .select('hub_bg_image_url')
+                    .eq('user_id', user.id)
+                    .maybeSingle();
+
+                if (prefs?.hub_bg_image_url) {
+                    const payload = JSON.parse(prefs.hub_bg_image_url);
+                    if (payload?.settings) {
+                        const s = payload.settings;
+                        const res: any = { ...s };
+                        if (s.estudos_custom_review_days) {
+                            try { res.customReviewDays = JSON.parse(s.estudos_custom_review_days); } catch (e) {}
+                        }
+                        if (s.estudos_disabled_reviews_map) {
+                            try { res.disabledReviewsMap = JSON.parse(s.estudos_disabled_reviews_map); } catch (e) {}
+                        }
+                        if (s.estudos_deleted_review_ids) {
+                            try { res.deletedReviewIds = JSON.parse(s.estudos_deleted_review_ids); } catch (e) {}
+                        }
+                        return res;
+                    }
+                }
+            } catch (e) {}
+
+            const profile = await handleRequest<any>(supabase.from('profiles').select('metadata').eq('id', user.id).single()).catch(() => null);
             return profile?.metadata || {};
         },
         update: async (metadataUpdates: any) => {
             const user = await getAuthUser();
             if (!user) return null;
-            const profile = await handleRequest<any>(supabase.from('profiles').select('metadata').eq('id', user.id).single());
+
+            try {
+                const { data: prefs } = await supabase
+                    .from('user_preferences')
+                    .select('hub_bg_type, hub_bg_color, hub_bg_image_url')
+                    .eq('user_id', user.id)
+                    .maybeSingle();
+
+                let currentSettings: Record<string, string | null> = {};
+                if (prefs?.hub_bg_image_url) {
+                    try {
+                        const payload = JSON.parse(prefs.hub_bg_image_url);
+                        currentSettings = payload?.settings || {};
+                    } catch (e) {}
+                }
+
+                if (metadataUpdates.customReviewDays) {
+                    currentSettings['estudos_custom_review_days'] = JSON.stringify(metadataUpdates.customReviewDays);
+                }
+                if (metadataUpdates.disabledReviewsMap) {
+                    currentSettings['estudos_disabled_reviews_map'] = JSON.stringify(metadataUpdates.disabledReviewsMap);
+                }
+                if (metadataUpdates.deletedReviewIds) {
+                    currentSettings['estudos_deleted_review_ids'] = JSON.stringify(metadataUpdates.deletedReviewIds);
+                }
+                Object.keys(metadataUpdates).forEach(k => {
+                    if (typeof metadataUpdates[k] === 'string') {
+                        currentSettings[k] = metadataUpdates[k];
+                    }
+                });
+
+                const newPayload = {
+                    updatedAt: Date.now(),
+                    settings: currentSettings
+                };
+
+                await supabase.from('user_preferences').upsert({
+                    user_id: user.id,
+                    hub_bg_type: prefs?.hub_bg_type || 'default',
+                    hub_bg_color: prefs?.hub_bg_color || '#ffffff',
+                    hub_bg_image_url: JSON.stringify(newPayload)
+                }, { onConflict: 'user_id' });
+            } catch (e) {}
+
+            const profile = await handleRequest<any>(supabase.from('profiles').select('metadata').eq('id', user.id).single()).catch(() => null);
             const currentMetadata = profile?.metadata || {};
             const newMetadata = { ...currentMetadata, ...metadataUpdates };
-            return handleRequest(supabase.from('profiles').update({ metadata: newMetadata }).eq('id', user.id));
+            return handleRequest(supabase.from('profiles').update({ metadata: newMetadata }).eq('id', user.id)).catch(() => null);
         }
     },
 

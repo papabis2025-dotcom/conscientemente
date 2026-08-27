@@ -91,6 +91,8 @@ const AnotacoesApp: React.FC = () => {
   const saveNotesToStorage = (updatedNotes: Note[]) => {
     setNotes(updatedNotes);
     localStorage.setItem('cn_anotacoes', JSON.stringify(updatedNotes));
+    window.dispatchEvent(new Event('local-storage-sync'));
+    window.dispatchEvent(new Event('local-settings-changed'));
   };
 
   // Sync state with local storage
@@ -237,6 +239,8 @@ const AnotacoesApp: React.FC = () => {
     const updated = [...folders, newFolder];
     setFolders(updated);
     localStorage.setItem('cn_anotacoes_folders', JSON.stringify(updated));
+    window.dispatchEvent(new Event('local-storage-sync'));
+    window.dispatchEvent(new Event('local-settings-changed'));
   };
 
   const handleDeleteFolder = (e: React.MouseEvent, id: string) => {
@@ -246,8 +250,22 @@ const AnotacoesApp: React.FC = () => {
       setFolders(updatedFolders);
       localStorage.setItem('cn_anotacoes_folders', JSON.stringify(updatedFolders));
 
+      try {
+        const deletedRaw = localStorage.getItem('cn_deleted_folder_ids') || '[]';
+        const deletedList = JSON.parse(deletedRaw);
+        if (!deletedList.includes(id)) {
+          deletedList.push(id);
+          localStorage.setItem('cn_deleted_folder_ids', JSON.stringify(deletedList));
+        }
+      } catch (e) {
+        console.error('Error tracking deleted folder:', e);
+      }
+
       const updatedNotes = notes.map(n => n.folderId === id ? { ...n, folderId: undefined } : n);
       saveNotesToStorage(updatedNotes);
+
+      window.dispatchEvent(new Event('local-storage-sync'));
+      window.dispatchEvent(new Event('local-settings-changed'));
 
       if (selectedFolderId === id) {
         setSelectedFolderId(null);

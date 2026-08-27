@@ -370,7 +370,7 @@ export const api = {
                 date: simulado.date,
                 total_questions: simulado.totalQuestions,
                 results: payloadResults
-            }).eq('id', id));
+            }).eq('id', id).eq('user_id', user.id));
         },
         delete: async (id: string) => {
             const user = await getAuthUser();

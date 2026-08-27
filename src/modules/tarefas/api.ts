@@ -72,6 +72,9 @@ export const tarefasApi = {
   },
 
   update: async (id: string, updates: Partial<Task>) => {
+    const user = await getAuthUser();
+    if (!user) throw new Error('Not authenticated');
+
     const payload: any = {};
     if (updates.completed !== undefined) payload.completed = updates.completed;
     if (updates.text !== undefined) payload.text = updates.text;
@@ -81,12 +84,23 @@ export const tarefasApi = {
     if (updates.recurrenceType !== undefined) payload.recurrence_type = updates.recurrenceType;
     if (updates.recurrenceValue !== undefined) payload.recurrence_value = updates.recurrenceValue;
     
-    const { error } = await supabase.from('tarefas').update(payload).eq('id', id);
+    const { error } = await supabase
+      .from('tarefas')
+      .update(payload)
+      .eq('id', id)
+      .eq('user_id', user.id);
     if (error) throw error;
   },
 
   delete: async (id: string) => {
-    const { error } = await supabase.from('tarefas').delete().eq('id', id);
+    const user = await getAuthUser();
+    if (!user) throw new Error('Not authenticated');
+
+    const { error } = await supabase
+      .from('tarefas')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', user.id);
     if (error) throw error;
   },
 

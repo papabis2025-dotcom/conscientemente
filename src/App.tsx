@@ -46,8 +46,18 @@ const SYNC_KEYS = [
   'cn_saude_muscle_groups',
   'cn_saude_dashboard_layout',
   'cn_saude_sleep_logs',
+  'cn_saude_sleep_calibrations',
   'cn_home_cards_layout',
   'cn_home_widgets_order',
+  'cn_home_widgets_visibility',
+  'cn_global_alignment',
+  'cn_module_pins',
+  'cn_sleep_opacity',
+  'cn_calendar_opacity',
+  'cn_habits_opacity',
+  'cn_calendar_collapsed',
+  'cn_sidebar_expanded',
+  'global_sidebar_collapsed',
   'estudos_deleted_review_ids',
   'cn_sound_enabled',
   'estudos_custom_review_days',
@@ -131,7 +141,8 @@ function mergeSettings(
       key === 'cp_scheduled_studies' ||
       key === 'cn_saude_dashboard_layout' ||
       key === 'cn_home_cards_layout' ||
-      key === 'cn_saude_sleep_logs'
+      key === 'cn_saude_sleep_logs' ||
+      key === 'cn_saude_sleep_calibrations'
     ) {
       try {
         const localList = JSON.parse(localVal);
@@ -141,6 +152,18 @@ function mergeSettings(
             ? mergeLists(localList, remoteList)
             : mergeLists(remoteList, localList);
           merged[key] = JSON.stringify(mergedList);
+        } else {
+          merged[key] = preferRemote ? remoteVal : localVal;
+        }
+      } catch {
+        merged[key] = preferRemote ? remoteVal : localVal;
+      }
+    } else if (key === 'cn_home_widgets_visibility' || key === 'cn_module_pins') {
+      try {
+        const localObj = localVal ? JSON.parse(localVal) : {};
+        const remoteObj = remoteVal ? JSON.parse(remoteVal) : {};
+        if (typeof localObj === 'object' && typeof remoteObj === 'object') {
+          merged[key] = JSON.stringify({ ...remoteObj, ...localObj });
         } else {
           merged[key] = preferRemote ? remoteVal : localVal;
         }
@@ -681,10 +704,9 @@ const App: React.FC = () => {
   useEffect(() => {
     if (!session || !isPrefsLoaded) return;
 
-    // Throttle: só executa o pull remoto se passaram mais de 3 minutos desde a última execução.
-    // lastPullAtRef é um useRef (não variável local) para que persista entre re-execuções
-    // do efeito sem zerar o contador, garantindo que o throttle funcione de verdade.
-    const PULL_THROTTLE_MS = 3 * 60 * 1000; // 3 minutos
+    // Throttle reduzido para 10 segundos: permite sincronização rápida e confiável
+    // entre abas e computadores ao alternar telas sem sobrecarregar a rede.
+    const PULL_THROTTLE_MS = 10 * 1000; // 10 segundos
 
     const pullAndMerge = async () => {
       const now = Date.now();
@@ -792,13 +814,29 @@ const App: React.FC = () => {
     window.addEventListener('focus', pullAndMerge);
     window.addEventListener('hashchange', pullAndMerge);
 
+    // Cross-tab synchronization via BroadcastChannel
+    let crossTabChannel: BroadcastChannel | null = null;
+    if (typeof BroadcastChannel !== 'undefined') {
+      try {
+        crossTabChannel = new BroadcastChannel('conscientemente_cross_tab_sync');
+        crossTabChannel.onmessage = (event) => {
+          if (event.data?.type === 'SYNC_REQUEST') {
+            lastPullAtRef.current = 0;
+            pullAndMerge();
+          }
+        };
+      } catch (e) {
+        console.warn('BroadcastChannel not available:', e);
+      }
+    }
+
     return () => {
       window.removeEventListener('focus', pullAndMerge);
       window.removeEventListener('hashchange', pullAndMerge);
+      if (crossTabChannel) {
+        crossTabChannel.close();
+      }
     };
-    // Dependências mínimas: apenas session e isPrefsLoaded.
-    // bgType, bgColor e lastSyncTime foram removidos — usamos refs para eles,
-    // evitando a recriação dos listeners a cada sync e o consequente reset do throttle.
   }, [session, isPrefsLoaded]);
 
   // Listen for local settings changes to save to Supabase with debounce
@@ -839,11 +877,20 @@ const App: React.FC = () => {
             setLastKnownSettings(currentSerialized);
             setLastSyncTime(updatedTime);
             lastSyncTimeRef.current = updatedTime;
+
+            // Notify other tabs in real-time
+            if (typeof BroadcastChannel !== 'undefined') {
+              try {
+                const bc = new BroadcastChannel('conscientemente_cross_tab_sync');
+                bc.postMessage({ type: 'SYNC_REQUEST', timestamp: updatedTime });
+                bc.close();
+              } catch {}
+            }
           } catch (err) {
             console.error('Failed to sync settings:', err);
           }
         }
-      }, 2000); // 2 seconds debounce
+      }, 1000); // 1 second debounce
     };
 
     window.addEventListener('local-settings-changed', triggerImmediateSync);
@@ -926,12 +973,15 @@ const App: React.FC = () => {
         key.startsWith('tarefas_') ||
         key.startsWith('anotacoes_') ||
         key.startsWith('global_') ||
-        key.startsWith('isSidebarCollapsed_')
+        key.startsWith('isSidebarCollapsed_') ||
+        key.endsWith('ActiveTab') ||
+        key.includes('active_tab')
       ) {
         localStorage.removeItem(key);
       }
     });
     localStorage.removeItem('cn_last_user_id');
+    sessionStorage.clear();
     await supabase.auth.signOut();
     setSession(null);
     window.location.reload();

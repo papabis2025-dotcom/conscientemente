@@ -71,6 +71,9 @@ export const financasApi = {
   },
 
   updateTransaction: async (id: string, updates: Partial<Transaction>) => {
+    const user = await getAuthUser();
+    if (!user) throw new Error('Not authenticated');
+
     const payload: any = {};
     if (updates.pending !== undefined) payload.pending = updates.pending;
     if (updates.type !== undefined) payload.type = updates.type;
@@ -81,12 +84,23 @@ export const financasApi = {
     if (updates.category !== undefined) payload.category = updates.category;
     if (updates.paymentMethod !== undefined) payload.payment_method = updates.paymentMethod;
     
-    const { error } = await supabase.from('financas_transacoes').update(payload).eq('id', id);
+    const { error } = await supabase
+      .from('financas_transacoes')
+      .update(payload)
+      .eq('id', id)
+      .eq('user_id', user.id);
     if (error) throw error;
   },
 
   deleteTransaction: async (id: string) => {
-    const { error } = await supabase.from('financas_transacoes').delete().eq('id', id);
+    const user = await getAuthUser();
+    if (!user) throw new Error('Not authenticated');
+
+    const { error } = await supabase
+      .from('financas_transacoes')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', user.id);
     if (error) throw error;
   },
 

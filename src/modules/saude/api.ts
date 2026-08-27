@@ -52,6 +52,9 @@ export const saudeApi = {
   },
 
   update: async (id: string, updates: Partial<HealthActivity>) => {
+    const user = await getAuthUser();
+    if (!user) throw new Error('Not authenticated');
+
     const payload: any = {};
     if (updates.type !== undefined) payload.type = updates.type;
     if (updates.date !== undefined) payload.date = updates.date;
@@ -61,12 +64,23 @@ export const saudeApi = {
     if (updates.level !== undefined) payload.cardio_level = updates.level;
     if (updates.muscles !== undefined) payload.muscles = updates.muscles;
     
-    const { error } = await supabase.from('saude_treinos').update(payload).eq('id', id);
+    const { error } = await supabase
+      .from('saude_treinos')
+      .update(payload)
+      .eq('id', id)
+      .eq('user_id', user.id);
     if (error) throw error;
   },
 
   delete: async (id: string) => {
-    const { error } = await supabase.from('saude_treinos').delete().eq('id', id);
+    const user = await getAuthUser();
+    if (!user) throw new Error('Not authenticated');
+
+    const { error } = await supabase
+      .from('saude_treinos')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', user.id);
     if (error) throw error;
   }
 };

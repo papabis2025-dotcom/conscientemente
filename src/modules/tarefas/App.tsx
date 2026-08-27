@@ -80,9 +80,11 @@ const TarefasApp: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    let isMounted = true;
     const loadTasks = async () => {
       try {
         const data = await tarefasApi.list();
+        if (!isMounted) return;
         const mapped = data.map(t => {
           if (!t.category || t.category === 'Tarefa') {
             const txt = (t.text || '').toLowerCase();
@@ -99,10 +101,22 @@ const TarefasApp: React.FC = () => {
       } catch (err) {
         console.error('Failed to load tasks:', err);
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     };
     loadTasks();
+
+    const handleWindowFocus = () => {
+      loadTasks();
+    };
+
+    window.addEventListener('focus', handleWindowFocus);
+    window.addEventListener('local-storage-sync', handleWindowFocus);
+    return () => {
+      isMounted = false;
+      window.removeEventListener('focus', handleWindowFocus);
+      window.removeEventListener('local-storage-sync', handleWindowFocus);
+    };
   }, []);
 
   const handleAddTask = (e?: React.FormEvent) => {

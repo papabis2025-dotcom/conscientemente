@@ -271,17 +271,32 @@ const SaudeApp: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let isMounted = true;
     const loadActivities = async () => {
       try {
         const data = await saudeApi.list();
+        if (!isMounted) return;
         setActivities(data);
       } catch (err) {
         console.error('Failed to load health activities:', err);
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     };
     loadActivities();
+
+    const handleWindowFocus = () => {
+      loadActivities();
+      loadSleepLogs();
+    };
+
+    window.addEventListener('focus', handleWindowFocus);
+    window.addEventListener('local-storage-sync', handleWindowFocus);
+    return () => {
+      isMounted = false;
+      window.removeEventListener('focus', handleWindowFocus);
+      window.removeEventListener('local-storage-sync', handleWindowFocus);
+    };
   }, []);
 
   const [showAddForm, setShowAddForm] = useState(false);

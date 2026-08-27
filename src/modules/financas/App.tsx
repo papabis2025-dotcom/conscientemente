@@ -97,13 +97,15 @@ const FinancasApp: React.FC = () => {
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
+    let isMounted = true;
     const loadData = async () => {
       try {
         const trans = await financasApi.listTransactions();
+        if (!isMounted) return;
         setTransactions(trans);
         
         const config = await financasApi.loadConfig();
-        if (config) {
+        if (config && isMounted) {
           if (config.fin_in_categories) setInCategories(config.fin_in_categories as any);
           if (config.fin_out_categories) setOutCategories(config.fin_out_categories as any);
           if (config.fin_payment_methods) setPaymentMethods(config.fin_payment_methods as any);
@@ -111,10 +113,22 @@ const FinancasApp: React.FC = () => {
       } catch (err) {
         console.error('Failed to load finance data:', err);
       } finally {
-        setIsLoaded(true);
+        if (isMounted) setIsLoaded(true);
       }
     };
     loadData();
+
+    const handleWindowFocus = () => {
+      loadData();
+    };
+
+    window.addEventListener('focus', handleWindowFocus);
+    window.addEventListener('local-storage-sync', handleWindowFocus);
+    return () => {
+      isMounted = false;
+      window.removeEventListener('focus', handleWindowFocus);
+      window.removeEventListener('local-storage-sync', handleWindowFocus);
+    };
   }, []);
 
   useEffect(() => {

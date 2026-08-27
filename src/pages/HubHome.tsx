@@ -891,6 +891,17 @@ const HubHome: React.FC<HubHomeProps> = ({
 
   useEffect(() => {
     fetchCalendarData(calendarMonth).catch(console.error);
+
+    const handleSync = () => {
+      fetchCalendarData(calendarMonth).catch(console.error);
+    };
+
+    window.addEventListener('focus', handleSync);
+    window.addEventListener('local-storage-sync', handleSync);
+    return () => {
+      window.removeEventListener('focus', handleSync);
+      window.removeEventListener('local-storage-sync', handleSync);
+    };
   }, [calendarMonth, fetchCalendarData]);
 
   const [sidebarExpanded, setSidebarExpanded] = useState(() => {

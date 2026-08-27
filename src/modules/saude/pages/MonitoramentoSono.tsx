@@ -42,8 +42,10 @@ export const MonitoramentoSono: React.FC<MonitoramentoSonoProps> = ({ onUpdateSl
   });
 
   const [subTab, setSubTab] = useState<'painel' | 'historico' | 'calibracao'>('painel');
+  const isInternalUpdateRef = React.useRef(false);
 
   useEffect(() => {
+    isInternalUpdateRef.current = true;
     localStorage.setItem('cn_saude_sleep_logs', JSON.stringify(sleepLogs));
     if (onUpdateSleepLogs) {
       onUpdateSleepLogs();
@@ -51,11 +53,36 @@ export const MonitoramentoSono: React.FC<MonitoramentoSonoProps> = ({ onUpdateSl
     // Dispatch local sync event
     window.dispatchEvent(new Event('local-storage-sync'));
     window.dispatchEvent(new Event('local-settings-changed'));
+    setTimeout(() => { isInternalUpdateRef.current = false; }, 50);
   }, [sleepLogs]);
 
   useEffect(() => {
+    isInternalUpdateRef.current = true;
     localStorage.setItem('cn_saude_sleep_calibrations', JSON.stringify(calibrations));
+    window.dispatchEvent(new Event('local-storage-sync'));
+    window.dispatchEvent(new Event('local-settings-changed'));
+    setTimeout(() => { isInternalUpdateRef.current = false; }, 50);
   }, [calibrations]);
+
+  useEffect(() => {
+    const handleSync = () => {
+      if (isInternalUpdateRef.current) return;
+      try {
+        const savedLogs = localStorage.getItem('cn_saude_sleep_logs');
+        if (savedLogs) setSleepLogs(JSON.parse(savedLogs));
+        const savedCalibs = localStorage.getItem('cn_saude_sleep_calibrations');
+        if (savedCalibs) setCalibrations(JSON.parse(savedCalibs));
+      } catch (e) {
+        console.error('Error syncing sleep data in MonitoramentoSono:', e);
+      }
+    };
+    window.addEventListener('local-storage-sync', handleSync);
+    window.addEventListener('storage', handleSync);
+    return () => {
+      window.removeEventListener('local-storage-sync', handleSync);
+      window.removeEventListener('storage', handleSync);
+    };
+  }, []);
 
   // Calibration Form states
   const [calibDate, setCalibDate] = useState(() => new Date().toISOString().split('T')[0]);

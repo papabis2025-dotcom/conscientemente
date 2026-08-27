@@ -1059,16 +1059,16 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
 
     const userId = currentUser?.id;
 
-    // Trigger Fetch on User Change and Window Focus
+    // Trigger Fetch on User Change, Window Focus and Cross-tab Sync
     useEffect(() => {
         if (!userId) return;
         
         fetchDataRef.current();
 
-        // Throttle: só refaz fetch ao focar a janela se passaram mais de 5 minutos
-        // desde o último fetch. Evita centenas de queries desnecessárias por dia.
+        // Throttle inteligente: refaz fetch ao focar a janela após 15 segundos
+        // para garantir dados atualizados entre abas e computadores
         let lastFocusFetchAt = Date.now();
-        const FOCUS_THROTTLE_MS = 5 * 60 * 1000; // 5 minutos
+        const FOCUS_THROTTLE_MS = 15 * 1000; // 15 segundos
 
         const handleFocus = () => {
             const now = Date.now();
@@ -1078,8 +1078,17 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
             lastFocusFetchAt = now;
             fetchDataRef.current(true);
         };
+
+        const handleSync = () => {
+            fetchDataRef.current(true);
+        };
+
         window.addEventListener('focus', handleFocus);
-        return () => window.removeEventListener('focus', handleFocus);
+        window.addEventListener('local-storage-sync', handleSync);
+        return () => {
+            window.removeEventListener('focus', handleFocus);
+            window.removeEventListener('local-storage-sync', handleSync);
+        };
     }, [userId]);
 
 

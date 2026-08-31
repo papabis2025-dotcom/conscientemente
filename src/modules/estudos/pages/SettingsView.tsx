@@ -2,7 +2,8 @@
 import React, { useRef, useState } from 'react';
 import { Settings, Target, Sparkles } from 'lucide-react';
 import { supabase } from '../services/supabase';
-import { api } from '../services/api';
+import { backupService } from '../../../services/backupService';
+
 interface SettingsViewProps {
   currentUserEmail: string;
   globalDailyGoal?: number;
@@ -57,38 +58,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
   const handleExport = async () => {
     setIsExporting(true);
     try {
-      // Fetch all user data from Supabase
-      const [concursos, sessions, simulados, schedule, goals] = await Promise.all([
-        api.concursos.list(),
-        api.sessions.list(),
-        api.simulados.list(),
-        api.schedule.list(),
-        api.dailyGoals.list()
-      ]);
-
-      const exportData = {
-        version: '1.0',
-        exportDate: new Date().toISOString(),
-        data: {
-          concursos,
-          sessions,
-          simulados,
-          scheduledStudies: schedule,
-          dailyGoals: goals
-        }
-      };
-
-      // Create and download JSON file
-      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `gabaritando-backup-${new Date().toISOString().split('T')[0]}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-
+      await backupService.exportBackup();
       alert('Dados exportados com sucesso!');
     } catch (error) {
       console.error('Export error:', error);
@@ -102,56 +72,19 @@ const SettingsView: React.FC<SettingsViewProps> = ({
     const file = e.target.files?.[0];
     if (!file) return;
 
+    if (!confirm('Importar backup completo? Isso sincronizará seus dados de todos os módulos e configurações.')) {
+      if (fileRef.current) fileRef.current.value = '';
+      return;
+    }
+
     setIsImporting(true);
     try {
-      const text = await file.text();
-      const importData = JSON.parse(text);
-
-      if (!importData.data) {
-        throw new Error('Formato de arquivo inválido');
-      }
-
-      const { concursos, sessions, simulados, scheduledStudies, dailyGoals } = importData.data;
-
-      // Confirm before importing
-      const itemCount = (concursos?.length || 0) + (sessions?.length || 0) + (simulados?.length || 0);
-      if (!confirm(`Importar ${itemCount} itens? Isso pode sobrescrever dados existentes.`)) {
-        setIsImporting(false);
-        return;
-      }
-
-      // Import data using API
-      if (concursos) {
-        for (const conc of concursos) {
-          await api.concursos.upsert(conc);
-        }
-      }
-      if (sessions) {
-        for (const session of sessions) {
-          await api.sessions.create(session);
-        }
-      }
-      if (simulados) {
-        for (const sim of simulados) {
-          await api.simulados.create(sim);
-        }
-      }
-      if (scheduledStudies) {
-        for (const item of scheduledStudies) {
-          await api.schedule.create(item);
-        }
-      }
-      if (dailyGoals) {
-        for (const goal of dailyGoals) {
-          await api.dailyGoals.upsert(goal);
-        }
-      }
-
-      alert('Dados importados com sucesso! Recarregue a página.');
+      const result = await backupService.importBackup(file);
+      alert(`Dados importados com sucesso (${result.itemCount} registros sincronizados)! A página será recarregada.`);
       window.location.reload();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Import error:', error);
-      alert('Erro ao importar dados. Verifique o formato do arquivo.');
+      alert('Erro ao importar dados: ' + (error?.message || 'Arquivo inválido.'));
     } finally {
       setIsImporting(false);
       if (fileRef.current) fileRef.current.value = '';

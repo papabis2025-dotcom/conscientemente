@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { LayoutTemplate, Wallet, TrendingUp, TrendingDown, CreditCard, ChevronLeft, ChevronRight, Trash2, Calendar, PieChart as PieChartIcon, Edit3, Menu, RefreshCw, FileText } from 'lucide-react';
 import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts';
 import { financasApi } from './api';
@@ -165,6 +165,7 @@ const FinancasApp: React.FC = () => {
   const [txRecurrences, setTxRecurrences] = useState('');
   const [txUntilCancelled, setTxUntilCancelled] = useState(false);
   const [editingTxId, setEditingTxId] = useState<string | null>(null);
+  const datePickerRef = useRef<HTMLInputElement>(null);
   const [activeChartTab, setActiveChartTab] = useState<'cartoes' | 'saidas' | 'entradas'>('cartoes');
   const [deleteModalConfig, setDeleteModalConfig] = useState<{
     isOpen: boolean;
@@ -324,10 +325,15 @@ const FinancasApp: React.FC = () => {
     // Format amount cleanly for editing text box (e.g. 1500,50 or 1500.5 -> 1500,50)
     setTxAmount(t.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
     setTxCategory(t.category);
-    if (t.dayOnly) {
-      setTxDate(t.date.split('-')[2]);
+    if (t.date) {
+      const parts = t.date.split('-');
+      if (parts.length >= 3) {
+        setTxDate(parseInt(parts[2], 10).toString());
+      } else {
+        setTxDate(t.date);
+      }
     } else {
-      setTxDate(t.date);
+      setTxDate('');
     }
     setTxPending(t.pending || false);
     setTxMethod(t.paymentMethod || '');
@@ -368,17 +374,24 @@ const FinancasApp: React.FC = () => {
     e.preventDefault();
     if (!txName || !txAmount) return;
 
-    let finalDate = txDate;
-    let dayOnly = false;
-    if (!finalDate) {
-      finalDate = new Date().toISOString().split('T')[0];
-    } else if (finalDate.length <= 2) {
-      dayOnly = true;
-      const day = String(parseInt(finalDate)).padStart(2, '0');
-      finalDate = `${currentMonthStr}-${day}`;
+    let finalDate: string;
+    let dayOnly = true;
+    if (!txDate) {
+      const today = new Date();
+      if (today.getFullYear() === currentDate.getFullYear() && today.getMonth() === currentDate.getMonth()) {
+        finalDate = `${currentMonthStr}-${String(today.getDate()).padStart(2, '0')}`;
+      } else {
+        finalDate = `${currentMonthStr}-01`;
+      }
+    } else {
+      const dayNum = parseInt(txDate, 10);
+      const safeDay = Math.min(Math.max(isNaN(dayNum) ? 1 : dayNum, 1), 31);
+      finalDate = `${currentMonthStr}-${String(safeDay).padStart(2, '0')}`;
     }
 
-    const amountNum = parseFloat(txAmount.replace(/\./g, '').replace(',', '.'));
+    const cleanAmount = txAmount.replace(/\./g, '').replace(',', '.');
+    const amountNum = parseFloat(cleanAmount);
+    if (isNaN(amountNum) || amountNum <= 0) return;
 
     if (editingTxId) {
       let formattedName = txIsIR ? (txName.startsWith('[IR]') ? txName : `[IR] ${txName}`) : (txName.startsWith('[IR]') ? txName.replace(/^\[IR\]\s*/, '') : txName);
@@ -826,14 +839,63 @@ const FinancasApp: React.FC = () => {
               <form onSubmit={handleAddTransaction} className="space-y-2.5">
                 <div className="flex gap-2">
                   <div className="w-1/3 flex flex-col gap-1">
-                    <label className="text-[9px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Dia ou Data</label>
-                    <input 
-                      type="text" 
-                      placeholder="Ex: 19" 
-                      value={txDate} 
-                      onChange={e => setTxDate(e.target.value)} 
-                      className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:ring-1 focus:ring-rose-500 dark:text-white font-semibold" 
-                    />
+                    <label className="text-[9px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Dia (1-31)</label>
+                    <div className="relative flex items-center">
+                      <input 
+                        type="text" 
+                        inputMode="numeric"
+                        placeholder="Ex: 19" 
+                        value={txDate} 
+                        onChange={e => {
+                          const raw = e.target.value.replace(/\D/g, '');
+                          if (raw === '') {
+                            setTxDate('');
+                          } else {
+                            const num = parseInt(raw, 10);
+                            if (num >= 1 && num <= 31) {
+                              setTxDate(num.toString());
+                            }
+                          }
+                        }} 
+                        className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg pl-2.5 pr-7 py-1.5 text-xs outline-none focus:ring-1 focus:ring-rose-500 dark:text-white font-semibold" 
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (datePickerRef.current) {
+                            if ('showPicker' in HTMLInputElement.prototype) {
+                              try {
+                                datePickerRef.current.showPicker();
+                              } catch {
+                                datePickerRef.current.click();
+                              }
+                            } else {
+                              datePickerRef.current.click();
+                            }
+                          }
+                        }}
+                        title="Selecionar dia no calendário"
+                        className="absolute right-1 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 p-1 transition-colors"
+                      >
+                        <Calendar size={13} />
+                      </button>
+                      <input
+                        ref={datePickerRef}
+                        type="date"
+                        className="sr-only pointer-events-none"
+                        value={txDate ? `${currentMonthStr}-${String(parseInt(txDate, 10)).padStart(2, '0')}` : `${currentMonthStr}-01`}
+                        min={`${currentMonthStr}-01`}
+                        max={`${currentMonthStr}-${new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate()}`}
+                        onChange={e => {
+                          if (e.target.value) {
+                            const pickedDay = parseInt(e.target.value.split('-')[2], 10);
+                            if (!isNaN(pickedDay)) {
+                              setTxDate(pickedDay.toString());
+                            }
+                          }
+                        }}
+                      />
+                    </div>
                   </div>
                   <div className="w-2/3 flex flex-col gap-1">
                     <label className="text-[9px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Nome / Descrição</label>
@@ -865,9 +927,18 @@ const FinancasApp: React.FC = () => {
                     <label className="text-[9px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Valor (R$)</label>
                     <input 
                       type="text" 
+                      inputMode="decimal"
                       placeholder="0,00" 
                       value={txAmount} 
-                      onChange={e => setTxAmount(e.target.value)} 
+                      onChange={e => {
+                        let val = e.target.value.replace(/[^0-9,\.]/g, '');
+                        const parts = val.split(/[,.]/);
+                        if (parts.length > 2) {
+                          const sep = val.includes(',') ? ',' : '.';
+                          val = parts[0] + sep + parts.slice(1).join('');
+                        }
+                        setTxAmount(val);
+                      }} 
                       className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:ring-1 focus:ring-rose-500 font-bold dark:text-white" 
                     />
                   </div>

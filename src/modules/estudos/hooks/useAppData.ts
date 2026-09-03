@@ -514,12 +514,6 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                                     if (dateStr > examDateStr) return;
                                 }
 
-                                // Se este dia for dia de Simulado, não agendar revisão neste dia
-                                const isSimuladoDay = allSchedule.some(sched => 
-                                    sched.activityType === 'Simulado' && sched.date === dateStr
-                                );
-                                if (isSimuladoDay) return;
-
                                 const reviewId = getDeterministicReviewId(subject.id, topic.id === 'geral' ? undefined : topic.id, latestSession.id, idx);
                                 
                                 const tag = getActivityTag(subject.id, sessionDateStr, topic.id === 'geral' ? undefined : topic.title);
@@ -600,19 +594,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
 
         const uniqueToDeleteMap = new Map<string, ScheduledStudy>();
         
-        // 1. Adicionar revisões obsoletas ou geradas indevidamente por antecipação sem sessão de estudo concluída
-        // Afeta ESTRITAMENTE revisões automáticas geradas pelo sistema, NUNCA tarefas manuais ou Aulões
-        allSchedule.forEach(s => {
-            const isReview = isAutomaticReview(s);
-            if (!isReview || s.status === 'realizado') return;
-
-            // Qualquer revisão automática planejada sem sessão de estudo concluída correspondente é inválida e deve ser expurgada
-            if (!expectedIds.has(s.id)) {
-                uniqueToDeleteMap.set(s.id, s);
-            }
-        });
-
-        // 2. Adicionar as duplicadas ativas
+        // Apenas expurgar duplicadas ativas reais (mesma matéria, tópico, data e origem) para evitar poluição
         duplicateReviewsToDelete.forEach(s => {
             uniqueToDeleteMap.set(s.id, s);
         });
@@ -992,9 +974,16 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                     return true;
                 });
 
-                if (deletedIdsSet.size > 0) {
-                    api.schedule.deleteBatch(Array.from(deletedIdsSet)).catch(() => {});
+                const safeDeleteIds = Array.from(deletedIdsSet).filter(id => {
+                    const task = finalSchedule.find(s => s.id === id);
+                    return !isReviewTask(task);
+                });
+                if (safeDeleteIds.length > 0) {
+                    api.schedule.deleteBatch(safeDeleteIds).catch(() => {});
                 }
+                try {
+                    localStorage.setItem('cp_deleted_scheduled_ids', JSON.stringify(safeDeleteIds));
+                } catch (e) {}
 
                 // Sync planned reviews with up-to-date cloud settings and consolidate schedule
                 const consolidatedSchedule = await syncPlannedReviewsDb(finalSessions, filteredFinalSchedule, finalConcursos);
@@ -1680,7 +1669,12 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         try {
             const savedDeleted = localStorage.getItem('cp_deleted_scheduled_ids') || '[]';
             const deletedSet = new Set(JSON.parse(savedDeleted));
-            safeIdsToDelete.forEach(id => deletedSet.add(id));
+            safeIdsToDelete.forEach(id => {
+                const item = scheduledStudies.find(s => s.id === id);
+                if (!isReviewTask(item)) {
+                    deletedSet.add(id);
+                }
+            });
             localStorage.setItem('cp_deleted_scheduled_ids', JSON.stringify(Array.from(deletedSet)));
         } catch (e) {}
 

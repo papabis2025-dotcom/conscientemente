@@ -294,6 +294,7 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
           onToggleScheduledStudyStatus={toggleScheduledStudyStatus}
           onResetConcursoSchedule={resetConcursoSchedule}
           onUpdateScheduledStudy={updateScheduledStudy}
+          onSyncReviews={syncPlannedReviews}
         />;
       case 'calendar':
         return <CalendarView

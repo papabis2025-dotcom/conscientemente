@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { Subject, StudySession, Concurso } from '../types';
+import { Subject, StudySession, Concurso, Topic } from '../types';
 import { api } from '../services/api';
 import { ChevronDown, ChevronRight, Trophy, PieChart as PieChartIcon, Table, Lock, Unlock, FileSpreadsheet } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';

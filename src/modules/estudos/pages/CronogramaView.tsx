@@ -45,6 +45,7 @@ interface CronogramaViewProps {
   onToggleScheduledStudyStatus: (id: string) => Promise<void>;
   onResetConcursoSchedule?: (concursoId: string) => Promise<void>;
   onUpdateScheduledStudy?: (id: string, updates: Partial<ScheduledStudy>) => Promise<void>;
+  onSyncReviews?: (forceRecalculate?: boolean) => Promise<void>;
 }
 
 const WEEKDAYS = [
@@ -69,7 +70,8 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
   onDeleteScheduledStudiesBatch,
   onToggleScheduledStudyStatus,
   onResetConcursoSchedule,
-  onUpdateScheduledStudy
+  onUpdateScheduledStudy,
+  onSyncReviews
 }) => {
   // UI States
   const [viewMode, setViewMode] = useState<'day' | 'week' | 'month'>('week');
@@ -194,12 +196,14 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
       api.settings.update({ cp_cronograma_prefs_map: map }).catch(() => {});
       window.dispatchEvent(new Event('local-settings-changed'));
 
-      // Apagar todas as tarefas pendentes do concurso ativo
+      // Apagar todas as tarefas pendentes geradas pelo cronograma do concurso ativo
       const uncompletedTasks = (scheduledStudies || []).filter(s => 
-        s.status !== 'realizado' && (
+        s.status !== 'realizado' &&
+        s.generatedByCronograma === true &&
+        !s.activityType?.toLowerCase().includes('revis') && (
           activeConcursoSubjectIds.has(s.subjectId) ||
           s.concursoId === selectedConcursoId ||
-          (s.generatedByCronograma && s.activityType === 'Simulado')
+          s.activityType === 'Simulado'
         )
       );
       if (uncompletedTasks.length > 0) {
@@ -405,12 +409,14 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
         window.dispatchEvent(new Event('local-settings-changed'));
       }
 
-      // 0. Purgar tarefas pendentes antigas para evitar duplicatas ao re-gerar
+      // 0. Purgar tarefas pendentes antigas geradas pelo cronograma para evitar duplicatas ao re-gerar (preserva revisões e estudos manuais)
       const uncompletedOldTasks = (scheduledStudies || []).filter(s =>
-        s.status !== 'realizado' && (
+        s.status !== 'realizado' &&
+        s.generatedByCronograma === true &&
+        !s.activityType?.toLowerCase().includes('revis') && (
           activeConcursoSubjectIds.has(s.subjectId) ||
           s.concursoId === selectedConcursoId ||
-          (s.generatedByCronograma && s.activityType === 'Simulado')
+          s.activityType === 'Simulado'
         )
       );
       if (uncompletedOldTasks.length > 0) {
@@ -787,6 +793,11 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
 
       // Salva em lote
       await onAddScheduledStudiesBatch(items);
+      try {
+        if (onSyncReviews) {
+          await onSyncReviews();
+        }
+      } catch (e) {}
       setSelectedDateStr(startDateStr);
     } catch (e) {
       console.error('Error generating schedule:', e);
@@ -808,12 +819,14 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
 
     setIsGenerating(true);
     try {
-      // 1. Apagar todas as tarefas pendentes vinculadas a este concurso
+      // 1. Apagar todas as tarefas pendentes geradas pelo cronograma deste concurso (preserva revisões e estudos manuais)
       const uncompletedTasks = (scheduledStudies || []).filter(s =>
-        s.status !== 'realizado' && (
+        s.status !== 'realizado' &&
+        s.generatedByCronograma === true &&
+        !s.activityType?.toLowerCase().includes('revis') && (
           activeConcursoSubjectIds.has(s.subjectId) ||
           s.concursoId === selectedConcursoId ||
-          (s.generatedByCronograma && s.activityType === 'Simulado')
+          s.activityType === 'Simulado'
         )
       );
       if (uncompletedTasks.length > 0) {

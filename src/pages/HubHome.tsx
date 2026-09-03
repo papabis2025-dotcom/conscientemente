@@ -1344,6 +1344,7 @@ const HubHome: React.FC<HubHomeProps> = ({
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordMessage, setPasswordMessage] = useState('');
   const [newEmail, setNewEmail] = useState('');
+  const [emailMessage, setEmailMessage] = useState('');
     const handleExport = async () => {
     setIsExporting(true);
     try {

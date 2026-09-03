@@ -984,7 +984,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                             const saved = localStorage.getItem(`cp_cronograma_prefs_${concId}`);
                             if (saved) {
                                 const parsed = JSON.parse(saved);
-                                if (parsed.isCronogramaEnabled === false && s.status !== 'realizado') return false;
+                                if (parsed.isCronogramaEnabled === false && s.status !== 'realizado' && s.generatedByCronograma === true) return false;
                             }
                         } catch (e) {}
                     }
@@ -1185,8 +1185,8 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                 if (!activeSimDates.has(sDate)) return false;
             }
 
-            // Se for atividade agendada e NÃO realizada, ocultar se o cronograma daquele concurso estiver desativado
-            if (s.status !== 'realizado') {
+            // Se for atividade agendada e NÃO realizada gerada pelo cronograma, ocultar se o cronograma daquele concurso estiver desativado
+            if (s.status !== 'realizado' && s.generatedByCronograma === true) {
                 const concId = s.subjectId 
                     ? (subjectToConcursoMap.get(s.subjectId) || (selectedConcursoId !== 'all' ? selectedConcursoId : undefined)) 
                     : (selectedConcursoId !== 'all' ? selectedConcursoId : undefined);
@@ -1200,7 +1200,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
 
         if (selectedConcursoId === 'all') return validScheduled;
         const subIds = new Set((activeConcurso?.subjects || []).map(s => s.id));
-        return validScheduled.filter(s => subIds.has(s.subjectId));
+        return validScheduled.filter(s => subIds.has(s.subjectId) || s.concursoId === selectedConcursoId);
     }, [scheduledStudies, simulados, selectedConcursoId, activeConcurso, concursos, settingsTick]);
 
     const filteredStudyTasks = useMemo(() => {
@@ -2239,7 +2239,10 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
 
                 const cleanedPrev = prev.filter(s => {
                     if (s.status === 'realizado') return true;
-                    if (targetConcursoId && s.concursoId === targetConcursoId) return false;
+                    // Preserva sempre revisões e tarefas manuais
+                    if (s.activityType && (s.activityType.toLowerCase().includes('revisão') || s.activityType.toLowerCase().includes('revisao'))) return true;
+                    if (!s.generatedByCronograma && s.activityType !== 'Simulado') return true;
+                    if (targetConcursoId && s.concursoId === targetConcursoId && s.generatedByCronograma) return false;
                     if (s.subjectId && targetSubjectIds.has(s.subjectId) && (s.generatedByCronograma || s.activityType === 'Simulado')) return false;
                     return true;
                 });
@@ -2249,6 +2252,11 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                 return combined;
             });
             setLastSaved(new Date().toLocaleTimeString());
+
+            // Aciona sincronização de revisões planejadas de forma assíncrona para manter consistência
+            try {
+                await syncPlannedReviewsDb(sessions, [...scheduledStudies, ...savedItems], concursos);
+            } catch (e) {}
         } catch (e) {
             console.error('Error adding scheduled studies batch:', e);
             setSaveError('Erro ao salvar cronograma.');
@@ -2316,8 +2324,10 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         setIsSaving(true);
         setSaveError(null);
 
-        // 1. Identificar apenas itens vinculados às disciplinas do concurso (ou simulados) que NÃO estejam realizados
+        // 1. Identificar apenas itens gerados pelo cronograma vinculados às disciplinas do concurso (ou simulados) que NÃO estejam realizados
         const itemsToDelete = scheduledStudies.filter(s => 
+            s.generatedByCronograma === true &&
+            !s.activityType?.toLowerCase().includes('revis') &&
             (subjectIds.has(s.subjectId) || s.activityType === 'Simulado') && 
             s.status !== 'realizado'
         );

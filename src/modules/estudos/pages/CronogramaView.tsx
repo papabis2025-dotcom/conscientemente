@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { Subject, Topic, StudySession, Concurso, ScheduledStudy, Simulado, ActivityType } from '../types';
+import { Subject, Topic, StudySession, Concurso, ScheduledStudy, Simulado, ActivityType, isReviewTask } from '../types';
 import { api } from '../services/api';
 import {
   CalendarDays,
@@ -196,11 +196,10 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
       api.settings.update({ cp_cronograma_prefs_map: map }).catch(() => {});
       window.dispatchEvent(new Event('local-settings-changed'));
 
-      // Apagar todas as tarefas pendentes geradas pelo cronograma do concurso ativo
+      // Apagar todas as tarefas pendentes de estudo regular do concurso ativo (preserva revisões e estudos manuais)
       const uncompletedTasks = (scheduledStudies || []).filter(s => 
         s.status !== 'realizado' &&
-        s.generatedByCronograma === true &&
-        !s.activityType?.toLowerCase().includes('revis') && (
+        !isReviewTask(s) && (
           activeConcursoSubjectIds.has(s.subjectId) ||
           s.concursoId === selectedConcursoId ||
           s.activityType === 'Simulado'
@@ -409,11 +408,10 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
         window.dispatchEvent(new Event('local-settings-changed'));
       }
 
-      // 0. Purgar tarefas pendentes antigas geradas pelo cronograma para evitar duplicatas ao re-gerar (preserva revisões e estudos manuais)
+      // 0. Purgar tarefas pendentes antigas de estudo regular para evitar duplicatas ao re-gerar (preserva revisões e estudos manuais)
       const uncompletedOldTasks = (scheduledStudies || []).filter(s =>
         s.status !== 'realizado' &&
-        s.generatedByCronograma === true &&
-        !s.activityType?.toLowerCase().includes('revis') && (
+        !isReviewTask(s) && (
           activeConcursoSubjectIds.has(s.subjectId) ||
           s.concursoId === selectedConcursoId ||
           s.activityType === 'Simulado'
@@ -819,11 +817,10 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
 
     setIsGenerating(true);
     try {
-      // 1. Apagar todas as tarefas pendentes geradas pelo cronograma deste concurso (preserva revisões e estudos manuais)
+      // 1. Apagar todas as tarefas pendentes de estudo regular deste concurso (preserva revisões e estudos manuais)
       const uncompletedTasks = (scheduledStudies || []).filter(s =>
         s.status !== 'realizado' &&
-        s.generatedByCronograma === true &&
-        !s.activityType?.toLowerCase().includes('revis') && (
+        !isReviewTask(s) && (
           activeConcursoSubjectIds.has(s.subjectId) ||
           s.concursoId === selectedConcursoId ||
           s.activityType === 'Simulado'

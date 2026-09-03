@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Subject, StudySession, Concurso, ScheduledStudy, DailyGoal, LogEntry, User, Simulado, ActivityType } from '../types';
+import { Subject, StudySession, Concurso, ScheduledStudy, DailyGoal, LogEntry, User, Simulado, ActivityType, isReviewTask } from '../types';
 import { supabase } from '../services/supabase';
 import { api } from '../services/api';
 
@@ -556,6 +556,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                 const arr: string[] = JSON.parse(savedDeletedRev);
                 const filteredArr = arr.filter(id => !expectedIds.has(id));
                 localStorage.setItem('estudos_deleted_review_ids', JSON.stringify(filteredArr));
+                api.settings.update({ deletedReviewIds: filteredArr }).catch(() => {});
             }
             const savedDeletedSched = localStorage.getItem('cp_deleted_scheduled_ids');
             if (savedDeletedSched) {
@@ -977,14 +978,14 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                 });
 
                 const filteredFinalSchedule = finalSchedule.filter(s => {
-                    if (deletedIdsSet.has(s.id)) return false;
+                    if (deletedIdsSet.has(s.id) && !isReviewTask(s)) return false;
                     const concId = s.concursoId || (s.subjectId ? subjectToConcursoMap.get(s.subjectId) : undefined);
                     if (concId) {
                         try {
                             const saved = localStorage.getItem(`cp_cronograma_prefs_${concId}`);
                             if (saved) {
                                 const parsed = JSON.parse(saved);
-                                if (parsed.isCronogramaEnabled === false && s.status !== 'realizado' && s.generatedByCronograma === true) return false;
+                                if (parsed.isCronogramaEnabled === false && s.status !== 'realizado' && !isReviewTask(s)) return false;
                             }
                         } catch (e) {}
                     }
@@ -1185,8 +1186,8 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                 if (!activeSimDates.has(sDate)) return false;
             }
 
-            // Se for atividade agendada e NÃO realizada gerada pelo cronograma, ocultar se o cronograma daquele concurso estiver desativado
-            if (s.status !== 'realizado' && s.generatedByCronograma === true) {
+            // Se for atividade agendada e NÃO realizada de estudo regular, ocultar se o cronograma daquele concurso estiver desativado
+            if (s.status !== 'realizado' && !isReviewTask(s)) {
                 const concId = s.subjectId 
                     ? (subjectToConcursoMap.get(s.subjectId) || (selectedConcursoId !== 'all' ? selectedConcursoId : undefined)) 
                     : (selectedConcursoId !== 'all' ? selectedConcursoId : undefined);
@@ -2239,24 +2240,26 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
 
                 const cleanedPrev = prev.filter(s => {
                     if (s.status === 'realizado') return true;
-                    // Preserva sempre revisões e tarefas manuais
-                    if (s.activityType && (s.activityType.toLowerCase().includes('revisão') || s.activityType.toLowerCase().includes('revisao'))) return true;
-                    if (!s.generatedByCronograma && s.activityType !== 'Simulado') return true;
-                    if (targetConcursoId && s.concursoId === targetConcursoId && s.generatedByCronograma) return false;
-                    if (s.subjectId && targetSubjectIds.has(s.subjectId) && (s.generatedByCronograma || s.activityType === 'Simulado')) return false;
+                    // Preserva sempre todas as revisões
+                    if (isReviewTask(s)) return true;
+                    // Limpa tarefas pendentes anteriores das matérias do lote para evitar duplicatas
+                    if (targetConcursoId && s.concursoId === targetConcursoId) return false;
+                    if (s.subjectId && targetSubjectIds.has(s.subjectId)) return false;
+                    if (s.activityType === 'Simulado' && targetConcursoId && s.concursoId === targetConcursoId) return false;
                     return true;
                 });
 
                 const combined = [...cleanedPrev, ...savedItems];
                 localStorage.setItem('cp_scheduled_studies', JSON.stringify(combined));
+
+                // Aciona sincronização de revisões planejadas de forma assíncrona para manter consistência
+                try {
+                    syncPlannedReviewsDb(sessions, combined, concursos).catch(() => {});
+                } catch (e) {}
+
                 return combined;
             });
             setLastSaved(new Date().toLocaleTimeString());
-
-            // Aciona sincronização de revisões planejadas de forma assíncrona para manter consistência
-            try {
-                await syncPlannedReviewsDb(sessions, [...scheduledStudies, ...savedItems], concursos);
-            } catch (e) {}
         } catch (e) {
             console.error('Error adding scheduled studies batch:', e);
             setSaveError('Erro ao salvar cronograma.');
@@ -2284,11 +2287,15 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
             return;
         }
 
-        // Persistir IDs deletados no localStorage para evitar re-hidratação
+        // Persistir IDs deletados no localStorage para evitar re-hidratação (apenas tarefas normais, NUNCA revisões)
         try {
             const savedDeleted = localStorage.getItem('cp_deleted_scheduled_ids') || '[]';
             const deletedSet = new Set(JSON.parse(savedDeleted));
-            uncompletedIdsToDelete.forEach(id => deletedSet.add(id));
+            const normalTaskIdsToDelete = uncompletedIdsToDelete.filter(id => {
+                const item = scheduledStudies.find(s => s.id === id);
+                return !isReviewTask(item);
+            });
+            normalTaskIdsToDelete.forEach(id => deletedSet.add(id));
             localStorage.setItem('cp_deleted_scheduled_ids', JSON.stringify(Array.from(deletedSet)));
         } catch (e) {}
 
@@ -2324,10 +2331,9 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         setIsSaving(true);
         setSaveError(null);
 
-        // 1. Identificar apenas itens gerados pelo cronograma vinculados às disciplinas do concurso (ou simulados) que NÃO estejam realizados
+        // 1. Identificar apenas tarefas pendentes de estudo regular vinculadas às disciplinas do concurso (ou simulados) que NÃO estejam realizados (preserva revisões)
         const itemsToDelete = scheduledStudies.filter(s => 
-            s.generatedByCronograma === true &&
-            !s.activityType?.toLowerCase().includes('revis') &&
+            !isReviewTask(s) &&
             (subjectIds.has(s.subjectId) || s.activityType === 'Simulado') && 
             s.status !== 'realizado'
         );

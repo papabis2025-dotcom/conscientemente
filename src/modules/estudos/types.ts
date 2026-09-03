@@ -115,3 +115,13 @@ export interface UserProgress {
   weeklyGoalMinutes: number;
   currentStreak: number;
 }
+
+export const isReviewTask = (s: { activityType?: string; notes?: string; id?: string } | null | undefined): boolean => {
+  if (!s) return false;
+  const type = s.activityType ? s.activityType.toLowerCase() : '';
+  if (type.includes('revisão') || type.includes('revisao')) return true;
+  const notes = s.notes ? s.notes.toLowerCase() : '';
+  if (notes.includes('revisão') || notes.includes('revisao') || notes.includes('[groupid:rev_')) return true;
+  if (s.id && s.id.split('-')[3]?.startsWith('400')) return true;
+  return false;
+};

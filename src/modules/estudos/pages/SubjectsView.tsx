@@ -107,6 +107,19 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
     return false;
   });
 
+  // Garantir que a guia Disciplinas sempre tenha um concurso específico selecionado (nunca 'all' / Visão Global)
+  useEffect(() => {
+    if ((!selectedConcursoId || selectedConcursoId === 'all') && concursos && concursos.length > 0 && onSelectConcursoId) {
+      onSelectConcursoId(concursos[0].id);
+    }
+  }, [selectedConcursoId, concursos, onSelectConcursoId]);
+
+  useEffect(() => {
+    if (selectedConcursoId && selectedConcursoId !== 'all') {
+      setReviewsDisabled(localStorage.getItem('estudos_disabled_reviews_' + selectedConcursoId) === 'true');
+    }
+  }, [selectedConcursoId]);
+
   const [isReviewDaysLocked, setIsReviewDaysLocked] = useState(() => {
     return localStorage.getItem('estudos_review_days_locked') === 'true';
   });
@@ -777,7 +790,40 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
 
   return (
     <div className="space-y-4 animate-in fade-in duration-500">
+      {/* Barra de Seleção de Concurso e Ações */}
+      <div className="flex flex-wrap items-center justify-between gap-3 px-1">
+        <div className="flex items-center gap-3">
+          {concursos && concursos.length > 0 && onSelectConcursoId && (
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-1.5 flex items-center gap-2 shadow-sm">
+              <Trophy size={14} className="text-amber-500 shrink-0" />
+              <select
+                value={selectedConcursoId && selectedConcursoId !== 'all' ? selectedConcursoId : concursos[0]?.id}
+                onChange={(e) => onSelectConcursoId(e.target.value)}
+                className="bg-white dark:bg-zinc-900 border-none outline-none text-xs font-bold text-zinc-800 dark:text-zinc-100 cursor-pointer max-w-[220px] uppercase tracking-wide focus:ring-0 truncate"
+              >
+                {concursos.map(c => (
+                  <option key={c.id} value={c.id} className="bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-100">
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+          <span className="text-xs text-zinc-400 font-medium hidden sm:inline">
+            Disciplinas e tópicos do concurso selecionado
+          </span>
+        </div>
 
+        <button
+          type="button"
+          onClick={handleExportSpreadsheet}
+          className="bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-black uppercase tracking-wider px-3.5 py-1.5 rounded-xl transition-all flex items-center gap-1.5 shadow-sm"
+          title="Exportar disciplinas e tópicos para planilha Excel / Google Planilhas"
+        >
+          <FileSpreadsheet size={14} />
+          Exportar Planilha
+        </button>
+      </div>
 
       {/* Menu Superior de Revisões Personalizadas */}
       <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-3 rounded-2xl flex flex-wrap items-center justify-between gap-4 shadow-sm">
@@ -789,15 +835,6 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
           </div>
         </div>
         <div className="flex flex-wrap gap-4 items-center">
-          <button
-            type="button"
-            onClick={handleExportSpreadsheet}
-            className="bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-black uppercase tracking-wider px-3.5 py-1.5 rounded-xl transition-all flex items-center gap-1.5 shadow-sm"
-            title="Exportar disciplinas e tópicos para planilha Excel / Google Planilhas"
-          >
-            <FileSpreadsheet size={14} />
-            Exportar Planilha
-          </button>
           {selectedConcursoId && selectedConcursoId !== 'all' && (
             <label className="flex items-center gap-2 cursor-pointer py-1.5 px-3 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-bold text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700/50 transition-colors select-none">
               <input

@@ -84,7 +84,7 @@ function getSanitizedLocalSettings(): Record<string, string | null> {
 
 function getSupabaseSanitizedSettings(settings: Record<string, string | null>): Record<string, string | null> {
   const sanitized = { ...settings };
-  if (sanitized['cn_custom_bg_image'] && sanitized['cn_custom_bg_image'].startsWith('data:image/') && sanitized['cn_custom_bg_image'].length > 50_000) {
+  if (sanitized['cn_custom_bg_image'] && sanitized['cn_custom_bg_image'].startsWith('data:image/') && sanitized['cn_custom_bg_image'].length > 450_000) {
     sanitized['cn_custom_bg_image'] = null;
   }
   return sanitized;
@@ -387,6 +387,16 @@ function mergeSettings(
       } catch {
         merged[key] = localVal || remoteVal;
       }
+    } else if (key === 'cn_custom_bg_image') {
+      if (localVal && !remoteVal) {
+        merged[key] = localVal;
+      } else if (!localVal && remoteVal) {
+        merged[key] = remoteVal;
+      } else if (localVal && remoteVal) {
+        merged[key] = preferRemote ? remoteVal : localVal;
+      } else {
+        merged[key] = null;
+      }
     } else {
       merged[key] = preferRemote ? remoteVal : localVal;
     }
@@ -584,8 +594,12 @@ const App: React.FC = () => {
 
         const finalBgType = (merged['cn_custom_bg_type'] as any) || prefs.hub_bg_type || 'default';
         const finalBgColor = merged['cn_custom_bg_color'] || prefs.hub_bg_color || '#ffffff';
+        const finalBgImage = merged['cn_custom_bg_image'] || '';
+        const finalBgStyle = merged['cn_custom_bg_style'] || 'cover';
         setBgType(finalBgType);
         setBgColor(finalBgColor);
+        if (finalBgImage) setBgImage(finalBgImage);
+        if (finalBgStyle) setBgImageStyle(finalBgStyle);
 
         SYNC_KEYS.forEach(key => {
           const val = merged[key];
@@ -775,6 +789,8 @@ const App: React.FC = () => {
               setTheme(mergedTheme);
             }
 
+            if (merged['cn_custom_bg_type']) setBgType(merged['cn_custom_bg_type'] as any);
+            if (merged['cn_custom_bg_color']) setBgColor(merged['cn_custom_bg_color']);
             if (merged['cn_custom_bg_image']) setBgImage(merged['cn_custom_bg_image']);
             if (merged['cn_custom_bg_style']) setBgImageStyle(merged['cn_custom_bg_style']);
 
@@ -798,8 +814,8 @@ const App: React.FC = () => {
             // Usa bgTypeRef.current e bgColorRef.current para não precisar de bgType/bgColor como deps
             supabase.from('user_preferences').upsert({
               user_id: session.user.id,
-              hub_bg_type: bgTypeRef.current,
-              hub_bg_color: bgColorRef.current,
+              hub_bg_type: (merged['cn_custom_bg_type'] as any) || bgTypeRef.current,
+              hub_bg_color: merged['cn_custom_bg_color'] || bgColorRef.current,
               hub_bg_image_url: payloadJson
             }, { onConflict: 'user_id' }).then(({ error }) => {
               if (error) console.error('pullAndMerge upsert failed:', error);
@@ -854,13 +870,14 @@ const App: React.FC = () => {
 
       timeoutId = setTimeout(async () => {
         const localSettings = getSanitizedLocalSettings();
+        const dbSettings = getSupabaseSanitizedSettings(localSettings);
 
         const currentSerialized = JSON.stringify(localSettings);
         if (currentSerialized !== lastKnownSettings) {
           const updatedTime = Date.now();
           const payload: SyncedPayload = {
             updatedAt: updatedTime,
-            settings: localSettings
+            settings: dbSettings
           };
 
           const payloadJson = JSON.stringify(payload);
@@ -869,8 +886,8 @@ const App: React.FC = () => {
           try {
             await supabase.from('user_preferences').upsert({
               user_id: session.user.id,
-              hub_bg_type: bgType,
-              hub_bg_color: bgColor,
+              hub_bg_type: (localSettings['cn_custom_bg_type'] as any) || bgType,
+              hub_bg_color: localSettings['cn_custom_bg_color'] || bgColor,
               hub_bg_image_url: payloadJson
             }, { onConflict: 'user_id' });
 

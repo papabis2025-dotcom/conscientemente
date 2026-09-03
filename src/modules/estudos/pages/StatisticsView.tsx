@@ -182,9 +182,110 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, sim
     saveWeightsForCourse({ acc: weightAcc, subj: weightSubj, qtd: weightQtd, time: finalVal });
   };
 
+  const normalizeName = (name: string): string => {
+    return (name || '')
+      .trim()
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/\s+/g, ' ');
+  };
+
+  interface MergedSubject extends Subject {
+    mergedSubjectIds: string[];
+    topicIdMap: Record<string, string[]>;
+  }
+
+  const effectiveSubjects = useMemo<MergedSubject[]>(() => {
+    if (selectedConcursoId !== 'all') {
+      return subjects.map(s => ({
+        ...s,
+        mergedSubjectIds: [s.id],
+        topicIdMap: (s.topics || []).reduce((acc, t) => {
+          acc[t.id] = [t.id];
+          return acc;
+        }, {} as Record<string, string[]>)
+      }));
+    }
+
+    // Mesclagem de disciplinas de mesmo nome quando em Visão Global
+    const groupMap = new Map<string, {
+      subject: Subject;
+      mergedSubjectIds: string[];
+      topicsByName: Map<string, { topic: Topic; topicIds: string[] }>;
+      totalQuestionsGoal: number;
+      maxWeight: number;
+    }>();
+
+    subjects.forEach(sub => {
+      const key = normalizeName(sub.name);
+      if (!key) return;
+
+      if (!groupMap.has(key)) {
+        const topicsByName = new Map<string, { topic: Topic; topicIds: string[] }>();
+        (sub.topics || []).forEach(t => {
+          const tKey = normalizeName(t.title);
+          if (!topicsByName.has(tKey)) {
+            topicsByName.set(tKey, { topic: { ...t }, topicIds: [t.id] });
+          } else {
+            topicsByName.get(tKey)!.topicIds.push(t.id);
+          }
+        });
+
+        groupMap.set(key, {
+          subject: { ...sub },
+          mergedSubjectIds: [sub.id],
+          topicsByName,
+          totalQuestionsGoal: sub.questionsGoal || 0,
+          maxWeight: sub.weight || 1
+        });
+      } else {
+        const entry = groupMap.get(key)!;
+        entry.mergedSubjectIds.push(sub.id);
+        if (sub.questionsGoal) {
+          entry.totalQuestionsGoal += sub.questionsGoal;
+        }
+        if (sub.weight && sub.weight > entry.maxWeight) {
+          entry.maxWeight = sub.weight;
+        }
+
+        (sub.topics || []).forEach(t => {
+          const tKey = normalizeName(t.title);
+          if (!entry.topicsByName.has(tKey)) {
+            entry.topicsByName.set(tKey, { topic: { ...t }, topicIds: [t.id] });
+          } else {
+            const existing = entry.topicsByName.get(tKey)!;
+            existing.topicIds.push(t.id);
+            if (t.weight && (!existing.topic.weight || t.weight > existing.topic.weight)) {
+              existing.topic.weight = t.weight;
+            }
+          }
+        });
+      }
+    });
+
+    return Array.from(groupMap.values()).map(({ subject, mergedSubjectIds, topicsByName, totalQuestionsGoal, maxWeight }) => {
+      const consolidatedTopics: Topic[] = Array.from(topicsByName.values()).map(x => x.topic);
+      const topicIdMap: Record<string, string[]> = {};
+      Array.from(topicsByName.values()).forEach(x => {
+        topicIdMap[x.topic.id] = x.topicIds;
+      });
+
+      return {
+        ...subject,
+        topics: consolidatedTopics,
+        questionsGoal: totalQuestionsGoal > 0 ? totalQuestionsGoal : undefined,
+        weight: maxWeight,
+        mergedSubjectIds,
+        topicIdMap
+      };
+    });
+  }, [subjects, selectedConcursoId]);
+
   const subjectData = useMemo(() => {
-    return subjects.map(sub => {
-      const subSessions = sessions.filter(s => s.subjectId === sub.id);
+    return effectiveSubjects.map(sub => {
+      const mergedIdsSet = new Set(sub.mergedSubjectIds);
+      const subSessions = sessions.filter(s => mergedIdsSet.has(s.subjectId));
       let questions = subSessions.reduce((acc, s) => acc + (s.questionsDone || 0), 0);
       let correct = subSessions.reduce((acc, s) => acc + (s.questionsCorrect || 0), 0);
       const minutes = subSessions.reduce((acc, s) => acc + (s.durationInMinutes || 0), 0);
@@ -193,7 +294,7 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, sim
       if (simulados) {
         simulados.forEach(sim => {
           (sim.results || []).forEach(res => {
-            if (res.subjectId === sub.id) {
+            if (mergedIdsSet.has(res.subjectId)) {
               questions += (res.done || 0);
               correct += (res.correct || 0);
             }
@@ -213,7 +314,8 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, sim
           let unweightedCorrect = 0;
 
           subTopics.forEach(topic => {
-            const topicSessions = subSessions.filter(s => s.topicId === topic.id);
+            const topicIds = new Set(sub.topicIdMap[topic.id] || [topic.id]);
+            const topicSessions = subSessions.filter(s => s.topicId && topicIds.has(s.topicId));
             const tDone = topicSessions.reduce((acc, s) => acc + (s.questionsDone || 0), 0);
             const tCorrect = topicSessions.reduce((acc, s) => acc + (s.questionsCorrect || 0), 0);
 
@@ -230,14 +332,28 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, sim
           });
 
           // Questões genéricas ou simulados (não associadas a tópicos específicos)
-          const genericDone = questions - subTopics.reduce((acc, topic) => {
-            const topicSessions = subSessions.filter(s => s.topicId === topic.id);
-            return acc + topicSessions.reduce((sum, s) => sum + (s.questionsDone || 0), 0);
-          }, 0);
-          const genericCorrect = correct - subTopics.reduce((acc, topic) => {
-            const topicSessions = subSessions.filter(s => s.topicId === topic.id);
-            return acc + topicSessions.reduce((sum, s) => sum + (s.questionsCorrect || 0), 0);
-          }, 0);
+          const allTopicIdsSet = new Set(
+            subTopics.flatMap(t => sub.topicIdMap[t.id] || [t.id])
+          );
+          const genericSessions = subSessions.filter(s => !s.topicId || !allTopicIdsSet.has(s.topicId));
+          const genericSessionsDone = genericSessions.reduce((acc, s) => acc + (s.questionsDone || 0), 0);
+          const genericSessionsCorrect = genericSessions.reduce((acc, s) => acc + (s.questionsCorrect || 0), 0);
+
+          let simDone = 0;
+          let simCorrect = 0;
+          if (simulados) {
+            simulados.forEach(sim => {
+              (sim.results || []).forEach(res => {
+                if (mergedIdsSet.has(res.subjectId)) {
+                  simDone += (res.done || 0);
+                  simCorrect += (res.correct || 0);
+                }
+              });
+            });
+          }
+
+          const genericDone = genericSessionsDone + simDone;
+          const genericCorrect = genericSessionsCorrect + simCorrect;
 
           if (genericDone > 0) {
             unweightedQuestions += genericDone;
@@ -273,7 +389,7 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, sim
 
       return { sub, questions, correct, accuracy, weight, questionsGoal, minutes };
     });
-  }, [subjects, sessions, simulados]);
+  }, [effectiveSubjects, sessions, simulados]);
 
 
   const maxWeight = useMemo(() => Math.max(1, ...subjectData.map(d => d.weight)), [subjectData]);
@@ -475,8 +591,10 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, sim
       ]);
 
       if (showTopics && sub.topics && sub.topics.length > 0) {
+        const mergedIdsSet = new Set((sub as any).mergedSubjectIds || [sub.id]);
         sub.topics.forEach(topic => {
-          const topicSessions = sessions.filter(s => s.subjectId === sub.id && s.topicId === topic.id);
+          const topicIdsSet = new Set((sub as any).topicIdMap?.[topic.id] || [topic.id]);
+          const topicSessions = sessions.filter(s => mergedIdsSet.has(s.subjectId) && s.topicId && topicIdsSet.has(s.topicId));
           const tDone = topicSessions.reduce((acc, s) => acc + (s.questionsDone || 0), 0);
           const tCorrect = topicSessions.reduce((acc, s) => acc + (s.questionsCorrect || 0), 0);
           const tAccuracy = tDone > 0 ? Math.min(100, Math.round((tCorrect / tDone) * 100)) : 0;
@@ -693,7 +811,9 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, sim
                       <>
                         {[...sub.topics]
                           .map(topic => {
-                            const topicSessions = sessions.filter(s => s.subjectId === sub.id && s.topicId === topic.id);
+                            const mergedIdsSet = new Set((sub as any).mergedSubjectIds || [sub.id]);
+                            const topicIdsSet = new Set((sub as any).topicIdMap?.[topic.id] || [topic.id]);
+                            const topicSessions = sessions.filter(s => mergedIdsSet.has(s.subjectId) && s.topicId && topicIdsSet.has(s.topicId));
                             const tDone = topicSessions.reduce((acc, s) => acc + (s.questionsDone || 0), 0);
                             const tCorrect = topicSessions.reduce((acc, s) => acc + (s.questionsCorrect || 0), 0);
                             const tAccuracy = tDone > 0 ? Math.min(100, Math.round((tCorrect / tDone) * 100)) : 0;

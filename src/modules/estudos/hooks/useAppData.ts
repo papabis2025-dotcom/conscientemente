@@ -829,11 +829,23 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                 // Sync pesos / weights from cloud
                 if (userSettings.estudos_weights_by_course) {
                     try {
-                        const wVal = typeof userSettings.estudos_weights_by_course === 'string'
-                            ? userSettings.estudos_weights_by_course
-                            : JSON.stringify(userSettings.estudos_weights_by_course);
-                        localStorage.setItem('estudos_weights_by_course', wVal);
+                        let wVal = userSettings.estudos_weights_by_course;
+                        if (typeof wVal === 'string') {
+                            try {
+                                const parsed = JSON.parse(wVal);
+                                if (typeof parsed === 'string') {
+                                    wVal = parsed;
+                                }
+                            } catch {}
+                        } else {
+                            wVal = JSON.stringify(wVal);
+                        }
+                        localStorage.setItem('estudos_weights_by_course', typeof wVal === 'string' ? wVal : JSON.stringify(wVal));
                     } catch (e) {}
+                }
+
+                if (userSettings.estudos_weights_locked !== undefined) {
+                    localStorage.setItem('estudos_weights_locked', String(userSettings.estudos_weights_locked));
                 }
 
                 if (userSettings.globalDailyGoal) {

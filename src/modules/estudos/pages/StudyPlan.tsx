@@ -29,7 +29,7 @@ const StudyPlan: React.FC<StudyPlanProps> = ({ subjects, sessions, studyTasks, o
             todayDate.setHours(0, 0, 0, 0);
 
             subjects.forEach(sub => {
-                sub.topics.forEach(topic => {
+                (sub.topics || []).forEach(topic => {
                     // Find last session for this topic
                     const topicSessions = sessions.filter(s => s.subjectId === sub.id && s.topicId === topic.id);
                     if (topicSessions.length > 0) {
@@ -79,7 +79,7 @@ const StudyPlan: React.FC<StudyPlanProps> = ({ subjects, sessions, studyTasks, o
                 const accuracy = totalDone > 0 ? (totalCorrect / totalDone) * 100 : 0;
 
                 // 3. Hours Studied
-                const totalMinutes = subSessions.reduce((acc, s) => acc + s.durationInMinutes, 0);
+                const totalMinutes = subSessions.reduce((acc, s) => acc + (s.durationInMinutes || 0), 0);
                 const hours = totalMinutes / 60;
 
                 // Scoring Algorithm
@@ -108,7 +108,7 @@ const StudyPlan: React.FC<StudyPlanProps> = ({ subjects, sessions, studyTasks, o
                         const tDone = topicSessions.reduce((acc, s) => acc + (s.questionsDone || 0), 0);
                         const tCorrect = topicSessions.reduce((acc, s) => acc + (s.questionsCorrect || 0), 0);
                         const tAccuracy = tDone > 0 ? (tCorrect / tDone) * 100 : 0;
-                        const tHours = topicSessions.reduce((acc, s) => acc + s.durationInMinutes, 0) / 60;
+                        const tHours = topicSessions.reduce((acc, s) => acc + (s.durationInMinutes || 0), 0) / 60;
                         return { topic, tAccuracy, tHours, tDone };
                     });
 

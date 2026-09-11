@@ -102,10 +102,12 @@ const SimuladosView: React.FC<SimuladosViewProps> = ({ subjects, simulados, sess
 
   const addResultRow = () => {
     if (!currentSubjectId || !currentDone || !currentCorrect) return;
+    const doneVal = Math.max(0, parseInt(currentDone) || 0);
+    const correctVal = Math.max(0, Math.min(doneVal, parseInt(currentCorrect) || 0));
     const newRes: SimuladoSubjectResult = {
       subjectId: currentSubjectId,
-      done: parseInt(currentDone),
-      correct: parseInt(currentCorrect)
+      done: doneVal,
+      correct: correctVal
     };
     setResults([...results, newRes]);
     setCurrentSubjectId(''); setCurrentDone(''); setCurrentCorrect('');

@@ -95,7 +95,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   // Stats calculation
   const totalQuestions = sessions.reduce((acc, s) => acc + (s.questionsDone || 0), 0);
-  const totalMinutes = sessions.reduce((acc, s) => acc + s.durationInMinutes, 0);
+  const totalMinutes = sessions.reduce((acc, s) => acc + (s.durationInMinutes || 0), 0);
   const totalHours = (totalMinutes / 60).toFixed(1);
 
 

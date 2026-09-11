@@ -659,16 +659,28 @@ const HubHome: React.FC<HubHomeProps> = ({
         .select('id')
         .eq('user_id', user.id);
 
-      const deletedTaskIds = new Set<string>(JSON.parse(localStorage.getItem('cp_deleted_study_task_ids') || '[]'));
-      const studyTasksFiltered = (JSON.parse(localStorage.getItem('cp_study_tasks') || '[]'))
-        .filter((t: any) => t.done || !deletedTaskIds.has(t.id));
+      let deletedTaskIds = new Set<string>();
+      let studyTasksFiltered: any[] = [];
+      try {
+        deletedTaskIds = new Set<string>(JSON.parse(localStorage.getItem('cp_deleted_study_task_ids') || '[]'));
+        const raw = JSON.parse(localStorage.getItem('cp_study_tasks') || '[]');
+        if (Array.isArray(raw)) {
+          studyTasksFiltered = raw.filter((t: any) => t.done || !deletedTaskIds.has(t.id));
+        }
+      } catch {}
       
-      const deletedScheduledIds = new Set<string>(JSON.parse(localStorage.getItem('cp_deleted_scheduled_ids') || '[]'));
+      let deletedScheduledIds = new Set<string>();
+      try {
+        deletedScheduledIds = new Set<string>(JSON.parse(localStorage.getItem('cp_deleted_scheduled_ids') || '[]'));
+      } catch {}
 
       let scheduledStudiesFiltered: any[] = [];
       if (dbScheduled) {
-        const localRaw = localStorage.getItem('cp_scheduled_studies');
-        const localStudies: any[] = localRaw ? JSON.parse(localRaw) : [];
+        let localStudies: any[] = [];
+        try {
+          const localRaw = localStorage.getItem('cp_scheduled_studies');
+          localStudies = localRaw ? JSON.parse(localRaw) : [];
+        } catch {}
         const localStatusMap = new Map(localStudies.map(s => [s.id, s.status]));
         const sessionIds = new Set((dbSessions || []).map(s => s.id));
 
@@ -1539,14 +1551,22 @@ const HubHome: React.FC<HubHomeProps> = ({
     setTomorrowTasks((tTasks || []).map(t => ({ id: t.id, text: t.text, dueTime: t.due_time, category: t.category })));
 
     // 2. Pending Estudos
-    const deletedStudyTaskIds = new Set<string>(JSON.parse(localStorage.getItem('cp_deleted_study_task_ids') || '[]'));
-    const estudosRaw = JSON.parse(localStorage.getItem('cp_study_tasks') || '[]');
-    const estudos = Array.isArray(estudosRaw) ? estudosRaw : [];
+    let deletedStudyTaskIds = new Set<string>();
+    let estudos: any[] = [];
+    try {
+      deletedStudyTaskIds = new Set<string>(JSON.parse(localStorage.getItem('cp_deleted_study_task_ids') || '[]'));
+      const estudosRaw = JSON.parse(localStorage.getItem('cp_study_tasks') || '[]');
+      estudos = Array.isArray(estudosRaw) ? estudosRaw : [];
+    } catch {}
     const pendingStudyTasks = estudos.filter((t: any) => !deletedStudyTaskIds.has(t.id) && t.date <= localTodayStr && !t.done).length;
 
-    const deletedScheduledIds = new Set<string>(JSON.parse(localStorage.getItem('cp_deleted_scheduled_ids') || '[]'));
-    const scheduledRaw = JSON.parse(localStorage.getItem('cp_scheduled_studies') || '[]');
-    const scheduled = Array.isArray(scheduledRaw) ? scheduledRaw : [];
+    let deletedScheduledIds = new Set<string>();
+    let scheduled: any[] = [];
+    try {
+      deletedScheduledIds = new Set<string>(JSON.parse(localStorage.getItem('cp_deleted_scheduled_ids') || '[]'));
+      const scheduledRaw = JSON.parse(localStorage.getItem('cp_scheduled_studies') || '[]');
+      scheduled = Array.isArray(scheduledRaw) ? scheduledRaw : [];
+    } catch {}
     const pendingScheduled = scheduled.filter((s: any) => {
       if (deletedScheduledIds.has(s.id)) return false;
       const sDate = s.date?.split('T')[0];

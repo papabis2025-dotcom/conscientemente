@@ -116,12 +116,20 @@ const GlobalSidebar: React.FC<GlobalSidebarProps> = ({
 
   // Notifications state
   const [notifications, setNotifications] = useState<AppNotification[]>(() => {
-    const saved = localStorage.getItem('cn_notifications');
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const saved = localStorage.getItem('cn_notifications');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
   });
   const [clearedNotifications, setClearedNotifications] = useState<string[]>(() => {
-    const saved = localStorage.getItem('cn_cleared_notifications');
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const saved = localStorage.getItem('cn_cleared_notifications');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
   });
 
   const fileRef = useRef<HTMLInputElement>(null);

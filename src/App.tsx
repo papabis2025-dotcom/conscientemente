@@ -352,9 +352,21 @@ function mergeSettings(
       }
     } else if (key === 'cp_cronograma_prefs_map' || key === 'estudos_weights_by_course' || key === 'estudos_disabled_reviews_map') {
       try {
-        const localObj = localVal ? JSON.parse(localVal) : {};
-        const remoteObj = remoteVal ? JSON.parse(remoteVal) : {};
-        merged[key] = JSON.stringify({ ...remoteObj, ...localObj });
+        let localObj = localVal ? JSON.parse(localVal) : {};
+        if (typeof localObj === 'string') {
+          try { localObj = JSON.parse(localObj); } catch {}
+        }
+        let remoteObj = remoteVal ? JSON.parse(remoteVal) : {};
+        if (typeof remoteObj === 'string') {
+          try { remoteObj = JSON.parse(remoteObj); } catch {}
+        }
+        if (typeof localObj === 'object' && localObj !== null && typeof remoteObj === 'object' && remoteObj !== null) {
+          merged[key] = preferRemote
+            ? JSON.stringify({ ...localObj, ...remoteObj })
+            : JSON.stringify({ ...remoteObj, ...localObj });
+        } else {
+          merged[key] = preferRemote ? remoteVal : localVal;
+        }
       } catch {
         merged[key] = preferRemote ? remoteVal : localVal;
       }
@@ -602,8 +614,17 @@ const App: React.FC = () => {
         if (finalBgStyle) setBgImageStyle(finalBgStyle);
 
         SYNC_KEYS.forEach(key => {
-          const val = merged[key];
+          let val = merged[key];
           if (val !== null && val !== undefined) {
+            if (key === 'estudos_weights_by_course' && typeof val === 'string') {
+              try {
+                let parsed = JSON.parse(val);
+                if (typeof parsed === 'string') parsed = JSON.parse(parsed);
+                if (parsed && typeof parsed === 'object') {
+                  val = JSON.stringify(parsed);
+                }
+              } catch {}
+            }
             localStorage.setItem(key, val);
 
             if (key === 'cp_cronograma_prefs_map') {
@@ -751,8 +772,17 @@ const App: React.FC = () => {
             const merged = mergeSettings(localSettings, remotePayload.settings, true);
 
             SYNC_KEYS.forEach(key => {
-              const val = merged[key];
+              let val = merged[key];
               if (val !== null && val !== undefined) {
+                if (key === 'estudos_weights_by_course' && typeof val === 'string') {
+                  try {
+                    let parsed = JSON.parse(val);
+                    if (typeof parsed === 'string') parsed = JSON.parse(parsed);
+                    if (parsed && typeof parsed === 'object') {
+                      val = JSON.stringify(parsed);
+                    }
+                  } catch {}
+                }
                 localStorage.setItem(key, val);
 
                 if (key === 'cp_cronograma_prefs_map') {

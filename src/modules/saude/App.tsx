@@ -98,13 +98,19 @@ const SaudeApp: React.FC = () => {
   }, []);
 
   const [activityTypes, setActivityTypes] = useState<HealthActivityType[]>(() => {
-    const saved = localStorage.getItem('cn_saude_activity_types');
-    let list = saved ? JSON.parse(saved) : [
+    let list: HealthActivityType[] = [
       { name: 'Corrida', color: '#10b981' },
       { name: 'Ciclismo', color: '#f59e0b' },
       { name: 'Natação', color: '#0ea5e9' },
       { name: 'Musculação', color: '#6366f1' }
     ];
+    try {
+      const saved = localStorage.getItem('cn_saude_activity_types');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) list = parsed;
+      }
+    } catch {}
     if (!list.some((t: any) => t.name === 'Prova')) {
       list.push({ name: 'Prova', color: '#3b82f6' });
     }
@@ -117,8 +123,13 @@ const SaudeApp: React.FC = () => {
   }, [activityTypes]);
 
   const [muscleGroups, setMuscleGroups] = useState<string[]>(() => {
-    const saved = localStorage.getItem('cn_saude_muscle_groups');
-    if (saved) return JSON.parse(saved);
+    try {
+      const saved = localStorage.getItem('cn_saude_muscle_groups');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
     return ['Peito', 'Costa', 'Ombro', 'Bíceps', 'Tríceps', 'Perna/Anterior', 'Perna/Posterior'];
   });
 
@@ -171,10 +182,14 @@ const SaudeApp: React.FC = () => {
   const [sleepLogs, setSleepLogs] = useState<any[]>([]);
 
   const loadSleepLogs = () => {
-    const saved = localStorage.getItem('cn_saude_sleep_logs');
-    if (saved) {
-      setSleepLogs(JSON.parse(saved));
-    } else {
+    try {
+      const saved = localStorage.getItem('cn_saude_sleep_logs');
+      if (saved) {
+        setSleepLogs(JSON.parse(saved));
+      } else {
+        setSleepLogs([]);
+      }
+    } catch {
       setSleepLogs([]);
     }
   };

@@ -55,6 +55,15 @@ export const api = {
                         if (s.estudos_deleted_review_ids) {
                             try { res.deletedReviewIds = JSON.parse(s.estudos_deleted_review_ids); } catch (e) {}
                         }
+                        if (s.estudos_weights_by_course) {
+                            try {
+                                let parsed = typeof s.estudos_weights_by_course === 'string'
+                                    ? JSON.parse(s.estudos_weights_by_course)
+                                    : s.estudos_weights_by_course;
+                                if (typeof parsed === 'string') parsed = JSON.parse(parsed);
+                                res.estudos_weights_by_course = parsed;
+                            } catch (e) {}
+                        }
                         return res;
                     }
                 }
@@ -91,9 +100,25 @@ export const api = {
                 if (metadataUpdates.deletedReviewIds) {
                     currentSettings['estudos_deleted_review_ids'] = JSON.stringify(metadataUpdates.deletedReviewIds);
                 }
+                if (metadataUpdates.estudos_weights_by_course) {
+                    currentSettings['estudos_weights_by_course'] = typeof metadataUpdates.estudos_weights_by_course === 'string'
+                        ? metadataUpdates.estudos_weights_by_course
+                        : JSON.stringify(metadataUpdates.estudos_weights_by_course);
+                }
+                if (metadataUpdates.estudos_weights_locked !== undefined) {
+                    currentSettings['estudos_weights_locked'] = String(metadataUpdates.estudos_weights_locked);
+                }
                 Object.keys(metadataUpdates).forEach(k => {
-                    if (typeof metadataUpdates[k] === 'string') {
-                        currentSettings[k] = metadataUpdates[k];
+                    const val = metadataUpdates[k];
+                    if (val === null || val === undefined) return;
+                    if (typeof val === 'string') {
+                        currentSettings[k] = val;
+                    } else if (typeof val === 'number' || typeof val === 'boolean') {
+                        currentSettings[k] = String(val);
+                    } else if (typeof val === 'object' && !currentSettings[k]) {
+                        try {
+                            currentSettings[k] = JSON.stringify(val);
+                        } catch (e) {}
                     }
                 });
 

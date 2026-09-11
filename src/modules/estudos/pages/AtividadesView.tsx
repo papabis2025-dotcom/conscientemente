@@ -17,7 +17,7 @@ const AtividadesView: React.FC<AtividadesViewProps> = ({ subjects, sessions, sch
   // Stats
   const stats = useMemo(() => {
     const totalSessions = sessions.length;
-    const totalMinutes = sessions.reduce((acc, s) => acc + s.durationInMinutes, 0);
+    const totalMinutes = sessions.reduce((acc, s) => acc + (s.durationInMinutes || 0), 0);
     const totalQuestions = sessions.reduce((acc, s) => acc + (s.questionsDone || 0), 0);
     const totalCorrect = sessions.reduce((acc, s) => acc + (s.questionsCorrect || 0), 0);
     const accuracy = totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : 0;

@@ -32,13 +32,21 @@ interface MonitoramentoSonoProps {
 
 export const MonitoramentoSono: React.FC<MonitoramentoSonoProps> = ({ onUpdateSleepLogs }) => {
   const [sleepLogs, setSleepLogs] = useState<SleepLog[]>(() => {
-    const saved = localStorage.getItem('cn_saude_sleep_logs');
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const saved = localStorage.getItem('cn_saude_sleep_logs');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
   });
 
   const [calibrations, setCalibrations] = useState<SleepCalibration[]>(() => {
-    const saved = localStorage.getItem('cn_saude_sleep_calibrations');
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const saved = localStorage.getItem('cn_saude_sleep_calibrations');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
   });
 
   const [subTab, setSubTab] = useState<'painel' | 'historico' | 'calibracao'>('painel');

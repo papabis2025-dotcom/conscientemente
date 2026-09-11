@@ -425,9 +425,14 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
       let weightAcc = 50, weightSubj = 25, weightQtd = 15, weightTime = 10;
       try {
         const mapSaved = localStorage.getItem('estudos_weights_by_course');
-        const weightsMap = mapSaved ? JSON.parse(mapSaved) : {};
+        let weightsMap = mapSaved ? JSON.parse(mapSaved) : {};
+        if (typeof weightsMap === 'string') {
+          try { weightsMap = JSON.parse(weightsMap); } catch {}
+        }
         const courseKey = selectedConcursoId || 'global';
-        const courseW = weightsMap[courseKey] || weightsMap['global'];
+        const courseW = (weightsMap && typeof weightsMap === 'object')
+          ? (weightsMap[courseKey] || weightsMap['global'])
+          : null;
         if (courseW) {
           weightAcc = courseW.acc ?? 50;
           weightSubj = courseW.subj ?? 25;

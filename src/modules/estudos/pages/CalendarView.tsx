@@ -195,6 +195,16 @@ const CalendarView: React.FC<CalendarViewProps> = ({
 
   const handleSave = async () => {
     if (selectedDayKey === null) return;
+
+    const isAulao = formData.activityTypes.includes('Aulão de Revisão');
+    if (isAulao && (!formData.subjectIds || formData.subjectIds.length === 0)) {
+      alert('Selecione pelo menos uma disciplina para o Aulão.');
+      return;
+    }
+    if (!isAulao && !formData.subjectId) {
+      alert('Selecione uma disciplina para continuar.');
+      return;
+    }
     
     if (formData.duration && parseInt(formData.duration) <= 0) {
       alert('A duração deve ser maior que 0 minutos.');
@@ -224,6 +234,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       });
     } catch (e) {
       console.error('Error saving activity:', e);
+      alert('Erro ao salvar a atividade. Verifique os dados e tente novamente.');
     }
   };
 
@@ -242,13 +253,16 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   };
 
   const handleNavigate = (direction: number) => {
-    const newDate = new Date(currentDate);
+    let newDate: Date;
     if (viewMode === 'mensal') {
-      newDate.setMonth(newDate.getMonth() + direction);
+      newDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + direction, 1);
     } else if (viewMode === 'semanal') {
+      newDate = new Date(currentDate);
       newDate.setDate(newDate.getDate() + (direction * 7));
     } else if (viewMode === 'anual') {
-      newDate.setFullYear(newDate.getFullYear() + direction);
+      newDate = new Date(currentDate.getFullYear() + direction, currentDate.getMonth(), 1);
+    } else {
+      newDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + direction, 1);
     }
     setCurrentDate(newDate);
   };

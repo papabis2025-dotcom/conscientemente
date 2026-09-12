@@ -30,6 +30,7 @@ export interface Concurso {
   subjects: Subject[];
   categoryId?: string;
   imageUrl?: string; // Profile image URL or data URL
+  educationLevel?: string; // Nível de escolaridade exigido
 }
 
 export interface Subject {

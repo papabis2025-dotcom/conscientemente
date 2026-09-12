@@ -147,7 +147,21 @@ export const api = {
         list: async (): Promise<Concurso[]> => {
             const user = await getAuthUser();
             if (!user) return [];
-            const data = await handleRequest<any[]>(supabase.from('concursos').select('id, name, banca, start_date, target_date, subjects, category_id, image_url').eq('user_id', user.id).order('created_at', { ascending: false }));
+            let result: any = await supabase
+                .from('concursos')
+                .select('id, name, banca, start_date, target_date, subjects, category_id, image_url, education_level')
+                .eq('user_id', user.id)
+                .order('created_at', { ascending: false });
+
+            if (result.error && result.error.code === '42703') {
+                result = await supabase
+                    .from('concursos')
+                    .select('id, name, banca, start_date, target_date, subjects, category_id, image_url')
+                    .eq('user_id', user.id)
+                    .order('created_at', { ascending: false });
+            }
+
+            const data = result.error ? null : result.data;
             return (data || []).map((c: any) => ({
                 id: c.id,
                 name: c.name,
@@ -156,7 +170,8 @@ export const api = {
                 targetDate: c.target_date,
                 subjects: c.subjects || [],
                 categoryId: c.category_id,
-                imageUrl: c.image_url
+                imageUrl: c.image_url,
+                educationLevel: c.education_level || undefined
             }));
         },
         upsert: async (concurso: Concurso) => {
@@ -164,9 +179,8 @@ export const api = {
             if (!user) throw new Error('Not authenticated');
 
             // Map camelCase to snake_case for DB
-            const dbPayload = {
+            const dbPayload: any = {
                 // Include ID if it exists and is not a temp ID
-                // Supabase will use it for update, or generate new UUID if undefined
                 id: (concurso.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(concurso.id)) ? concurso.id : undefined,
                 user_id: user.id,
                 name: concurso.name,
@@ -175,13 +189,19 @@ export const api = {
                 target_date: concurso.targetDate || null,
                 category_id: concurso.categoryId,
                 image_url: concurso.imageUrl || null,
-                subjects: concurso.subjects || [] // JSONB supported directly, default to empty array
+                education_level: concurso.educationLevel || null,
+                subjects: concurso.subjects || []
             };
 
             let result = await supabase.from('concursos').upsert(dbPayload).select().single();
             if (result.error && result.error.code === '42703') {
-                const { image_url, ...payloadWithoutImage } = dbPayload as any;
-                result = await supabase.from('concursos').upsert(payloadWithoutImage).select().single();
+                // Retry sem education_level se a coluna nao existir ainda
+                const { education_level, ...payloadWithoutEdu } = dbPayload;
+                result = await supabase.from('concursos').upsert(payloadWithoutEdu).select().single();
+                if (result.error && result.error.code === '42703') {
+                    const { image_url, ...payloadWithoutBoth } = payloadWithoutEdu;
+                    result = await supabase.from('concursos').upsert(payloadWithoutBoth).select().single();
+                }
             }
             return handleRequest<Concurso>(Promise.resolve(result));
         },
@@ -201,21 +221,17 @@ export const api = {
         list: async () => {
             const user = await getAuthUser();
             if (!user) return [];
-            // Limita aos ultimos 6 meses para reduzir o egress do Supabase
-            const sixMonthsAgo = new Date();
-            sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-            const dateLimit = sixMonthsAgo.toISOString().split('T')[0];
             // Try selecting with questions_link and activity_type; fall back if columns don't exist
-            let result = await supabase.from('study_sessions').select('id,user_id,subject_id,topic_id,duration_minutes,date,questions_done,questions_correct,is_simulado,activity_type,questions_link').eq('user_id', user.id).gte('date', dateLimit).order('date', { ascending: false });
+            let result = await supabase.from('study_sessions').select('id,user_id,subject_id,topic_id,duration_minutes,date,questions_done,questions_correct,is_simulado,activity_type,questions_link').eq('user_id', user.id).order('date', { ascending: false });
             if (result.error && result.error.code === '42703') {
                 result = (await supabase.from('study_sessions')
                     .select('id,user_id,subject_id,topic_id,duration_minutes,date,questions_done,questions_correct,is_simulado,activity_type')
-                    .eq('user_id', user.id).gte('date', dateLimit).order('date', { ascending: false })) as any;
+                    .eq('user_id', user.id).order('date', { ascending: false })) as any;
 
                 if (result.error && result.error.code === '42703') {
                     result = (await supabase.from('study_sessions')
                         .select('id,user_id,subject_id,topic_id,duration_minutes,date,questions_done,questions_correct,is_simulado')
-                        .eq('user_id', user.id).gte('date', dateLimit).order('date', { ascending: false })) as any;
+                        .eq('user_id', user.id).order('date', { ascending: false })) as any;
                 }
             }
             const data = result.error ? null : result.data;
@@ -416,16 +432,10 @@ export const api = {
             const user = await getAuthUser();
             if (!user) return [];
 
-            // Limit to scheduled studies from 6 months ago to optimize Supabase Egress
-            const sixMonthsAgo = new Date();
-            sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-            const dateLimit = sixMonthsAgo.toISOString().split('T')[0];
-
             // Tenta primeiro com todas as colunas incluindo status
             let result: any = await supabase.from('scheduled_studies')
                 .select('id,date,subject_id,topic_id,activity_type,notes,duration_minutes,questions_done,questions_correct,questions_link,status')
                 .eq('user_id', user.id)
-                .gte('date', dateLimit)
                 .order('date', { ascending: true });
 
             if (result.error && result.error.code === '42703') {
@@ -433,7 +443,6 @@ export const api = {
                 result = await supabase.from('scheduled_studies')
                     .select('id,date,subject_id,topic_id,activity_type,notes,duration_minutes,questions_done,questions_correct')
                     .eq('user_id', user.id)
-                    .gte('date', dateLimit)
                     .order('date', { ascending: true });
             }
 

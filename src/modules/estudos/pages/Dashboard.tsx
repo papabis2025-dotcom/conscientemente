@@ -5,7 +5,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
   LabelList
 } from 'recharts';
-import { Eye, EyeOff, X, Trophy, Maximize2, Clock, Target, BookOpen, Check, AlertTriangle, AlertCircle } from 'lucide-react';
+import { Eye, EyeOff, X, Trophy, Maximize2, Clock, Target, BookOpen, Check, AlertTriangle, AlertCircle, Calendar, FileText, Compass, Award } from 'lucide-react';
 
 import { Subject, StudySession, Concurso, Simulado, ScheduledStudy } from '../types';
 import { getColorHex } from '../utils/colors';
@@ -68,7 +68,7 @@ const DEFAULT_WIDGETS: WidgetState[] = [
   { id: 'study_frequency', title: 'Disciplina e Assunto', isVisible: true, size: 'normal' },
   { id: 'study_tasks', title: 'Tarefas Pendentes', isVisible: true, size: 'normal' },
   { id: 'weekly_chart', title: 'Volume de Estudo', isVisible: true, size: 'wide' },
-  { id: 'activity_calendar', title: 'Calendário de Atividades', isVisible: true, size: 'wide' },
+  { id: 'general_summary', title: 'Resumo geral', isVisible: true, size: 'wide' },
   { id: 'unified_subject_analysis', title: 'Análise por Disciplina', isVisible: true, size: 'normal' },
 ];
 
@@ -113,7 +113,18 @@ const Dashboard: React.FC<DashboardProps> = ({
 }) => {
   const [widgets, setWidgets] = useState<WidgetState[]>(() => {
     const saved = localStorage.getItem('cp_dashboard_layout_v20');
-    return saved ? JSON.parse(saved) : DEFAULT_WIDGETS;
+    if (!saved) return DEFAULT_WIDGETS;
+    try {
+      const parsed: WidgetState[] = JSON.parse(saved);
+      return parsed.map(w => {
+        if (w.id === 'activity_calendar') {
+          return { ...w, id: 'general_summary', title: 'Resumo geral', size: 'wide' };
+        }
+        return w;
+      });
+    } catch {
+      return DEFAULT_WIDGETS;
+    }
   });
   const [draggedWidgetIndex, setDraggedWidgetIndex] = useState<number | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -1244,124 +1255,175 @@ const Dashboard: React.FC<DashboardProps> = ({
             </div>
           </div>
         );
-      case 'activity_calendar': {
+      case 'general_summary': {
         const today = new Date();
-        const year = today.getFullYear();
-        const month = today.getMonth();
-        const daysInMonth = new Date(year, month + 1, 0).getDate();
-        const firstDayOfMonth = new Date(year, month, 1).getDay();
-        const monthName = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"][month];
+        today.setHours(0, 0, 0, 0);
 
-        const days = Array.from({ length: daysInMonth }, (_, i) => {
-          const date = new Date(year, month, i + 1);
-          const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i + 1).padStart(2, '0')}`;
+        // a) Dias que faltam para a prova
+        let daysUntilExam: number | null = null;
+        let isExamPast = false;
+        if (activeConcurso?.targetDate) {
+          const examDate = new Date(activeConcurso.targetDate);
+          examDate.setHours(0, 0, 0, 0);
+          const diffMs = examDate.getTime() - today.getTime();
+          const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+          if (diffDays >= 0) {
+            daysUntilExam = diffDays;
+          } else {
+            daysUntilExam = Math.abs(diffDays);
+            isExamPast = true;
+          }
+        }
 
-          // Simulado sessions for the day — rendered as a ring, not as dots
-          const daySimuladoSessions = sessions.filter(s => getLocalSessionDate(s.date) === dateStr && isSimuladoSession(s));
-          const hasSimulado = daySimuladoSessions.length > 0;
+        // b) Dias que já passaram desde o início do curso
+        let daysSinceStart: number | null = null;
+        if (activeConcurso?.startDate) {
+          const startDate = new Date(activeConcurso.startDate);
+          startDate.setHours(0, 0, 0, 0);
+          const diffMs = today.getTime() - startDate.getTime();
+          daysSinceStart = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
+        }
 
-          // Non-simulado sessions for the day — rendered as color dots
-          const daySessions = sessions.filter(s => getLocalSessionDate(s.date) === dateStr && !isSimuladoSession(s));
-          const dayPlannerRealized = scheduledStudies.filter(s => {
-            const sDate = s.date ? s.date.split('T')[0] : '';
-            return sDate === dateStr && s.status === 'realizado';
-          });
-          // Planned reviews for the day (status === 'planejado' && activityType is Review)
-          const dayPendingReviews = (scheduledStudies || []).filter(s => {
-            const sDate = s.date ? s.date.split('T')[0] : '';
-            return sDate === dateStr && s.status === 'planejado' && s.activityType && (
-              s.activityType.toLowerCase().includes('revisão') || 
-              s.activityType.toLowerCase().includes('revisao')
-            );
-          });
-          const hasPendingReview = dayPendingReviews.length > 0;
-          
-          const sessionSubjectIds = daySessions.map(s => s.subjectId).filter(Boolean);
-          const plannerSubjectIds = dayPlannerRealized.map(s => s.subjectId).filter(Boolean);
-          const pendingReviewSubjectIds = dayPendingReviews.map(s => s.subjectId).filter(Boolean);
-          
-          const allDaySubjectIds = Array.from(new Set([
-            ...sessionSubjectIds, 
-            ...plannerSubjectIds,
-            ...pendingReviewSubjectIds
-          ]));
-          // Use all subjects from all concursos for lookup so dots always resolve
-          const allSubjectsLookup = concursos.flatMap(c => c.subjects || []);
-          const daySubjects = allDaySubjectIds
-            .map(id => allSubjectsLookup.find(sub => sub.id === id))
-            .filter(Boolean) as Subject[];
+        // c) Quantidade de disciplinas
+        const subjectsCount = activeConcurso?.subjects?.length ?? subjects?.length ?? 0;
 
-          return {
-            day: i + 1,
-            subjects: daySubjects,
-            hasSimulado,
-            hasPendingReview,
-            isToday: date.toDateString() === today.toDateString()
-          };
+        // d) Quantidade de assuntos
+        const topicsCount = (activeConcurso?.subjects || subjects || []).reduce((acc, sub) => {
+          return acc + (sub.topics?.length || 0);
+        }, 0);
+
+        // e) Tempo total de estudo (filtrando para o concurso ativo se selecionado)
+        const relevantSessions = sessions.filter(s => {
+          if (!activeConcurso) return true;
+          return (activeConcurso.subjects || []).some(sub => sub.id === s.subjectId);
         });
+        const totalMinutesStudied = relevantSessions.reduce((acc, s) => acc + (s.durationInMinutes || 0), 0);
+        const hoursStudied = Math.floor(totalMinutesStudied / 60);
+        const minsStudied = totalMinutesStudied % 60;
+        const formattedTotalTime = hoursStudied > 0 ? `${hoursStudied}h ${minsStudied}min` : `${minsStudied}min`;
 
         return (
-          <div className="flex flex-col h-full overflow-hidden">
-            {/* Header: month + weekday labels */}
-            <div className="shrink-0 mb-1">
-              <div className="flex justify-between items-center mb-1.5 px-0.5">
-                <span className="text-[10px] font-black uppercase text-zinc-400 tracking-widest">{monthName} {year}</span>
-              </div>
-              <div className="grid grid-cols-7 gap-1 mb-1">
-                {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((d, i) => (
-                  <div key={i} className="text-center text-[9px] font-black text-zinc-300 dark:text-zinc-600 uppercase">{d}</div>
-                ))}
-              </div>
-            </div>
-            {/* Calendar grid — fills remaining space without overflow */}
-            <div className="grid grid-cols-7 gap-1 flex-1 min-h-0" style={{ gridAutoRows: '1fr' }}>
-              {Array.from({ length: firstDayOfMonth }).map((_, i) => (
-                <div key={`empty-${i}`} />
-              ))}
-              {days.map(d => (
-                <div
-                  key={d.day}
-                  className={`rounded-lg flex flex-col items-center justify-center relative overflow-hidden ${
-                    d.isToday
-                      ? 'bg-blue-50/40 dark:bg-blue-900/15'
-                      : 'hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors'
-                  }`}
-                  style={{
-                    border: d.hasSimulado
-                      ? '2px solid #a855f7'
-                      : d.isToday
-                        ? '1.5px solid #60a5fa'
-                        : '1px solid rgba(161,161,170,0.18)'
-                  }}
-                >
-
-
-                  <span className={`text-[10px] font-bold leading-none ${
-                    d.hasSimulado
-                      ? 'text-purple-600 dark:text-purple-400 font-black'
-                      : d.isToday
-                        ? 'text-blue-600 dark:text-blue-400'
-                        : 'text-zinc-500 dark:text-zinc-400'
-                  }`}>
-                    {d.day}
+          <div className="flex flex-col h-full justify-between py-1">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 h-full items-stretch">
+              {/* Indicador A: Dias para a Prova */}
+              <div className="bg-gradient-to-br from-violet-50 to-indigo-50/50 dark:from-violet-950/20 dark:to-indigo-950/20 border border-violet-200/70 dark:border-violet-800/40 rounded-2xl p-3 flex flex-col justify-between shadow-xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black uppercase text-violet-600 dark:text-violet-400 tracking-wider">
+                    {isExamPast ? 'Prova Realizada' : 'Dias p/ Prova'}
                   </span>
-                  {d.subjects.length > 0 && (
-                    <div className="flex flex-wrap justify-center gap-[2px] mt-0.5 max-w-full px-0.5">
-                      {d.subjects.slice(0, 3).map(sub => (
-                        <div key={sub.id} className="w-1 h-1 rounded-full" style={{ backgroundColor: getColorHex(sub.color) }} title={sub.name} />
-                      ))}
+                  <Target size={14} className="text-violet-500 shrink-0" />
+                </div>
+                <div className="my-1.5">
+                  {daysUntilExam !== null ? (
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-2xl lg:text-3xl font-black text-violet-900 dark:text-violet-100 tracking-tight">
+                        {daysUntilExam}
+                      </span>
+                      <span className="text-xs font-bold text-violet-500 dark:text-violet-400">
+                        {daysUntilExam === 1 ? 'dia' : 'dias'} {isExamPast ? 'atrás' : ''}
+                      </span>
                     </div>
-                  )}
-                  {/* Simulado indicator: small purple star/diamond badge */}
-                  {d.hasSimulado && (
-                    <div
-                      className="absolute top-0 right-0 w-1.5 h-1.5 rounded-bl-sm"
-                      style={{ backgroundColor: '#a855f7' }}
-                      title="Simulado realizado"
-                    />
+                  ) : (
+                    <span className="text-xs font-bold text-zinc-400">Data não def.</span>
                   )}
                 </div>
-              ))}
+                <span className="text-[9px] font-bold text-zinc-400 truncate">
+                  {activeConcurso?.targetDate ? new Date(activeConcurso.targetDate).toLocaleDateString('pt-BR') : 'Edital sem data'}
+                </span>
+              </div>
+
+              {/* Indicador B: Dias desde o Início */}
+              <div className="bg-gradient-to-br from-blue-50 to-cyan-50/50 dark:from-blue-950/20 dark:to-cyan-950/20 border border-blue-200/70 dark:border-blue-800/40 rounded-2xl p-3 flex flex-col justify-between shadow-xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black uppercase text-blue-600 dark:text-blue-400 tracking-wider">
+                    Dias de Curso
+                  </span>
+                  <Calendar size={14} className="text-blue-500 shrink-0" />
+                </div>
+                <div className="my-1.5">
+                  {daysSinceStart !== null ? (
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-2xl lg:text-3xl font-black text-blue-900 dark:text-blue-100 tracking-tight">
+                        {daysSinceStart}
+                      </span>
+                      <span className="text-xs font-bold text-blue-500 dark:text-blue-400">
+                        {daysSinceStart === 1 ? 'dia' : 'dias'}
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="text-xs font-bold text-zinc-400">—</span>
+                  )}
+                </div>
+                <span className="text-[9px] font-bold text-zinc-400 truncate">
+                  {activeConcurso?.startDate ? `Início: ${new Date(activeConcurso.startDate).toLocaleDateString('pt-BR')}` : 'Início do projeto'}
+                </span>
+              </div>
+
+              {/* Indicador C: Quantidade de Disciplinas */}
+              <div className="bg-gradient-to-br from-emerald-50 to-teal-50/50 dark:from-emerald-950/20 dark:to-teal-950/20 border border-emerald-200/70 dark:border-emerald-800/40 rounded-2xl p-3 flex flex-col justify-between shadow-xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black uppercase text-emerald-600 dark:text-emerald-400 tracking-wider">
+                    Disciplinas
+                  </span>
+                  <BookOpen size={14} className="text-emerald-500 shrink-0" />
+                </div>
+                <div className="my-1.5">
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-2xl lg:text-3xl font-black text-emerald-900 dark:text-emerald-100 tracking-tight">
+                      {subjectsCount}
+                    </span>
+                    <span className="text-xs font-bold text-emerald-500 dark:text-emerald-400">
+                      {subjectsCount === 1 ? 'matéria' : 'matérias'}
+                    </span>
+                  </div>
+                </div>
+                <span className="text-[9px] font-bold text-zinc-400 truncate">
+                  {activeConcurso ? activeConcurso.name : 'Concurso selecionado'}
+                </span>
+              </div>
+
+              {/* Indicador D: Quantidade de Assuntos */}
+              <div className="bg-gradient-to-br from-amber-50 to-orange-50/50 dark:from-amber-950/20 dark:to-orange-950/20 border border-amber-200/70 dark:border-amber-800/40 rounded-2xl p-3 flex flex-col justify-between shadow-xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black uppercase text-amber-600 dark:text-amber-400 tracking-wider">
+                    Assuntos
+                  </span>
+                  <FileText size={14} className="text-amber-500 shrink-0" />
+                </div>
+                <div className="my-1.5">
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-2xl lg:text-3xl font-black text-amber-900 dark:text-amber-100 tracking-tight">
+                      {topicsCount}
+                    </span>
+                    <span className="text-xs font-bold text-amber-500 dark:text-amber-400">
+                      {topicsCount === 1 ? 'tópico' : 'tópicos'}
+                    </span>
+                  </div>
+                </div>
+                <span className="text-[9px] font-bold text-zinc-400 truncate">
+                  Conteúdo programático
+                </span>
+              </div>
+
+              {/* Indicador E: Tempo Total de Estudo */}
+              <div className="col-span-2 sm:col-span-1 bg-gradient-to-br from-rose-50 to-pink-50/50 dark:from-rose-950/20 dark:to-pink-950/20 border border-rose-200/70 dark:border-rose-800/40 rounded-2xl p-3 flex flex-col justify-between shadow-xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black uppercase text-rose-600 dark:text-rose-400 tracking-wider">
+                    Tempo de Estudo
+                  </span>
+                  <Clock size={14} className="text-rose-500 shrink-0" />
+                </div>
+                <div className="my-1.5">
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-xl lg:text-2xl font-black text-rose-900 dark:text-rose-100 tracking-tight">
+                      {formattedTotalTime}
+                    </span>
+                  </div>
+                </div>
+                <span className="text-[9px] font-bold text-zinc-400 truncate">
+                  {relevantSessions.length} sessões dedicadas
+                </span>
+              </div>
             </div>
           </div>
         );
@@ -1567,7 +1629,7 @@ const Dashboard: React.FC<DashboardProps> = ({
             if (widget.id === 'study_frequency') return 'min-h-[190px]';
             if (widget.id === 'study_tasks') return 'min-h-[260px]';
             if (widget.id === 'weekly_chart') return 'min-h-[260px]';
-            if (widget.id === 'activity_calendar') return 'min-h-[260px]';
+            if (widget.id === 'general_summary') return 'min-h-[200px]';
             if (widget.id === 'unified_subject_analysis') return 'min-h-[260px]';
             return 'min-h-[200px]';
           })();
@@ -1584,7 +1646,7 @@ const Dashboard: React.FC<DashboardProps> = ({
               <div className="flex justify-between items-center mb-3 shrink-0">
                 <h4 className="text-[10px] font-black text-zinc-800 dark:text-zinc-200 uppercase tracking-widest bg-zinc-50 dark:bg-zinc-800/50 px-2.5 py-1 rounded-full">{widget.id === 'study_tasks' ? 'Tarefas Pendentes' : widget.id === 'study_frequency' ? 'Disciplina e Assunto' : widget.title}</h4>
                 <div className="flex gap-2 items-center">
-                  {!isEditMode && ['weekly_chart', 'activity_calendar', 'unified_subject_analysis'].includes(widget.id) && (
+                  {!isEditMode && ['weekly_chart', 'general_summary', 'unified_subject_analysis'].includes(widget.id) && (
                     <button
                       onClick={() => setFullscreenWidgetId(widget.id)}
                       className="text-zinc-400 hover:text-zinc-900 dark:text-zinc-300 transition-colors p-1"

@@ -979,7 +979,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                             const saved = localStorage.getItem(`cp_cronograma_prefs_${concId}`);
                             if (saved) {
                                 const parsed = JSON.parse(saved);
-                                if (parsed.isCronogramaEnabled === false && s.status !== 'realizado' && !isReviewTask(s)) return false;
+                                if (parsed.isCronogramaEnabled === false && s.status !== 'realizado' && !isReviewTask(s) && s.generatedByCronograma) return false;
                             }
                         } catch (e) {}
                     }
@@ -1187,11 +1187,11 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                 if (!activeSimDates.has(sDate)) return false;
             }
 
-            // Se for atividade agendada e NÃO realizada de estudo regular, ocultar se o cronograma daquele concurso estiver desativado
-            if (s.status !== 'realizado' && !isReviewTask(s)) {
-                const concId = s.subjectId 
+            // Se for atividade gerada pelo cronograma automático e NÃO realizada, ocultar se o cronograma daquele concurso estiver desativado
+            if (s.status !== 'realizado' && !isReviewTask(s) && s.generatedByCronograma) {
+                const concId = s.concursoId || (s.subjectId 
                     ? (subjectToConcursoMap.get(s.subjectId) || (selectedConcursoId !== 'all' ? selectedConcursoId : undefined)) 
-                    : (selectedConcursoId !== 'all' ? selectedConcursoId : undefined);
+                    : (selectedConcursoId !== 'all' ? selectedConcursoId : undefined));
                 if (concId && !isCronogramaEnabledForConcurso(concId)) {
                     return false;
                 }
@@ -1809,7 +1809,14 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
 
         const isAulao = formData.activityTypes.includes('Aulão de Revisão');
         const selectedSubjects = isAulao ? formData.subjectIds : (formData.subjectId ? [formData.subjectId] : []);
-        if (selectedSubjects.length === 0 || !selectedDayKey) return;
+        if (selectedSubjects.length === 0) {
+            alert('Por favor, selecione ao menos uma disciplina.');
+            return;
+        }
+        if (!selectedDayKey) {
+            alert('Data inválida selecionada.');
+            return;
+        }
 
         const durationVal = parseInt(formData.duration) || 0;
         const selectedTypes = formData.activityTypes;
@@ -1945,6 +1952,10 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                     itemNotes = `[groupId:${newGroupId}] ${itemNotes}`;
                 }
 
+                const targetConcursoId = selectedConcursoId !== 'all'
+                    ? selectedConcursoId
+                    : (concursos.find(c => (c.subjects || []).some(sub => sub.id === subId))?.id || undefined);
+
                 if (formData.status === 'realizado') {
                     sessionsList.push({
                         id: crypto.randomUUID(),
@@ -1970,7 +1981,9 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                         questionsDone: itemDone,
                         questionsCorrect: itemCorrect,
                         status: formData.status,
-                        questionsLink: formData.questionsLink || undefined
+                        questionsLink: formData.questionsLink || undefined,
+                        concursoId: targetConcursoId,
+                        generatedByCronograma: false
                     });
                 }
             }
@@ -1984,6 +1997,9 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         if (formData.status === 'realizado') {
             const sessionsToCreateSchedule: ScheduledStudy[] = sessionsList.map(session => {
                 const sessionDate = session.date.split('T')[0];
+                const targetConcId = selectedConcursoId !== 'all'
+                    ? selectedConcursoId
+                    : (concursos.find(c => (c.subjects || []).some(sub => sub.id === session.subjectId))?.id || undefined);
                 return {
                     id: session.id,
                     date: sessionDate,
@@ -1995,7 +2011,9 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                     questionsCorrect: session.questionsCorrect,
                     status: 'realizado',
                     notes: (session as any).notes,
-                    questionsLink: session.questionsLink
+                    questionsLink: session.questionsLink,
+                    concursoId: targetConcId,
+                    generatedByCronograma: false
                 };
             });
 

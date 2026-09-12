@@ -2387,17 +2387,19 @@ const HubHome: React.FC<HubHomeProps> = ({
                         </div>
                         <span className="text-[9px] font-black text-zinc-500 dark:text-zinc-300 uppercase tracking-widest bg-zinc-200/60 dark:bg-zinc-700/60 px-2.5 py-1 rounded-xl">
                           {(() => {
+                            const dayExams = concursoExamDates.filter(ed => ed.date === selectedCalendarDate);
                             const dayTasks = calendarEvents.tasks.filter(t => t.endDate ? (t.due_date <= selectedCalendarDate && selectedCalendarDate <= t.endDate) : t.due_date === selectedCalendarDate);
                             const dayStudies = calendarEvents.studies.filter(s => s.date === selectedCalendarDate);
                             const dayWorkouts = calendarEvents.workouts.filter(w => w.date === selectedCalendarDate);
                             const dayFinances = calendarEvents.finances.filter(f => f.date === selectedCalendarDate);
-                            return dayTasks.length + dayStudies.length + dayWorkouts.length + dayFinances.length;
+                            return dayExams.length + dayTasks.length + dayStudies.length + dayWorkouts.length + dayFinances.length;
                           })()} itens
                         </span>
                       </div>
 
                       <div className="flex-1 overflow-y-auto pr-1 space-y-2 flex flex-col max-h-[360px] custom-scrollbar">
                         {(() => {
+                          const dayExams = concursoExamDates.filter(ed => ed.date === selectedCalendarDate);
                           const dayTasks = [...calendarEvents.tasks.filter(t => {
                             if (t.endDate) {
                               return t.due_date <= selectedCalendarDate && selectedCalendarDate <= t.endDate;
@@ -2423,7 +2425,7 @@ const HubHome: React.FC<HubHomeProps> = ({
                           const dayWorkouts = calendarEvents.workouts.filter(w => w.date === selectedCalendarDate);
                           const dayFinances = calendarEvents.finances.filter(f => f.date === selectedCalendarDate);
 
-                          const totalCount = dayTasks.length + dayStudies.length + dayWorkouts.length + dayFinances.length;
+                          const totalCount = dayExams.length + dayTasks.length + dayStudies.length + dayWorkouts.length + dayFinances.length;
 
                           if (totalCount === 0) {
                             return (
@@ -2437,6 +2439,29 @@ const HubHome: React.FC<HubHomeProps> = ({
 
                           return (
                             <>
+                               {/* Prova de Concurso (Destaque em Roxo) */}
+                               {dayExams.map((exam, idx) => (
+                                 <div
+                                   key={`exam-${idx}`}
+                                   onClick={() => {
+                                     window.location.hash = 'estudos';
+                                   }}
+                                   title="Abrir no Módulo de Estudos"
+                                   className="flex items-center gap-2.5 p-2.5 rounded-xl transition-all duration-200 cursor-pointer hover:scale-[1.01] bg-purple-500/15 dark:bg-purple-500/20 border-2 border-purple-500/50 dark:border-purple-400/60 shadow-sm"
+                                 >
+                                   <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 bg-purple-500 text-white shadow-xs">
+                                     <Target size={16} strokeWidth={2.5} />
+                                   </div>
+                                   <div className="min-w-0 flex-1">
+                                     <p className="text-[9px] font-black uppercase tracking-wider leading-none text-purple-700 dark:text-purple-300 flex items-center gap-1">
+                                       🎯 Prova do Concurso
+                                     </p>
+                                     <p className="text-xs font-black text-purple-950 dark:text-white truncate mt-0.5 leading-none">
+                                       {exam.name}
+                                     </p>
+                                   </div>
+                                 </div>
+                               ))}
                                {/* Estudos */}
                                {dayStudies.map(s => {
                                  const isCompleted = s.completed;

@@ -116,11 +116,21 @@ const Dashboard: React.FC<DashboardProps> = ({
     if (!saved) return DEFAULT_WIDGETS;
     try {
       const parsed: WidgetState[] = JSON.parse(saved);
-      return parsed.map(w => {
+      const migrated = parsed.map(w => {
         if (w.id === 'activity_calendar') {
-          return { ...w, id: 'general_summary', title: 'Resumo geral', size: 'wide' };
+          return { ...w, id: 'general_summary', title: 'Resumo geral', size: 'normal' as const };
+        }
+        if (w.id === 'general_summary') {
+          return { ...w, size: 'normal' as const };
         }
         return w;
+      });
+      // Deduplicar widgets por id, preservando a primeira ocorrência
+      const seen = new Set<string>();
+      return migrated.filter(w => {
+        if (seen.has(w.id)) return false;
+        seen.add(w.id);
+        return true;
       });
     } catch {
       return DEFAULT_WIDGETS;
@@ -167,6 +177,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   };
 
   const cycleSize = (id: string) => {
+    if (id === 'general_summary') return;
     setWidgets(prev => prev.map(w => {
       if (w.id === id) {
         const sizes: WidgetState['size'][] = ['normal', 'wide', 'full'];
@@ -1302,219 +1313,89 @@ const Dashboard: React.FC<DashboardProps> = ({
         const minsStudied = totalMinutesStudied % 60;
         const formattedTotalTime = hoursStudied > 0 ? `${hoursStudied}h ${minsStudied}min` : `${minsStudied}min`;
 
-        const isSmall = widgetSize === 'normal';
-
-        if (isSmall) {
-          return (
-            <div className="flex flex-col h-full justify-between gap-1.5 py-0.5">
-              {/* Item 1: Prova */}
-              <div className="flex items-center justify-between p-2 rounded-xl bg-violet-500/10 dark:bg-violet-950/30 border border-violet-200/60 dark:border-violet-800/40">
-                <div className="flex items-center gap-2 min-w-0">
-                  <div className="w-6 h-6 rounded-lg bg-violet-500 text-white flex items-center justify-center shrink-0">
-                    <Target size={12} strokeWidth={2.5} />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-[9px] font-black uppercase tracking-wider text-violet-600 dark:text-violet-400 leading-none">
-                      {isExamPast ? 'Prova Realizada' : 'Dias p/ Prova'}
-                    </p>
-                    <p className="text-[9px] font-bold text-zinc-400 truncate mt-0.5 leading-none">
-                      {activeConcurso?.targetDate ? new Date(activeConcurso.targetDate).toLocaleDateString('pt-BR') : 'Data não definida'}
-                    </p>
-                  </div>
+        return (
+          <div className="flex flex-col h-full justify-between gap-1.5 py-0.5">
+            {/* Item 1: Prova */}
+            <div className="flex items-center justify-between p-2 rounded-xl bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200/60 dark:border-zinc-800">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-6 h-6 rounded-lg bg-zinc-200/70 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 flex items-center justify-center shrink-0">
+                  <Target size={13} strokeWidth={2} />
                 </div>
-                <span className="text-sm font-black text-violet-950 dark:text-violet-100 shrink-0 ml-2">
-                  {daysUntilExam !== null ? `${daysUntilExam}d` : '—'}
-                </span>
+                <div className="min-w-0">
+                  <p className="text-[9px] font-black uppercase tracking-wider text-zinc-500 dark:text-zinc-400 leading-none">
+                    {isExamPast ? 'Prova Realizada' : 'Dias p/ Prova'}
+                  </p>
+                  <p className="text-[9px] font-medium text-zinc-400 dark:text-zinc-500 truncate mt-0.5 leading-none">
+                    {activeConcurso?.targetDate ? new Date(activeConcurso.targetDate).toLocaleDateString('pt-BR') : 'Data não definida'}
+                  </p>
+                </div>
               </div>
+              <span className="text-sm font-black text-zinc-800 dark:text-zinc-100 shrink-0 ml-2">
+                {daysUntilExam !== null ? `${daysUntilExam}d` : '—'}
+              </span>
+            </div>
 
-              {/* Item 2: Dias de Curso */}
-              <div className="flex items-center justify-between p-2 rounded-xl bg-blue-500/10 dark:bg-blue-950/30 border border-blue-200/60 dark:border-blue-800/40">
-                <div className="flex items-center gap-2 min-w-0">
-                  <div className="w-6 h-6 rounded-lg bg-blue-500 text-white flex items-center justify-center shrink-0">
-                    <Calendar size={12} strokeWidth={2.5} />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-[9px] font-black uppercase tracking-wider text-blue-600 dark:text-blue-400 leading-none">
-                      Dias de Curso
-                    </p>
-                    <p className="text-[9px] font-bold text-zinc-400 truncate mt-0.5 leading-none">
-                      {activeConcurso?.startDate ? `Desde ${new Date(activeConcurso.startDate).toLocaleDateString('pt-BR')}` : 'Início'}
-                    </p>
-                  </div>
+            {/* Item 2: Dias de Curso */}
+            <div className="flex items-center justify-between p-2 rounded-xl bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200/60 dark:border-zinc-800">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-6 h-6 rounded-lg bg-zinc-200/70 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 flex items-center justify-center shrink-0">
+                  <Calendar size={13} strokeWidth={2} />
                 </div>
-                <span className="text-sm font-black text-blue-950 dark:text-blue-100 shrink-0 ml-2">
-                  {daysSinceStart !== null ? `${daysSinceStart}d` : '—'}
-                </span>
+                <div className="min-w-0">
+                  <p className="text-[9px] font-black uppercase tracking-wider text-zinc-500 dark:text-zinc-400 leading-none">
+                    Dias de Curso
+                  </p>
+                  <p className="text-[9px] font-medium text-zinc-400 dark:text-zinc-500 truncate mt-0.5 leading-none">
+                    {activeConcurso?.startDate ? `Desde ${new Date(activeConcurso.startDate).toLocaleDateString('pt-BR')}` : 'Início'}
+                  </p>
+                </div>
               </div>
+              <span className="text-sm font-black text-zinc-800 dark:text-zinc-100 shrink-0 ml-2">
+                {daysSinceStart !== null ? `${daysSinceStart}d` : '—'}
+              </span>
+            </div>
 
-              {/* Item 3 e 4: Disciplinas e Assuntos Lado a Lado */}
-              <div className="grid grid-cols-2 gap-1.5">
-                <div className="flex items-center gap-2 p-1.5 rounded-xl bg-emerald-500/10 dark:bg-emerald-950/30 border border-emerald-200/60 dark:border-emerald-800/40 min-w-0">
-                  <div className="w-6 h-6 rounded-lg bg-emerald-500 text-white flex items-center justify-center shrink-0">
-                    <BookOpen size={12} strokeWidth={2.5} />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-[8px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 leading-none">Disciplinas</p>
-                    <p className="text-xs font-black text-emerald-950 dark:text-emerald-100 mt-0.5 leading-none">{subjectsCount}</p>
-                  </div>
+            {/* Item 3 e 4: Disciplinas e Assuntos Lado a Lado */}
+            <div className="grid grid-cols-2 gap-1.5">
+              <div className="flex items-center gap-2 p-1.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200/60 dark:border-zinc-800 min-w-0">
+                <div className="w-6 h-6 rounded-lg bg-zinc-200/70 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 flex items-center justify-center shrink-0">
+                  <BookOpen size={12} strokeWidth={2} />
                 </div>
-
-                <div className="flex items-center gap-2 p-1.5 rounded-xl bg-amber-500/10 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-800/40 min-w-0">
-                  <div className="w-6 h-6 rounded-lg bg-amber-500 text-white flex items-center justify-center shrink-0">
-                    <FileText size={12} strokeWidth={2.5} />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-[8px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 leading-none">Assuntos</p>
-                    <p className="text-xs font-black text-amber-950 dark:text-amber-100 mt-0.5 leading-none">{topicsCount}</p>
-                  </div>
+                <div className="min-w-0">
+                  <p className="text-[8px] font-black uppercase tracking-wider text-zinc-500 dark:text-zinc-400 leading-none">Disciplinas</p>
+                  <p className="text-xs font-black text-zinc-800 dark:text-zinc-100 mt-0.5 leading-none">{subjectsCount}</p>
                 </div>
               </div>
 
-              {/* Item 5: Tempo Total de Estudo */}
-              <div className="flex items-center justify-between p-2 rounded-xl bg-rose-500/10 dark:bg-rose-950/30 border border-rose-200/60 dark:border-rose-800/40">
-                <div className="flex items-center gap-2 min-w-0">
-                  <div className="w-6 h-6 rounded-lg bg-rose-500 text-white flex items-center justify-center shrink-0">
-                    <Clock size={12} strokeWidth={2.5} />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-[9px] font-black uppercase tracking-wider text-rose-600 dark:text-rose-400 leading-none">
-                      Tempo de Estudo
-                    </p>
-                    <p className="text-[9px] font-bold text-zinc-400 truncate mt-0.5 leading-none">
-                      {relevantSessions.length} sessões realizadas
-                    </p>
-                  </div>
+              <div className="flex items-center gap-2 p-1.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200/60 dark:border-zinc-800 min-w-0">
+                <div className="w-6 h-6 rounded-lg bg-zinc-200/70 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 flex items-center justify-center shrink-0">
+                  <FileText size={12} strokeWidth={2} />
                 </div>
-                <span className="text-xs font-black text-rose-950 dark:text-rose-100 shrink-0 ml-2">
-                  {formattedTotalTime}
-                </span>
+                <div className="min-w-0">
+                  <p className="text-[8px] font-black uppercase tracking-wider text-zinc-500 dark:text-zinc-400 leading-none">Assuntos</p>
+                  <p className="text-xs font-black text-zinc-800 dark:text-zinc-100 mt-0.5 leading-none">{topicsCount}</p>
+                </div>
               </div>
             </div>
-          );
-        }
 
-        return (
-          <div className="flex flex-col h-full justify-between py-1">
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 h-full items-stretch">
-              {/* Indicador A: Dias para a Prova */}
-              <div className="bg-gradient-to-br from-violet-50 to-indigo-50/50 dark:from-violet-950/20 dark:to-indigo-950/20 border border-violet-200/70 dark:border-violet-800/40 rounded-2xl p-3 flex flex-col justify-between shadow-xs">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black uppercase text-violet-600 dark:text-violet-400 tracking-wider">
-                    {isExamPast ? 'Prova Realizada' : 'Dias p/ Prova'}
-                  </span>
-                  <Target size={14} className="text-violet-500 shrink-0" />
+            {/* Item 5: Tempo Total de Estudo */}
+            <div className="flex items-center justify-between p-2 rounded-xl bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200/60 dark:border-zinc-800">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-6 h-6 rounded-lg bg-zinc-200/70 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 flex items-center justify-center shrink-0">
+                  <Clock size={13} strokeWidth={2} />
                 </div>
-                <div className="my-1.5">
-                  {daysUntilExam !== null ? (
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-2xl lg:text-3xl font-black text-violet-900 dark:text-violet-100 tracking-tight">
-                        {daysUntilExam}
-                      </span>
-                      <span className="text-xs font-bold text-violet-500 dark:text-violet-400">
-                        {daysUntilExam === 1 ? 'dia' : 'dias'} {isExamPast ? 'atrás' : ''}
-                      </span>
-                    </div>
-                  ) : (
-                    <span className="text-xs font-bold text-zinc-400">Data não def.</span>
-                  )}
-                </div>
-                <span className="text-[9px] font-bold text-zinc-400 truncate">
-                  {activeConcurso?.targetDate ? new Date(activeConcurso.targetDate).toLocaleDateString('pt-BR') : 'Edital sem data'}
-                </span>
-              </div>
-
-              {/* Indicador B: Dias desde o Início */}
-              <div className="bg-gradient-to-br from-blue-50 to-cyan-50/50 dark:from-blue-950/20 dark:to-cyan-950/20 border border-blue-200/70 dark:border-blue-800/40 rounded-2xl p-3 flex flex-col justify-between shadow-xs">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black uppercase text-blue-600 dark:text-blue-400 tracking-wider">
-                    Dias de Curso
-                  </span>
-                  <Calendar size={14} className="text-blue-500 shrink-0" />
-                </div>
-                <div className="my-1.5">
-                  {daysSinceStart !== null ? (
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-2xl lg:text-3xl font-black text-blue-900 dark:text-blue-100 tracking-tight">
-                        {daysSinceStart}
-                      </span>
-                      <span className="text-xs font-bold text-blue-500 dark:text-blue-400">
-                        {daysSinceStart === 1 ? 'dia' : 'dias'}
-                      </span>
-                    </div>
-                  ) : (
-                    <span className="text-xs font-bold text-zinc-400">—</span>
-                  )}
-                </div>
-                <span className="text-[9px] font-bold text-zinc-400 truncate">
-                  {activeConcurso?.startDate ? `Início: ${new Date(activeConcurso.startDate).toLocaleDateString('pt-BR')}` : 'Início do projeto'}
-                </span>
-              </div>
-
-              {/* Indicador C: Quantidade de Disciplinas */}
-              <div className="bg-gradient-to-br from-emerald-50 to-teal-50/50 dark:from-emerald-950/20 dark:to-teal-950/20 border border-emerald-200/70 dark:border-emerald-800/40 rounded-2xl p-3 flex flex-col justify-between shadow-xs">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black uppercase text-emerald-600 dark:text-emerald-400 tracking-wider">
-                    Disciplinas
-                  </span>
-                  <BookOpen size={14} className="text-emerald-500 shrink-0" />
-                </div>
-                <div className="my-1.5">
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-2xl lg:text-3xl font-black text-emerald-900 dark:text-emerald-100 tracking-tight">
-                      {subjectsCount}
-                    </span>
-                    <span className="text-xs font-bold text-emerald-500 dark:text-emerald-400">
-                      {subjectsCount === 1 ? 'matéria' : 'matérias'}
-                    </span>
-                  </div>
-                </div>
-                <span className="text-[9px] font-bold text-zinc-400 truncate">
-                  {activeConcurso ? activeConcurso.name : 'Concurso selecionado'}
-                </span>
-              </div>
-
-              {/* Indicador D: Quantidade de Assuntos */}
-              <div className="bg-gradient-to-br from-amber-50 to-orange-50/50 dark:from-amber-950/20 dark:to-orange-950/20 border border-amber-200/70 dark:border-amber-800/40 rounded-2xl p-3 flex flex-col justify-between shadow-xs">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black uppercase text-amber-600 dark:text-amber-400 tracking-wider">
-                    Assuntos
-                  </span>
-                  <FileText size={14} className="text-amber-500 shrink-0" />
-                </div>
-                <div className="my-1.5">
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-2xl lg:text-3xl font-black text-amber-900 dark:text-amber-100 tracking-tight">
-                      {topicsCount}
-                    </span>
-                    <span className="text-xs font-bold text-amber-500 dark:text-amber-400">
-                      {topicsCount === 1 ? 'tópico' : 'tópicos'}
-                    </span>
-                  </div>
-                </div>
-                <span className="text-[9px] font-bold text-zinc-400 truncate">
-                  Conteúdo programático
-                </span>
-              </div>
-
-              {/* Indicador E: Tempo Total de Estudo */}
-              <div className="col-span-2 sm:col-span-1 bg-gradient-to-br from-rose-50 to-pink-50/50 dark:from-rose-950/20 dark:to-pink-950/20 border border-rose-200/70 dark:border-rose-800/40 rounded-2xl p-3 flex flex-col justify-between shadow-xs">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black uppercase text-rose-600 dark:text-rose-400 tracking-wider">
+                <div className="min-w-0">
+                  <p className="text-[9px] font-black uppercase tracking-wider text-zinc-500 dark:text-zinc-400 leading-none">
                     Tempo de Estudo
-                  </span>
-                  <Clock size={14} className="text-rose-500 shrink-0" />
+                  </p>
+                  <p className="text-[9px] font-medium text-zinc-400 dark:text-zinc-500 truncate mt-0.5 leading-none">
+                    {relevantSessions.length} sessões realizadas
+                  </p>
                 </div>
-                <div className="my-1.5">
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-xl lg:text-2xl font-black text-rose-900 dark:text-rose-100 tracking-tight">
-                      {formattedTotalTime}
-                    </span>
-                  </div>
-                </div>
-                <span className="text-[9px] font-bold text-zinc-400 truncate">
-                  {relevantSessions.length} sessões dedicadas
-                </span>
               </div>
+              <span className="text-xs font-black text-zinc-800 dark:text-zinc-100 shrink-0 ml-2">
+                {formattedTotalTime}
+              </span>
             </div>
           </div>
         );
@@ -1720,7 +1601,7 @@ const Dashboard: React.FC<DashboardProps> = ({
             if (widget.id === 'study_frequency') return 'min-h-[190px]';
             if (widget.id === 'study_tasks') return 'min-h-[260px]';
             if (widget.id === 'weekly_chart') return 'min-h-[260px]';
-            if (widget.id === 'general_summary') return widget.size === 'normal' ? 'min-h-[260px]' : 'min-h-[180px]';
+            if (widget.id === 'general_summary') return 'min-h-[260px]';
             if (widget.id === 'unified_subject_analysis') return 'min-h-[260px]';
             return 'min-h-[200px]';
           })();
@@ -1737,7 +1618,7 @@ const Dashboard: React.FC<DashboardProps> = ({
               <div className="flex justify-between items-center mb-3 shrink-0">
                 <h4 className="text-[10px] font-black text-zinc-800 dark:text-zinc-200 uppercase tracking-widest bg-zinc-50 dark:bg-zinc-800/50 px-2.5 py-1 rounded-full">{widget.id === 'study_tasks' ? 'Tarefas Pendentes' : widget.id === 'study_frequency' ? 'Disciplina e Assunto' : widget.title}</h4>
                 <div className="flex gap-2 items-center">
-                  {!isEditMode && ['weekly_chart', 'general_summary', 'unified_subject_analysis'].includes(widget.id) && (
+                  {!isEditMode && ['weekly_chart', 'unified_subject_analysis'].includes(widget.id) && (
                     <button
                       onClick={() => setFullscreenWidgetId(widget.id)}
                       className="text-zinc-400 hover:text-zinc-900 dark:text-zinc-300 transition-colors p-1"
@@ -1757,7 +1638,9 @@ const Dashboard: React.FC<DashboardProps> = ({
                   )}
                   {isEditMode && (
                     <div className="flex gap-2">
-                      <button onClick={() => cycleSize(widget.id)} className="bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded-lg text-[9px] font-bold uppercase tracking-tight text-zinc-500">Tam: {widget.size}</button>
+                      {widget.id !== 'general_summary' && (
+                        <button onClick={() => cycleSize(widget.id)} className="bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded-lg text-[9px] font-bold uppercase tracking-tight text-zinc-500">Tam: {widget.size}</button>
+                      )}
                       <button onClick={() => setWidgets(prev => prev.map(w => w.id === widget.id ? { ...w, isVisible: !w.isVisible } : w))} className="text-zinc-500 hover:text-zinc-900 dark:text-zinc-300">{widget.isVisible ? <Eye size={16} /> : <EyeOff size={16} />}</button>
                     </div>
                   )}

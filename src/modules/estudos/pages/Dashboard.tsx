@@ -68,7 +68,7 @@ const DEFAULT_WIDGETS: WidgetState[] = [
   { id: 'study_frequency', title: 'Disciplina e Assunto', isVisible: true, size: 'normal' },
   { id: 'study_tasks', title: 'Tarefas Pendentes', isVisible: true, size: 'normal' },
   { id: 'weekly_chart', title: 'Volume de Estudo', isVisible: true, size: 'wide' },
-  { id: 'general_summary', title: 'Resumo geral', isVisible: true, size: 'wide' },
+  { id: 'general_summary', title: 'Resumo geral', isVisible: true, size: 'normal' },
   { id: 'unified_subject_analysis', title: 'Análise por Disciplina', isVisible: true, size: 'normal' },
 ];
 
@@ -750,7 +750,7 @@ const Dashboard: React.FC<DashboardProps> = ({
     return { streak, last7DaysCount };
   }, [relevantSessions]);
 
-  const renderWidgetContent = (id: string) => {
+  const renderWidgetContent = (id: string, widgetSize: WidgetState['size'] = 'normal') => {
     switch (id) {
       case 'general_stats':
         const sessionsDone = filteredSessions.filter(s => !isSimuladoSession(s)).reduce((acc, s) => acc + (s.questionsDone || 0), 0);
@@ -1302,6 +1302,97 @@ const Dashboard: React.FC<DashboardProps> = ({
         const minsStudied = totalMinutesStudied % 60;
         const formattedTotalTime = hoursStudied > 0 ? `${hoursStudied}h ${minsStudied}min` : `${minsStudied}min`;
 
+        const isSmall = widgetSize === 'normal';
+
+        if (isSmall) {
+          return (
+            <div className="flex flex-col h-full justify-between gap-1.5 py-0.5">
+              {/* Item 1: Prova */}
+              <div className="flex items-center justify-between p-2 rounded-xl bg-violet-500/10 dark:bg-violet-950/30 border border-violet-200/60 dark:border-violet-800/40">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="w-6 h-6 rounded-lg bg-violet-500 text-white flex items-center justify-center shrink-0">
+                    <Target size={12} strokeWidth={2.5} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[9px] font-black uppercase tracking-wider text-violet-600 dark:text-violet-400 leading-none">
+                      {isExamPast ? 'Prova Realizada' : 'Dias p/ Prova'}
+                    </p>
+                    <p className="text-[9px] font-bold text-zinc-400 truncate mt-0.5 leading-none">
+                      {activeConcurso?.targetDate ? new Date(activeConcurso.targetDate).toLocaleDateString('pt-BR') : 'Data não definida'}
+                    </p>
+                  </div>
+                </div>
+                <span className="text-sm font-black text-violet-950 dark:text-violet-100 shrink-0 ml-2">
+                  {daysUntilExam !== null ? `${daysUntilExam}d` : '—'}
+                </span>
+              </div>
+
+              {/* Item 2: Dias de Curso */}
+              <div className="flex items-center justify-between p-2 rounded-xl bg-blue-500/10 dark:bg-blue-950/30 border border-blue-200/60 dark:border-blue-800/40">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="w-6 h-6 rounded-lg bg-blue-500 text-white flex items-center justify-center shrink-0">
+                    <Calendar size={12} strokeWidth={2.5} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[9px] font-black uppercase tracking-wider text-blue-600 dark:text-blue-400 leading-none">
+                      Dias de Curso
+                    </p>
+                    <p className="text-[9px] font-bold text-zinc-400 truncate mt-0.5 leading-none">
+                      {activeConcurso?.startDate ? `Desde ${new Date(activeConcurso.startDate).toLocaleDateString('pt-BR')}` : 'Início'}
+                    </p>
+                  </div>
+                </div>
+                <span className="text-sm font-black text-blue-950 dark:text-blue-100 shrink-0 ml-2">
+                  {daysSinceStart !== null ? `${daysSinceStart}d` : '—'}
+                </span>
+              </div>
+
+              {/* Item 3 e 4: Disciplinas e Assuntos Lado a Lado */}
+              <div className="grid grid-cols-2 gap-1.5">
+                <div className="flex items-center gap-2 p-1.5 rounded-xl bg-emerald-500/10 dark:bg-emerald-950/30 border border-emerald-200/60 dark:border-emerald-800/40 min-w-0">
+                  <div className="w-6 h-6 rounded-lg bg-emerald-500 text-white flex items-center justify-center shrink-0">
+                    <BookOpen size={12} strokeWidth={2.5} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[8px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 leading-none">Disciplinas</p>
+                    <p className="text-xs font-black text-emerald-950 dark:text-emerald-100 mt-0.5 leading-none">{subjectsCount}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 p-1.5 rounded-xl bg-amber-500/10 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-800/40 min-w-0">
+                  <div className="w-6 h-6 rounded-lg bg-amber-500 text-white flex items-center justify-center shrink-0">
+                    <FileText size={12} strokeWidth={2.5} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[8px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 leading-none">Assuntos</p>
+                    <p className="text-xs font-black text-amber-950 dark:text-amber-100 mt-0.5 leading-none">{topicsCount}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Item 5: Tempo Total de Estudo */}
+              <div className="flex items-center justify-between p-2 rounded-xl bg-rose-500/10 dark:bg-rose-950/30 border border-rose-200/60 dark:border-rose-800/40">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="w-6 h-6 rounded-lg bg-rose-500 text-white flex items-center justify-center shrink-0">
+                    <Clock size={12} strokeWidth={2.5} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[9px] font-black uppercase tracking-wider text-rose-600 dark:text-rose-400 leading-none">
+                      Tempo de Estudo
+                    </p>
+                    <p className="text-[9px] font-bold text-zinc-400 truncate mt-0.5 leading-none">
+                      {relevantSessions.length} sessões realizadas
+                    </p>
+                  </div>
+                </div>
+                <span className="text-xs font-black text-rose-950 dark:text-rose-100 shrink-0 ml-2">
+                  {formattedTotalTime}
+                </span>
+              </div>
+            </div>
+          );
+        }
+
         return (
           <div className="flex flex-col h-full justify-between py-1">
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 h-full items-stretch">
@@ -1629,7 +1720,7 @@ const Dashboard: React.FC<DashboardProps> = ({
             if (widget.id === 'study_frequency') return 'min-h-[190px]';
             if (widget.id === 'study_tasks') return 'min-h-[260px]';
             if (widget.id === 'weekly_chart') return 'min-h-[260px]';
-            if (widget.id === 'general_summary') return 'min-h-[200px]';
+            if (widget.id === 'general_summary') return widget.size === 'normal' ? 'min-h-[260px]' : 'min-h-[180px]';
             if (widget.id === 'unified_subject_analysis') return 'min-h-[260px]';
             return 'min-h-[200px]';
           })();
@@ -1673,7 +1764,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                 </div>
               </div>
               <div className="flex-1 min-h-0 overflow-hidden">
-                {renderWidgetContent(widget.id)}
+                {renderWidgetContent(widget.id, widget.size)}
               </div>
             </div>
           );

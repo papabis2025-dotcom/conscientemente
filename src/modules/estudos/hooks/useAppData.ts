@@ -432,7 +432,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         }
     }, []);
 
-    const syncPlannedReviewsDb = useCallback(async (allSess: StudySession[], allSchedule: ScheduledStudy[], allConcursos: Concurso[]) => {
+    const syncPlannedReviewsDb = useCallback(async (allSess: StudySession[], allSchedule: ScheduledStudy[], allConcursos: Concurso[], forceRecalculate: boolean = false) => {
         let customReviewDays = [7, 30, 90, 15, 45];
         try {
             const saved = localStorage.getItem('estudos_custom_review_days');
@@ -441,11 +441,24 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
             console.error('Error reading custom review days:', e);
         }
 
+        let disabledReviewsMap: Record<string, boolean> = {};
+        try {
+            const rawMap = localStorage.getItem('estudos_disabled_reviews_map');
+            if (rawMap) disabledReviewsMap = JSON.parse(rawMap);
+        } catch (e) {}
+
+        const disabledConcursoIds = new Set<string>();
+        const disabledSubjectIds = new Set<string>();
+
         const expectedReviews: ScheduledStudy[] = [];
 
         allConcursos.forEach(concurso => {
-            const isReviewsDisabled = localStorage.getItem(`estudos_disabled_reviews_${concurso.id}`) === 'true';
-            if (isReviewsDisabled) return;
+            const isReviewsDisabled = !!disabledReviewsMap[concurso.id] || localStorage.getItem(`estudos_disabled_reviews_${concurso.id}`) === 'true';
+            if (isReviewsDisabled) {
+                disabledConcursoIds.add(concurso.id);
+                (concurso.subjects || []).forEach(sub => disabledSubjectIds.add(sub.id));
+                return;
+            }
 
             (concurso.subjects || []).forEach(subject => {
                 const topicsList = [{ id: 'geral', title: 'Geral / Outros' }, ...(subject.topics || [])];
@@ -593,11 +606,35 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         });
 
         const uniqueToDeleteMap = new Map<string, ScheduledStudy>();
+
+        // 1. Apagar todas as revisões automáticas planejadas (ainda não realizadas) de concursos que não aplicam revisões
+        allSchedule.forEach(s => {
+            const isReview = isAutomaticReview(s);
+            if (isReview && s.status !== 'realizado') {
+                const belongsToDisabledConcurso = (s.concursoId && disabledConcursoIds.has(s.concursoId)) || disabledSubjectIds.has(s.subjectId);
+                if (belongsToDisabledConcurso) {
+                    uniqueToDeleteMap.set(s.id, s);
+                }
+            }
+        });
         
-        // Apenas expurgar duplicadas ativas reais (mesma matéria, tópico, data e origem) para evitar poluição
+        // 2. Apenas expurgar duplicadas ativas reais (mesma matéria, tópico, data e origem) para evitar poluição
         duplicateReviewsToDelete.forEach(s => {
             uniqueToDeleteMap.set(s.id, s);
         });
+
+        // 3. Ao recalcular/atualizar revisões (forceRecalculate === true):
+        // Excluir revisões planejadas que não constem mais nas revisões esperadas (ex: intervalos de dias alterados ou reduzidos)
+        if (forceRecalculate) {
+            allSchedule.forEach(s => {
+                const isReview = isAutomaticReview(s);
+                if (isReview && s.status !== 'realizado') {
+                    if (!expectedIds.has(s.id)) {
+                        uniqueToDeleteMap.set(s.id, s);
+                    }
+                }
+            });
+        }
 
         const reviewsToDelete = Array.from(uniqueToDeleteMap.values());
 
@@ -730,7 +767,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         if (forceRecalculate) {
             localStorage.removeItem('estudos_deleted_review_ids');
         }
-        await syncPlannedReviewsDb(sessions, scheduledStudies, concursos);
+        await syncPlannedReviewsDb(sessions, scheduledStudies, concursos, forceRecalculate);
     }, [sessions, scheduledStudies, concursos, syncPlannedReviewsDb]);
 
     useEffect(() => {
@@ -764,13 +801,14 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                     localStorage.setItem('cp_selected_concurso_id', userSettings.selectedConcursoId);
                 }
                 
-                // Sync customReviewDays: preserve local custom settings if present, otherwise import from cloud
-                const localSavedReviewDays = localStorage.getItem('estudos_custom_review_days');
+                // Sync customReviewDays: se vier da nuvem, adota na íntegra localmente
                 if (userSettings.customReviewDays && Array.isArray(userSettings.customReviewDays) && userSettings.customReviewDays.length > 0) {
                     const cloudStr = JSON.stringify(userSettings.customReviewDays);
-                    if (!localSavedReviewDays || localSavedReviewDays === '[]' || localSavedReviewDays === '[7,30,90,15,45]') {
-                        localStorage.setItem('estudos_custom_review_days', cloudStr);
-                    } else {
+                    localStorage.setItem('estudos_custom_review_days', cloudStr);
+                    window.dispatchEvent(new Event('local-settings-changed'));
+                } else {
+                    const localSavedReviewDays = localStorage.getItem('estudos_custom_review_days');
+                    if (localSavedReviewDays) {
                         try {
                             const parsed = JSON.parse(localSavedReviewDays);
                             if (Array.isArray(parsed) && parsed.length > 0) {
@@ -778,13 +816,6 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                             }
                         } catch (e) {}
                     }
-                } else if (localSavedReviewDays) {
-                    try {
-                        const parsed = JSON.parse(localSavedReviewDays);
-                        if (Array.isArray(parsed) && parsed.length > 0) {
-                            api.settings.update({ customReviewDays: parsed }).catch(() => {});
-                        }
-                    } catch (e) {}
                 }
 
                 // Sync disabledReviewsMap from cloud
@@ -797,6 +828,17 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                             localStorage.removeItem(`estudos_disabled_reviews_${concId}`);
                         }
                     });
+                    window.dispatchEvent(new Event('local-reviews-toggled'));
+                    window.dispatchEvent(new Event('local-settings-changed'));
+                }
+
+                // Sync estudos_review_days_locked from cloud
+                if (userSettings.estudos_review_days_locked !== undefined || userSettings.isReviewDaysLocked !== undefined) {
+                    const isLocked = userSettings.isReviewDaysLocked !== undefined 
+                        ? String(userSettings.isReviewDaysLocked) 
+                        : String(userSettings.estudos_review_days_locked);
+                    localStorage.setItem('estudos_review_days_locked', isLocked);
+                    window.dispatchEvent(new Event('local-settings-changed'));
                 }
 
                 // Sync deletedReviewIds from cloud

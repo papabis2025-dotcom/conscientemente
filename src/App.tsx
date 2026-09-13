@@ -382,22 +382,16 @@ function mergeSettings(
       try {
         const localArr = localVal ? JSON.parse(localVal) : null;
         const remoteArr = remoteVal ? JSON.parse(remoteVal) : null;
-        const isLocalCustom = Array.isArray(localArr) && localArr.length > 0 && localVal !== '[7,30,90,15,45]';
-        const isRemoteCustom = Array.isArray(remoteArr) && remoteArr.length > 0 && remoteVal !== '[7,30,90,15,45]';
+        const hasLocal = Array.isArray(localArr) && localArr.length > 0;
+        const hasRemote = Array.isArray(remoteArr) && remoteArr.length > 0;
 
-        if (isLocalCustom) {
-          merged[key] = localVal;
-        } else if (isRemoteCustom) {
-          merged[key] = remoteVal;
-        } else if (Array.isArray(localArr) && localArr.length > 0) {
-          merged[key] = localVal;
-        } else if (Array.isArray(remoteArr) && remoteArr.length > 0) {
-          merged[key] = remoteVal;
+        if (preferRemote) {
+          merged[key] = hasRemote ? remoteVal : (hasLocal ? localVal : remoteVal);
         } else {
-          merged[key] = localVal || remoteVal;
+          merged[key] = hasLocal ? localVal : (hasRemote ? remoteVal : localVal);
         }
       } catch {
-        merged[key] = localVal || remoteVal;
+        merged[key] = preferRemote ? (remoteVal || localVal) : (localVal || remoteVal);
       }
     } else if (key === 'cn_custom_bg_image') {
       if (localVal && !remoteVal) {
@@ -653,6 +647,8 @@ const App: React.FC = () => {
           }
         });
         window.dispatchEvent(new Event('local-storage-sync'));
+        window.dispatchEvent(new Event('local-reviews-toggled'));
+        window.dispatchEvent(new Event('local-settings-changed'));
       } catch (err) {
         console.warn('Supabase preferences sync bypassed (using local storage):', err);
       }
@@ -813,6 +809,8 @@ const App: React.FC = () => {
               }
             });
             window.dispatchEvent(new Event('local-storage-sync'));
+            window.dispatchEvent(new Event('local-reviews-toggled'));
+            window.dispatchEvent(new Event('local-settings-changed'));
 
             const mergedTheme = merged['cn_theme'];
             if (mergedTheme && (mergedTheme === 'light' || mergedTheme === 'dark')) {

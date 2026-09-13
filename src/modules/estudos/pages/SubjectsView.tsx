@@ -128,6 +128,8 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
     setIsReviewDaysLocked(prev => {
       const next = !prev;
       localStorage.setItem('estudos_review_days_locked', String(next));
+      api.settings.update({ estudos_review_days_locked: String(next) }).catch(() => {});
+      window.dispatchEvent(new Event('local-settings-changed'));
       return next;
     });
   };
@@ -136,7 +138,17 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
 
   useEffect(() => {
     if (selectedConcursoId && selectedConcursoId !== 'all') {
-      setReviewsDisabled(localStorage.getItem('estudos_disabled_reviews_' + selectedConcursoId) === 'true');
+      let disabled = localStorage.getItem('estudos_disabled_reviews_' + selectedConcursoId) === 'true';
+      try {
+        const rawMap = localStorage.getItem('estudos_disabled_reviews_map');
+        if (rawMap) {
+          const parsedMap = JSON.parse(rawMap);
+          if (parsedMap[selectedConcursoId] !== undefined) {
+            disabled = !!parsedMap[selectedConcursoId];
+          }
+        }
+      } catch (e) {}
+      setReviewsDisabled(disabled);
     } else {
       setReviewsDisabled(false);
     }
@@ -152,17 +164,33 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
             setCustomReviewDays(parsed);
           }
         }
+        if (selectedConcursoId && selectedConcursoId !== 'all') {
+          let disabled = localStorage.getItem('estudos_disabled_reviews_' + selectedConcursoId) === 'true';
+          try {
+            const rawMap = localStorage.getItem('estudos_disabled_reviews_map');
+            if (rawMap) {
+              const parsedMap = JSON.parse(rawMap);
+              if (parsedMap[selectedConcursoId] !== undefined) {
+                disabled = !!parsedMap[selectedConcursoId];
+              }
+            }
+          } catch (e) {}
+          setReviewsDisabled(disabled);
+        }
+        setIsReviewDaysLocked(localStorage.getItem('estudos_review_days_locked') === 'true');
       } catch (e) {}
     };
     window.addEventListener('local-settings-changed', handleSettingsSync);
     window.addEventListener('local-reviews-toggled', handleSettingsSync);
+    window.addEventListener('local-storage-sync', handleSettingsSync);
     window.addEventListener('storage', handleSettingsSync);
     return () => {
       window.removeEventListener('local-settings-changed', handleSettingsSync);
       window.removeEventListener('local-reviews-toggled', handleSettingsSync);
+      window.removeEventListener('local-storage-sync', handleSettingsSync);
       window.removeEventListener('storage', handleSettingsSync);
     };
-  }, []);
+  }, [selectedConcursoId]);
 
   useEffect(() => {
     const weights: Record<string, string> = {};
@@ -240,7 +268,28 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
     // 3. Salvar no Supabase e localStorage
     onUpdateSubjects(updatedSubjects);
     localStorage.setItem('estudos_custom_review_days', JSON.stringify(customReviewDays));
-    api.settings.update({ customReviewDays }).catch(() => {});
+
+    let map: Record<string, boolean> = {};
+    try {
+      const rawMap = localStorage.getItem('estudos_disabled_reviews_map');
+      if (rawMap) map = JSON.parse(rawMap);
+    } catch (err) {}
+    if (selectedConcursoId && selectedConcursoId !== 'all') {
+      map[selectedConcursoId] = reviewsDisabled;
+      localStorage.setItem('estudos_disabled_reviews_map', JSON.stringify(map));
+      if (reviewsDisabled) {
+        localStorage.setItem('estudos_disabled_reviews_' + selectedConcursoId, 'true');
+      } else {
+        localStorage.removeItem('estudos_disabled_reviews_' + selectedConcursoId);
+      }
+    }
+
+    api.settings.update({
+      customReviewDays,
+      disabledReviewsMap: map,
+      estudos_review_days_locked: String(isReviewDaysLocked)
+    }).catch(() => {});
+
     window.dispatchEvent(new Event('local-reviews-toggled'));
     window.dispatchEvent(new Event('local-settings-changed'));
     if (showToast) {

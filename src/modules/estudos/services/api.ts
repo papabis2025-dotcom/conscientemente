@@ -64,6 +64,10 @@ export const api = {
                                 res.estudos_weights_by_course = parsed;
                             } catch (e) {}
                         }
+                        if (s.estudos_review_days_locked !== undefined) {
+                            res.isReviewDaysLocked = s.estudos_review_days_locked === 'true';
+                            res.estudos_review_days_locked = s.estudos_review_days_locked;
+                        }
                         return res;
                     }
                 }
@@ -107,6 +111,12 @@ export const api = {
                 }
                 if (metadataUpdates.estudos_weights_locked !== undefined) {
                     currentSettings['estudos_weights_locked'] = String(metadataUpdates.estudos_weights_locked);
+                }
+                if (metadataUpdates.estudos_review_days_locked !== undefined) {
+                    currentSettings['estudos_review_days_locked'] = String(metadataUpdates.estudos_review_days_locked);
+                }
+                if (metadataUpdates.isReviewDaysLocked !== undefined) {
+                    currentSettings['estudos_review_days_locked'] = String(metadataUpdates.isReviewDaysLocked);
                 }
                 Object.keys(metadataUpdates).forEach(k => {
                     const val = metadataUpdates[k];

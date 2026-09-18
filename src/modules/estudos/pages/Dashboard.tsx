@@ -1,22 +1,23 @@
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
   AreaChart, Area, BarChart, Bar,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
   LabelList
 } from 'recharts';
-import { Eye, EyeOff, X, Trophy, Maximize2, Clock, Target, BookOpen, Check, AlertTriangle, AlertCircle, Calendar, FileText, Compass, Award, GraduationCap } from 'lucide-react';
+import { Eye, EyeOff, X, Trophy, Maximize2, Clock, Target, BookOpen, Check, AlertTriangle, AlertCircle, Calendar, FileText, Compass, Award, GraduationCap, ChevronDown } from 'lucide-react';
 
 import { Subject, StudySession, Concurso, Simulado, ScheduledStudy } from '../types';
 import { getColorHex } from '../utils/colors';
 
 const EDUCATION_LEVEL_OPTIONS = [
-  'Ensino Fundamental',
-  'Ensino Médio',
-  'Ensino Técnico',
-  'Ensino Superior',
-  'Pós-Graduação',
-  'Mestrado / Doutorado'
+  { value: 'all', label: 'Todos os Níveis' },
+  { value: 'Ensino Fundamental', label: 'Ensino Fundamental' },
+  { value: 'Ensino Médio', label: 'Ensino Médio' },
+  { value: 'Ensino Técnico', label: 'Ensino Técnico' },
+  { value: 'Ensino Superior', label: 'Ensino Superior' },
+  { value: 'Pós-Graduação', label: 'Pós-Graduação' },
+  { value: 'Mestrado / Doutorado', label: 'Mestrado / Doutorado' }
 ];
 
 interface DashboardProps {
@@ -156,6 +157,23 @@ const Dashboard: React.FC<DashboardProps> = ({
   const [selectedEducationLevel, setSelectedEducationLevel] = useState<string>(() => {
     return localStorage.getItem('cp_dashboard_education_level') || 'all';
   });
+
+  const [showEducationDropdown, setShowEducationDropdown] = useState(false);
+  const educationDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (educationDropdownRef.current && !educationDropdownRef.current.contains(e.target as Node)) {
+        setShowEducationDropdown(false);
+      }
+    };
+    if (showEducationDropdown) {
+      document.addEventListener('mousedown', handleOutsideClick);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+    };
+  }, [showEducationDropdown]);
 
   const handleEducationLevelChange = (level: string) => {
     setSelectedEducationLevel(level);
@@ -1624,47 +1642,74 @@ const Dashboard: React.FC<DashboardProps> = ({
           )}
 
           {/* Divisor vertical */}
-          <div className="h-4 w-px bg-zinc-200 dark:bg-zinc-800 shrink-0 mx-0.5" />
+          <div className="h-5 w-px bg-zinc-200 dark:bg-zinc-800 shrink-0 mx-1" />
 
           {/* Filtro de seleção de nível de escolaridade ocupando parte da barra de progresso */}
-          <div
-            className={`flex items-center gap-1.5 shrink-0 px-1 py-0.5 rounded-lg transition-opacity ${
-              selectedConcursoId === 'all'
-                ? 'opacity-100'
-                : 'opacity-40 cursor-not-allowed'
-            }`}
-            title={
-              selectedConcursoId === 'all'
-                ? 'Filtrar por nível de escolaridade'
-                : 'O filtro de escolaridade só funciona na Visão Global'
-            }
-          >
-            <GraduationCap
-              size={13}
-              className={
-                selectedConcursoId === 'all'
-                  ? 'text-indigo-500 dark:text-indigo-400 shrink-0'
-                  : 'text-zinc-400 dark:text-zinc-500 shrink-0'
-              }
-            />
-            <select
-              value={selectedEducationLevel}
-              onChange={(e) => handleEducationLevelChange(e.target.value)}
+          <div className="relative shrink-0" ref={educationDropdownRef}>
+            <button
+              type="button"
               disabled={selectedConcursoId !== 'all'}
-              className={`bg-transparent border-none outline-none text-[10px] font-black text-zinc-700 dark:text-zinc-300 cursor-pointer uppercase tracking-wider focus:ring-0 p-0 pr-1 ${
-                selectedConcursoId !== 'all' ? 'cursor-not-allowed pointer-events-none' : ''
+              onClick={() => setShowEducationDropdown(prev => !prev)}
+              className={`flex items-center gap-2 px-2.5 py-1 rounded-xl transition-all select-none ${
+                selectedConcursoId === 'all'
+                  ? 'bg-zinc-100/90 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700/80 text-zinc-800 dark:text-zinc-100 cursor-pointer border border-zinc-200/80 dark:border-zinc-700/80 shadow-xs'
+                  : 'opacity-40 cursor-not-allowed bg-zinc-100/40 dark:bg-zinc-800/40 text-zinc-400 dark:text-zinc-500 border border-transparent'
               }`}
+              title={
+                selectedConcursoId === 'all'
+                  ? 'Filtrar por nível de escolaridade'
+                  : 'O filtro de escolaridade só funciona na Visão Global'
+              }
             >
-              {EDUCATION_LEVEL_OPTIONS.map((opt) => (
-                <option
-                  key={opt.value}
-                  value={opt.value}
-                  className="bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-100"
-                >
-                  {opt.label}
-                </option>
-              ))}
-            </select>
+              <GraduationCap
+                size={14}
+                className={
+                  selectedConcursoId === 'all'
+                    ? 'text-indigo-600 dark:text-indigo-400 shrink-0'
+                    : 'text-zinc-400 dark:text-zinc-500 shrink-0'
+                }
+              />
+              <span className="text-[11px] font-black uppercase tracking-wide truncate max-w-[100px] sm:max-w-[140px]">
+                {EDUCATION_LEVEL_OPTIONS.find(o => o.value === selectedEducationLevel)?.label || 'Escolaridade'}
+              </span>
+              <ChevronDown
+                size={12}
+                className={`text-zinc-400 transition-transform duration-200 shrink-0 ${showEducationDropdown ? 'rotate-180 text-indigo-500' : ''}`}
+              />
+            </button>
+
+            {/* Menu Dropdown de Escolaridade com alta legibilidade e contraste impecável */}
+            {showEducationDropdown && selectedConcursoId === 'all' && (
+              <div className="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-xl z-50 py-1.5 animate-in fade-in zoom-in-95 duration-150">
+                <div className="px-3.5 py-2 text-[10px] font-black uppercase tracking-widest text-zinc-400 border-b border-zinc-100 dark:border-zinc-800 mb-1 flex items-center justify-between">
+                  <span>Nível de Escolaridade</span>
+                  <GraduationCap size={13} className="text-indigo-500" />
+                </div>
+                <div className="max-h-64 overflow-y-auto custom-scrollbar p-1 space-y-0.5">
+                  {EDUCATION_LEVEL_OPTIONS.map((opt) => {
+                    const isSelected = selectedEducationLevel === opt.value;
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => {
+                          handleEducationLevelChange(opt.value);
+                          setShowEducationDropdown(false);
+                        }}
+                        className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-colors flex items-center justify-between ${
+                          isSelected
+                            ? 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-300 font-black'
+                            : 'text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800/80'
+                        }`}
+                      >
+                        <span className="truncate">{opt.label}</span>
+                        {isSelected && <Check size={14} className="shrink-0 text-indigo-600 dark:text-indigo-400" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

@@ -8,7 +8,7 @@ interface FaviconIconProps {
 export const FaviconIcon: React.FC<FaviconIconProps> = ({ size = 24, className = '' }) => {
   return (
     <img
-      src="/favicon.png"
+      src="/favicon.png?v=3"
       alt="Conscientemente"
       width={size}
       height={size}

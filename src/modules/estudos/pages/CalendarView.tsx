@@ -86,6 +86,62 @@ const CalendarView: React.FC<CalendarViewProps> = ({
 
   const visibleScheduledStudies = plannerScheduledStudies.filter(s => !(s.activityType === 'Simulado' && s.status === 'realizado'));
 
+  const getTaskConcursoName = (task: any): string | null => {
+    if (!concursos || concursos.length === 0) return null;
+
+    // 1. Se a task possui concursoId explícito
+    if (task.concursoId) {
+      const direct = concursos.find(c => c.id === task.concursoId);
+      if (direct) return direct.name;
+    }
+
+    // 2. Se for Simulado
+    if (task.isSimuladoVirtual || task.activityType === 'Simulado') {
+      const sim = (simulados || []).find(s => s.id === task.simuladoId || `sim-${s.id}` === task.id);
+      if (sim) {
+        if ((sim as any).concursoId) {
+          const direct = concursos.find(c => c.id === (sim as any).concursoId);
+          if (direct) return direct.name;
+        }
+        const simSubIds = sim.results?.map(r => r.subjectId).filter(Boolean) || [];
+        if (simSubIds.length > 0) {
+          if (selectedConcursoId && selectedConcursoId !== 'all') {
+            const current = concursos.find(c => c.id === selectedConcursoId);
+            if (current && current.subjects?.some(s => simSubIds.includes(s.id))) {
+              return current.name;
+            }
+          }
+          const found = concursos.find(c => c.subjects?.some(s => simSubIds.includes(s.id)));
+          if (found) return found.name;
+        }
+      }
+    }
+
+    // 3. Pelas matérias (subjectId ou subjectIds)
+    const taskSubIds = (task.subjectIds && task.subjectIds.length > 0)
+      ? task.subjectIds
+      : (task.subjectId ? [task.subjectId] : []);
+
+    if (taskSubIds.length > 0) {
+      if (selectedConcursoId && selectedConcursoId !== 'all') {
+        const current = concursos.find(c => c.id === selectedConcursoId);
+        if (current && current.subjects?.some(s => taskSubIds.includes(s.id))) {
+          return current.name;
+        }
+      }
+      const found = concursos.find(c => c.subjects?.some(s => taskSubIds.includes(s.id)));
+      if (found) return found.name;
+    }
+
+    // 4. Se houver concurso ativo selecionado
+    if (selectedConcursoId && selectedConcursoId !== 'all') {
+      const current = concursos.find(c => c.id === selectedConcursoId);
+      if (current) return current.name;
+    }
+
+    return null;
+  };
+
   const getTaskAllLinks = (task: any): string[] => {
     const linksSet = new Set<string>();
 
@@ -491,14 +547,23 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                   onClick={() => handleDayClick(key)} 
                   onDragOver={(e) => e.preventDefault()}
                   onDrop={(e) => handleDrop(e, key)}
-                  className={`bg-white dark:bg-zinc-900 p-3 rounded-3xl border ${isToday ? 'border-blue-400 shadow-lg' : 'border-zinc-100 dark:border-zinc-800'} flex flex-col cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-all overflow-hidden`}
+                  className={`p-3 rounded-3xl border ${isToday ? 'bg-zinc-500/20 dark:bg-zinc-600/30 border-2 border-zinc-400 dark:border-zinc-500 ring-2 ring-zinc-400/20 shadow-md' : 'bg-white dark:bg-zinc-900 border-zinc-100 dark:border-zinc-800'} flex flex-col cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-all overflow-hidden`}
                 >
                   <div className="mb-2">
-                    <p className="text-[10px] font-black uppercase text-zinc-400 leading-tight">{['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'][date.getDay()]}</p>
+                    <div className="flex items-center justify-between mb-0.5">
+                      <p className="text-[10px] font-black uppercase text-zinc-400 leading-tight">{['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'][date.getDay()]}</p>
+                      {isToday && (
+                        <span className="text-[8px] font-black px-1.5 py-0.5 rounded bg-zinc-900 dark:bg-zinc-200 text-white dark:text-zinc-900 uppercase tracking-widest">
+                          Hoje
+                        </span>
+                      )}
+                    </div>
                     <h4 className={`text-xl font-black ${isToday ? 'text-zinc-900 dark:text-zinc-100' : 'text-zinc-700 dark:text-zinc-200'}`}>{date.getDate()}</h4>
                   </div>
                   <div className="space-y-2 flex-1 overflow-y-auto custom-scrollbar pr-1">
                     {tasks.map(task => {
+                      const concursoName = getTaskConcursoName(task);
+
                       if (task.isSimuladoVirtual || task.activityType === 'Simulado') {
                         return (
                           <div 
@@ -506,6 +571,11 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                             onClick={(e) => handleTaskClick(e, task)}
                             className="p-3.5 rounded-2xl text-xs font-bold border-2 border-black dark:border-white animate-pulse bg-transparent shadow-[0_0_12px_rgba(0,0,0,0.25)] dark:shadow-[0_0_14px_rgba(255,255,255,0.45)] text-zinc-950 dark:text-white cursor-pointer transition-all hover:scale-[1.02] active:scale-95"
                           >
+                            {concursoName && (
+                              <span className="text-[9px] font-extrabold uppercase tracking-wider opacity-75 truncate block mb-1">
+                                {concursoName}
+                              </span>
+                            )}
                             <span className="font-black text-zinc-950 dark:text-white text-[10px] uppercase tracking-wider block">
                               SIMULADO
                             </span>
@@ -552,6 +622,11 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                             }}
                             className="p-4 rounded-2xl text-xs font-bold bg-transparent border-2 text-zinc-950 dark:text-white cursor-pointer transition-all hover:scale-[1.02] active:scale-95 shadow-sm"
                           >
+                            {concursoName && (
+                              <span className="text-[9px] font-extrabold uppercase tracking-wider opacity-75 truncate block mb-1">
+                                {concursoName}
+                              </span>
+                            )}
                             <span className="font-black text-[10px] uppercase tracking-wider text-zinc-950 dark:text-white opacity-80 block">
                               REVISÃO
                             </span>
@@ -605,6 +680,11 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                             onDragStart={(e) => handleDragStart(e, task.isGroupedVirtual ? task.taskIds.join(',') : task.id)}
                             className="p-3.5 rounded-2xl text-xs font-bold border-2 border-fuchsia-500 bg-gradient-to-r from-violet-500/10 to-fuchsia-500/10 text-fuchsia-950 dark:text-fuchsia-200 cursor-pointer transition-all hover:scale-[1.02] active:scale-95 shadow-sm"
                           >
+                            {concursoName && (
+                              <span className="text-[9px] font-extrabold uppercase tracking-wider opacity-75 truncate block mb-1">
+                                {concursoName}
+                              </span>
+                            )}
                             <span className="flex items-center gap-1 font-black text-fuchsia-600 dark:text-fuchsia-400">
                               AULÃO DE REVISÃO
                             </span>
@@ -647,6 +727,11 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                           }}
                           className={`p-4 rounded-2xl text-xs font-bold border border-white/10 ${className} cursor-pointer transition-all hover:scale-[1.02] active:scale-95`}
                         >
+                          {concursoName && (
+                            <span className="text-[9px] font-extrabold uppercase tracking-wider opacity-75 truncate block mb-1">
+                              {concursoName}
+                            </span>
+                          )}
                           <span className="opacity-70 flex items-center gap-1">{getActivityIcon(task.activityType)} {task.activityType}</span>
                           <p className="truncate font-black">{sub ? sub.name : 'Disciplina Removida'}</p>
                           {task.isGroupedVirtual && sub && task.topicIds && task.topicIds.length > 0 && (
@@ -717,11 +802,23 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                     onClick={() => handleDayClick(key)} 
                     onDragOver={(e) => e.preventDefault()}
                     onDrop={(e) => handleDrop(e, key)}
-                    className="p-1.5 border-r border-b border-zinc-100 dark:border-zinc-800 hover:bg-zinc-100 dark:bg-zinc-800/30 dark:hover:bg-blue-900/10 cursor-pointer transition-all flex flex-col min-h-0 overflow-hidden"
+                    className={`p-1.5 border-r border-b cursor-pointer transition-all flex flex-col min-h-0 overflow-hidden ${
+                      isToday 
+                        ? 'bg-zinc-500/20 dark:bg-zinc-600/30 border-2 border-zinc-400 dark:border-zinc-500 shadow-sm' 
+                        : 'border-zinc-100 dark:border-zinc-800 hover:bg-zinc-100 dark:bg-zinc-800/30 dark:hover:bg-blue-900/10'
+                    }`}
                   >
-                    <span className={`text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full ${isToday ? 'bg-zinc-900 dark:bg-zinc-700 text-white' : 'text-zinc-400'}`}>{day}</span>
+                    <div className="flex items-center justify-between mb-0.5">
+                      <span className={`text-[10px] font-black w-5 h-5 flex items-center justify-center rounded-full ${isToday ? 'bg-zinc-900 dark:bg-zinc-200 text-white dark:text-zinc-900 ring-1 ring-zinc-400' : 'text-zinc-400'}`}>{day}</span>
+                      {isToday && (
+                        <span className="text-[7px] font-black px-1 py-0.5 rounded bg-zinc-900 dark:bg-zinc-200 text-white dark:text-zinc-900 uppercase tracking-widest leading-none">
+                          Hoje
+                        </span>
+                      )}
+                    </div>
                     <div className="mt-1 space-y-1 overflow-y-auto">
                       {tasks.map(t => {
+                        const concursoName = getTaskConcursoName(t);
                         const isSimulado = t.isSimuladoVirtual || t.activityType === 'Simulado';
                         const isAulao = t.activityType?.includes('Aulão de Revisão');
                         const isRevisao = t.activityType && (t.activityType.toLowerCase().includes('revisão') || t.activityType.toLowerCase().includes('revisao'));
@@ -734,6 +831,11 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                               className="px-2 py-1.5 rounded-lg text-[10px] leading-tight font-black border-2 border-black dark:border-white animate-pulse bg-transparent shadow-[0_0_10px_rgba(0,0,0,0.25)] dark:shadow-[0_0_12px_rgba(255,255,255,0.45)] text-zinc-950 dark:text-white cursor-pointer transition-all hover:scale-[1.02] active:scale-95 shadow-xs truncate"
                             >
                               <div className="flex flex-col gap-0.5">
+                                {concursoName && (
+                                  <span className="text-[7.5px] font-extrabold uppercase tracking-wider opacity-70 truncate block leading-tight">
+                                    {concursoName}
+                                  </span>
+                                )}
                                 <span className="truncate font-black text-zinc-950 dark:text-white">{t.name || t.notes || 'Simulado'}</span>
                               </div>
                             </div>
@@ -755,6 +857,11 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                               className="px-2 py-1.5 rounded-lg text-[10px] leading-tight font-black bg-transparent border-2 text-zinc-950 dark:text-white cursor-pointer transition-all hover:scale-[1.02] active:scale-95 shadow-xs truncate"
                             >
                               <div className="flex flex-col gap-0.5">
+                                {concursoName && (
+                                  <span className="text-[7.5px] font-extrabold uppercase tracking-wider opacity-70 truncate block leading-tight">
+                                    {concursoName}
+                                  </span>
+                                )}
                                 <span className="truncate font-black text-zinc-950 dark:text-white">
                                   {subObj ? subObj.name : 'Revisão'}
                                 </span>
@@ -779,6 +886,11 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                               className="px-2 py-1.5 rounded-lg text-[10px] leading-tight font-black border-2 border-fuchsia-500 bg-fuchsia-500/10 text-fuchsia-900 dark:text-fuchsia-200 cursor-pointer transition-all hover:scale-[1.02] active:scale-95 shadow-sm line-clamp-2"
                             >
                               <div className="flex flex-col gap-0.5">
+                                {concursoName && (
+                                  <span className="text-[7.5px] font-extrabold uppercase tracking-wider opacity-70 truncate block leading-tight">
+                                    {concursoName}
+                                  </span>
+                                )}
                                 <span className="truncate">Aulão de Revisão</span>
                                 {subNames && (
                                   <span className="text-[8px] opacity-80 font-bold truncate">
@@ -805,6 +917,11 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                             className={`px-2 py-1.5 rounded-lg text-[10px] leading-tight font-bold line-clamp-2 ${className} cursor-pointer transition-all hover:scale-[1.02] active:scale-95`}
                           >
                             <div className="flex flex-col gap-0.5">
+                              {concursoName && (
+                                <span className="text-[7.5px] font-extrabold uppercase tracking-wider opacity-75 truncate block leading-tight">
+                                  {concursoName}
+                                </span>
+                              )}
                               <span className="truncate">{sub ? sub.name : 'Disciplina Removida'}</span>
                               {t.isGroupedVirtual && sub && t.topicIds && t.topicIds.length > 0 && (
                                 <span className="text-[8px] opacity-80 font-medium line-clamp-1 italic">
@@ -986,6 +1103,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
             <div className="space-y-2">
               {group.tasks.map(task => {
                 const sub = lookupSubjects.find(s => s.id === task.subjectId);
+                const concursoName = getTaskConcursoName(task);
                 const { style, className: badgeClass } = sub ? getBadgeStyle(sub.color) : { style: {}, className: 'bg-zinc-400 text-white' };
                 const isPast = task.date < today && task.status === 'planejado';
                 const taskDate = new Date(task.date + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short' });
@@ -1025,6 +1143,12 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                     >
                       {sub?.name ? sub.name.substring(0, 12) : 'Disciplina'}
                     </div>
+
+                    {concursoName && (
+                      <span className="flex-shrink-0 px-2 py-0.5 rounded-full text-[8.5px] font-extrabold uppercase tracking-wider bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700">
+                        {concursoName}
+                      </span>
+                    )}
 
                     {/* Activity & topic */}
                     <div className="flex-1 min-w-0">
@@ -1284,6 +1408,14 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                         ✕
                       </button>
                     )}
+                    {(() => {
+                      const modalConcursoName = getTaskConcursoName(task);
+                      return modalConcursoName ? (
+                        <span className="text-[8px] font-extrabold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 truncate block mb-0.5">
+                          {modalConcursoName}
+                        </span>
+                      ) : null;
+                    })()}
                     <p className="text-[8px] font-black uppercase text-zinc-900 dark:text-zinc-100 mb-1 flex justify-between items-center">
                       <span>{task.isSimuladoVirtual ? 'SIMULADO' : task.activityType}</span>
                       <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded-full ${
@@ -1363,7 +1495,26 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                 </button>
               )}
 
-              <div className="space-y-4">
+              <form 
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleSave();
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    if ((e.target as HTMLElement).tagName === 'TEXTAREA') {
+                      if (e.ctrlKey || e.metaKey) {
+                        e.preventDefault();
+                        handleSave();
+                      }
+                      return;
+                    }
+                    e.preventDefault();
+                    handleSave();
+                  }
+                }}
+                className="space-y-4"
+              >
                 <div>
                   <label className="text-[10px] font-black text-zinc-400 uppercase mb-2 block">Tipo de Atividade (Selecione uma ou mais)</label>
                   <div className="flex flex-wrap gap-2">
@@ -1527,10 +1678,14 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                   <textarea placeholder="Observações sobre o estudo..." value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 border rounded-2xl outline-none text-sm dark:text-white h-20 resize-none" />
                 </div>
 
-                <button onClick={handleSave} disabled={formData.activityTypes.includes('Aulão de Revisão') ? (formData.subjectIds || []).length === 0 : !formData.subjectId} className="w-full py-4 bg-zinc-900 dark:bg-zinc-700 text-white rounded-2xl text-[10px] font-black uppercase shadow-lg disabled:opacity-30 active:scale-95 transition-all mt-4">
+                <button 
+                  type="submit" 
+                  disabled={formData.activityTypes.includes('Aulão de Revisão') ? (formData.subjectIds || []).length === 0 : !formData.subjectId} 
+                  className="w-full py-4 bg-zinc-900 dark:bg-zinc-700 text-white rounded-2xl text-[10px] font-black uppercase shadow-lg disabled:opacity-30 active:scale-95 transition-all mt-4"
+                >
                   {editingTask ? 'Salvar Alterações' : 'Salvar no Planner'}
                 </button>
-              </div>
+              </form>
             </div>
           </div>
         </div>

@@ -1204,7 +1204,7 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
               <div className="border-t border-zinc-150 dark:border-zinc-800 pt-8 flex justify-center flex-wrap gap-4">
                 <button
                   type="button"
-                  onClick={handleSavePreferences}
+                  onClick={() => handleSavePreferences()}
                   className="bg-white hover:bg-zinc-50 border border-zinc-200 text-zinc-700 font-black uppercase tracking-widest text-xs px-8 py-4 rounded-[2rem] shadow-sm hover:shadow-md transition-all flex items-center gap-2 active:scale-95"
                 >
                   <Settings size={14} />

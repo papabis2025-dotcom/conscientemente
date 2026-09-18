@@ -3,7 +3,7 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { MODULES } from '../constants';
 import { Module } from '../types';
 import { LogEntry } from '../modules/estudos/types';
-import { LogOut, Sun, Moon, ArrowUpRight, Lock, BookOpen, Wallet, ListTodo, Brain, ChevronRight, ChevronLeft, ChevronDown, ChevronUp, Sliders, Activity, TrendingUp, Settings, User, X, HeartPulse, Bell, Plus, Trash2, Check, ClipboardList, BarChart3, Calendar, Award, CheckCircle2, StickyNote, Flame, Clock, DollarSign, Database, Cloud, AlertTriangle, FileText, CalendarDays, Menu, Trophy, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import { LogOut, Sun, Moon, ArrowUpRight, Lock, BookOpen, Wallet, ListTodo, Brain, ChevronRight, ChevronLeft, ChevronDown, ChevronUp, Sliders, Activity, TrendingUp, Settings, User, X, HeartPulse, Bell, Plus, Trash2, Check, ClipboardList, BarChart3, Calendar, Award, CheckCircle2, StickyNote, Flame, Clock, DollarSign, Database, Cloud, AlertTriangle, FileText, CalendarDays, Menu, Trophy, AlertCircle, Eye, EyeOff, Target } from 'lucide-react';
 import { api } from '../modules/estudos/services/api';
 import { supabase } from '../modules/estudos/services/supabase';
 import { playSound } from '../utils/audio';

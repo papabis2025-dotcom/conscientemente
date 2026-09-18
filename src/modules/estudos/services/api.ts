@@ -163,7 +163,12 @@ export const api = {
                 .eq('user_id', user.id)
                 .order('created_at', { ascending: false });
 
-            if (result.error && result.error.code === '42703') {
+            const isColumnError = (err: any) => {
+                if (!err) return false;
+                return err.code === '42703' || err.code === 'PGRST204' || (typeof err.message === 'string' && (err.message.includes('education_level') || err.message.includes('schema cache') || err.message.includes('column')));
+            };
+
+            if (isColumnError(result.error)) {
                 result = await supabase
                     .from('concursos')
                     .select('id, name, banca, start_date, target_date, subjects, category_id, image_url')
@@ -203,12 +208,17 @@ export const api = {
                 subjects: concurso.subjects || []
             };
 
+            const isColumnError = (err: any) => {
+                if (!err) return false;
+                return err.code === '42703' || err.code === 'PGRST204' || (typeof err.message === 'string' && (err.message.includes('education_level') || err.message.includes('image_url') || err.message.includes('schema cache') || err.message.includes('column')));
+            };
+
             let result = await supabase.from('concursos').upsert(dbPayload).select().single();
-            if (result.error && result.error.code === '42703') {
+            if (isColumnError(result.error)) {
                 // Retry sem education_level se a coluna nao existir ainda
                 const { education_level, ...payloadWithoutEdu } = dbPayload;
                 result = await supabase.from('concursos').upsert(payloadWithoutEdu).select().single();
-                if (result.error && result.error.code === '42703') {
+                if (isColumnError(result.error)) {
                     const { image_url, ...payloadWithoutBoth } = payloadWithoutEdu;
                     result = await supabase.from('concursos').upsert(payloadWithoutBoth).select().single();
                 }
@@ -631,6 +641,50 @@ export const api = {
             for (let i = 0; i < ids.length; i += chunkSize) {
                 const chunk = ids.slice(i, i + chunkSize);
                 await handleRequest(supabase.from('scheduled_studies').delete().in('id', chunk).eq('user_id', user.id));
+            }
+        },
+        purgeUncompletedByConcurso: async (concursoId?: string, subjectIds: string[] = []) => {
+            const user = await getAuthUser();
+            if (!user) return null;
+            try {
+                let query = supabase.from('scheduled_studies')
+                    .select('id,activity_type,notes,status,concurso_id,subject_id')
+                    .eq('user_id', user.id)
+                    .neq('status', 'realizado');
+
+                if (concursoId && concursoId !== 'all') {
+                    if (subjectIds.length > 0) {
+                        query = query.or(`concurso_id.eq.${concursoId},subject_id.in.(${subjectIds.join(',')})`);
+                    } else {
+                        query = query.eq('concurso_id', concursoId);
+                    }
+                } else if (subjectIds.length > 0) {
+                    query = query.in('subject_id', subjectIds);
+                }
+
+                const { data, error } = await query;
+                if (error || !data) return null;
+
+                const idsToDelete = data
+                    .filter((item: any) => {
+                        const act = (item.activity_type || '').toLowerCase();
+                        const nts = (item.notes || '').toLowerCase();
+                        const isRev = act.includes('revisão') || act.includes('revisao') || nts.includes('revisão') || nts.includes('revisao') || nts.includes('[groupid:rev_') || (item.id && item.id.split('-')[3]?.startsWith('400'));
+                        return !isRev;
+                    })
+                    .map((item: any) => item.id);
+
+                if (idsToDelete.length > 0) {
+                    const chunkSize = 30;
+                    for (let i = 0; i < idsToDelete.length; i += chunkSize) {
+                        const chunk = idsToDelete.slice(i, i + chunkSize);
+                        await supabase.from('scheduled_studies').delete().in('id', chunk).eq('user_id', user.id);
+                    }
+                }
+                return idsToDelete;
+            } catch (e) {
+                console.error('Error in purgeUncompletedByConcurso:', e);
+                return null;
             }
         },
     },

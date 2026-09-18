@@ -917,7 +917,12 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                 }
                 finalConcursos = mergedConcursos.map(c => {
                     const localImg = localStorage.getItem(`gp_concurso_img_${c.id}`);
-                    return localImg ? { ...c, imageUrl: localImg } : c;
+                    const localEdu = localStorage.getItem(`gp_concurso_edulevel_${c.id}`);
+                    return {
+                        ...c,
+                        imageUrl: localImg || c.imageUrl,
+                        educationLevel: c.educationLevel || localEdu || undefined
+                    };
                 });
                 setConcursos(finalConcursos);
                 localStorage.setItem('cp_concursos_backup', JSON.stringify(finalConcursos));
@@ -1615,13 +1620,24 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
     const updateConcursos = async (newConcursos: Concurso[]) => {
         setSaveError(null);
         setConcursos(newConcursos);
+        localStorage.setItem('cp_concursos_backup', JSON.stringify(newConcursos));
+        newConcursos.forEach(c => {
+            if (c.educationLevel) {
+                localStorage.setItem(`gp_concurso_edulevel_${c.id}`, c.educationLevel);
+            }
+        });
         setIsSaving(true);
         try {
             // Find deleted concursos
             const deletedIds = concursos.filter(c => !newConcursos.find(nc => nc.id === c.id)).map(c => c.id);
             for (const id of deletedIds) {
-                await api.concursos.delete(id);
+                try {
+                    await api.concursos.delete(id);
+                } catch (e) {
+                    console.error('Error deleting concurso from cloud:', e);
+                }
                 localStorage.removeItem(`gp_concurso_img_${id}`);
+                localStorage.removeItem(`gp_concurso_edulevel_${id}`);
             }
 
             // Find removed subjects (Cascading Delete)
@@ -1630,7 +1646,6 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
             const removedSubjectIds = oldSubjects.filter(os => !newSubjects.find(ns => ns.id === os.id)).map(s => s.id);
 
             if (removedSubjectIds.length > 0) {
-
                 // Update local state
                 setSessions(prev => prev.filter(s => !removedSubjectIds.includes(s.subjectId)));
                 setScheduledStudies(prev => prev.filter(s => !removedSubjectIds.includes(s.subjectId)));
@@ -1642,8 +1657,12 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
 
                 // Update DB
                 for (const subId of removedSubjectIds) {
-                    await api.sessions.deleteBySubject(subId);
-                    await api.schedule.deleteBySubject(subId);
+                    try {
+                        await api.sessions.deleteBySubject(subId);
+                        await api.schedule.deleteBySubject(subId);
+                    } catch (e) {
+                        console.error('Error removing sessions/schedule for deleted subject:', e);
+                    }
                 }
             }
 
@@ -1656,23 +1675,36 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                     localStorage.removeItem(`gp_concurso_img_${newConc.id}`);
                 }
 
+                if (newConc.educationLevel) {
+                    localStorage.setItem(`gp_concurso_edulevel_${newConc.id}`, newConc.educationLevel);
+                }
+
                 const oldConc = concursos.find(c => c.id === newConc.id);
 
-                // If it's new or if subjects/name/banca/imageUrl changed, upsert it
+                // If it's new or if subjects/name/banca/imageUrl/educationLevel changed, upsert it
                 if (!oldConc || 
                     JSON.stringify(oldConc.subjects) !== JSON.stringify(newConc.subjects) ||
                     oldConc.name !== newConc.name || 
                     oldConc.banca !== newConc.banca ||
+                    oldConc.educationLevel !== newConc.educationLevel ||
                     oldConc.imageUrl !== newConc.imageUrl) {
 
-                    const upserted = await api.concursos.upsert(newConc);
-                    if (upserted && upserted.id !== newConc.id) {
-                        // Update local ID if it changed (e.g. from ai-... to uuid)
-                        if (newConc.imageUrl) {
-                            localStorage.setItem(`gp_concurso_img_${upserted.id}`, newConc.imageUrl);
-                            localStorage.removeItem(`gp_concurso_img_${newConc.id}`);
+                    try {
+                        const upserted = await api.concursos.upsert(newConc);
+                        if (upserted && upserted.id !== newConc.id) {
+                            // Update local ID if it changed (e.g. from ai-... to uuid)
+                            if (newConc.imageUrl) {
+                                localStorage.setItem(`gp_concurso_img_${upserted.id}`, newConc.imageUrl);
+                                localStorage.removeItem(`gp_concurso_img_${newConc.id}`);
+                            }
+                            if (newConc.educationLevel) {
+                                localStorage.setItem(`gp_concurso_edulevel_${upserted.id}`, newConc.educationLevel);
+                                localStorage.removeItem(`gp_concurso_edulevel_${newConc.id}`);
+                            }
+                            setConcursos(prev => prev.map(c => c.id === newConc.id ? { ...c, id: upserted.id } : c));
                         }
-                        setConcursos(prev => prev.map(c => c.id === newConc.id ? { ...c, id: upserted.id } : c));
+                    } catch (upsertErr) {
+                        console.error('Error upserting concurso:', upsertErr);
                     }
                 }
             }

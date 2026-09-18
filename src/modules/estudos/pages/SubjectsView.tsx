@@ -6,6 +6,7 @@ import { api } from '../services/api';
 
 import { COLORS } from '../constants';
 import { getColorHex, getBadgeStyle } from '../utils/colors';
+import ColorPickerPalette from '../components/ColorPickerPalette';
 import {
   ChevronDown,
   ChevronRight,
@@ -21,7 +22,8 @@ import {
   GripVertical,
   Lock,
   Unlock,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Palette
 } from 'lucide-react';
 import { exportToXlsx, exportToCsv } from '../utils/exportUtils';
 
@@ -63,6 +65,8 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
   const [editColor, setEditColor] = useState('');
   const [editQuestionsGoal, setEditQuestionsGoal] = useState<number | ''>('');
   const [editWeight, setEditWeight] = useState<number | ''>('');
+  const [colorPickerSubjectId, setColorPickerSubjectId] = useState<string | null>(null);
+  const [showEditColorPicker, setShowEditColorPicker] = useState(false);
 
   const [deleteConfirmation, setDeleteConfirmation] = useState<{ isOpen: boolean; id: string | null; name: string }>({
     isOpen: false,
@@ -299,15 +303,20 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
   };
 
   useEffect(() => {
-    if (!showColorPicker) return;
+    if (!showColorPicker && !colorPickerSubjectId && !showEditColorPicker) return;
     const handler = (e: MouseEvent) => {
       if (colorPickerRef.current && !colorPickerRef.current.contains(e.target as Node)) {
         setShowColorPicker(false);
       }
+      const target = e.target as HTMLElement;
+      if (!target.closest('.subject-color-popover') && !target.closest('.subject-color-btn')) {
+        setColorPickerSubjectId(null);
+        setShowEditColorPicker(false);
+      }
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
-  }, [showColorPicker]);
+  }, [showColorPicker, colorPickerSubjectId, showEditColorPicker]);
 
   const toggleExpand = (id: string) => {
     const newSet = new Set(expandedSubjects);
@@ -982,44 +991,29 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                   className="px-4 py-2 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl focus:ring-2 focus:ring-zinc-500 outline-none text-zinc-800 dark:text-white text-sm min-w-[200px]"
                 />
 
-                {/* Color picker — compact button that expands to honeycomb */}
+                {/* Color picker moderno com paleta completa */}
                 <div className="relative" ref={colorPickerRef}>
                   <button
                     onClick={() => setShowColorPicker(p => !p)}
-                    title="Escolher cor"
-                    className="w-8 h-8 rounded-full border-2 border-white dark:border-zinc-700 shadow-md hover:scale-110 active:scale-95 transition-transform ring-2 ring-zinc-300 dark:ring-zinc-600"
+                    title="Escolher cor da disciplina"
+                    type="button"
+                    className="w-8 h-8 rounded-xl border-2 border-white dark:border-zinc-700 shadow-xs flex items-center justify-center hover:scale-110 active:scale-95 transition-transform"
                     style={{ backgroundColor: getColorHex(selectedColor) }}
-                  />
+                  >
+                    <Palette size={13} className="text-white drop-shadow-sm opacity-90" />
+                  </button>
                   {showColorPicker && (
                     <div
-                      className="absolute top-10 left-1/2 -translate-x-1/2 z-50 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl shadow-2xl p-3 animate-in fade-in zoom-in-95 duration-150"
-                      style={{ minWidth: 160 }}
+                      className="absolute top-10 left-1/2 -translate-x-1/2 z-50 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl shadow-2xl p-4 w-72 animate-in fade-in zoom-in-95 duration-150"
                     >
-                      <div className="flex flex-wrap gap-1.5 justify-center">
-                        {COLORS.map((color, idx) => (
-                          <button
-                            key={color}
-                            onClick={() => { setSelectedColor(color); setShowColorPicker(false); }}
-                            className={`w-6 h-6 rounded-full transition-all hover:scale-110 ${idx % 2 === 1 ? 'mt-2' : ''} ${
-                              selectedColor === color
-                                ? 'ring-2 ring-offset-2 ring-zinc-400 dark:ring-offset-zinc-900 scale-110'
-                                : 'opacity-80 hover:opacity-100'
-                            } ${getBadgeStyle(color).className}`}
-                            style={getBadgeStyle(color).style}
-                            title={color}
-                          />
-                        ))}
-                        <div className="relative flex items-center justify-center w-6 h-6 rounded-full overflow-hidden border-2 border-dashed border-zinc-300 dark:border-zinc-600 hover:ring-2 hover:ring-zinc-400 cursor-pointer mt-2">
-                          <input
-                            type="color"
-                            value={getColorHex(selectedColor)}
-                            onChange={(e) => { setSelectedColor(e.target.value); setShowColorPicker(false); }}
-                            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[150%] h-[150%] p-0 border-0 cursor-pointer opacity-0"
-                            title="Cor personalizada"
-                          />
-                          <span className="pointer-events-none text-[10px] font-bold text-zinc-400">+</span>
-                        </div>
-                      </div>
+                      <ColorPickerPalette
+                        selectedColor={selectedColor}
+                        onSelectColor={(hex) => {
+                          setSelectedColor(hex);
+                          setShowColorPicker(false);
+                        }}
+                        title="Cor da Nova Disciplina"
+                      />
                     </div>
                   )}
                 </div>
@@ -1093,33 +1087,64 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
-                          <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${getBadgeStyle(subject.color).className}`} style={getBadgeStyle(subject.color).style} />
+                          {/* Seletor moderno de cor da disciplina */}
+                          <div className="relative shrink-0">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (editingSubjectId === subject.id) {
+                                  setShowEditColorPicker(p => !p);
+                                } else {
+                                  setColorPickerSubjectId(colorPickerSubjectId === subject.id ? null : subject.id);
+                                }
+                              }}
+                              className="subject-color-btn w-6 h-6 rounded-lg border-2 border-white dark:border-zinc-700 shadow-xs flex items-center justify-center hover:scale-110 active:scale-95 transition-transform"
+                              style={{ backgroundColor: getColorHex(editingSubjectId === subject.id ? editColor : subject.color) }}
+                              title="Alterar cor da disciplina"
+                            >
+                              <Palette size={10} className="text-white drop-shadow-sm opacity-85" />
+                            </button>
+
+                            {/* Popover de paleta de cor no modo edição rápida */}
+                            {editingSubjectId === subject.id && showEditColorPicker && (
+                              <div className="subject-color-popover absolute left-0 top-8 z-50 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl shadow-2xl p-4 w-72 animate-in zoom-in-95" onClick={e => e.stopPropagation()}>
+                                <ColorPickerPalette
+                                  selectedColor={editColor}
+                                  onSelectColor={(hex) => {
+                                    setEditColor(hex);
+                                    setShowEditColorPicker(false);
+                                  }}
+                                  title={`Cor: ${editName || subject.name}`}
+                                />
+                              </div>
+                            )}
+
+                            {/* Popover de paleta de cor na linha normal */}
+                            {editingSubjectId !== subject.id && colorPickerSubjectId === subject.id && (
+                              <div className="subject-color-popover absolute left-0 top-8 z-50 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl shadow-2xl p-4 w-72 animate-in zoom-in-95" onClick={e => e.stopPropagation()}>
+                                <ColorPickerPalette
+                                  selectedColor={subject.color}
+                                  onSelectColor={(hex) => {
+                                    onUpdateSubjects(subjects.map(s => s.id === subject.id ? { ...s, color: hex } : s));
+                                    setColorPickerSubjectId(null);
+                                  }}
+                                  title={`Cor: ${subject.name}`}
+                                />
+                              </div>
+                            )}
+                          </div>
+
                           {editingSubjectId === subject.id ? (
-                            <div className="flex flex-col gap-2" onClick={e => e.stopPropagation()}>
+                            <div className="flex flex-col gap-1.5" onClick={e => e.stopPropagation()}>
                               <div className="flex items-center gap-2">
                                 <input
-                                  className="px-2 py-1 bg-white dark:bg-zinc-900 border rounded text-sm text-zinc-800 dark:text-white"
+                                  className="px-2 py-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg text-sm text-zinc-800 dark:text-white outline-none focus:ring-1 focus:ring-zinc-400"
                                   value={editName}
                                   onChange={e => setEditName(e.target.value)}
                                   autoFocus
                                 />
-                                <button onClick={(e) => saveEdit(e)} className="text-emerald-500"><CheckCircle size={16} /></button>
-                              </div>
-                              <div className="flex gap-1 items-center">
-                                {COLORS.slice(0, 5).map(color => (
-                                  <button
-                                    key={color}
-                                    onClick={() => setEditColor(color)}
-                                    className={`w-3 h-3 rounded-full transition-all ${editColor === color ? 'ring-2 ring-offset-1 ring-zinc-400 scale-110' : 'opacity-40 hover:opacity-100'} ${getBadgeStyle(color).className}`}
-                                    style={getBadgeStyle(color).style}
-                                  />
-                                ))}
-                                <input
-                                  type="color"
-                                  value={getColorHex(editColor)}
-                                  onChange={(e) => setEditColor(e.target.value)}
-                                  className="w-4 h-4 p-0 border-0 rounded-full overflow-hidden cursor-pointer ml-1"
-                                />
+                                <button onClick={(e) => saveEdit(e)} className="text-emerald-500 hover:text-emerald-600"><CheckCircle size={16} /></button>
                               </div>
                             </div>
                           ) : (

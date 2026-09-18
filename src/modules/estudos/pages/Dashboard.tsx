@@ -5,10 +5,19 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
   LabelList
 } from 'recharts';
-import { Eye, EyeOff, X, Trophy, Maximize2, Clock, Target, BookOpen, Check, AlertTriangle, AlertCircle, Calendar, FileText, Compass, Award } from 'lucide-react';
+import { Eye, EyeOff, X, Trophy, Maximize2, Clock, Target, BookOpen, Check, AlertTriangle, AlertCircle, Calendar, FileText, Compass, Award, GraduationCap } from 'lucide-react';
 
 import { Subject, StudySession, Concurso, Simulado, ScheduledStudy } from '../types';
 import { getColorHex } from '../utils/colors';
+
+const EDUCATION_LEVEL_OPTIONS = [
+  'Ensino Fundamental',
+  'Ensino Médio',
+  'Ensino Técnico',
+  'Ensino Superior',
+  'Pós-Graduação',
+  'Mestrado / Doutorado'
+];
 
 interface DashboardProps {
   subjects: Subject[];
@@ -144,6 +153,15 @@ const Dashboard: React.FC<DashboardProps> = ({
     return (localStorage.getItem('cp_studies_dashboard_period') as any) || 'mes';
   });
 
+  const [selectedEducationLevel, setSelectedEducationLevel] = useState<string>(() => {
+    return localStorage.getItem('cp_dashboard_education_level') || 'all';
+  });
+
+  const handleEducationLevelChange = (level: string) => {
+    setSelectedEducationLevel(level);
+    localStorage.setItem('cp_dashboard_education_level', level);
+  };
+
   useEffect(() => {
     localStorage.setItem('cp_studies_dashboard_period', dashboardPeriod);
   }, [dashboardPeriod]);
@@ -206,11 +224,17 @@ const Dashboard: React.FC<DashboardProps> = ({
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   };
 
+  // Lista de concursos filtrados pela escolaridade quando na Visão Global
+  const globalConcursos = useMemo(() => {
+    if (selectedEducationLevel === 'all') return concursos;
+    return concursos.filter(c => c.educationLevel === selectedEducationLevel);
+  }, [concursos, selectedEducationLevel]);
+
   // Build a set of subject IDs for the selected concurso/edital.
   const allSubjectIds = useMemo(() => {
     const ids = new Set<string>();
     if (selectedConcursoId === 'all') {
-      concursos.forEach(c => (c.subjects || []).forEach(s => ids.add(s.id)));
+      globalConcursos.forEach(c => (c.subjects || []).forEach(s => ids.add(s.id)));
     } else {
       const activeC = concursos.find(c => c.id === selectedConcursoId);
       if (activeC) {
@@ -220,7 +244,7 @@ const Dashboard: React.FC<DashboardProps> = ({
     // Also include the currently filtered subjects
     subjects.forEach(s => ids.add(s.id));
     return ids;
-  }, [concursos, subjects, selectedConcursoId]);
+  }, [globalConcursos, concursos, subjects, selectedConcursoId]);
 
   // Filter sessions relevant to the weekly chart (all subjects, including simulados)
   const relevantSessions = useMemo(() => {
@@ -229,7 +253,7 @@ const Dashboard: React.FC<DashboardProps> = ({
 
   const targetStartDate = useMemo(() => {
     if (selectedConcursoId === 'all') {
-      const validDates = concursos
+      const validDates = globalConcursos
         .map(c => c.startDate ? new Date(c.startDate).getTime() : 0)
         .filter(t => t > 0);
       if (validDates.length > 0) {
@@ -297,6 +321,10 @@ const Dashboard: React.FC<DashboardProps> = ({
           const hasRelevantSubject = s.results.some(r => subjectIds.includes(r.subjectId));
           if (!hasRelevantSubject && s.results.length > 0) return false;
         }
+      } else if (selectedEducationLevel !== 'all') {
+        const activeSubjectIds = new Set(globalConcursos.flatMap(c => (c.subjects || []).map(sub => sub.id)));
+        const hasRelevantSubject = s.results.some(r => activeSubjectIds.has(r.subjectId));
+        if (!hasRelevantSubject && s.results.length > 0) return false;
       }
 
       const sDateStr = getLocalSessionDate(s.date);
@@ -320,7 +348,7 @@ const Dashboard: React.FC<DashboardProps> = ({
         return sessionDate >= chartStartDate;
       }
     });
-  }, [simulados, dashboardPeriod, selectedConcursoId, concursos, chartStartDate]);
+  }, [simulados, dashboardPeriod, selectedConcursoId, concursos, globalConcursos, selectedEducationLevel, chartStartDate]);
 
   const subjectStats = useMemo(() => {
     const stats: Record<string, { done: number, correct: number, minutes: number, name: string, colorClass: string }> = {};
@@ -474,6 +502,38 @@ const Dashboard: React.FC<DashboardProps> = ({
     const totalCount = activeConcurso.subjects.reduce((acc, s) => acc + s.topics.length, 0);
     return totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
   }, [activeConcurso, sessions, scheduledStudies]);
+
+  const progressGlobal = useMemo(() => {
+    const list = selectedEducationLevel === 'all' 
+      ? concursos 
+      : concursos.filter(c => c.educationLevel === selectedEducationLevel);
+
+    let completed = 0;
+    let total = 0;
+    list.forEach(c => {
+      (c.subjects || []).forEach(s => {
+        total += (s.topics || []).length;
+        completed += (s.topics || []).filter(t => {
+          const hasBeenStudied = (sessions || []).some(session => session.subjectId === s.id && session.topicId === t.id);
+          if (hasBeenStudied) return true;
+
+          const reviews = (scheduledStudies || []).filter(sched =>
+            sched.subjectId === s.id &&
+            sched.topicId === t.id &&
+            sched.activityType && (
+              sched.activityType.toLowerCase().includes('revisão') || 
+              sched.activityType.toLowerCase().includes('revisao')
+            )
+          );
+          if (reviews.length === 0) {
+            return t.isCompleted;
+          }
+          return reviews.every(r => r.status === 'realizado');
+        }).length;
+      });
+    });
+    return total > 0 ? Math.round((completed / total) * 100) : 0;
+  }, [concursos, selectedEducationLevel, sessions, scheduledStudies]);
 
   const { weeklyData, weeklyQuestionsData, weeklyAccuracyData } = useMemo(() => {
     const today = new Date();
@@ -1528,23 +1588,85 @@ const Dashboard: React.FC<DashboardProps> = ({
     return (
     <div className="space-y-4 lg:space-y-3 animate-in fade-in duration-500 lg:pb-0 pb-6">
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 px-1">
-        {activeConcurso && (
-          <div className="flex-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl px-4 py-2 shadow-sm flex items-center gap-3 h-[38px] md:h-[40px] animate-in fade-in slide-in-from-left-2 duration-300">
-            <BookOpen size={14} className="text-zinc-400 shrink-0" />
-            <span className="text-[10px] font-black uppercase text-zinc-400 tracking-wider truncate shrink-0 max-w-[120px] md:max-w-[200px]" title={activeConcurso.name}>
-              {activeConcurso.name}
-            </span>
-            <div className="flex-1 h-2 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden mx-1">
-              <div
-                className="h-full bg-gradient-to-r from-violet-500 to-indigo-500 dark:from-violet-400 dark:to-indigo-400 rounded-full transition-all duration-1000 shadow-sm"
-                style={{ width: `${progressEdital}%` }}
-              ></div>
-            </div>
-            <span className="text-[10px] text-zinc-850 dark:text-zinc-100 font-bold shrink-0">
-              {progressEdital}%
-            </span>
+        <div className="flex-1 w-full md:w-auto bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl px-3.5 py-2 shadow-sm flex items-center gap-2.5 h-[38px] md:h-[40px] animate-in fade-in slide-in-from-left-2 duration-300 min-w-0">
+          {selectedConcursoId === 'all' ? (
+            <>
+              <Trophy size={14} className="text-amber-500 shrink-0" />
+              <span className="text-[10px] font-black uppercase text-zinc-500 dark:text-zinc-400 tracking-wider truncate shrink-0 max-w-[100px] md:max-w-[140px]" title="Visão Global">
+                Visão Global
+              </span>
+              <div className="flex-1 h-2 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden mx-1">
+                <div
+                  className="h-full bg-gradient-to-r from-amber-500 via-violet-500 to-indigo-500 dark:from-amber-400 dark:via-violet-400 dark:to-indigo-400 rounded-full transition-all duration-1000 shadow-sm"
+                  style={{ width: `${progressGlobal}%` }}
+                ></div>
+              </div>
+              <span className="text-[10px] text-zinc-800 dark:text-zinc-100 font-bold shrink-0">
+                {progressGlobal}%
+              </span>
+            </>
+          ) : (
+            <>
+              <BookOpen size={14} className="text-zinc-400 shrink-0" />
+              <span className="text-[10px] font-black uppercase text-zinc-500 dark:text-zinc-400 tracking-wider truncate shrink-0 max-w-[100px] md:max-w-[140px]" title={activeConcurso?.name || ''}>
+                {activeConcurso?.name || 'Curso'}
+              </span>
+              <div className="flex-1 h-2 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden mx-1">
+                <div
+                  className="h-full bg-gradient-to-r from-violet-500 to-indigo-500 dark:from-violet-400 dark:to-indigo-400 rounded-full transition-all duration-1000 shadow-sm"
+                  style={{ width: `${progressEdital}%` }}
+                ></div>
+              </div>
+              <span className="text-[10px] text-zinc-800 dark:text-zinc-100 font-bold shrink-0">
+                {progressEdital}%
+              </span>
+            </>
+          )}
+
+          {/* Divisor vertical */}
+          <div className="h-4 w-px bg-zinc-200 dark:bg-zinc-800 shrink-0 mx-0.5" />
+
+          {/* Filtro de seleção de nível de escolaridade ocupando parte da barra de progresso */}
+          <div
+            className={`flex items-center gap-1.5 shrink-0 px-1 py-0.5 rounded-lg transition-opacity ${
+              selectedConcursoId === 'all'
+                ? 'opacity-100'
+                : 'opacity-40 cursor-not-allowed'
+            }`}
+            title={
+              selectedConcursoId === 'all'
+                ? 'Filtrar por nível de escolaridade'
+                : 'O filtro de escolaridade só funciona na Visão Global'
+            }
+          >
+            <GraduationCap
+              size={13}
+              className={
+                selectedConcursoId === 'all'
+                  ? 'text-indigo-500 dark:text-indigo-400 shrink-0'
+                  : 'text-zinc-400 dark:text-zinc-500 shrink-0'
+              }
+            />
+            <select
+              value={selectedEducationLevel}
+              onChange={(e) => handleEducationLevelChange(e.target.value)}
+              disabled={selectedConcursoId !== 'all'}
+              className={`bg-transparent border-none outline-none text-[10px] font-black text-zinc-700 dark:text-zinc-300 cursor-pointer uppercase tracking-wider focus:ring-0 p-0 pr-1 ${
+                selectedConcursoId !== 'all' ? 'cursor-not-allowed pointer-events-none' : ''
+              }`}
+            >
+              {EDUCATION_LEVEL_OPTIONS.map((opt) => (
+                <option
+                  key={opt.value}
+                  value={opt.value}
+                  className="bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-100"
+                >
+                  {opt.label}
+                </option>
+              ))}
+            </select>
           </div>
-        )}
+        </div>
 
         <div className="flex items-center gap-4">
           {/* Period selector */}

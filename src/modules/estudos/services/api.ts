@@ -64,6 +64,15 @@ export const api = {
                                 res.estudos_weights_by_course = parsed;
                             } catch (e) {}
                         }
+                        if (s.gp_concurso_edulevels_map) {
+                            try {
+                                let parsed = typeof s.gp_concurso_edulevels_map === 'string'
+                                    ? JSON.parse(s.gp_concurso_edulevels_map)
+                                    : s.gp_concurso_edulevels_map;
+                                if (typeof parsed === 'string') parsed = JSON.parse(parsed);
+                                res.gp_concurso_edulevels_map = parsed;
+                            } catch (e) {}
+                        }
                         if (s.estudos_review_days_locked !== undefined) {
                             res.isReviewDaysLocked = s.estudos_review_days_locked === 'true';
                             res.estudos_review_days_locked = s.estudos_review_days_locked;
@@ -95,6 +104,11 @@ export const api = {
                     } catch (e) {}
                 }
 
+                if (metadataUpdates.gp_concurso_edulevels_map) {
+                    currentSettings['gp_concurso_edulevels_map'] = typeof metadataUpdates.gp_concurso_edulevels_map === 'string'
+                        ? metadataUpdates.gp_concurso_edulevels_map
+                        : JSON.stringify(metadataUpdates.gp_concurso_edulevels_map);
+                }
                 if (metadataUpdates.customReviewDays) {
                     currentSettings['estudos_custom_review_days'] = JSON.stringify(metadataUpdates.customReviewDays);
                 }
@@ -176,6 +190,13 @@ export const api = {
                     .order('created_at', { ascending: false });
             }
 
+            // Carrega mapa de escolaridade do storage local como fallback rápido
+            let localEduMap: Record<string, string> = {};
+            try {
+                const raw = localStorage.getItem('gp_concurso_edulevels_map');
+                if (raw) localEduMap = JSON.parse(raw);
+            } catch (e) {}
+
             const data = result.error ? null : result.data;
             return (data || []).map((c: any) => ({
                 id: c.id,
@@ -186,7 +207,7 @@ export const api = {
                 subjects: c.subjects || [],
                 categoryId: c.category_id,
                 imageUrl: c.image_url,
-                educationLevel: c.education_level || undefined
+                educationLevel: c.education_level || localEduMap[c.id] || localStorage.getItem(`gp_concurso_edulevel_${c.id}`) || undefined
             }));
         },
         upsert: async (concurso: Concurso) => {
@@ -202,7 +223,7 @@ export const api = {
                 banca: concurso.banca,
                 start_date: concurso.startDate || null,
                 target_date: concurso.targetDate || null,
-                category_id: concurso.categoryId,
+                category_id: concurso.categoryId || null,
                 image_url: concurso.imageUrl || null,
                 education_level: concurso.educationLevel || null,
                 subjects: concurso.subjects || []
@@ -213,26 +234,84 @@ export const api = {
                 return err.code === '42703' || err.code === 'PGRST204' || (typeof err.message === 'string' && (err.message.includes('education_level') || err.message.includes('image_url') || err.message.includes('schema cache') || err.message.includes('column')));
             };
 
+            const isPayloadTooLargeError = (err: any) => {
+                if (!err) return false;
+                return err.code === '413' || (typeof err.message === 'string' && (err.message.includes('payload') || err.message.includes('large') || err.message.includes('entity too large')));
+            };
+
             let result = await supabase.from('concursos').upsert(dbPayload).select().single();
+            let columnFailed = false;
+
             if (isColumnError(result.error)) {
-                // Retry sem education_level se a coluna nao existir ainda
+                columnFailed = true;
+                // Retry sem education_level se a coluna nao existir ainda na tabela do Supabase
                 const { education_level, ...payloadWithoutEdu } = dbPayload;
                 result = await supabase.from('concursos').upsert(payloadWithoutEdu).select().single();
-                if (isColumnError(result.error)) {
+                if (isColumnError(result.error) || isPayloadTooLargeError(result.error)) {
                     const { image_url, ...payloadWithoutBoth } = payloadWithoutEdu;
                     result = await supabase.from('concursos').upsert(payloadWithoutBoth).select().single();
                 }
+            } else if (isPayloadTooLargeError(result.error)) {
+                // Imagem base64 muito grande para o PostgREST: salva concurso sem a imagem pesada
+                const { image_url, ...payloadWithoutImg } = dbPayload;
+                result = await supabase.from('concursos').upsert(payloadWithoutImg).select().single();
+                if (isColumnError(result.error)) {
+                    const { education_level, ...payloadWithoutBoth } = payloadWithoutImg;
+                    result = await supabase.from('concursos').upsert(payloadWithoutBoth).select().single();
+                }
             }
-            return handleRequest<Concurso>(Promise.resolve(result));
+
+            // Se a coluna de escolaridade não existe no banco, persiste a escolaridade na nuvem via settings
+            if (columnFailed && concurso.educationLevel && concurso.id) {
+                try {
+                    const raw = localStorage.getItem('gp_concurso_edulevels_map') || '{}';
+                    const map = JSON.parse(raw);
+                    map[concurso.id] = concurso.educationLevel;
+                    localStorage.setItem('gp_concurso_edulevels_map', JSON.stringify(map));
+                    api.settings.update({ gp_concurso_edulevels_map: map }).catch(() => {});
+                } catch (e) {}
+            }
+
+            const data = await handleRequest<any>(Promise.resolve(result));
+            if (!data) return null as any;
+
+            // Retorna formato Concurso padronizado
+            return {
+                id: data.id,
+                name: data.name,
+                banca: data.banca,
+                startDate: data.start_date,
+                targetDate: data.target_date,
+                subjects: data.subjects || [],
+                categoryId: data.category_id,
+                imageUrl: data.image_url || concurso.imageUrl,
+                educationLevel: data.education_level || concurso.educationLevel
+            } as Concurso;
         },
         delete: async (id: string) => {
             const user = await getAuthUser();
             if (!user) return null;
+            // Remove do mapa de escolaridade em nuvem
+            try {
+                const raw = localStorage.getItem('gp_concurso_edulevels_map') || '{}';
+                const map = JSON.parse(raw);
+                if (map[id]) {
+                    delete map[id];
+                    localStorage.setItem('gp_concurso_edulevels_map', JSON.stringify(map));
+                    api.settings.update({ gp_concurso_edulevels_map: map }).catch(() => {});
+                }
+            } catch (e) {}
             return handleRequest(supabase.from('concursos').delete().eq('id', id).eq('user_id', user.id));
         },
         deleteAll: async () => {
             const user = await getAuthUser();
-            if (user) return handleRequest(supabase.from('concursos').delete().eq('user_id', user.id));
+            if (user) {
+                try {
+                    localStorage.removeItem('gp_concurso_edulevels_map');
+                    api.settings.update({ gp_concurso_edulevels_map: {} }).catch(() => {});
+                } catch (e) {}
+                return handleRequest(supabase.from('concursos').delete().eq('user_id', user.id));
+            }
         },
     },
 

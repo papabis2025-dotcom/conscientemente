@@ -6,7 +6,7 @@ import { getColorHex } from '../utils/colors';
 
 interface ConcursosViewProps {
   concursos: Concurso[];
-  onUpdateConcursos: (concursos: Concurso[]) => void;
+  onUpdateConcursos: (concursos: Concurso[]) => Promise<void> | void;
   onSelectConcurso: (concurso: Concurso) => void;
   scheduledStudies: any[];
   sessions: StudySession[];
@@ -45,6 +45,7 @@ const isTopicCompletedHelper = (subjectId: string, topicId: string, isCompletedF
 
 const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcursos, onSelectConcurso, scheduledStudies, sessions }) => {
   const [isAdding, setIsAdding] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [newConcName, setNewConcName] = useState('');
   const [banca, setBanca] = useState('');
   const [educationLevel, setEducationLevel] = useState('');
@@ -121,43 +122,52 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
     setNewSubjects(newSubjects.filter((_, i) => i !== idx));
   };
 
-  const addConcurso = () => {
+  const addConcurso = async () => {
     if (!newConcName.trim() || !banca.trim()) {
       alert('Preencha o nome e a banca do concurso.');
       return;
     }
+    if (isSaving) return;
 
-    const defaultColors = ['#3b82f6', '#10b981', '#8b5cf6', '#f59e0b', '#f43f5e', '#06b6d4'];
+    setIsSaving(true);
+    try {
+      const defaultColors = ['#3b82f6', '#10b981', '#8b5cf6', '#f59e0b', '#f43f5e', '#06b6d4'];
 
-    const subjectsList: Subject[] = newSubjects.map((s, i) => ({
-      id: crypto.randomUUID(),
-      name: s.name,
-      color: s.color || defaultColors[i % defaultColors.length],
-      questionsGoal: s.goal > 0 ? s.goal : undefined,
-      weight: s.weight || 1,
-      topics: []
-    }));
+      const subjectsList: Subject[] = newSubjects.map((s, i) => ({
+        id: crypto.randomUUID(),
+        name: s.name,
+        color: s.color || defaultColors[i % defaultColors.length],
+        questionsGoal: s.goal > 0 ? s.goal : undefined,
+        weight: s.weight || 1,
+        topics: []
+      }));
 
-    const newConc: Concurso = {
-      id: crypto.randomUUID(),
-      name: newConcName.trim(),
-      banca: banca.trim(),
-      educationLevel: educationLevel.trim() || undefined,
-      startDate: new Date(`${startDate}T12:00:00`).toISOString(),
-      subjects: subjectsList,
-      targetDate: targetDate ? new Date(`${targetDate}T12:00:00`).toISOString() : undefined,
-      imageUrl: newImageUrl.trim() || undefined
-    };
+      const newConc: Concurso = {
+        id: crypto.randomUUID(),
+        name: newConcName.trim(),
+        banca: banca.trim(),
+        educationLevel: educationLevel.trim() || undefined,
+        startDate: new Date(`${startDate}T12:00:00`).toISOString(),
+        subjects: subjectsList,
+        targetDate: targetDate ? new Date(`${targetDate}T12:00:00`).toISOString() : undefined,
+        imageUrl: newImageUrl.trim() || undefined
+      };
 
-    onUpdateConcursos([...concursos, newConc]);
-    setNewConcName('');
-    setBanca('');
-    setEducationLevel('');
-    setStartDate(new Date().toISOString().split('T')[0]);
-    setTargetDate('');
-    setIsAdding(false);
-    setNewImageUrl('');
-    setNewSubjects([]);
+      await onUpdateConcursos([...concursos, newConc]);
+      setNewConcName('');
+      setBanca('');
+      setEducationLevel('');
+      setStartDate(new Date().toISOString().split('T')[0]);
+      setTargetDate('');
+      setIsAdding(false);
+      setNewImageUrl('');
+      setNewSubjects([]);
+    } catch (err) {
+      console.error('Erro ao adicionar concurso:', err);
+      alert('Ocorreu um erro ao salvar o novo concurso na nuvem. Verifique sua conexão.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const openEditModal = (conc: Concurso) => {
@@ -227,31 +237,39 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
     setShowModalNewColorPicker(false);
   };
 
-  const saveEditConcurso = () => {
-    if (!editingConcurso) return;
+  const saveEditConcurso = async () => {
+    if (!editingConcurso || isSaving) return;
     if (!editFormData.name?.trim() || !editFormData.banca?.trim()) {
       alert('O nome e a banca do concurso são obrigatórios.');
       return;
     }
 
-    const updatedConcursos = concursos.map(c => {
-      if (c.id === editingConcurso.id) {
-        return {
-          ...c,
-          name: editFormData.name!.trim(),
-          banca: editFormData.banca!.trim(),
-          educationLevel: editFormData.educationLevel?.trim() || undefined,
-          startDate: editFormData.startDate ? new Date(`${editFormData.startDate}T12:00:00`).toISOString() : c.startDate,
-          targetDate: editFormData.targetDate ? new Date(`${editFormData.targetDate}T12:00:00`).toISOString() : undefined,
-          imageUrl: editFormData.imageUrl !== undefined ? editFormData.imageUrl : c.imageUrl,
-          subjects: editSubjects
-        };
-      }
-      return c;
-    });
+    setIsSaving(true);
+    try {
+      const updatedConcursos = concursos.map(c => {
+        if (c.id === editingConcurso.id) {
+          return {
+            ...c,
+            name: editFormData.name!.trim(),
+            banca: editFormData.banca!.trim(),
+            educationLevel: editFormData.educationLevel?.trim() || undefined,
+            startDate: editFormData.startDate ? new Date(`${editFormData.startDate}T12:00:00`).toISOString() : c.startDate,
+            targetDate: editFormData.targetDate ? new Date(`${editFormData.targetDate}T12:00:00`).toISOString() : undefined,
+            imageUrl: editFormData.imageUrl !== undefined ? editFormData.imageUrl : c.imageUrl,
+            subjects: editSubjects
+          };
+        }
+        return c;
+      });
 
-    onUpdateConcursos(updatedConcursos);
-    closeEditModal();
+      await onUpdateConcursos(updatedConcursos);
+      closeEditModal();
+    } catch (err) {
+      console.error('Erro ao salvar edições do concurso:', err);
+      alert('Ocorreu um erro ao salvar as alterações na nuvem. Verifique sua conexão e tente novamente.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const calculateDaysSince = (dateStr: string) => {
@@ -425,8 +443,8 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
           </div>
 
           <div className="flex justify-end gap-3">
-            <button onClick={() => setIsAdding(false)} className="px-6 py-3 text-zinc-400 font-black uppercase text-xs tracking-widest hover:text-rose-500 transition-colors">Cancelar</button>
-            <button onClick={addConcurso} className="bg-zinc-900 dark:bg-zinc-700 text-white px-8 py-3 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-zinc-800 dark:hover:bg-zinc-600 shadow-lg shadow-zinc-900/10 dark:shadow-zinc-900/50 active:scale-95 transition-all">Criar Edital</button>
+            <button onClick={() => setIsAdding(false)} disabled={isSaving} className="px-6 py-3 text-zinc-400 font-black uppercase text-xs tracking-widest hover:text-rose-500 transition-colors disabled:opacity-50">Cancelar</button>
+            <button onClick={addConcurso} disabled={isSaving} className="bg-zinc-900 dark:bg-zinc-700 text-white px-8 py-3 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-zinc-800 dark:hover:bg-zinc-600 shadow-lg shadow-zinc-900/10 dark:shadow-zinc-900/50 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed">{isSaving ? 'Salvando na Nuvem...' : 'Criar Edital'}</button>
           </div>
         </div>
       )}
@@ -792,15 +810,17 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
             <div className="p-6 border-t border-zinc-100 dark:border-zinc-800 flex justify-end gap-3 bg-zinc-50/50 dark:bg-zinc-800/20">
               <button
                 onClick={closeEditModal}
-                className="px-6 py-2.5 rounded-xl text-zinc-500 hover:text-zinc-800 dark:hover:text-white font-black uppercase text-xs tracking-wider transition-colors"
+                disabled={isSaving}
+                className="px-6 py-2.5 rounded-xl text-zinc-500 hover:text-zinc-800 dark:hover:text-white font-black uppercase text-xs tracking-wider transition-colors disabled:opacity-50"
               >
                 Cancelar
               </button>
               <button
                 onClick={saveEditConcurso}
-                className="px-8 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black uppercase text-xs tracking-wider transition-all shadow-lg shadow-emerald-600/20 active:scale-95"
+                disabled={isSaving}
+                className="px-8 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black uppercase text-xs tracking-wider transition-all shadow-lg shadow-emerald-600/20 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
-                Salvar Alterações
+                {isSaving ? 'Salvando na Nuvem...' : 'Salvar Alterações'}
               </button>
             </div>
           </div>
@@ -823,20 +843,30 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
               <div className="flex gap-3 w-full">
                 <button
                   onClick={() => setDeleteConfirmation({ isOpen: false, id: null, name: '' })}
-                  className="flex-1 py-3 rounded-xl font-bold bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-all text-xs uppercase"
+                  disabled={isSaving}
+                  className="flex-1 py-3 rounded-xl font-bold bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-all text-xs uppercase disabled:opacity-50"
                 >
                   Cancelar
                 </button>
                 <button
-                  onClick={() => {
-                    if (deleteConfirmation.id) {
-                      onUpdateConcursos(concursos.filter(c => c.id !== deleteConfirmation.id));
-                      setDeleteConfirmation({ isOpen: false, id: null, name: '' });
+                  onClick={async () => {
+                    if (deleteConfirmation.id && !isSaving) {
+                      setIsSaving(true);
+                      try {
+                        await onUpdateConcursos(concursos.filter(c => c.id !== deleteConfirmation.id));
+                        setDeleteConfirmation({ isOpen: false, id: null, name: '' });
+                      } catch (err) {
+                        console.error('Erro ao excluir concurso:', err);
+                        alert('Ocorreu um erro ao excluir o concurso na nuvem.');
+                      } finally {
+                        setIsSaving(false);
+                      }
                     }
                   }}
-                  className="flex-1 py-3 rounded-xl font-bold bg-rose-500 hover:bg-rose-600 text-white transition-all text-xs uppercase shadow-lg shadow-rose-500/20"
+                  disabled={isSaving}
+                  className="flex-1 py-3 rounded-xl font-bold bg-rose-500 hover:bg-rose-600 text-white transition-all text-xs uppercase shadow-lg shadow-rose-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Sim, Excluir
+                  {isSaving ? 'Excluindo...' : 'Sim, Excluir'}
                 </button>
               </div>
             </div>

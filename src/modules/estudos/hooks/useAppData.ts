@@ -890,6 +890,13 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                     localStorage.setItem('estudos_weights_locked', String(userSettings.estudos_weights_locked));
                 }
 
+                // Sync escolaridade dos concursos (gp_concurso_edulevels_map) from cloud
+                if (userSettings.gp_concurso_edulevels_map && typeof userSettings.gp_concurso_edulevels_map === 'object') {
+                    try {
+                        localStorage.setItem('gp_concurso_edulevels_map', JSON.stringify(userSettings.gp_concurso_edulevels_map));
+                    } catch (e) {}
+                }
+
                 if (userSettings.globalDailyGoal) {
                     setGlobalDailyGoalState(userSettings.globalDailyGoal);
                     localStorage.setItem('cp_global_daily_goal', String(userSettings.globalDailyGoal));
@@ -915,9 +922,24 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                         });
                     } catch (e) {}
                 }
+
+                // Obtém mapa de escolaridades atualizado (nuvem + local)
+                let cloudEduMap: Record<string, string> = {};
+                try {
+                    const rawCloud = userSettings?.gp_concurso_edulevels_map;
+                    if (rawCloud && typeof rawCloud === 'object') {
+                        cloudEduMap = rawCloud;
+                    } else if (typeof rawCloud === 'string') {
+                        cloudEduMap = JSON.parse(rawCloud);
+                    } else {
+                        const localMapRaw = localStorage.getItem('gp_concurso_edulevels_map');
+                        if (localMapRaw) cloudEduMap = JSON.parse(localMapRaw);
+                    }
+                } catch (e) {}
+
                 finalConcursos = mergedConcursos.map(c => {
                     const localImg = localStorage.getItem(`gp_concurso_img_${c.id}`);
-                    const localEdu = localStorage.getItem(`gp_concurso_edulevel_${c.id}`);
+                    const localEdu = localStorage.getItem(`gp_concurso_edulevel_${c.id}`) || cloudEduMap[c.id];
                     return {
                         ...c,
                         imageUrl: localImg || c.imageUrl,
@@ -1621,11 +1643,33 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         setSaveError(null);
         setConcursos(newConcursos);
         localStorage.setItem('cp_concursos_backup', JSON.stringify(newConcursos));
+        
+        let eduMapUpdated = false;
+        let eduLevelsMap: Record<string, string> = {};
+        try {
+            const raw = localStorage.getItem('gp_concurso_edulevels_map');
+            if (raw) eduLevelsMap = JSON.parse(raw);
+        } catch (e) {}
+
         newConcursos.forEach(c => {
             if (c.educationLevel) {
                 localStorage.setItem(`gp_concurso_edulevel_${c.id}`, c.educationLevel);
+                if (eduLevelsMap[c.id] !== c.educationLevel) {
+                    eduLevelsMap[c.id] = c.educationLevel;
+                    eduMapUpdated = true;
+                }
+            } else if (eduLevelsMap[c.id]) {
+                delete eduLevelsMap[c.id];
+                eduMapUpdated = true;
+                localStorage.removeItem(`gp_concurso_edulevel_${c.id}`);
             }
         });
+
+        if (eduMapUpdated) {
+            localStorage.setItem('gp_concurso_edulevels_map', JSON.stringify(eduLevelsMap));
+            api.settings.update({ gp_concurso_edulevels_map: eduLevelsMap }).catch(() => {});
+        }
+
         setIsSaving(true);
         try {
             // Find deleted concursos
@@ -1638,6 +1682,15 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                 }
                 localStorage.removeItem(`gp_concurso_img_${id}`);
                 localStorage.removeItem(`gp_concurso_edulevel_${id}`);
+                if (eduLevelsMap[id]) {
+                    delete eduLevelsMap[id];
+                    eduMapUpdated = true;
+                }
+            }
+
+            if (deletedIds.length > 0 && eduMapUpdated) {
+                localStorage.setItem('gp_concurso_edulevels_map', JSON.stringify(eduLevelsMap));
+                api.settings.update({ gp_concurso_edulevels_map: eduLevelsMap }).catch(() => {});
             }
 
             // Find removed subjects (Cascading Delete)
@@ -1681,14 +1734,18 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
 
                 const oldConc = concursos.find(c => c.id === newConc.id);
 
-                // If it's new or if subjects/name/banca/imageUrl/educationLevel changed, upsert it
-                if (!oldConc || 
-                    JSON.stringify(oldConc.subjects) !== JSON.stringify(newConc.subjects) ||
-                    oldConc.name !== newConc.name || 
+                // Compara TODOS os campos: nome, banca, datas, escolaridade, imagem, categoria e disciplinas (metas, pesos, cores)
+                const isChanged = !oldConc ||
+                    oldConc.name !== newConc.name ||
                     oldConc.banca !== newConc.banca ||
+                    oldConc.startDate !== newConc.startDate ||
+                    oldConc.targetDate !== newConc.targetDate ||
                     oldConc.educationLevel !== newConc.educationLevel ||
-                    oldConc.imageUrl !== newConc.imageUrl) {
+                    oldConc.imageUrl !== newConc.imageUrl ||
+                    oldConc.categoryId !== newConc.categoryId ||
+                    JSON.stringify(oldConc.subjects || []) !== JSON.stringify(newConc.subjects || []);
 
+                if (isChanged) {
                     try {
                         const upserted = await api.concursos.upsert(newConc);
                         if (upserted && upserted.id !== newConc.id) {
@@ -1704,15 +1761,18 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                             setConcursos(prev => prev.map(c => c.id === newConc.id ? { ...c, id: upserted.id } : c));
                         }
                     } catch (upsertErr) {
-                        console.error('Error upserting concurso:', upsertErr);
+                        console.error('Error upserting concurso to cloud:', upsertErr);
                     }
                 }
             }
             localStorage.setItem('cp_concursos_backup', JSON.stringify(newConcursos));
             setLastSaved(new Date().toLocaleTimeString());
+            window.dispatchEvent(new Event('local-storage-sync'));
+            window.dispatchEvent(new Event('local-settings-changed'));
         } catch (e) {
             console.error('Error updating concursos:', e);
             setSaveError('Erro ao atualizar concursos.');
+            throw e;
         } finally {
             setIsSaving(false);
         }

@@ -71,6 +71,8 @@ const SYNC_KEYS = [
   'estudos_weight_time',
   'estudos_review_days_locked',
   'estudos_weights_locked',
+  'gp_concurso_edulevels_map',
+  'cp_concursos_backup',
 ];
 
 function getSanitizedLocalSettings(): Record<string, string | null> {
@@ -139,6 +141,7 @@ function mergeSettings(
       key === 'cp_dashboard_layout_v19' ||
       key === 'cp_dashboard_layout_v20' ||
       key === 'cp_scheduled_studies' ||
+      key === 'cp_concursos_backup' ||
       key === 'cn_saude_dashboard_layout' ||
       key === 'cn_home_cards_layout' ||
       key === 'cn_saude_sleep_logs' ||
@@ -350,7 +353,7 @@ function mergeSettings(
       } catch {
         merged[key] = preferRemote ? remoteVal : localVal;
       }
-    } else if (key === 'cp_cronograma_prefs_map' || key === 'estudos_weights_by_course' || key === 'estudos_disabled_reviews_map') {
+    } else if (key === 'cp_cronograma_prefs_map' || key === 'estudos_weights_by_course' || key === 'estudos_disabled_reviews_map' || key === 'gp_concurso_edulevels_map') {
       try {
         let localObj = localVal ? JSON.parse(localVal) : {};
         if (typeof localObj === 'string') {

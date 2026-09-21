@@ -41,4 +41,8 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='concursos' AND column_name='image_url') THEN 
         ALTER TABLE public.concursos ADD COLUMN image_url TEXT;
     END IF; 
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='habits' AND column_name='color') THEN 
+        ALTER TABLE public.habits ADD COLUMN color TEXT;
+    END IF;
 END $$;
+

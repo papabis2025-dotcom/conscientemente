@@ -161,7 +161,7 @@ const ModuleCard: React.FC<ModuleCardProps> = ({
       sessionStorage.setItem('habitosActiveTab', 'painel');
       window.location.hash = 'habitos';
     } else if (action === 'habitos-relatorio') {
-      sessionStorage.setItem('habitosActiveTab', 'relatorio');
+      sessionStorage.setItem('habitosActiveTab', 'mapa');
       window.location.hash = 'habitos';
     } else if (action === 'anotacoes-rapida') {
       sessionStorage.setItem('openAddNoteModal', 'true');
@@ -2731,8 +2731,8 @@ const HubHome: React.FC<HubHomeProps> = ({
                         )}
                       </div>
 
-                      {/* List of habits checkboxes */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 xl:grid-cols-3 gap-1.5 mt-1.5 max-h-[58px] overflow-y-auto custom-scrollbar pr-1">
+                      {/* List of habits checkboxes - caixas elegantes e com melhor aproveitamento do espaço */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 xl:grid-cols-3 gap-1.5 mt-1 max-h-[62px] overflow-y-auto custom-scrollbar pr-1">
                         {habits.length === 0 ? (
                           <div className="py-2 text-center text-xs text-zinc-450 dark:text-zinc-500 font-medium col-span-full">
                             Você não possui hábitos definidos. Acesse o card de Hábitos para criar.
@@ -2745,35 +2745,34 @@ const HubHome: React.FC<HubHomeProps> = ({
                               <div
                                 key={h.id}
                                 onClick={() => toggleHabit(h.id)}
-                                className={`flex items-center gap-2 p-1.5 px-2.5 rounded-lg border transition-all duration-200 cursor-pointer select-none ${
+                                className={`group/habit flex items-center gap-2 p-1.5 px-2.5 rounded-xl border transition-all duration-200 cursor-pointer select-none ${
                                   isCompleted
-                                    ? 'bg-zinc-100/50 dark:bg-zinc-950/20 border-zinc-200/80 dark:border-zinc-850/60 opacity-60'
-                                    : 'bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800/80 hover:border-slate-400 dark:hover:border-slate-600 hover:shadow-xs'
+                                    ? 'bg-zinc-100/60 dark:bg-zinc-950/40 border-zinc-200/60 dark:border-zinc-800/60 opacity-60 hover:opacity-85'
+                                    : 'bg-white dark:bg-zinc-900 border border-zinc-200/90 dark:border-zinc-800/90 hover:border-zinc-400 dark:hover:border-zinc-600 hover:shadow-xs shadow-[0_1px_2px_rgba(0,0,0,0.03)]'
                                 }`}
                               >
                                 <div className="relative flex items-center justify-center shrink-0">
                                   <div 
-                                    className="w-4 h-4 rounded-md border flex items-center justify-center transition-all"
-                                    style={{
-                                      backgroundColor: isCompleted ? habitColor : 'transparent',
-                                      borderColor: isCompleted ? habitColor : `${habitColor}80`,
-                                      boxShadow: isCompleted ? `0 1px 6px ${habitColor}40` : 'none'
-                                    }}
+                                    className={`w-3.5 h-3.5 rounded-md flex items-center justify-center transition-all ${
+                                      isCompleted 
+                                        ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 shadow-[0_0_6px_rgba(0,0,0,0.25)] dark:shadow-[0_0_8px_rgba(255,255,255,0.6)]' 
+                                        : 'border border-zinc-300 dark:border-zinc-700 bg-zinc-50/80 dark:bg-zinc-850/80 group-hover/habit:border-zinc-400 dark:group-hover/habit:border-zinc-500'
+                                    }`}
                                   >
                                     {isCompleted ? (
-                                      <Check size={9} strokeWidth={3} className="text-white" />
+                                      <Check size={9} strokeWidth={3.5} />
                                     ) : (
                                       <div 
-                                        className="w-1.5 h-1.5 rounded-full opacity-70"
+                                        className="w-1.5 h-1.5 rounded-full opacity-80"
                                         style={{ backgroundColor: habitColor }}
                                       />
                                     )}
                                   </div>
                                 </div>
-                                <span className={`text-xs font-black transition-all truncate leading-none ${
+                                <span className={`text-[11px] font-semibold transition-all truncate leading-none ${
                                   isCompleted
-                                    ? 'line-through text-zinc-450 dark:text-zinc-500 font-bold'
-                                    : 'text-zinc-900 dark:text-white'
+                                    ? 'line-through text-zinc-400 dark:text-zinc-500'
+                                    : 'text-zinc-800 dark:text-zinc-200 group-hover/habit:text-zinc-950 dark:group-hover/habit:text-white'
                                 }`}>
                                   {h.name}
                                 </span>
@@ -2784,36 +2783,27 @@ const HubHome: React.FC<HubHomeProps> = ({
                       </div>
                     </div>
 
-                    {/* Progress Indicator */}
+                    {/* Progress Indicator - Monocromático com efeito neon discreto e sem porcentagem */}
                     {habits.length > 0 && (() => {
                       const completedCount = habits.filter(h => (habitHistory[todayStr] || []).includes(h.id)).length;
                       const totalCount = habits.length;
                       const pct = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
-                      const isComplete = totalCount > 0 && completedCount === totalCount;
                       return (
-                        <div className="mt-2 pt-2 border-t border-zinc-200/40 dark:border-zinc-800/40 animate-in fade-in duration-300 shrink-0">
-                          <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-wider mb-1.5">
-                            <div className="flex items-center gap-1.5">
-                              <span className={`px-1.5 py-0.5 rounded-md text-[8.5px] font-black tracking-wide transition-all ${
-                                isComplete 
-                                  ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30' 
-                                  : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border border-zinc-200/60 dark:border-zinc-700/50'
-                              }`}>
-                                {isComplete ? '100% Concluído' : `${pct}%`}
-                              </span>
-                            </div>
-                            <span className="text-zinc-500 dark:text-zinc-400 font-bold text-[9.5px]">
+                        <div className="mt-1 pt-1.5 border-t border-zinc-200/50 dark:border-zinc-800/50 animate-in fade-in duration-300 shrink-0">
+                          <div className="flex justify-between items-center text-[9.5px] font-medium mb-1">
+                            <span className="text-[8.5px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                              Progresso Diário
+                            </span>
+                            <span className="text-zinc-500 dark:text-zinc-400">
                               <strong className="text-zinc-900 dark:text-white font-extrabold">{completedCount}</strong>
-                              <span className="opacity-70">/{totalCount} concluídos</span>
+                              <span className="opacity-75">/{totalCount} concluídos</span>
                             </span>
                           </div>
-                          <div className="w-full h-2 bg-zinc-150 dark:bg-zinc-800/80 rounded-full overflow-hidden p-[1px] shadow-inner">
+                          {/* Trilho da barra */}
+                          <div className="w-full h-1.5 bg-zinc-200/80 dark:bg-zinc-800/80 rounded-full overflow-hidden p-[0.5px]">
+                            {/* Barra monocromática com efeito neon minimalista e discreto */}
                             <div
-                              className={`h-full rounded-full transition-all duration-700 ease-out shadow-xs ${
-                                isComplete
-                                  ? 'bg-gradient-to-r from-emerald-500 to-teal-400'
-                                  : 'bg-gradient-to-r from-orange-500 via-amber-500 to-emerald-500'
-                              }`}
+                              className="h-full rounded-full transition-all duration-500 ease-out bg-zinc-900 dark:bg-white shadow-[0_0_6px_rgba(0,0,0,0.35)] dark:shadow-[0_0_8px_rgba(255,255,255,0.7),0_0_14px_rgba(255,255,255,0.35)]"
                               style={{ width: `${pct}%` }}
                             />
                           </div>

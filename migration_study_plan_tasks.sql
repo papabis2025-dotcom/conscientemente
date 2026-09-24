@@ -29,3 +29,8 @@ CREATE POLICY "Users can manage their own study plan tasks"
     USING ((SELECT auth.uid()) = user_id) 
     WITH CHECK ((SELECT auth.uid()) = user_id);
 
+-- Permissões de Acesso para API de Dados (Supabase PostgREST)
+GRANT SELECT ON public.study_plan_tasks TO anon;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.study_plan_tasks TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.study_plan_tasks TO service_role;
+

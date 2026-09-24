@@ -116,9 +116,9 @@ const iconMap: Record<string, React.ReactNode> = {
 interface ModuleCardProps {
   module: Module;
   index: number;
-  size: 'normal' | 'wide' | 'full';
+  size?: 'normal' | 'wide' | 'full';
   isEditMode: boolean;
-  onCycleSize: () => void;
+  onCycleSize?: () => void;
   onDragStart: (e: React.DragEvent) => void;
   onDragOver: (e: React.DragEvent) => void;
   onDragEnd: () => void;
@@ -126,7 +126,7 @@ interface ModuleCardProps {
 }
 
 const ModuleCard: React.FC<ModuleCardProps> = ({ 
-  module, index, size, isEditMode, onCycleSize, onDragStart, onDragOver, onDragEnd, isDragged 
+  module, index, isEditMode, onDragStart, onDragOver, onDragEnd, isDragged 
 }) => {
   const colors = colorMap[module.color] ?? colorMap.indigo;
 
@@ -136,52 +136,6 @@ const ModuleCard: React.FC<ModuleCardProps> = ({
     window.location.hash = module.route;
   };
 
-  const handleShortcutClick = (e: React.MouseEvent, action: string) => {
-    e.stopPropagation();
-    if (isEditMode) return;
-    if (action === 'adicionar-estudo') {
-      sessionStorage.setItem('openAddStudyModal', 'true');
-      window.location.hash = 'estudos';
-    } else if (action === 'planner-estudos') {
-      sessionStorage.setItem('estudosActiveTab', 'calendar');
-      window.location.hash = 'estudos';
-    } else if (action === 'novo-treino') {
-      sessionStorage.setItem('openAddSaudeModal', 'true');
-      window.location.hash = 'saude';
-    } else if (action === 'financas-entrada') {
-      sessionStorage.setItem('openAddFinancasType', 'entrada');
-      window.location.hash = 'financas';
-    } else if (action === 'financas-saida') {
-      sessionStorage.setItem('openAddFinancasType', 'saida');
-      window.location.hash = 'financas';
-    } else if (action === 'nova-tarefa') {
-      sessionStorage.setItem('openAddTaskModal', 'true');
-      window.location.hash = 'tarefas';
-    } else if (action === 'habitos-gerenciar') {
-      sessionStorage.setItem('habitosActiveTab', 'painel');
-      window.location.hash = 'habitos';
-    } else if (action === 'habitos-relatorio') {
-      sessionStorage.setItem('habitosActiveTab', 'mapa');
-      window.location.hash = 'habitos';
-    } else if (action === 'anotacoes-rapida') {
-      sessionStorage.setItem('openAddNoteModal', 'true');
-      sessionStorage.setItem('anotacoesActiveTab', 'Anotações');
-      window.location.hash = 'anotacoes';
-    } else if (action === 'anotacoes-leitura') {
-      sessionStorage.setItem('openAddNoteModal', 'true');
-      sessionStorage.setItem('anotacoesActiveTab', 'Diário de Leitura');
-      window.location.hash = 'anotacoes';
-    }
-  };
-
-  const sizeClasses = {
-    normal: 'col-span-1 sm:col-span-2 lg:col-span-2',
-    wide: 'col-span-1 sm:col-span-4 lg:col-span-4',
-    full: 'col-span-1 sm:col-span-6 lg:col-span-12',
-  };
-
-  const cardHeight = 144; // px — valor médio entre o pequeno (96) e o original (aspect-square ~200px)
-
   return (
     <div
       onClick={handleClick}
@@ -189,115 +143,38 @@ const ModuleCard: React.FC<ModuleCardProps> = ({
       onDragStart={onDragStart}
       onDragOver={onDragOver}
       onDragEnd={onDragEnd}
-      style={{ animationDelay: `${index * 80}ms`, minHeight: `${cardHeight}px`, height: `${cardHeight}px` }}
+      title={module.description}
+      style={{ animationDelay: `${index * 50}ms` }}
       className={[
-        'group relative w-full text-left rounded-2xl border-2 transition-all duration-300',
-        'bg-white/90 dark:bg-zinc-900/90 backdrop-blur-sm',
-        'border-zinc-200 dark:border-zinc-800',
-        'shadow-sm',
-        sizeClasses[size] || sizeClasses.normal,
+        'group relative w-full flex flex-col items-center justify-center p-2 rounded-2xl transition-all duration-200 select-none',
         module.available && !isEditMode
-          ? `cursor-pointer hover:shadow-2xl hover:-translate-y-1.5 ${colors.glow} ${colors.border} hover:border-opacity-80`
+          ? 'cursor-pointer hover:bg-zinc-100/80 dark:hover:bg-zinc-800/80 active:scale-95'
           : '',
-        isEditMode ? 'cursor-move ring-2 ring-emerald-500/20' : '',
-        isDragged ? 'opacity-50 scale-95' : 'opacity-100',
-        !module.available ? 'opacity-45 cursor-not-allowed' : '',
-        'animate-in fade-in slide-in-from-bottom-4 duration-500',
-        'overflow-hidden flex flex-col justify-between',
+        isEditMode ? 'cursor-move ring-2 ring-emerald-500/30' : '',
+        isDragged ? 'opacity-40 scale-90' : 'opacity-100',
+        !module.available ? 'opacity-40 cursor-not-allowed' : '',
+        'animate-in fade-in duration-300',
       ].join(' ')}
     >
-      {/* Gradient top strip — always visible subtly, bright on hover */}
-      <div className={`h-0.5 w-full bg-gradient-to-r ${colors.gradient} opacity-25 group-hover:opacity-100 transition-all duration-300`} />
+      {/* Ícone com a cor definida para o módulo */}
+      <div className={`relative flex items-center justify-center w-11 h-11 sm:w-12 sm:h-12 rounded-2xl ${colors.icon} transition-all duration-300 group-hover:scale-110 shadow-xs ${colors.glow}`}>
+        {iconMap[module.id] && React.cloneElement(iconMap[module.id] as any, { size: 20, strokeWidth: 2 })}
 
-      {/* Background sophisticated gradient */}
-      {module.available && (
-        <div className="absolute inset-0 overflow-hidden pointer-events-none z-0 select-none">
-          {/* Subtle gradient overlay */}
-          <div className={`absolute inset-0 bg-gradient-to-br ${
-            module.color === 'indigo' ? 'from-indigo-500/[0.03] via-violet-500/[0.01] to-transparent' :
-            module.color === 'emerald' ? 'from-emerald-500/[0.03] via-teal-500/[0.01] to-transparent' :
-            module.color === 'cyan' ? 'from-cyan-500/[0.03] via-sky-500/[0.01] to-transparent' :
-            module.color === 'rose' ? 'from-rose-500/[0.03] via-pink-500/[0.01] to-transparent' :
-            module.color === 'spacegray' ? 'from-slate-500/[0.04] via-zinc-500/[0.02] to-transparent' :
-            'from-amber-500/[0.03] via-orange-500/[0.01] to-transparent'
-          } dark:${
-            module.color === 'indigo' ? 'from-indigo-500/[0.06] via-violet-500/[0.02] to-transparent' :
-            module.color === 'emerald' ? 'from-emerald-500/[0.06] via-teal-500/[0.02] to-transparent' :
-            module.color === 'cyan' ? 'from-cyan-500/[0.06] via-sky-500/[0.02] to-transparent' :
-            module.color === 'rose' ? 'from-rose-500/[0.06] via-pink-500/[0.02] to-transparent' :
-            module.color === 'spacegray' ? 'from-slate-500/[0.08] via-zinc-500/[0.04] to-transparent' :
-            'from-amber-500/[0.06] via-orange-500/[0.02] to-transparent'
-          }`} />
-
-          {/* Radial glow at the bottom-right corner */}
-          <div className={`absolute -right-8 -bottom-8 w-40 h-40 rounded-full blur-3xl opacity-15 dark:opacity-25 bg-gradient-to-br ${colors.gradient}`} />
-        </div>
-      )}
-
-      {/* Background Icon Watermark acting as the "Background Image" */}
-      {iconMap[module.id] && (
-        <div className="absolute inset-0 flex items-center justify-center overflow-hidden pointer-events-none z-0 select-none">
-          <div className={[
-            'transition-all duration-500 ease-out transform group-hover:scale-110 group-hover:rotate-6',
-            module.color === 'indigo' ? 'text-indigo-500/5 dark:text-indigo-400/5 group-hover:text-indigo-500/10' :
-            module.color === 'emerald' ? 'text-emerald-500/5 dark:text-emerald-400/5 group-hover:text-emerald-500/10' :
-            module.color === 'cyan' ? 'text-cyan-500/5 dark:text-cyan-400/5 group-hover:text-cyan-500/10' :
-            module.color === 'rose' ? 'text-rose-500/5 dark:text-rose-400/5 group-hover:text-rose-500/10' :
-            module.color === 'spacegray' ? 'text-slate-500/5 dark:text-zinc-500/5 group-hover:text-slate-500/10' :
-            'text-amber-500/5 dark:text-amber-400/5 group-hover:text-amber-500/10'
-          ].join(' ')}>
-            {React.cloneElement(iconMap[module.id] as any, { 
-              size: size === 'normal' ? 64 : size === 'wide' ? 72 : 80, 
-              strokeWidth: 1.2
-            })}
-          </div>
-        </div>
-      )}
-
-      <div className="p-3 relative z-10 flex flex-col justify-between h-full w-full">
-        {/* Top row: icon badge + action button */}
-        <div className="flex items-start justify-between">
-          {/* Small themed icon badge */}
-          <div className={`flex items-center justify-center w-8 h-8 rounded-xl ${colors.icon} transition-all duration-300 group-hover:scale-110`}>
-            {iconMap[module.id] && React.cloneElement(iconMap[module.id] as any, { size: 16, strokeWidth: 2 })}
-          </div>
-
-          {!module.available ? (
-            <span className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-zinc-400 dark:text-zinc-500 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded-full">
-              <Lock size={9} />
-              Em breve
-            </span>
-          ) : isEditMode ? (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onCycleSize();
-              }}
-              className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 bg-zinc-100 dark:bg-zinc-850 hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded-md text-zinc-700 dark:text-zinc-200 shadow-sm border border-zinc-300 dark:border-zinc-700 cursor-pointer"
-            >
-              Tam: {size === 'normal' ? 'P' : size === 'wide' ? 'M' : 'G'}
-            </button>
-          ) : (
-            <span className={`flex items-center justify-center w-6 h-6 rounded-full bg-zinc-100/80 dark:bg-zinc-800/80 text-zinc-400 opacity-0 group-hover:opacity-100 transition-all duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5`}>
-              <ArrowUpRight size={12} />
-            </span>
-          )}
-        </div>
-
-        {/* Bottom row: module name + description */}
-        <div className="flex flex-col gap-0.5 mt-auto">
-          <p className="text-sm font-semibold text-zinc-700 dark:text-zinc-200 leading-tight tracking-tight">
-            {module.label}
-          </p>
-          <p className="text-[10px] text-zinc-400 dark:text-zinc-500 font-medium leading-snug line-clamp-2 max-h-0 overflow-hidden opacity-0 group-hover:max-h-10 group-hover:opacity-100 transition-all duration-300 ease-out">
-            {module.description}
-          </p>
-        </div>
+        {!module.available && (
+          <span className="absolute -top-1 -right-1 flex items-center justify-center w-4 h-4 rounded-full bg-zinc-200 dark:bg-zinc-800 text-zinc-500 shadow-xs">
+            <Lock size={9} />
+          </span>
+        )}
       </div>
+
+      {/* Legenda minimalista */}
+      <span className="mt-1.5 text-[11px] font-bold text-zinc-600 dark:text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-white transition-colors tracking-tight text-center truncate max-w-full leading-tight">
+        {module.label}
+      </span>
     </div>
   );
 };
+
 
 const HubHome: React.FC<HubHomeProps> = ({ 
   userName, theme, toggleTheme, onLogout, bgType, 
@@ -1828,6 +1705,33 @@ const HubHome: React.FC<HubHomeProps> = ({
   };
   const last7Days = getLast7Days();
 
+  // Dias da semana atual para o preenchimento semanal de hábitos (Segunda a Domingo)
+  const getWeekDates = (baseDate: Date) => {
+    const d = new Date(baseDate);
+    const day = d.getDay(); // 0 = Domingo, 1 = Segunda, etc.
+    const diffToMonday = (day === 0 ? -6 : 1) - day;
+    const monday = new Date(d);
+    monday.setDate(d.getDate() + diffToMonday);
+
+    const days = [];
+    for (let i = 0; i < 7; i++) {
+      const current = new Date(monday);
+      current.setDate(monday.getDate() + i);
+      const dStr = new Date(current.getTime() - current.getTimezoneOffset() * 60000).toISOString().split('T')[0];
+      const raw = current.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '');
+      const label = raw.charAt(0).toUpperCase() + raw.slice(1, 3);
+      days.push({
+        dateStr: dStr,
+        label, // Seg, Ter, Qua, Qui, Sex, Sáb, Dom
+        dayNum: current.getDate(),
+        isToday: dStr === todayStr,
+        isFuture: dStr > todayStr
+      });
+    }
+    return days;
+  };
+  const weekDays = useMemo(() => getWeekDates(currentTime), [currentTime, todayStr]);
+
   // Habit consistency calculations
   let last7DaysCompletions = 0;
   const last7DaysTotalPossible = last7Days.length * habits.length;
@@ -1904,7 +1808,7 @@ const HubHome: React.FC<HubHomeProps> = ({
         </div>
 
         {/* Main content */}
-        <main className={`relative z-10 w-full ${showHabitsReport ? 'max-w-4xl' : 'max-w-7xl'} px-6 py-10 flex flex-col transition-all duration-300`}>
+        <main className={`relative z-10 w-full ${showHabitsReport ? 'max-w-5xl' : 'max-w-[1720px]'} px-4 sm:px-6 lg:px-8 py-8 flex flex-col transition-all duration-300`}>
         {isHomeEditMode && !showHabitsReport && (
           <div className="w-full mb-6 p-4 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md rounded-2xl border border-emerald-500/30 dark:border-emerald-500/20 flex flex-col sm:flex-row items-center justify-between gap-4 animate-in slide-in-from-top-2 duration-300 select-none">
             <div className="flex items-center gap-2">
@@ -2099,30 +2003,37 @@ const HubHome: React.FC<HubHomeProps> = ({
           </div>
         ) : (
           <>
-            {/* Module grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-6 lg:grid-cols-12 gap-3 w-full animate-in fade-in slide-in-from-top-2 duration-300">
-            {homeCards.map((card, i) => {
-              const mod = MODULES.find(m => m.id === card.id);
-              if (!mod) return null;
-              return (
-                <ModuleCard 
-                  key={mod.id} 
-                  module={mod} 
-                  index={i} 
-                  size={card.size}
-                  isEditMode={isHomeEditMode}
-                  onCycleSize={() => cycleCardSize(mod.id)}
-                  onDragStart={() => handleCardDragStart(i)}
-                  onDragOver={(e) => handleCardDragOver(e, i)}
-                  onDragEnd={handleCardDragEnd}
-                  isDragged={draggedCardIndex === i}
-                />
-              );
-            })}
-            </div>
-            
-            <div className="flex flex-col gap-6 mt-6 w-full animate-in fade-in slide-in-from-top-2 duration-300">
-              {widgetsOrder.map((widgetId) => {
+            <div className="flex flex-col lg:flex-row items-start gap-6 w-full animate-in fade-in slide-in-from-top-2 duration-300">
+              {/* Coluna Lateral: Ícones de acesso aos módulos empilhados na vertical */}
+              <aside className="w-full lg:w-28 xl:w-32 shrink-0 lg:sticky lg:top-6 z-20">
+                <div className="bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md rounded-2xl lg:rounded-3xl border border-zinc-200/90 dark:border-zinc-800 p-2 lg:p-2.5 shadow-sm flex flex-row lg:flex-col items-center justify-between lg:justify-start gap-1 lg:gap-2">
+                  <div className="hidden lg:flex items-center justify-center py-1 w-full border-b border-zinc-100 dark:border-zinc-800/80 mb-0.5">
+                    <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400 dark:text-zinc-500">Módulos</span>
+                  </div>
+                  {homeCards.map((card, i) => {
+                    const mod = MODULES.find(m => m.id === card.id);
+                    if (!mod) return null;
+                    return (
+                      <ModuleCard 
+                        key={mod.id} 
+                        module={mod} 
+                        index={i} 
+                        size={card.size}
+                        isEditMode={isHomeEditMode}
+                        onCycleSize={() => cycleCardSize(mod.id)}
+                        onDragStart={() => handleCardDragStart(i)}
+                        onDragOver={(e) => handleCardDragOver(e, i)}
+                        onDragEnd={handleCardDragEnd}
+                        isDragged={draggedCardIndex === i}
+                      />
+                    );
+                  })}
+                </div>
+              </aside>
+              
+              {/* Área Principal dos Widgets (Calendário, Hábitos, Sono) */}
+              <div className="flex-1 min-w-0 flex flex-col gap-6 w-full">
+                {widgetsOrder.map((widgetId) => {
             if (widgetId === 'calendar') {
               const isCalendarVisible = widgetsVisibility['calendar'] !== false;
               if (!isCalendarVisible && !isHomeEditMode) return null;
@@ -2660,160 +2571,268 @@ const HubHome: React.FC<HubHomeProps> = ({
             if (widgetId === 'habits') {
               const isHabitsVisible = widgetsVisibility['habits'] !== false;
               if (!isHabitsVisible && !isHomeEditMode) return null;
+
+              const completedTodayCount = habits.filter(h => (habitHistory[todayStr] || []).includes(h.id)).length;
+              const totalHabitsCount = habits.length;
+              const dailyPct = totalHabitsCount > 0 ? Math.round((completedTodayCount / totalHabitsCount) * 100) : 0;
+              const donutSize = 64;
+              const strokeWidth = 5;
+              const radius = 26;
+              const circumference = 2 * Math.PI * radius;
+              const strokeDashoffset = circumference - (dailyPct / 100) * circumference;
+
               return (
                 <div 
                   key="habits"
                   onMouseEnter={() => setIsHabitsHovered(true)}
                   onMouseLeave={() => setIsHabitsHovered(false)}
                   style={{ opacity: !isHabitsVisible ? 0.4 : (isHabitsHovered ? 1 : habitsOpacity) }}
-                  className={`w-full bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm rounded-2xl border border-zinc-200 dark:border-zinc-800 flex flex-col justify-between p-3 overflow-hidden relative transition-all duration-300 h-[140px] ${!isHabitsVisible ? 'ring-2 ring-dashed ring-rose-500/30' : ''}`}
+                  className={`w-full bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm rounded-2xl border border-zinc-200 dark:border-zinc-800 flex flex-col justify-between p-4 overflow-hidden relative transition-all duration-300 min-h-[175px] ${!isHabitsVisible ? 'ring-2 ring-dashed ring-rose-500/30' : ''}`}
                 >
                   <div className="flex-1 min-h-0 flex flex-col justify-between">
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <div>
-                          <h3 className="text-[10px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest flex items-center gap-1.5">
-                            <ClipboardList size={12} className="text-zinc-450 dark:text-zinc-500" />
-                            Rastreador de Hábitos
-                          </h3>
+                    {/* Header do Widget */}
+                    <div className="flex items-center justify-between mb-2.5 shrink-0">
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-[10px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest flex items-center gap-1.5">
+                          <ClipboardList size={13} className="text-zinc-450 dark:text-zinc-500" />
+                          Rastreador de Hábitos
+                        </h3>
+                        <button
+                          type="button"
+                          onClick={() => { window.location.hash = 'habitos'; }}
+                          className="text-[9px] font-bold text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 uppercase tracking-wider transition-colors ml-2 cursor-pointer"
+                        >
+                          Gerenciar →
+                        </button>
+                      </div>
+
+                      {/* Opacity & Visibility control for Habit Tracker — only visible in edit mode */}
+                      {isHomeEditMode && (
+                        <div className="flex items-center gap-1.5 bg-zinc-100/60 dark:bg-zinc-800/50 px-2 py-0.5 rounded-lg border border-zinc-300/30 dark:border-zinc-700/50 animate-in fade-in duration-200">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); toggleWidgetVisibility('habits'); }}
+                            className="text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 cursor-pointer p-0.5"
+                            title={isHabitsVisible ? 'Ocultar widget de hábitos' : 'Exibir widget de hábitos'}
+                          >
+                            {isHabitsVisible ? <Eye size={11} strokeWidth={2.5} /> : <EyeOff size={11} strokeWidth={2.5} className="text-rose-500" />}
+                          </button>
+                          <div className="w-[1px] h-3 bg-zinc-350 dark:bg-zinc-700 mx-0.5" />
+                          <Sliders size={10} className="text-zinc-400 dark:text-zinc-500" />
+                          <input 
+                            type="range" 
+                            min="0.2" 
+                            max="1" 
+                            step="0.05" 
+                            value={habitsOpacity} 
+                            onChange={(e) => {
+                              e.stopPropagation();
+                              const val = parseFloat(e.target.value);
+                              setHabitsOpacity(val);
+                              localStorage.setItem('cn_habits_opacity', val.toString());
+                            }}
+                            className="w-14 h-1 bg-zinc-250 dark:bg-zinc-750 rounded-lg appearance-none cursor-pointer accent-zinc-500 dark:accent-zinc-400"
+                            title="Opacidade dos hábitos"
+                          />
+                          <span className="text-[8px] font-bold text-zinc-450 dark:text-zinc-500 w-6 text-right mr-1">
+                            {Math.round(habitsOpacity * 100)}%
+                          </span>
+
+                          <div className="w-[1px] h-3 bg-zinc-350 dark:bg-zinc-700 mx-0.5" />
+
+                          <button
+                            onClick={(e) => { e.stopPropagation(); moveWidget('habits', 'up'); }}
+                            disabled={widgetsOrder.indexOf('habits') === 0}
+                            className="text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed p-0.5"
+                            title="Mover para cima"
+                          >
+                            <ChevronUp size={11} strokeWidth={3} />
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); moveWidget('habits', 'down'); }}
+                            disabled={widgetsOrder.indexOf('habits') === widgetsOrder.length - 1}
+                            className="text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed p-0.5"
+                            title="Mover para baixo"
+                          >
+                            <ChevronDown size={11} strokeWidth={3} />
+                          </button>
                         </div>
-
-                        {/* Opacity & Visibility control for Habit Tracker — only visible in edit mode */}
-                        {isHomeEditMode && (
-                          <div className="flex items-center gap-1.5 bg-zinc-100/60 dark:bg-zinc-800/50 px-2 py-0.5 rounded-lg border border-zinc-300/30 dark:border-zinc-700/50 animate-in fade-in duration-200">
-                            <button
-                              onClick={(e) => { e.stopPropagation(); toggleWidgetVisibility('habits'); }}
-                              className="text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 cursor-pointer p-0.5"
-                              title={isHabitsVisible ? 'Ocultar widget de hábitos' : 'Exibir widget de hábitos'}
-                            >
-                              {isHabitsVisible ? <Eye size={11} strokeWidth={2.5} /> : <EyeOff size={11} strokeWidth={2.5} className="text-rose-500" />}
-                            </button>
-                            <div className="w-[1px] h-3 bg-zinc-350 dark:bg-zinc-700 mx-0.5" />
-                            <Sliders size={10} className="text-zinc-400 dark:text-zinc-500" />
-                            <input 
-                              type="range" 
-                              min="0.2" 
-                              max="1" 
-                              step="0.05" 
-                              value={habitsOpacity} 
-                              onChange={(e) => {
-                                e.stopPropagation();
-                                const val = parseFloat(e.target.value);
-                                setHabitsOpacity(val);
-                                localStorage.setItem('cn_habits_opacity', val.toString());
-                              }}
-                              className="w-14 h-1 bg-zinc-250 dark:bg-zinc-750 rounded-lg appearance-none cursor-pointer accent-zinc-500 dark:accent-zinc-400"
-                              title="Opacidade dos hábitos"
-                            />
-                            <span className="text-[8px] font-bold text-zinc-450 dark:text-zinc-500 w-6 text-right mr-1">
-                              {Math.round(habitsOpacity * 100)}%
-                            </span>
-
-                            <div className="w-[1px] h-3 bg-zinc-350 dark:bg-zinc-700 mx-0.5" />
-
-                            <button
-                              onClick={(e) => { e.stopPropagation(); moveWidget('habits', 'up'); }}
-                              disabled={widgetsOrder.indexOf('habits') === 0}
-                              className="text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed p-0.5"
-                              title="Mover para cima"
-                            >
-                              <ChevronUp size={11} strokeWidth={3} />
-                            </button>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); moveWidget('habits', 'down'); }}
-                              disabled={widgetsOrder.indexOf('habits') === widgetsOrder.length - 1}
-                              className="text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed p-0.5"
-                              title="Mover para baixo"
-                            >
-                              <ChevronDown size={11} strokeWidth={3} />
-                            </button>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* List of habits checkboxes - caixas elegantes e com melhor aproveitamento do espaço */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 xl:grid-cols-3 gap-1.5 mt-1 max-h-[62px] overflow-y-auto custom-scrollbar pr-1">
-                        {habits.length === 0 ? (
-                          <div className="py-2 text-center text-xs text-zinc-450 dark:text-zinc-500 font-medium col-span-full">
-                            Você não possui hábitos definidos. Acesse o card de Hábitos para criar.
-                          </div>
-                        ) : (
-                          habits.map(h => {
-                            const isCompleted = (habitHistory[todayStr] || []).includes(h.id);
-                            const habitColor = h.color || '#f97316';
-                            return (
-                              <div
-                                key={h.id}
-                                onClick={() => toggleHabit(h.id)}
-                                className={`group/habit flex items-center gap-2 p-1.5 px-2.5 rounded-xl border transition-all duration-200 cursor-pointer select-none ${
-                                  isCompleted
-                                    ? 'bg-zinc-100/60 dark:bg-zinc-950/40 border-zinc-200/60 dark:border-zinc-800/60 opacity-60 hover:opacity-85'
-                                    : 'bg-white dark:bg-zinc-900 border border-zinc-200/90 dark:border-zinc-800/90 hover:border-zinc-400 dark:hover:border-zinc-600 hover:shadow-xs shadow-[0_1px_2px_rgba(0,0,0,0.03)]'
-                                }`}
-                              >
-                                <div className="relative flex items-center justify-center shrink-0">
-                                  <div 
-                                    className={`w-3.5 h-3.5 rounded-md flex items-center justify-center transition-all ${
-                                      isCompleted 
-                                        ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 shadow-[0_0_6px_rgba(0,0,0,0.25)] dark:shadow-[0_0_8px_rgba(255,255,255,0.6)]' 
-                                        : 'border border-zinc-300 dark:border-zinc-700 bg-zinc-50/80 dark:bg-zinc-850/80 group-hover/habit:border-zinc-400 dark:group-hover/habit:border-zinc-500'
-                                    }`}
-                                  >
-                                    {isCompleted ? (
-                                      <Check size={9} strokeWidth={3.5} />
-                                    ) : (
-                                      <div 
-                                        className="w-1.5 h-1.5 rounded-full opacity-80"
-                                        style={{ backgroundColor: habitColor }}
-                                      />
-                                    )}
-                                  </div>
-                                </div>
-                                <span className={`text-[11px] font-semibold transition-all truncate leading-none ${
-                                  isCompleted
-                                    ? 'line-through text-zinc-400 dark:text-zinc-500'
-                                    : 'text-zinc-800 dark:text-zinc-200 group-hover/habit:text-zinc-950 dark:group-hover/habit:text-white'
-                                }`}>
-                                  {h.name}
-                                </span>
-                              </div>
-                            );
-                          })
-                        )}
-                      </div>
+                      )}
                     </div>
 
-                    {/* Progress Indicator - Monocromático com efeito neon discreto e sem porcentagem */}
-                    {habits.length > 0 && (() => {
-                      const completedCount = habits.filter(h => (habitHistory[todayStr] || []).includes(h.id)).length;
-                      const totalCount = habits.length;
-                      const pct = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
-                      return (
-                        <div className="mt-1 pt-1.5 border-t border-zinc-200/50 dark:border-zinc-800/50 animate-in fade-in duration-300 shrink-0">
-                          <div className="flex justify-between items-center text-[9.5px] font-medium mb-1">
-                            <span className="text-[8.5px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
-                              Progresso Diário
-                            </span>
-                            <span className="text-zinc-500 dark:text-zinc-400">
-                              <strong className="text-zinc-900 dark:text-white font-extrabold">{completedCount}</strong>
-                              <span className="opacity-75">/{totalCount} concluídos</span>
-                            </span>
+                    {/* Conteúdo: Tabela semanal de hábitos + Gráfico de Rosca sem miolo */}
+                    <div className="flex flex-col md:flex-row items-center gap-4">
+                      {/* Tabela de Preenchimento Semanal */}
+                      <div className="flex-1 w-full min-w-0">
+                        {habits.length === 0 ? (
+                          <div className="py-4 text-center text-xs text-zinc-450 dark:text-zinc-500 font-medium">
+                            Você não possui hábitos definidos. Acesse o módulo de Hábitos para criar.
                           </div>
-                          {/* Trilho da barra */}
-                          <div className="w-full h-1.5 bg-zinc-200/80 dark:bg-zinc-800/80 rounded-full overflow-hidden p-[0.5px]">
-                            {/* Barra monocromática com efeito neon minimalista e discreto */}
-                            <div
-                              className="h-full rounded-full transition-all duration-500 ease-out bg-zinc-900 dark:bg-white shadow-[0_0_6px_rgba(0,0,0,0.35)] dark:shadow-[0_0_8px_rgba(255,255,255,0.7),0_0_14px_rgba(255,255,255,0.35)]"
-                              style={{ width: `${pct}%` }}
+                        ) : (
+                          <div className="w-full">
+                            {/* Cabeçalho dos dias da semana */}
+                            <div className="flex items-center justify-between px-2 py-1 text-[9px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500 border-b border-zinc-200/60 dark:border-zinc-800/60 mb-1.5">
+                              <span className="flex-1 min-w-0 truncate">Hábito</span>
+                              <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 pr-1">
+                                {weekDays.map(day => (
+                                  <div
+                                    key={day.dateStr}
+                                    className={`w-6 text-center flex flex-col items-center justify-center ${
+                                      day.isToday ? 'text-zinc-900 dark:text-white font-black' : ''
+                                    }`}
+                                  >
+                                    <span className="text-[8.5px] leading-none">{day.label}</span>
+                                    <span className={`text-[8.5px] leading-none mt-0.5 ${
+                                      day.isToday 
+                                        ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 rounded-full w-3.5 h-3.5 flex items-center justify-center font-black' 
+                                        : 'opacity-70'
+                                    }`}>
+                                      {day.dayNum}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Lista de Hábitos com sequência de checkboxes */}
+                            <div className="flex flex-col gap-1 max-h-[145px] overflow-y-auto custom-scrollbar pr-1">
+                              {habits.map(h => {
+                                const habitColor = h.color || '#f97316';
+                                return (
+                                  <div
+                                    key={h.id}
+                                    className="flex items-center justify-between px-2 py-1 rounded-xl transition-colors hover:bg-zinc-100/60 dark:hover:bg-zinc-800/40 select-none group/habit-row"
+                                  >
+                                    {/* Nome do hábito e ponto de cor */}
+                                    <div className="flex items-center gap-2 min-w-0 flex-1 mr-2" title={h.name}>
+                                      <span 
+                                        className="w-2.5 h-2.5 rounded-full shrink-0 shadow-2xs" 
+                                        style={{ backgroundColor: habitColor }}
+                                      />
+                                      <span className="text-xs font-semibold text-zinc-800 dark:text-zinc-200 truncate group-hover/habit-row:text-zinc-950 dark:group-hover/habit-row:text-white">
+                                        {h.name}
+                                      </span>
+                                    </div>
+
+                                    {/* Sequência de checkboxes semanais */}
+                                    <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 pr-1">
+                                      {weekDays.map(day => {
+                                        const isDone = (habitHistory[day.dateStr] || []).includes(h.id);
+                                        return (
+                                          <button
+                                            key={day.dateStr}
+                                            type="button"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              toggleHabitOnDate(h.id, day.dateStr);
+                                            }}
+                                            title={`${h.name} • ${day.label} (${day.dayNum}/${day.dateStr.split('-')[1]}) — ${isDone ? 'Clique para desmarcar' : 'Clique para marcar'}`}
+                                            className={`w-6 h-6 rounded-lg flex items-center justify-center transition-all duration-150 cursor-pointer select-none group/box ${
+                                              isDone
+                                                ? 'scale-100 shadow-2xs hover:scale-110 active:scale-95'
+                                                : 'hover:scale-105 active:scale-95'
+                                            }`}
+                                            style={
+                                              isDone
+                                                ? {
+                                                    backgroundColor: habitColor,
+                                                    border: `1.5px solid ${habitColor}`,
+                                                    boxShadow: `0 2px 6px ${habitColor}45`
+                                                  }
+                                                : {
+                                                    backgroundColor: 'transparent',
+                                                    border: `1.5px solid ${habitColor}50`
+                                                  }
+                                            }
+                                          >
+                                            {isDone ? (
+                                              <Check size={12} strokeWidth={3.5} className="text-white drop-shadow-xs" />
+                                            ) : (
+                                              day.isToday && (
+                                                <div 
+                                                  className="w-1.5 h-1.5 rounded-full opacity-60" 
+                                                  style={{ backgroundColor: habitColor }}
+                                                />
+                                              )
+                                            )}
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Divisor vertical */}
+                      <div className="hidden md:block w-px self-stretch bg-zinc-200/60 dark:bg-zinc-800/60 my-1" />
+
+                      {/* Gráfico Minimalista de Rosca sem miolo — Progresso Diário */}
+                      <div className="shrink-0 flex items-center gap-3.5 px-3.5 py-2.5 bg-zinc-50/70 dark:bg-zinc-850/50 rounded-2xl border border-zinc-200/60 dark:border-zinc-800/60">
+                        {/* SVG Rosca sem miolo */}
+                        <div className="relative flex items-center justify-center" style={{ width: donutSize, height: donutSize }}>
+                          <svg width={donutSize} height={donutSize} viewBox={`0 0 ${donutSize} ${donutSize}`} className="transform -rotate-90">
+                            {/* Trilho vazado da rosca (sem miolo) */}
+                            <circle
+                              cx={donutSize / 2}
+                              cy={donutSize / 2}
+                              r={radius}
+                              fill="transparent"
+                              stroke="currentColor"
+                              strokeWidth={strokeWidth}
+                              className="text-zinc-200 dark:text-zinc-800"
                             />
+                            {/* Arco de progresso */}
+                            <circle
+                              cx={donutSize / 2}
+                              cy={donutSize / 2}
+                              r={radius}
+                              fill="transparent"
+                              stroke="currentColor"
+                              strokeWidth={strokeWidth}
+                              strokeDasharray={circumference}
+                              strokeDashoffset={strokeDashoffset}
+                              strokeLinecap="round"
+                              className="text-zinc-900 dark:text-white transition-all duration-700 ease-out"
+                            />
+                          </svg>
+
+                          {/* Miolo vazio apenas com porcentagem centralizada */}
+                          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                            <span className="text-xs font-black text-zinc-900 dark:text-white leading-none tracking-tight">
+                              {dailyPct}%
+                            </span>
                           </div>
                         </div>
-                      );
-                    })()}
+
+                        {/* Legenda do Progresso Diário */}
+                        <div className="flex flex-col text-left">
+                          <span className="text-[9px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                            Progresso Diário
+                          </span>
+                          <span className="text-xs font-bold text-zinc-700 dark:text-zinc-300 mt-0.5">
+                            <strong className="text-zinc-900 dark:text-white font-extrabold">{completedTodayCount}</strong>
+                            <span className="text-zinc-400 dark:text-zinc-500 font-medium">/{totalHabitsCount} feitos</span>
+                          </span>
+                          {totalHabitsCount > 0 && completedTodayCount === totalHabitsCount ? (
+                            <span className="text-[9px] font-extrabold text-emerald-600 dark:text-emerald-400 mt-1 flex items-center gap-1">
+                              <Check size={10} strokeWidth={3} /> Tudo pronto hoje!
+                            </span>
+                          ) : (
+                            <span className="text-[9px] font-medium text-zinc-400 dark:text-zinc-500 mt-1">
+                              {Math.max(0, totalHabitsCount - completedTodayCount)} pendente{totalHabitsCount - completedTodayCount !== 1 ? 's' : ''}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               );
             }
+
 
             if (widgetId === 'sleep') {
               const isSleepVisible = widgetsVisibility['sleep'] !== false;
@@ -2927,6 +2946,7 @@ const HubHome: React.FC<HubHomeProps> = ({
             return null;
           })}
         </div>
+      </div>
 
         {/* Modal para registrar sono */}
         {showAddSleepModal && (

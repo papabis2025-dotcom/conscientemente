@@ -35,6 +35,15 @@ CREATE POLICY "Users can manage their own habit logs"
     FOR ALL 
     USING (auth.uid() = user_id);
 
+-- Permissões de Acesso para API de Dados (Supabase PostgREST)
+GRANT SELECT ON public.habits TO anon;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.habits TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.habits TO service_role;
+
+GRANT SELECT ON public.habit_logs TO anon;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.habit_logs TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.habit_logs TO service_role;
+
 -- Adicionar campo image_url na tabela concursos, se não existir
 DO $$ 
 BEGIN 

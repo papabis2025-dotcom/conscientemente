@@ -242,16 +242,16 @@ const Sidebar: React.FC<SidebarProps> = ({
           title={isGlobalView ? 'Visão Global (Clique para selecionar outro curso)' : `${currentConcurso?.name} (Clique para alternar curso)`}
           className={`w-full flex items-center ${
             isCollapsed 
-              ? 'justify-center p-1 w-16 h-16 mx-auto rounded-2xl' 
-              : 'justify-between px-3 py-2.5 rounded-2xl'
-          } bg-zinc-100/80 dark:bg-zinc-800/60 hover:bg-zinc-200/80 dark:hover:bg-zinc-750/80 border border-zinc-200/80 dark:border-zinc-700/60 transition-all duration-200 group cursor-pointer shadow-xs`}
+              ? 'justify-center p-0 mx-auto bg-transparent border-0 shadow-none' 
+              : 'justify-between px-3 py-2.5 rounded-2xl bg-zinc-100/80 dark:bg-zinc-800/60 hover:bg-zinc-200/80 dark:hover:bg-zinc-750/80 border border-zinc-200/80 dark:border-zinc-700/60 shadow-xs'
+          } transition-all duration-200 group cursor-pointer`}
         >
           <div className={`flex items-center ${isCollapsed ? 'justify-center w-full h-full' : 'gap-3 min-w-0'}`}>
             {isGlobalView ? (
               <div className={`${
-                isCollapsed ? 'w-14 h-14' : 'w-10 h-10'
+                isCollapsed ? 'w-16 h-16' : 'w-10 h-10'
               } rounded-full bg-amber-500/15 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 border border-amber-500/30 transition-transform group-hover:scale-105 shadow-2xs`}>
-                <GraduationCap size={isCollapsed ? 26 : 18} />
+                <GraduationCap size={isCollapsed ? 28 : 18} />
               </div>
             ) : currentConcurso?.imageUrl ? (
               <img
@@ -261,14 +261,14 @@ const Sidebar: React.FC<SidebarProps> = ({
                 decoding="async"
                 style={{ imageRendering: 'auto' }}
                 className={`${
-                  isCollapsed ? 'w-14 h-14' : 'w-10 h-10'
+                  isCollapsed ? 'w-16 h-16' : 'w-10 h-10'
                 } rounded-full object-cover object-center aspect-square shrink-0 border border-zinc-200/90 dark:border-zinc-700/90 shadow-xs transition-transform group-hover:scale-105`}
               />
             ) : (
               <div className={`${
-                isCollapsed ? 'w-14 h-14' : 'w-10 h-10'
+                isCollapsed ? 'w-16 h-16' : 'w-10 h-10'
               } rounded-full bg-indigo-500/15 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 border border-indigo-500/30 font-black text-xs transition-transform group-hover:scale-105 shadow-2xs`}>
-                <GraduationCap size={isCollapsed ? 26 : 18} />
+                <GraduationCap size={isCollapsed ? 28 : 18} />
               </div>
             )}
 

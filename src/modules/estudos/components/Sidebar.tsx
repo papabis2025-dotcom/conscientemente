@@ -215,7 +215,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         >
           <Menu size={18} />
         </button>
-      )}      <div className={`fixed md:relative ${isCollapsed ? 'w-64 md:w-20 -translate-x-full md:translate-x-0' : 'w-64 translate-x-0'} h-screen md:h-full bg-white/95 dark:bg-zinc-900/95 md:bg-white/50 md:dark:bg-zinc-900/50 backdrop-blur-xl border-r border-zinc-200 dark:border-zinc-800 flex flex-col p-5 transition-all duration-300 z-50 shadow-lg text-sm`}>
+      )}      <div className={`fixed md:relative ${isCollapsed ? 'w-64 md:w-28 -translate-x-full md:translate-x-0' : 'w-64 translate-x-0'} h-screen md:h-full bg-white/95 dark:bg-zinc-900/95 md:bg-white/50 md:dark:bg-zinc-900/50 backdrop-blur-xl border-r border-zinc-200 dark:border-zinc-800 flex flex-col ${isCollapsed ? 'px-3 py-5' : 'p-5'} transition-all duration-300 z-50 shadow-lg text-sm`}>
         <button
           onClick={onToggleCollapse}
           className="absolute -right-3 top-9 w-6 h-6 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-full flex items-center justify-center text-zinc-500 hover:text-zinc-900 dark:text-zinc-100 shadow-sm z-50 hover:scale-110 transition-transform cursor-pointer"
@@ -242,16 +242,16 @@ const Sidebar: React.FC<SidebarProps> = ({
           title={isGlobalView ? 'Visão Global (Clique para selecionar outro curso)' : `${currentConcurso?.name} (Clique para alternar curso)`}
           className={`w-full flex items-center ${
             isCollapsed 
-              ? 'justify-center p-0.5 w-12 h-12 mx-auto rounded-2xl' 
+              ? 'justify-center p-1 w-16 h-16 mx-auto rounded-2xl' 
               : 'justify-between px-3 py-2.5 rounded-2xl'
           } bg-zinc-100/80 dark:bg-zinc-800/60 hover:bg-zinc-200/80 dark:hover:bg-zinc-750/80 border border-zinc-200/80 dark:border-zinc-700/60 transition-all duration-200 group cursor-pointer shadow-xs`}
         >
           <div className={`flex items-center ${isCollapsed ? 'justify-center w-full h-full' : 'gap-3 min-w-0'}`}>
             {isGlobalView ? (
               <div className={`${
-                isCollapsed ? 'w-10 h-10' : 'w-10 h-10'
+                isCollapsed ? 'w-14 h-14' : 'w-10 h-10'
               } rounded-full bg-amber-500/15 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 border border-amber-500/30 transition-transform group-hover:scale-105 shadow-2xs`}>
-                <GraduationCap size={isCollapsed ? 20 : 18} />
+                <GraduationCap size={isCollapsed ? 26 : 18} />
               </div>
             ) : currentConcurso?.imageUrl ? (
               <img
@@ -261,14 +261,14 @@ const Sidebar: React.FC<SidebarProps> = ({
                 decoding="async"
                 style={{ imageRendering: 'auto' }}
                 className={`${
-                  isCollapsed ? 'w-11 h-11' : 'w-10 h-10'
+                  isCollapsed ? 'w-14 h-14' : 'w-10 h-10'
                 } rounded-full object-cover object-center aspect-square shrink-0 border border-zinc-200/90 dark:border-zinc-700/90 shadow-xs transition-transform group-hover:scale-105`}
               />
             ) : (
               <div className={`${
-                isCollapsed ? 'w-10 h-10' : 'w-10 h-10'
+                isCollapsed ? 'w-14 h-14' : 'w-10 h-10'
               } rounded-full bg-indigo-500/15 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 border border-indigo-500/30 font-black text-xs transition-transform group-hover:scale-105 shadow-2xs`}>
-                <GraduationCap size={isCollapsed ? 20 : 18} />
+                <GraduationCap size={isCollapsed ? 26 : 18} />
               </div>
             )}
 
@@ -298,7 +298,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         {showConcursoDropdown && (
           <div 
             className={`absolute z-50 ${
-              isCollapsed ? 'left-20 top-0 w-64' : 'left-0 right-0 top-full mt-1.5 w-full min-w-[220px]'
+              isCollapsed ? 'left-full ml-3 top-0 w-64' : 'left-0 right-0 top-full mt-1.5 w-full min-w-[220px]'
             } bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-2xl p-1.5 animate-in fade-in zoom-in-95 duration-150 custom-scrollbar max-h-72 overflow-y-auto`}
           >
             <div className="px-2.5 py-1 text-[9px] font-black uppercase tracking-widest text-zinc-400 dark:text-zinc-500 border-b border-zinc-100 dark:border-zinc-800 mb-1">
@@ -380,7 +380,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
       <button 
         onClick={onOpenAddModal}
-        className={`mb-4 w-full flex items-center ${isCollapsed ? 'justify-center p-2' : 'gap-3 p-4'} bg-zinc-900 dark:bg-zinc-750 text-white rounded-[1.5rem] shadow-lg hover:bg-zinc-800 dark:hover:bg-zinc-650 transition-all active:scale-95 group overflow-hidden relative`}
+        className={`mb-4 w-full flex items-center ${isCollapsed ? 'justify-center p-3' : 'gap-3 p-4'} bg-zinc-900 dark:bg-zinc-750 text-white rounded-[1.5rem] shadow-lg hover:bg-zinc-800 dark:hover:bg-zinc-650 transition-all active:scale-95 group overflow-hidden relative`}
       >
         <Plus size={isCollapsed ? 24 : 20} className={isCollapsed ? '' : 'shrink-0'} />
         {!isCollapsed && <span className="text-xs font-black uppercase tracking-widest">Adicionar Atividade</span>}
@@ -408,7 +408,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             onDragOver={(e) => handleDragOver(e, index)}
             onDragEnd={handleDragEnd}
             onClick={() => !isReorderMode && setActiveTab(item.id)}
-            className={`w-full flex items-center ${isCollapsed ? 'justify-center px-1' : 'gap-3 px-3'} py-2.5 rounded-xl transition-all ${activeTab === item.id
+            className={`w-full flex items-center ${isCollapsed ? 'justify-center py-2.5 px-2' : 'gap-3 px-3'} py-2.5 rounded-xl transition-all ${activeTab === item.id
               ? 'bg-indigo-600 text-white font-bold shadow-md shadow-indigo-600/20'
               : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800/85 font-semibold'
               } ${isReorderMode ? 'cursor-move' : ''} ${draggedIndex === index ? 'opacity-50 scale-95' : ''}`}
@@ -430,7 +430,7 @@ const Sidebar: React.FC<SidebarProps> = ({
               const today = new Date().toISOString().split('T')[0];
               return t.date === today && !t.done;
             }) && (
-                <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)] animate-pulse" />
+                <span className="absolute top-2 right-3 w-2 h-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)] animate-pulse" />
               )}
           </button>
         ))}
@@ -439,7 +439,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       </nav>
 
       <div className="mt-auto pt-4 border-t border-zinc-100 dark:border-zinc-800 space-y-2">
-        <button onClick={() => setActiveTab('settings')} className={`w-full flex items-center ${isCollapsed ? 'justify-center px-1' : 'gap-3 px-3'} py-2.5 rounded-xl transition-all ${activeTab === 'settings' ? 'bg-indigo-600 text-white font-bold shadow-md shadow-indigo-600/20' : 'text-zinc-700 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800/85 font-semibold'}`} title="Ajustes">
+        <button onClick={() => setActiveTab('settings')} className={`w-full flex items-center ${isCollapsed ? 'justify-center py-2.5 px-2' : 'gap-3 px-3'} py-2.5 rounded-xl transition-all ${activeTab === 'settings' ? 'bg-indigo-600 text-white font-bold shadow-md shadow-indigo-600/20' : 'text-zinc-700 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800/85 font-semibold'}`} title="Ajustes">
           <Settings size={20} />
           {!isCollapsed && <span className="text-sm">Ajustes</span>}
         </button>

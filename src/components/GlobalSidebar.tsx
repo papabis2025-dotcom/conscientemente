@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   Brain, Bell, Settings, User, Sun, Moon, Sliders, LogOut, 
   ChevronLeft, ChevronRight, X, Database, Cloud, CheckCircle2, 
-  AlertTriangle, FileText, Check, Lock 
+  AlertTriangle, FileText, Check, Lock, Camera, Trash2 
 } from 'lucide-react';
 import { LogEntry } from '../modules/estudos/types';
 import LogView from '../modules/estudos/pages/LogView';
@@ -90,6 +90,67 @@ const GlobalSidebar: React.FC<GlobalSidebarProps> = ({
   const [passwordMessage, setPasswordMessage] = useState('');
   const [newEmail, setNewEmail] = useState('');
   const [emailMessage, setEmailMessage] = useState('');
+  const [profilePhoto, setProfilePhoto] = useState<string>(() => {
+    return localStorage.getItem('cn_profile_photo') || '';
+  });
+  const profilePhotoInputRef = useRef<HTMLInputElement>(null);
+
+  const handleProfilePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Por favor, selecione uma imagem de até 5MB.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_SIZE = 300;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_SIZE) {
+            height = Math.round((height * MAX_SIZE) / width);
+            width = MAX_SIZE;
+          }
+        } else {
+          if (height > MAX_SIZE) {
+            width = Math.round((width * MAX_SIZE) / height);
+            height = MAX_SIZE;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
+          ctx.drawImage(img, 0, 0, width, height);
+          const compressed = canvas.toDataURL('image/jpeg', 0.82);
+          localStorage.setItem('cn_profile_photo', compressed);
+          setProfilePhoto(compressed);
+          window.dispatchEvent(new Event('local-storage-sync'));
+          window.dispatchEvent(new Event('local-settings-changed'));
+        }
+      };
+      img.src = event.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  const handleRemoveProfilePhoto = () => {
+    localStorage.removeItem('cn_profile_photo');
+    setProfilePhoto('');
+    window.dispatchEvent(new Event('local-storage-sync'));
+    window.dispatchEvent(new Event('local-settings-changed'));
+  };
 
   // Module PIN states
   const [modulePins, setModulePins] = useState<Record<string, string>>(() => {
@@ -142,9 +203,20 @@ const GlobalSidebar: React.FC<GlobalSidebarProps> = ({
     const handleOpenMainSidebar = () => {
       setMobileMenuOpen(true);
     };
+    const handleOpenProfileModal = () => {
+      try {
+        const savedPins = JSON.parse(localStorage.getItem('cn_module_pins') || '{}');
+        setModulePins(typeof savedPins === 'object' ? savedPins : {});
+        setPushEnabled(localStorage.getItem('cn_push_notifications_enabled') === 'true');
+        setSoundEnabled(localStorage.getItem('cn_sound_enabled') !== 'false');
+      } catch (e) {}
+      setShowProfileModal(true);
+    };
     window.addEventListener('open-main-sidebar', handleOpenMainSidebar);
+    window.addEventListener('open-profile-modal', handleOpenProfileModal);
     return () => {
       window.removeEventListener('open-main-sidebar', handleOpenMainSidebar);
+      window.removeEventListener('open-profile-modal', handleOpenProfileModal);
     };
   }, []);
 
@@ -163,14 +235,17 @@ const GlobalSidebar: React.FC<GlobalSidebarProps> = ({
         setClearedNotifications(savedCleared ? JSON.parse(savedCleared) : []);
         const savedPush = localStorage.getItem('cn_push_notifications_enabled') === 'true';
         setPushEnabled(savedPush);
+        setProfilePhoto(localStorage.getItem('cn_profile_photo') || '');
       } catch (e) {
         console.error('Error syncing local storage states on sidebar:', e);
       }
     };
     window.addEventListener('local-storage-sync', handleSync);
+    window.addEventListener('local-settings-changed', handleSync);
     window.addEventListener('storage', handleSync);
     return () => {
       window.removeEventListener('local-storage-sync', handleSync);
+      window.removeEventListener('local-settings-changed', handleSync);
       window.removeEventListener('storage', handleSync);
     };
   }, []);
@@ -832,13 +907,61 @@ const GlobalSidebar: React.FC<GlobalSidebarProps> = ({
              <h2 className="text-xl font-black uppercase tracking-widest text-zinc-800 dark:text-white mb-6 flex items-center gap-2"><User size={20} /> Preferências de Usuário</h2>
              
              <div className="space-y-6">
-               <div className="bg-zinc-100 dark:bg-zinc-800/50 rounded-2xl p-4 flex items-center gap-4 border border-zinc-200 dark:border-zinc-800">
-                  <div className="w-12 h-12 bg-indigo-500 text-white rounded-full flex items-center justify-center text-xl font-black shadow-lg">
-                    {((userName && userName[0]) || 'U').toUpperCase()}
+               <div className="bg-zinc-100 dark:bg-zinc-800/50 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4 border border-zinc-200 dark:border-zinc-800">
+                  <div className="flex items-center gap-4">
+                    {profilePhoto ? (
+                      <div className="relative group">
+                        <img 
+                          src={profilePhoto} 
+                          alt="Foto de Perfil" 
+                          className="w-16 h-16 rounded-full object-cover shadow-lg border-2 border-indigo-500/50" 
+                        />
+                        <div 
+                          onClick={() => profilePhotoInputRef.current?.click()}
+                          className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-white"
+                          title="Trocar Foto"
+                        >
+                          <Camera size={18} />
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="w-16 h-16 bg-gradient-to-tr from-indigo-600 to-violet-500 text-white rounded-full flex items-center justify-center text-2xl font-black shadow-lg">
+                        {((userName && userName[0]) || 'U').toUpperCase()}
+                      </div>
+                    )}
+                    <div>
+                      <p className="font-bold text-zinc-800 dark:text-white text-base">{userName || 'Usuário'}</p>
+                      <p className="text-xs text-zinc-500 dark:text-zinc-400">Usuário Autenticado</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-bold text-zinc-800 dark:text-white">{userName || 'Usuário'}</p>
-                    <p className="text-xs text-zinc-500 dark:text-zinc-450">Usuário Autenticado</p>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => profilePhotoInputRef.current?.click()}
+                      className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 transition-all shadow-sm cursor-pointer"
+                    >
+                      <Camera size={14} />
+                      {profilePhoto ? 'Trocar Foto' : 'Escolher Foto'}
+                    </button>
+                    {profilePhoto && (
+                      <button
+                        type="button"
+                        onClick={handleRemoveProfilePhoto}
+                        className="px-3 py-2 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
+                        title="Remover foto de perfil"
+                      >
+                        <Trash2 size={13} />
+                        Remover
+                      </button>
+                    )}
+                    <input 
+                      ref={profilePhotoInputRef} 
+                      type="file" 
+                      accept="image/*" 
+                      className="hidden" 
+                      onChange={handleProfilePhotoUpload} 
+                    />
                   </div>
                </div>
 

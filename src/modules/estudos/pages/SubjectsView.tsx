@@ -111,16 +111,12 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
     return false;
   });
 
-  // Garantir que a guia Disciplinas sempre tenha um concurso específico selecionado (nunca 'all' / Visão Global)
-  useEffect(() => {
-    if ((!selectedConcursoId || selectedConcursoId === 'all') && concursos && concursos.length > 0 && onSelectConcursoId) {
-      onSelectConcursoId(concursos[0].id);
-    }
-  }, [selectedConcursoId, concursos, onSelectConcursoId]);
-
+  // Carregar status de revisões desativadas quando um concurso específico estiver selecionado
   useEffect(() => {
     if (selectedConcursoId && selectedConcursoId !== 'all') {
       setReviewsDisabled(localStorage.getItem('estudos_disabled_reviews_' + selectedConcursoId) === 'true');
+    } else {
+      setReviewsDisabled(false);
     }
   }, [selectedConcursoId]);
 

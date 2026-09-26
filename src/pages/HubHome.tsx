@@ -827,6 +827,10 @@ const HubHome: React.FC<HubHomeProps> = ({
     localStorage.setItem('cn_home_cards_layout', JSON.stringify(homeCards));
   }, [homeCards]);
 
+  const [profilePhoto, setProfilePhoto] = useState<string>(() => {
+    return localStorage.getItem('cn_profile_photo') || '';
+  });
+
   const [draggedCardIndex, setDraggedCardIndex] = useState<number | null>(null);
 
   const handleCardDragStart = (index: number) => {
@@ -1403,6 +1407,7 @@ const HubHome: React.FC<HubHomeProps> = ({
         }
         const savedPush = localStorage.getItem('cn_push_notifications_enabled') === 'true';
         setPushEnabled(savedPush);
+        setProfilePhoto(localStorage.getItem('cn_profile_photo') || '');
         loadSleepLogs();
         // IMPORTANTE: fetchCalendarData foi removido daqui.
         // O refetch do calendário é gerenciado exclusivamente pelo useEffect dedicado
@@ -2005,7 +2010,42 @@ const HubHome: React.FC<HubHomeProps> = ({
           <>
             <div className="flex flex-col lg:flex-row items-start gap-6 w-full animate-in fade-in slide-in-from-top-2 duration-300">
               {/* Coluna Lateral: Ícones de acesso aos módulos empilhados na vertical */}
-              <aside className="w-full lg:w-28 xl:w-32 shrink-0 lg:sticky lg:top-6 z-20">
+              <aside className="w-full lg:w-28 xl:w-32 shrink-0 lg:sticky lg:top-6 z-20 flex flex-col gap-3">
+                {/* Widget de Perfil do Usuário */}
+                <div 
+                  onClick={() => window.dispatchEvent(new CustomEvent('open-profile-modal'))}
+                  className="w-full bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md rounded-2xl lg:rounded-3xl border border-zinc-200/90 dark:border-zinc-800 p-2.5 lg:p-3 shadow-sm flex flex-row lg:flex-col items-center justify-between lg:justify-center gap-2 group transition-all duration-200 hover:shadow-md cursor-pointer select-none"
+                  title="Foto de perfil (Clique para configurar em Preferências)"
+                >
+                  <div className="relative shrink-0">
+                    {profilePhoto ? (
+                      <img 
+                        src={profilePhoto} 
+                        alt="Foto de Perfil" 
+                        className="w-10 h-10 lg:w-16 lg:h-16 rounded-full object-cover shadow-sm border-2 border-indigo-500/40 group-hover:border-indigo-500 group-hover:scale-105 transition-all" 
+                      />
+                    ) : (
+                      <div className="w-10 h-10 lg:w-16 lg:h-16 rounded-full bg-gradient-to-tr from-indigo-600 to-violet-500 text-white flex items-center justify-center text-sm lg:text-xl font-black shadow-sm group-hover:scale-105 transition-all">
+                        {((userName && userName[0]) || 'U').toUpperCase()}
+                      </div>
+                    )}
+                    <span 
+                      className="absolute bottom-0 right-0 w-2.5 h-2.5 lg:w-3.5 lg:h-3.5 rounded-full bg-emerald-500 border-2 border-white dark:border-zinc-900 shadow-xs" 
+                      title="Ativo"
+                    />
+                  </div>
+
+                  <div className="flex flex-col items-start lg:items-center text-left lg:text-center min-w-0 flex-1 lg:w-full">
+                    <span className="text-[10px] lg:text-[11px] font-black uppercase tracking-wider text-zinc-800 dark:text-zinc-100 truncate w-full" title={userName || 'Usuário'}>
+                      {userName || 'Usuário'}
+                    </span>
+                    <span className="text-[8px] lg:text-[9px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest truncate w-full">
+                      Perfil
+                    </span>
+                  </div>
+                </div>
+
+                {/* Lista de Módulos */}
                 <div className="bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md rounded-2xl lg:rounded-3xl border border-zinc-200/90 dark:border-zinc-800 p-2 lg:p-2.5 shadow-sm flex flex-row lg:flex-col items-center justify-between lg:justify-start gap-1 lg:gap-2">
                   <div className="hidden lg:flex items-center justify-center py-1 w-full border-b border-zinc-100 dark:border-zinc-800/80 mb-0.5">
                     <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400 dark:text-zinc-500">Módulos</span>
@@ -2770,7 +2810,7 @@ const HubHome: React.FC<HubHomeProps> = ({
                       <div className="hidden md:block w-px self-stretch bg-zinc-200/60 dark:bg-zinc-800/60 my-1" />
 
                       {/* Gráfico Minimalista de Rosca sem miolo — Progresso Diário */}
-                      <div className="shrink-0 flex items-center gap-3.5 px-3.5 py-2.5 bg-zinc-50/70 dark:bg-zinc-850/50 rounded-2xl border border-zinc-200/60 dark:border-zinc-800/60">
+                      <div className="shrink-0 flex items-center gap-3.5 px-2 py-1">
                         {/* SVG Rosca sem miolo */}
                         <div className="relative flex items-center justify-center" style={{ width: donutSize, height: donutSize }}>
                           <svg width={donutSize} height={donutSize} viewBox={`0 0 ${donutSize} ${donutSize}`} className="transform -rotate-90">

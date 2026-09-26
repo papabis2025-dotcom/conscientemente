@@ -73,6 +73,7 @@ const SYNC_KEYS = [
   'estudos_weights_locked',
   'gp_concurso_edulevels_map',
   'cp_concursos_backup',
+  'cn_profile_photo',
 ];
 
 function getSanitizedLocalSettings(): Record<string, string | null> {
@@ -88,6 +89,9 @@ function getSupabaseSanitizedSettings(settings: Record<string, string | null>): 
   const sanitized = { ...settings };
   if (sanitized['cn_custom_bg_image'] && sanitized['cn_custom_bg_image'].startsWith('data:image/') && sanitized['cn_custom_bg_image'].length > 450_000) {
     sanitized['cn_custom_bg_image'] = null;
+  }
+  if (sanitized['cn_profile_photo'] && sanitized['cn_profile_photo'].startsWith('data:image/') && sanitized['cn_profile_photo'].length > 350_000) {
+    sanitized['cn_profile_photo'] = null;
   }
   return sanitized;
 }
@@ -396,7 +400,7 @@ function mergeSettings(
       } catch {
         merged[key] = preferRemote ? (remoteVal || localVal) : (localVal || remoteVal);
       }
-    } else if (key === 'cn_custom_bg_image') {
+    } else if (key === 'cn_custom_bg_image' || key === 'cn_profile_photo') {
       if (localVal && !remoteVal) {
         merged[key] = localVal;
       } else if (!localVal && remoteVal) {

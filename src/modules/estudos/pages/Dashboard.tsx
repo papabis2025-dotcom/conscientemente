@@ -1170,9 +1170,9 @@ const Dashboard: React.FC<DashboardProps> = ({
                   if (isToday) {
                     cardClass += "bg-zinc-50 dark:bg-zinc-800/30 border-zinc-100 dark:border-zinc-800 hover:border-zinc-200 dark:hover:border-zinc-700";
                   } else if (isDelayed1d) {
-                    cardClass += "bg-amber-50/40 dark:bg-amber-955/15 border-amber-200/60 dark:border-amber-900/30 hover:border-amber-300 dark:hover:border-amber-850 shadow-sm shadow-amber-500/[0.02]";
+                    cardClass += "bg-amber-50/15 dark:bg-amber-950/10 border-amber-200/25 dark:border-amber-900/20 hover:border-amber-300/40 dark:hover:border-amber-800/30 shadow-xs";
                   } else {
-                    cardClass += "bg-rose-50/40 dark:bg-rose-955/15 border-rose-200/60 dark:border-rose-900/40 hover:border-rose-300 dark:hover:border-rose-850 shadow-sm shadow-rose-500/[0.03]";
+                    cardClass += "bg-rose-50/15 dark:bg-rose-950/10 border-rose-200/25 dark:border-rose-900/20 hover:border-rose-300/40 dark:hover:border-rose-800/30 shadow-xs";
                   }
 
                   let badgeColorClass = "";

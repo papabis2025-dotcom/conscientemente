@@ -1,6 +1,6 @@
 
-import React, { useState, useEffect } from 'react';
-import { Subject, StudySession, User } from '../types';
+import React, { useState, useEffect, useRef } from 'react';
+import { Subject, StudySession, User, Concurso } from '../types';
 import {
   LayoutDashboard,
   GraduationCap,
@@ -13,6 +13,7 @@ import {
   Moon,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   User as UserIcon,
   Plus,
   Trophy,
@@ -25,7 +26,8 @@ import {
   Percent,
   CalendarRange,
   Link,
-  History
+  History,
+  Check
 } from 'lucide-react';
 import logoImg from '../assets/logo.png';
 
@@ -55,6 +57,10 @@ interface SidebarProps {
   studyTasks: { id: string, subjectId: string, subjectName: string, done: boolean, date: string }[];
   sessions: StudySession[];
   onOpenAddModal?: () => void;
+  concursos?: Concurso[];
+  selectedConcursoId?: string | 'all';
+  onSelectConcursoId?: (id: string | 'all') => void;
+  activeConcurso?: Concurso;
 }
 
 import { PercentSearchIcon } from './PercentSearchIcon';
@@ -87,11 +93,30 @@ const Sidebar: React.FC<SidebarProps> = ({
   isCollapsed = false, onToggleCollapse, onUpdateUser,
   studyTasks,
   sessions,
-  onOpenAddModal
+  onOpenAddModal,
+  concursos = [],
+  selectedConcursoId = 'all',
+  onSelectConcursoId,
+  activeConcurso
 }) => {
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [editName, setEditName] = useState(currentUser.name);
   const [editAvatar, setEditAvatar] = useState(currentUser.avatar);
+  const [showConcursoDropdown, setShowConcursoDropdown] = useState(false);
+  const concursoDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (concursoDropdownRef.current && !concursoDropdownRef.current.contains(event.target as Node)) {
+        setShowConcursoDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const currentConcurso = activeConcurso || (selectedConcursoId !== 'all' ? concursos.find(c => c.id === selectedConcursoId) : null);
+  const isGlobalView = selectedConcursoId === 'all' || !currentConcurso;
 
   // Stats calculation
   const totalQuestions = sessions.reduce((acc, s) => acc + (s.questionsDone || 0), 0);
@@ -198,7 +223,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           {isCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
         </button>
 
-      <div className={`mb-8 px-1 flex items-center ${isCollapsed ? 'justify-center' : ''}`}>
+      <div className={`mb-4 px-1 flex items-center ${isCollapsed ? 'justify-center' : ''}`}>
         <div className="flex items-center gap-3 text-indigo-500">
           <BookOpen size={28} className="drop-shadow-sm shrink-0" />
           {!isCollapsed && (
@@ -209,8 +234,139 @@ const Sidebar: React.FC<SidebarProps> = ({
         </div>
       </div>
 
+      {/* Widget do Curso Selecionado / Visão Global */}
+      <div className="relative mb-4 w-full" ref={concursoDropdownRef}>
+        <button
+          type="button"
+          onClick={() => setShowConcursoDropdown(prev => !prev)}
+          title={isGlobalView ? 'Visão Global (Clique para selecionar outro curso)' : `${currentConcurso?.name} (Clique para alternar curso)`}
+          className={`w-full flex items-center ${
+            isCollapsed ? 'justify-center p-2' : 'justify-between px-3 py-2.5'
+          } rounded-2xl bg-zinc-100/80 dark:bg-zinc-800/60 hover:bg-zinc-200/80 dark:hover:bg-zinc-750/80 border border-zinc-200/80 dark:border-zinc-700/60 transition-all duration-200 group cursor-pointer shadow-xs`}
+        >
+          <div className="flex items-center gap-2.5 min-w-0">
+            {isGlobalView ? (
+              <div className="w-8 h-8 rounded-xl bg-amber-500/15 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 border border-amber-500/30">
+                <GraduationCap size={16} />
+              </div>
+            ) : currentConcurso?.imageUrl ? (
+              <img
+                src={currentConcurso.imageUrl}
+                alt={currentConcurso.name}
+                className="w-8 h-8 rounded-xl object-cover shrink-0 border border-zinc-200 dark:border-zinc-700 shadow-2xs"
+              />
+            ) : (
+              <div className="w-8 h-8 rounded-xl bg-indigo-500/15 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 border border-indigo-500/30 font-black text-xs">
+                <GraduationCap size={16} />
+              </div>
+            )}
 
-      
+            {!isCollapsed && (
+              <div className="flex flex-col text-left min-w-0">
+                <span className="text-xs font-black text-zinc-800 dark:text-zinc-100 truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                  {isGlobalView ? 'Visão Global' : currentConcurso?.name}
+                </span>
+                <span className="text-[9px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider truncate">
+                  {isGlobalView ? 'Todos os Cursos' : (currentConcurso?.targetRole || 'Curso Selecionado')}
+                </span>
+              </div>
+            )}
+          </div>
+
+          {!isCollapsed && (
+            <ChevronDown 
+              size={14} 
+              className={`text-zinc-400 group-hover:text-zinc-600 dark:group-hover:text-zinc-200 shrink-0 transition-transform duration-200 ${
+                showConcursoDropdown ? 'rotate-180' : ''
+              }`} 
+            />
+          )}
+        </button>
+
+        {/* Dropdown Menu Suspenso */}
+        {showConcursoDropdown && (
+          <div 
+            className={`absolute z-50 ${
+              isCollapsed ? 'left-20 top-0 w-64' : 'left-0 right-0 top-full mt-1.5 w-full min-w-[220px]'
+            } bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-2xl p-1.5 animate-in fade-in zoom-in-95 duration-150 custom-scrollbar max-h-72 overflow-y-auto`}
+          >
+            <div className="px-2.5 py-1 text-[9px] font-black uppercase tracking-widest text-zinc-400 dark:text-zinc-500 border-b border-zinc-100 dark:border-zinc-800 mb-1">
+              Definir Curso no Módulo
+            </div>
+
+            {/* Opção Visão Global */}
+            <button
+              type="button"
+              onClick={() => {
+                onSelectConcursoId?.('all');
+                setShowConcursoDropdown(false);
+              }}
+              className={`w-full flex items-center justify-between p-2 rounded-xl text-left transition-all cursor-pointer ${
+                isGlobalView
+                  ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 font-extrabold'
+                  : 'hover:bg-zinc-100 dark:hover:bg-zinc-800/70 text-zinc-700 dark:text-zinc-300 font-semibold'
+              }`}
+            >
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-7 h-7 rounded-lg bg-amber-500/15 flex items-center justify-center shrink-0 text-amber-600 dark:text-amber-400">
+                  <GraduationCap size={15} />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs truncate font-bold">Visão Global</p>
+                  <p className="text-[8.5px] text-zinc-400 dark:text-zinc-500 opacity-80">Todos os cursos</p>
+                </div>
+              </div>
+              {isGlobalView && <Check size={14} className="shrink-0 text-amber-500" />}
+            </button>
+
+            {concursos.length > 0 && (
+              <div className="h-px bg-zinc-100 dark:bg-zinc-800 my-1" />
+            )}
+
+            {/* Lista dos Concursos */}
+            {concursos.map(c => {
+              const isSelected = selectedConcursoId === c.id;
+              return (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => {
+                    onSelectConcursoId?.(c.id);
+                    setShowConcursoDropdown(false);
+                  }}
+                  className={`w-full flex items-center justify-between p-2 rounded-xl text-left transition-all cursor-pointer ${
+                    isSelected
+                      ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-extrabold'
+                      : 'hover:bg-zinc-100 dark:hover:bg-zinc-800/70 text-zinc-700 dark:text-zinc-300 font-semibold'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    {c.imageUrl ? (
+                      <img
+                        src={c.imageUrl}
+                        alt={c.name}
+                        className="w-7 h-7 rounded-lg object-cover shrink-0 border border-zinc-200 dark:border-zinc-700"
+                      />
+                    ) : (
+                      <div className="w-7 h-7 rounded-lg bg-indigo-500/15 flex items-center justify-center shrink-0 text-indigo-600 dark:text-indigo-400">
+                        <GraduationCap size={14} />
+                      </div>
+                    )}
+                    <div className="min-w-0">
+                      <p className="text-xs truncate font-bold">{c.name}</p>
+                      {c.targetRole && (
+                        <p className="text-[8.5px] text-zinc-400 dark:text-zinc-500 truncate">{c.targetRole}</p>
+                      )}
+                    </div>
+                  </div>
+                  {isSelected && <Check size={14} className="shrink-0 text-indigo-500" />}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
       <button 
         onClick={onOpenAddModal}
         className={`mb-4 w-full flex items-center ${isCollapsed ? 'justify-center p-2' : 'gap-3 p-4'} bg-zinc-900 dark:bg-zinc-750 text-white rounded-[1.5rem] shadow-lg hover:bg-zinc-800 dark:hover:bg-zinc-650 transition-all active:scale-95 group overflow-hidden relative`}

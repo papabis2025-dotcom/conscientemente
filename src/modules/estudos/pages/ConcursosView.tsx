@@ -84,21 +84,40 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 1024 * 1024) {
-      alert('A imagem selecionada é muito grande! Por favor, escolha uma imagem de até 1MB.');
+    if (file.size > 5 * 1024 * 1024) {
+      alert('A imagem selecionada é muito grande! Por favor, escolha uma imagem de até 5MB.');
       return;
     }
 
     const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64String = reader.result as string;
-      if (isEdit) {
-        setEditFormData(prev => ({ ...prev, imageUrl: base64String }));
-      } else {
-        setNewImageUrl(base64String);
-      }
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const size = Math.min(img.width, img.height);
+        const startX = (img.width - size) / 2;
+        const startY = (img.height - size) / 2;
+
+        const TARGET_SIZE = 400;
+        const canvas = document.createElement('canvas');
+        canvas.width = TARGET_SIZE;
+        canvas.height = TARGET_SIZE;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
+          ctx.drawImage(img, startX, startY, size, size, 0, 0, TARGET_SIZE, TARGET_SIZE);
+          const compressed = canvas.toDataURL('image/jpeg', 0.88);
+          if (isEdit) {
+            setEditFormData(prev => ({ ...prev, imageUrl: compressed }));
+          } else {
+            setNewImageUrl(compressed);
+          }
+        }
+      };
+      img.src = event.target?.result as string;
     };
     reader.readAsDataURL(file);
+    e.target.value = '';
   };
 
   const handleAddTempSubject = () => {

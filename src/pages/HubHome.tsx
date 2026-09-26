@@ -2022,7 +2022,7 @@ const HubHome: React.FC<HubHomeProps> = ({
                       <img 
                         src={profilePhoto} 
                         alt="Foto de Perfil" 
-                        className="w-10 h-10 lg:w-16 lg:h-16 rounded-full object-cover shadow-sm border-2 border-indigo-500/40 group-hover:border-indigo-500 group-hover:scale-105 transition-all" 
+                        className="w-10 h-10 lg:w-16 lg:h-16 rounded-full object-cover shadow-sm group-hover:scale-105 transition-all" 
                       />
                     ) : (
                       <div className="w-10 h-10 lg:w-16 lg:h-16 rounded-full bg-gradient-to-tr from-indigo-600 to-violet-500 text-white flex items-center justify-center text-sm lg:text-xl font-black shadow-sm group-hover:scale-105 transition-all">

@@ -215,7 +215,8 @@ const Sidebar: React.FC<SidebarProps> = ({
         >
           <Menu size={18} />
         </button>
-      )}      <div className={`fixed md:relative ${isCollapsed ? 'w-64 md:w-28 -translate-x-full md:translate-x-0' : 'w-64 translate-x-0'} h-screen md:h-full bg-white/95 dark:bg-zinc-900/95 md:bg-white/50 md:dark:bg-zinc-900/50 backdrop-blur-xl border-r border-zinc-200 dark:border-zinc-800 flex flex-col ${isCollapsed ? 'px-3 py-5' : 'p-5'} transition-all duration-300 z-50 shadow-lg text-sm`}>
+      )}
+      <div className={`fixed md:relative ${isCollapsed ? 'w-64 md:w-20 -translate-x-full md:translate-x-0' : 'w-64 translate-x-0'} h-screen md:h-full bg-white/95 dark:bg-zinc-900/95 md:bg-white/50 md:dark:bg-zinc-900/50 backdrop-blur-xl border-r border-zinc-200 dark:border-zinc-800 flex flex-col ${isCollapsed ? 'px-3 py-5' : 'p-5'} transition-all duration-300 z-50 shadow-lg text-sm`}>
         <button
           onClick={onToggleCollapse}
           className="absolute -right-3 top-9 w-6 h-6 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-full flex items-center justify-center text-zinc-500 hover:text-zinc-900 dark:text-zinc-100 shadow-sm z-50 hover:scale-110 transition-transform cursor-pointer"
@@ -248,8 +249,10 @@ const Sidebar: React.FC<SidebarProps> = ({
         >
           <div className={`flex items-center ${isCollapsed ? 'justify-center w-full h-full' : 'gap-3 min-w-0'}`}>
             {isGlobalView ? (
-              <div className="w-10 h-10 rounded-full bg-amber-500/15 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 border border-amber-500/30 transition-transform group-hover:scale-105 shadow-2xs">
-                <GraduationCap size={18} />
+              <div className={`${
+                isCollapsed ? 'w-12 h-12' : 'w-10 h-10'
+              } rounded-full bg-amber-500/15 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 border border-amber-500/30 transition-transform group-hover:scale-105 shadow-2xs`}>
+                <GraduationCap size={isCollapsed ? 22 : 18} />
               </div>
             ) : currentConcurso?.imageUrl ? (
               <img
@@ -258,11 +261,15 @@ const Sidebar: React.FC<SidebarProps> = ({
                 loading="eager"
                 decoding="async"
                 style={{ imageRendering: 'auto' }}
-                className="w-10 h-10 rounded-full object-cover object-center aspect-square shrink-0 border border-zinc-200/90 dark:border-zinc-700/90 shadow-xs transition-transform group-hover:scale-105"
+                className={`${
+                  isCollapsed ? 'w-12 h-12' : 'w-10 h-10'
+                } rounded-full object-cover object-center aspect-square shrink-0 border border-zinc-200/90 dark:border-zinc-700/90 shadow-xs transition-transform group-hover:scale-105`}
               />
             ) : (
-              <div className="w-10 h-10 rounded-full bg-indigo-500/15 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 border border-indigo-500/30 font-black text-xs transition-transform group-hover:scale-105 shadow-2xs">
-                <GraduationCap size={18} />
+              <div className={`${
+                isCollapsed ? 'w-12 h-12' : 'w-10 h-10'
+              } rounded-full bg-indigo-500/15 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 border border-indigo-500/30 font-black text-xs transition-transform group-hover:scale-105 shadow-2xs`}>
+                <GraduationCap size={isCollapsed ? 22 : 18} />
               </div>
             )}
 

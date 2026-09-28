@@ -5,7 +5,7 @@ import {
   LayoutDashboard,
   GraduationCap,
   Library,
-  FileSpreadsheet,
+  NotebookPen,
   Calendar,
   Settings,
   LogOut,
@@ -77,7 +77,7 @@ const DEFAULT_MENU_ITEMS: MenuItem[] = [
   { id: 'subjects', label: 'Disciplinas', icon: Library },
   { id: 'statistics', label: 'Análise Estatística', icon: Percent },
   { id: 'cronograma', label: 'Cronograma', icon: CalendarRange },
-  { id: 'simulados', label: 'Simulados', icon: FileSpreadsheet },
+  { id: 'simulados', label: 'Simulados', icon: NotebookPen },
   { id: 'calendar', label: 'Planner', icon: Calendar },
   { id: 'questions_links', label: 'Cadernos de Questões', icon: Link },
   { id: 'atividades', label: 'Atividades', icon: History },
@@ -248,10 +248,8 @@ const Sidebar: React.FC<SidebarProps> = ({
         >
           <div className={`flex items-center ${isCollapsed ? 'justify-center w-full h-full' : 'gap-3 min-w-0'}`}>
             {isGlobalView ? (
-              <div className={`${
-                isCollapsed ? 'w-16 h-16' : 'w-10 h-10'
-              } rounded-full bg-amber-500/15 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 border border-amber-500/30 transition-transform group-hover:scale-105 shadow-2xs`}>
-                <GraduationCap size={isCollapsed ? 28 : 18} />
+              <div className="w-10 h-10 rounded-full bg-amber-500/15 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 border border-amber-500/30 transition-transform group-hover:scale-105 shadow-2xs">
+                <GraduationCap size={18} />
               </div>
             ) : currentConcurso?.imageUrl ? (
               <img
@@ -260,15 +258,11 @@ const Sidebar: React.FC<SidebarProps> = ({
                 loading="eager"
                 decoding="async"
                 style={{ imageRendering: 'auto' }}
-                className={`${
-                  isCollapsed ? 'w-16 h-16' : 'w-10 h-10'
-                } rounded-full object-cover object-center aspect-square shrink-0 border border-zinc-200/90 dark:border-zinc-700/90 shadow-xs transition-transform group-hover:scale-105`}
+                className="w-10 h-10 rounded-full object-cover object-center aspect-square shrink-0 border border-zinc-200/90 dark:border-zinc-700/90 shadow-xs transition-transform group-hover:scale-105"
               />
             ) : (
-              <div className={`${
-                isCollapsed ? 'w-16 h-16' : 'w-10 h-10'
-              } rounded-full bg-indigo-500/15 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 border border-indigo-500/30 font-black text-xs transition-transform group-hover:scale-105 shadow-2xs`}>
-                <GraduationCap size={isCollapsed ? 28 : 18} />
+              <div className="w-10 h-10 rounded-full bg-indigo-500/15 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 border border-indigo-500/30 font-black text-xs transition-transform group-hover:scale-105 shadow-2xs">
+                <GraduationCap size={18} />
               </div>
             )}
 

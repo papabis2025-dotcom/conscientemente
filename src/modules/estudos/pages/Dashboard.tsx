@@ -102,6 +102,44 @@ const getPerformanceColorHex = (percentage: number) => {
   return '#10b981';
 };
 
+const VerticalTicksProgress: React.FC<{
+  percentage: number;
+  activeColorClass?: string;
+  totalTicks?: number;
+}> = ({
+  percentage,
+  activeColorClass = 'bg-indigo-600 dark:bg-indigo-400',
+  totalTicks = 26
+}) => {
+  const clampedPercent = Math.min(100, Math.max(0, percentage));
+  const activeTicks = Math.round((clampedPercent / 100) * totalTicks);
+
+  return (
+    <div
+      className="flex-1 flex items-center gap-[2px] sm:gap-[2.5px] h-3 mx-1.5 min-w-0"
+      title={`${percentage}% concluído`}
+      role="progressbar"
+      aria-valuenow={percentage}
+      aria-valuemin={0}
+      aria-valuemax={100}
+    >
+      {Array.from({ length: totalTicks }).map((_, index) => {
+        const isFilled = index < activeTicks;
+        return (
+          <span
+            key={index}
+            className={`flex-1 h-2 sm:h-2.5 rounded-[1px] transition-colors duration-300 ${
+              isFilled
+                ? activeColorClass
+                : 'bg-zinc-200/90 dark:bg-zinc-800'
+            }`}
+          />
+        );
+      })}
+    </div>
+  );
+};
+
 const Dashboard: React.FC<DashboardProps> = ({
   subjects,
   sessions,
@@ -867,86 +905,152 @@ const Dashboard: React.FC<DashboardProps> = ({
         const totalHours = (totalMinutes / 60).toFixed(1);
 
         return (
-          <div className="flex flex-row items-center justify-around h-full gap-4 px-4 max-w-3xl mx-auto py-1">
+          <div className="w-full h-full grid grid-cols-3 gap-2 sm:gap-3.5 py-0.5 items-stretch min-h-0">
             {/* Questões */}
-            <div className="flex flex-col items-center justify-center flex-1 gap-2">
-              <div className="relative w-full flex-1 min-h-0 flex items-center justify-center">
-                <div className="relative w-full h-full max-w-[90px] max-h-[90px] md:max-w-[100px] md:max-h-[100px]">
-                  <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                    <circle cx="50" cy="50" r="40" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-zinc-100 dark:text-zinc-800" />
-                    <circle
-                      cx="50" cy="50" r="40"
-                      stroke="currentColor" strokeWidth="8" fill="transparent"
-                      strokeDasharray={251.2}
-                      strokeDashoffset={251.2 - (251.2 * sessionAccuracy) / 100}
-                      className={`${sessionColor} transition-all duration-1000 ease-out`}
-                      strokeLinecap="round"
-                      style={{ color: sessionColorHex }}
-                    />
-                  </svg>
-                  <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-base font-black leading-none text-zinc-900 dark:text-white" style={{ color: sessionColorHex }}>{sessionAccuracy}%</span>
-                    <span className="text-[8px] text-zinc-400 dark:text-zinc-550 font-bold mt-0.5">{sessionsDone} q</span>
-                  </div>
+            <div className="flex flex-col items-center justify-between py-2 px-2 rounded-xl bg-zinc-50/70 dark:bg-zinc-800/40 border border-zinc-200/60 dark:border-zinc-800/60 transition-all hover:border-zinc-300 dark:hover:border-zinc-700/80">
+              <div className="flex items-center gap-1.5 shrink-0 px-2 py-0.5 rounded-full bg-white/80 dark:bg-zinc-900/60 border border-zinc-200/60 dark:border-zinc-700/60 shadow-2xs">
+                <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: sessionColorHex }} />
+                <span className="text-[8.5px] sm:text-[9px] font-black uppercase tracking-wider text-zinc-700 dark:text-zinc-200">
+                  Questões
+                </span>
+              </div>
+
+              <div className="relative w-[78px] h-[78px] sm:w-[84px] sm:h-[84px] shrink-0 my-auto flex items-center justify-center">
+                <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="40"
+                    stroke="currentColor"
+                    strokeWidth="7"
+                    fill="transparent"
+                    className="text-zinc-200/70 dark:text-zinc-700/50"
+                  />
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="40"
+                    stroke="currentColor"
+                    strokeWidth="7"
+                    fill="transparent"
+                    strokeDasharray={251.2}
+                    strokeDashoffset={251.2 - (251.2 * sessionAccuracy) / 100}
+                    className="transition-all duration-1000 ease-out"
+                    strokeLinecap="round"
+                    style={{ color: sessionColorHex }}
+                  />
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                  <span className="text-base sm:text-lg font-black leading-none text-zinc-900 dark:text-white tracking-tight" style={{ color: sessionColorHex }}>
+                    {sessionAccuracy}%
+                  </span>
+                  <span className="text-[8px] sm:text-[8.5px] font-bold text-zinc-400 dark:text-zinc-500 mt-0.5">
+                    {sessionsCorrect}/{sessionsDone}
+                  </span>
                 </div>
               </div>
-              <p className="text-[9px] font-black text-zinc-500 uppercase tracking-widest shrink-0 mt-0.5">Questões</p>
-            </div>
 
-            {/* Divider */}
-            <div className="w-px bg-zinc-100 dark:bg-zinc-800 self-stretch my-3 shrink-0" />
+              <span className="text-[8.5px] font-extrabold uppercase tracking-wide text-zinc-400 dark:text-zinc-500 truncate shrink-0">
+                {sessionsDone > 0 ? `${sessionsDone} resolvidas` : 'Sem dados'}
+              </span>
+            </div>
 
             {/* Geral */}
-            <div className="flex flex-col items-center justify-center flex-1 gap-2">
-              <div className="relative w-full flex-1 min-h-0 flex items-center justify-center">
-                <div className="relative w-full h-full max-w-[90px] max-h-[90px] md:max-w-[100px] md:max-h-[100px]">
-                  <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                    <circle cx="50" cy="50" r="40" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-zinc-100 dark:text-zinc-800" />
-                    <circle
-                      cx="50" cy="50" r="40"
-                      stroke="currentColor" strokeWidth="8" fill="transparent"
-                      strokeDasharray={251.2}
-                      strokeDashoffset={251.2 - (251.2 * globalAccuracy) / 100}
-                      className={`${globalColor} transition-all duration-1000 ease-out`}
-                      strokeLinecap="round"
-                      style={{ color: globalColorHex }}
-                    />
-                  </svg>
-                  <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-base font-black leading-none text-zinc-900 dark:text-white" style={{ color: globalColorHex }}>{globalAccuracy}%</span>
-                    <span className="text-[8px] text-zinc-400 dark:text-zinc-550 font-bold mt-0.5">{generalDone} q</span>
-                  </div>
+            <div className="flex flex-col items-center justify-between py-2 px-2 rounded-xl bg-zinc-50/70 dark:bg-zinc-800/40 border border-zinc-200/80 dark:border-zinc-700/70 shadow-2xs transition-all hover:border-indigo-300 dark:hover:border-indigo-700/80">
+              <div className="flex items-center gap-1.5 shrink-0 px-2.5 py-0.5 rounded-full bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-200/60 dark:border-indigo-800/60 shadow-2xs">
+                <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: globalColorHex }} />
+                <span className="text-[8.5px] sm:text-[9px] font-black uppercase tracking-wider text-indigo-700 dark:text-indigo-300">
+                  Geral
+                </span>
+              </div>
+
+              <div className="relative w-[78px] h-[78px] sm:w-[84px] sm:h-[84px] shrink-0 my-auto flex items-center justify-center">
+                <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="40"
+                    stroke="currentColor"
+                    strokeWidth="7"
+                    fill="transparent"
+                    className="text-zinc-200/70 dark:text-zinc-700/50"
+                  />
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="40"
+                    stroke="currentColor"
+                    strokeWidth="7"
+                    fill="transparent"
+                    strokeDasharray={251.2}
+                    strokeDashoffset={251.2 - (251.2 * globalAccuracy) / 100}
+                    className="transition-all duration-1000 ease-out"
+                    strokeLinecap="round"
+                    style={{ color: globalColorHex }}
+                  />
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                  <span className="text-base sm:text-lg font-black leading-none text-zinc-900 dark:text-white tracking-tight" style={{ color: globalColorHex }}>
+                    {globalAccuracy}%
+                  </span>
+                  <span className="text-[8px] sm:text-[8.5px] font-bold text-zinc-400 dark:text-zinc-500 mt-0.5">
+                    {generalCorrect}/{generalDone}
+                  </span>
                 </div>
               </div>
-              <p className="text-[9px] font-black text-zinc-500 uppercase tracking-widest shrink-0 mt-0.5">Geral</p>
+
+              <span className="text-[8.5px] font-extrabold uppercase tracking-wide text-zinc-400 dark:text-zinc-500 truncate shrink-0">
+                {generalDone > 0 ? `${generalDone} resolvidas` : 'Sem dados'}
+              </span>
             </div>
 
-            {/* Divider */}
-            <div className="w-px bg-zinc-100 dark:bg-zinc-800 self-stretch my-3 shrink-0" />
-
             {/* Simulados */}
-            <div className="flex flex-col items-center justify-center flex-1 gap-2">
-              <div className="relative w-full flex-1 min-h-0 flex items-center justify-center">
-                <div className="relative w-full h-full max-w-[90px] max-h-[90px] md:max-w-[100px] md:max-h-[100px]">
-                  <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                    <circle cx="50" cy="50" r="40" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-zinc-100 dark:text-zinc-800" />
-                    <circle
-                      cx="50" cy="50" r="40"
-                      stroke="currentColor" strokeWidth="8" fill="transparent"
-                      strokeDasharray={251.2}
-                      strokeDashoffset={251.2 - (251.2 * simAccuracy) / 100}
-                      className={`${simColor} transition-all duration-1000 ease-out`}
-                      strokeLinecap="round"
-                      style={{ color: simColorHex }}
-                    />
-                  </svg>
-                  <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-base font-black leading-none text-zinc-900 dark:text-white" style={{ color: simColorHex }}>{simAccuracy}%</span>
-                    <span className="text-[8px] text-zinc-400 dark:text-zinc-550 font-bold mt-0.5">{simDone} q</span>
-                  </div>
+            <div className="flex flex-col items-center justify-between py-2 px-2 rounded-xl bg-zinc-50/70 dark:bg-zinc-800/40 border border-zinc-200/60 dark:border-zinc-800/60 transition-all hover:border-zinc-300 dark:hover:border-zinc-700/80">
+              <div className="flex items-center gap-1.5 shrink-0 px-2 py-0.5 rounded-full bg-white/80 dark:bg-zinc-900/60 border border-zinc-200/60 dark:border-zinc-700/60 shadow-2xs">
+                <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: simColorHex }} />
+                <span className="text-[8.5px] sm:text-[9px] font-black uppercase tracking-wider text-zinc-700 dark:text-zinc-200">
+                  Simulados
+                </span>
+              </div>
+
+              <div className="relative w-[78px] h-[78px] sm:w-[84px] sm:h-[84px] shrink-0 my-auto flex items-center justify-center">
+                <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="40"
+                    stroke="currentColor"
+                    strokeWidth="7"
+                    fill="transparent"
+                    className="text-zinc-200/70 dark:text-zinc-700/50"
+                  />
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="40"
+                    stroke="currentColor"
+                    strokeWidth="7"
+                    fill="transparent"
+                    strokeDasharray={251.2}
+                    strokeDashoffset={251.2 - (251.2 * simAccuracy) / 100}
+                    className="transition-all duration-1000 ease-out"
+                    strokeLinecap="round"
+                    style={{ color: simColorHex }}
+                  />
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                  <span className="text-base sm:text-lg font-black leading-none text-zinc-900 dark:text-white tracking-tight" style={{ color: simColorHex }}>
+                    {simAccuracy}%
+                  </span>
+                  <span className="text-[8px] sm:text-[8.5px] font-bold text-zinc-400 dark:text-zinc-500 mt-0.5">
+                    {simCorrect}/{simDone}
+                  </span>
                 </div>
               </div>
-              <p className="text-[9px] font-black text-zinc-500 uppercase tracking-widest shrink-0 mt-0.5">Simulados</p>
+
+              <span className="text-[8.5px] font-extrabold uppercase tracking-wide text-zinc-400 dark:text-zinc-500 truncate shrink-0">
+                {simDone > 0 ? `${simDone} questões` : 'Sem dados'}
+              </span>
             </div>
           </div>
         );
@@ -968,73 +1072,109 @@ const Dashboard: React.FC<DashboardProps> = ({
         }
 
         return (
-          <div className="grid grid-cols-2 gap-3 h-full py-0.5 px-0.5 min-h-0">
+          <div className="grid grid-cols-2 gap-2.5 h-full py-0.5 min-h-0">
             {/* Melhor Desempenho */}
             <div className="flex flex-col gap-1.5 min-h-0">
-              <div className="flex items-center gap-1 mb-0.5 shrink-0">
-                <span className="w-1.5 h-2.5 bg-emerald-500 rounded-full" />
-                <span className="text-[8px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Melhor</span>
+              <div className="flex items-center justify-center gap-1.5 py-1 px-2.5 rounded-full bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/25 shrink-0 mx-auto w-full text-center">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                <span className="text-[8.5px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 text-center">
+                  Melhor Desempenho
+                </span>
               </div>
-              
+
               <div className="flex flex-col gap-1.5 flex-1 min-h-0 justify-between">
                 {bestSub ? (
-                  <div className="bg-emerald-50/40 dark:bg-emerald-950/10 border border-emerald-100 dark:border-emerald-900/30 rounded-xl p-2 flex items-center justify-between gap-1.5 flex-1 min-h-[42px]">
-                    <div className="min-w-0">
-                      <p className="text-[7px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider leading-none">Disciplina</p>
-                      <h5 className="text-[10px] font-black text-zinc-700 dark:text-zinc-200 truncate mt-0.5 leading-tight" title={bestSub.name}>{bestSub.name}</h5>
-                    </div>
-                    <span className="text-xs font-black text-emerald-500 shrink-0 ml-auto">{bestSub.accuracy}%</span>
+                  <div className="bg-emerald-50/30 dark:bg-emerald-950/15 border border-emerald-150/70 dark:border-emerald-900/30 rounded-xl p-2 flex flex-col items-center justify-center text-center flex-1 min-h-[46px] transition-all hover:bg-emerald-50/50 dark:hover:bg-emerald-950/25">
+                    <span className="text-[7.5px] font-black uppercase tracking-widest text-emerald-600/80 dark:text-emerald-400/80 leading-none text-center">
+                      Disciplina
+                    </span>
+                    <h5 className="text-[10px] font-black text-zinc-800 dark:text-zinc-100 truncate w-full mt-1 leading-tight text-center px-1" title={bestSub.name}>
+                      {bestSub.name}
+                    </h5>
+                    <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 bg-emerald-500/15 dark:bg-emerald-500/20 px-2 py-0.5 rounded-full mt-1 text-center">
+                      {bestSub.accuracy}% acerto
+                    </span>
                   </div>
                 ) : (
-                  <div className="border border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl p-2 flex items-center justify-center text-[8px] text-zinc-400 font-bold flex-1 min-h-[42px]">Sem dados</div>
+                  <div className="border border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl p-2 flex flex-col items-center justify-center text-center flex-1 min-h-[46px]">
+                    <span className="text-[7.5px] font-bold uppercase tracking-wider text-zinc-400 text-center">Disciplina</span>
+                    <span className="text-[8.5px] text-zinc-400 dark:text-zinc-500 font-semibold mt-0.5 text-center">Sem dados</span>
+                  </div>
                 )}
-                
+
                 {bestTop ? (
-                  <div className="bg-emerald-50/40 dark:bg-emerald-950/10 border border-emerald-100 dark:border-emerald-900/30 rounded-xl p-2 flex items-center justify-between gap-1.5 flex-1 min-h-[42px]">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[7px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider leading-none">Assunto</p>
-                      <h5 className="text-[9px] font-black text-zinc-700 dark:text-zinc-200 truncate mt-0.5 leading-tight" title={bestTop.title}>{bestTop.title}</h5>
-                      <p className="text-[7px] text-zinc-400 truncate leading-none mt-0.5">{bestTop.subjectName}</p>
-                    </div>
-                    <span className="text-xs font-black text-emerald-500 shrink-0 ml-1.5">{bestTop.accuracy}%</span>
+                  <div className="bg-emerald-50/30 dark:bg-emerald-950/15 border border-emerald-150/70 dark:border-emerald-900/30 rounded-xl p-2 flex flex-col items-center justify-center text-center flex-1 min-h-[46px] transition-all hover:bg-emerald-50/50 dark:hover:bg-emerald-950/25">
+                    <span className="text-[7.5px] font-black uppercase tracking-widest text-emerald-600/80 dark:text-emerald-400/80 leading-none text-center">
+                      Assunto
+                    </span>
+                    <h5 className="text-[9.5px] font-black text-zinc-800 dark:text-zinc-100 truncate w-full mt-1 leading-tight text-center px-1" title={bestTop.title}>
+                      {bestTop.title}
+                    </h5>
+                    <p className="text-[7.5px] text-zinc-400 dark:text-zinc-500 truncate w-full leading-none mt-0.5 text-center px-1">
+                      {bestTop.subjectName}
+                    </p>
+                    <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 bg-emerald-500/15 dark:bg-emerald-500/20 px-2 py-0.5 rounded-full mt-1 text-center">
+                      {bestTop.accuracy}% acerto
+                    </span>
                   </div>
                 ) : (
-                  <div className="border border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl p-2 flex items-center justify-center text-[8px] text-zinc-400 font-bold flex-1 min-h-[42px]">Sem dados</div>
+                  <div className="border border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl p-2 flex flex-col items-center justify-center text-center flex-1 min-h-[46px]">
+                    <span className="text-[7.5px] font-bold uppercase tracking-wider text-zinc-400 text-center">Assunto</span>
+                    <span className="text-[8.5px] text-zinc-400 dark:text-zinc-500 font-semibold mt-0.5 text-center">Sem dados</span>
+                  </div>
                 )}
               </div>
             </div>
 
-            {/* Pior Desempenho */}
+            {/* Pior Desempenho / Atenção */}
             <div className="flex flex-col gap-1.5 min-h-0">
-              <div className="flex items-center gap-1 mb-0.5 shrink-0">
-                <span className="w-1.5 h-2.5 bg-rose-500 rounded-full" />
-                <span className="text-[8px] font-black text-rose-655 dark:text-rose-450 uppercase tracking-wider">Atenção (Pior)</span>
+              <div className="flex items-center justify-center gap-1.5 py-1 px-2.5 rounded-full bg-rose-500/10 dark:bg-rose-500/15 border border-rose-500/25 shrink-0 mx-auto w-full text-center">
+                <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0" />
+                <span className="text-[8.5px] font-black uppercase tracking-wider text-rose-600 dark:text-rose-400 text-center">
+                  Requer Atenção (Pior)
+                </span>
               </div>
-              
+
               <div className="flex flex-col gap-1.5 flex-1 min-h-0 justify-between">
                 {worstSub ? (
-                  <div className="bg-rose-50/40 dark:bg-rose-950/10 border border-rose-100 dark:border-rose-900/30 rounded-xl p-2 flex items-center justify-between gap-1.5 flex-1 min-h-[42px]">
-                    <div className="min-w-0">
-                      <p className="text-[7px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider leading-none">Disciplina</p>
-                      <h5 className="text-[10px] font-black text-zinc-700 dark:text-zinc-200 truncate mt-0.5 leading-tight" title={worstSub.name}>{worstSub.name}</h5>
-                    </div>
-                    <span className="text-xs font-black text-rose-500 shrink-0 ml-auto">{worstSub.accuracy}%</span>
+                  <div className="bg-rose-50/30 dark:bg-rose-950/15 border border-rose-150/70 dark:border-rose-900/30 rounded-xl p-2 flex flex-col items-center justify-center text-center flex-1 min-h-[46px] transition-all hover:bg-rose-50/50 dark:hover:bg-rose-950/25">
+                    <span className="text-[7.5px] font-black uppercase tracking-widest text-rose-600/80 dark:text-rose-400/80 leading-none text-center">
+                      Disciplina
+                    </span>
+                    <h5 className="text-[10px] font-black text-zinc-800 dark:text-zinc-100 truncate w-full mt-1 leading-tight text-center px-1" title={worstSub.name}>
+                      {worstSub.name}
+                    </h5>
+                    <span className="text-[10px] font-black text-rose-600 dark:text-rose-400 bg-rose-500/15 dark:bg-rose-500/20 px-2 py-0.5 rounded-full mt-1 text-center">
+                      {worstSub.accuracy}% acerto
+                    </span>
                   </div>
                 ) : (
-                  <div className="border border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl p-2 flex items-center justify-center text-[8px] text-zinc-400 font-bold flex-1 min-h-[42px]">Sem dados</div>
+                  <div className="border border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl p-2 flex flex-col items-center justify-center text-center flex-1 min-h-[46px]">
+                    <span className="text-[7.5px] font-bold uppercase tracking-wider text-zinc-400 text-center">Disciplina</span>
+                    <span className="text-[8.5px] text-zinc-400 dark:text-zinc-500 font-semibold mt-0.5 text-center">Sem dados</span>
+                  </div>
                 )}
 
                 {worstTop ? (
-                  <div className="bg-rose-50/40 dark:bg-rose-950/10 border border-rose-100 dark:border-rose-900/30 rounded-xl p-2 flex items-center justify-between gap-1.5 flex-1 min-h-[42px]">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[7px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider leading-none">Assunto</p>
-                      <h5 className="text-[9px] font-black text-zinc-700 dark:text-zinc-200 truncate mt-0.5 leading-tight" title={worstTop.title}>{worstTop.title}</h5>
-                      <p className="text-[7px] text-zinc-400 truncate leading-none mt-0.5">{worstTop.subjectName}</p>
-                    </div>
-                    <span className="text-xs font-black text-rose-500 shrink-0 ml-1.5">{worstTop.accuracy}%</span>
+                  <div className="bg-rose-50/30 dark:bg-rose-950/15 border border-rose-150/70 dark:border-rose-900/30 rounded-xl p-2 flex flex-col items-center justify-center text-center flex-1 min-h-[46px] transition-all hover:bg-rose-50/50 dark:hover:bg-rose-950/25">
+                    <span className="text-[7.5px] font-black uppercase tracking-widest text-rose-600/80 dark:text-rose-400/80 leading-none text-center">
+                      Assunto
+                    </span>
+                    <h5 className="text-[9.5px] font-black text-zinc-800 dark:text-zinc-100 truncate w-full mt-1 leading-tight text-center px-1" title={worstTop.title}>
+                      {worstTop.title}
+                    </h5>
+                    <p className="text-[7.5px] text-zinc-400 dark:text-zinc-500 truncate w-full leading-none mt-0.5 text-center px-1">
+                      {worstTop.subjectName}
+                    </p>
+                    <span className="text-[10px] font-black text-rose-600 dark:text-rose-400 bg-rose-500/15 dark:bg-rose-500/20 px-2 py-0.5 rounded-full mt-1 text-center">
+                      {worstTop.accuracy}% acerto
+                    </span>
                   </div>
                 ) : (
-                  <div className="border border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl p-2 flex items-center justify-center text-[8px] text-zinc-400 font-bold flex-1 min-h-[42px]">Sem dados</div>
+                  <div className="border border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl p-2 flex flex-col items-center justify-center text-center flex-1 min-h-[46px]">
+                    <span className="text-[7.5px] font-bold uppercase tracking-wider text-zinc-400 text-center">Assunto</span>
+                    <span className="text-[8.5px] text-zinc-400 dark:text-zinc-500 font-semibold mt-0.5 text-center">Sem dados</span>
+                  </div>
                 )}
               </div>
             </div>
@@ -1613,12 +1753,7 @@ const Dashboard: React.FC<DashboardProps> = ({
               <span className="text-[10px] font-black uppercase text-zinc-500 dark:text-zinc-400 tracking-wider truncate shrink-0 max-w-[100px] md:max-w-[140px]" title="Visão Global">
                 Visão Global
               </span>
-              <div className="flex-1 h-2 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden mx-1">
-                <div
-                  className="h-full bg-gradient-to-r from-amber-500 via-violet-500 to-indigo-500 dark:from-amber-400 dark:via-violet-400 dark:to-indigo-400 rounded-full transition-all duration-1000 shadow-sm"
-                  style={{ width: `${progressGlobal}%` }}
-                ></div>
-              </div>
+              <VerticalTicksProgress percentage={progressGlobal} activeColorClass="bg-amber-500 dark:bg-amber-400" />
               <span className="text-[10px] text-zinc-800 dark:text-zinc-100 font-bold shrink-0">
                 {progressGlobal}%
               </span>
@@ -1629,12 +1764,7 @@ const Dashboard: React.FC<DashboardProps> = ({
               <span className="text-[10px] font-black uppercase text-zinc-500 dark:text-zinc-400 tracking-wider truncate shrink-0 max-w-[100px] md:max-w-[140px]" title={activeConcurso?.name || ''}>
                 {activeConcurso?.name || 'Curso'}
               </span>
-              <div className="flex-1 h-2 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden mx-1">
-                <div
-                  className="h-full bg-gradient-to-r from-violet-500 to-indigo-500 dark:from-violet-400 dark:to-indigo-400 rounded-full transition-all duration-1000 shadow-sm"
-                  style={{ width: `${progressEdital}%` }}
-                ></div>
-              </div>
+              <VerticalTicksProgress percentage={progressEdital} activeColorClass="bg-indigo-600 dark:bg-indigo-400" />
               <span className="text-[10px] text-zinc-800 dark:text-zinc-100 font-bold shrink-0">
                 {progressEdital}%
               </span>

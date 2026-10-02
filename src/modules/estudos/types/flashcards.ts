@@ -43,6 +43,7 @@ export interface Flashcard {
   id: string;
   user_id: string;
   deck_id: string;
+  deck_ids?: string[];
   card_type: FlashcardType;
   front: string;
   back: string;

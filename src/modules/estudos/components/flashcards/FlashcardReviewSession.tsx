@@ -245,10 +245,12 @@ export const FlashcardReviewSession: React.FC<FlashcardReviewSessionProps> = ({
                 <ClozeRenderer
                   text={currentItem.card.cloze_text || currentItem.card.front}
                   isAnswerRevealed={isAnswerRevealed}
-                  clozeIndex={1}
                 />
               ) : (
-                currentItem.card.front
+                <div
+                  className="whitespace-pre-wrap"
+                  dangerouslySetInnerHTML={{ __html: currentItem.card.front }}
+                />
               )}
             </div>
           </div>
@@ -265,9 +267,10 @@ export const FlashcardReviewSession: React.FC<FlashcardReviewSessionProps> = ({
           {/* LADO DO VERSO (RESPOSTA) */}
           {isAnswerRevealed && !isCloze && (
             <div className="flex-1 flex flex-col justify-center text-center animate-in fade-in slide-in-from-bottom-2 duration-200">
-              <div className="text-lg sm:text-2xl font-bold text-indigo-600 dark:text-indigo-400 leading-relaxed max-w-2xl mx-auto">
-                {currentItem.card.back}
-              </div>
+              <div
+                className="text-lg sm:text-2xl font-bold text-indigo-600 dark:text-indigo-400 leading-relaxed max-w-2xl mx-auto whitespace-pre-wrap"
+                dangerouslySetInnerHTML={{ __html: currentItem.card.back }}
+              />
             </div>
           )}
         </div>

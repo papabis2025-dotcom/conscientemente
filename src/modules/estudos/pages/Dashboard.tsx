@@ -78,8 +78,7 @@ interface WidgetState {
 const DEFAULT_WIDGETS: WidgetState[] = [
   { id: 'general_stats', title: 'Desempenho Geral', isVisible: true, size: 'wide' },
   { id: 'study_frequency', title: 'Disciplina e Assunto', isVisible: true, size: 'normal' },
-  { id: 'study_tasks', title: 'Tarefas Pendentes', isVisible: true, size: 'normal' },
-  { id: 'flashcards_overview', title: 'Flashcards FSRS', isVisible: true, size: 'normal' },
+  { id: 'flashcards_overview', title: 'Flashcards', isVisible: true, size: 'normal' },
   { id: 'weekly_chart', title: 'Volume de Estudo', isVisible: true, size: 'wide' },
   { id: 'general_summary', title: 'Resumo geral', isVisible: true, size: 'normal' },
   { id: 'unified_subject_analysis', title: 'Análise por Disciplina', isVisible: true, size: 'normal' },
@@ -163,16 +162,27 @@ const Dashboard: React.FC<DashboardProps> = ({
   scheduledStudies = [],
   onNavigateTab
 }) => {
-  const [flashcardStats, setFlashcardStats] = useState<{ due: number; newCards: number; total: number } | null>(null);
+  const [flashcardStats, setFlashcardStats] = useState<{
+    due: number;
+    learning: number;
+    newCards: number;
+    total: number;
+    reviewedToday: number;
+  } | null>(null);
 
   useEffect(() => {
     let isMounted = true;
-    flashcardsApi.queue.getStudyQueue().then(queue => {
+    Promise.all([
+      flashcardsApi.queue.getStudyQueue(),
+      flashcardsApi.stats.getSummary()
+    ]).then(([queue, summary]) => {
       if (isMounted) {
         setFlashcardStats({
-          due: queue.counts.overdue + queue.counts.learning + queue.counts.review,
+          due: queue.counts.review + queue.counts.overdue,
+          learning: queue.counts.learning,
           newCards: queue.counts.newCards,
-          total: queue.counts.total
+          total: queue.counts.total,
+          reviewedToday: summary.reviewedToday
         });
       }
     }).catch(() => {});
@@ -184,12 +194,19 @@ const Dashboard: React.FC<DashboardProps> = ({
     if (!saved) return DEFAULT_WIDGETS;
     try {
       const parsed: WidgetState[] = JSON.parse(saved);
+      // Migração: substituir study_tasks por flashcards_overview no mesmo lugar
       const migrated = parsed.map(w => {
+        if (w.id === 'study_tasks') {
+          return { id: 'flashcards_overview', title: 'Flashcards', isVisible: true, size: 'normal' as const };
+        }
         if (w.id === 'activity_calendar') {
           return { ...w, id: 'general_summary', title: 'Resumo geral', size: 'normal' as const };
         }
         if (w.id === 'general_summary') {
           return { ...w, size: 'normal' as const };
+        }
+        if (w.id === 'flashcards_overview') {
+          return { ...w, title: 'Flashcards' };
         }
         return w;
       });
@@ -197,13 +214,17 @@ const Dashboard: React.FC<DashboardProps> = ({
       // Deduplicar widgets por id, preservando a primeira ocorrência
       const seen = new Set<string>();
       const filtered = migrated.filter(w => {
+        if (w.id === 'study_tasks') return false;
         if (seen.has(w.id)) return false;
         seen.add(w.id);
         return true;
       });
 
       if (!seen.has('flashcards_overview')) {
-        filtered.push({ id: 'flashcards_overview', title: 'Flashcards FSRS', isVisible: true, size: 'normal' });
+        // Inserir flashcards_overview logo após study_frequency (índice 2)
+        const freqIndex = filtered.findIndex(w => w.id === 'study_frequency');
+        const insertIndex = freqIndex !== -1 ? freqIndex + 1 : 2;
+        filtered.splice(insertIndex, 0, { id: 'flashcards_overview', title: 'Flashcards', isVisible: true, size: 'normal' });
       }
 
       return filtered;
@@ -1206,183 +1227,7 @@ const Dashboard: React.FC<DashboardProps> = ({
               </div>
             </div>
           </div>
-        );
-      case 'study_tasks': {
-        const todayStr = getLocalDateStr(new Date());
-        const upcomingReviews: { subjectName: string; topicName: string; daysUntil: number; reviewType: string }[] = [];
-
-        // Helper para verificar se a tarefa já possui sessão realizada ou status realizado
-        const isStudyCompleted = (s: ScheduledStudy) => {
-          if (s.status === 'realizado') return true;
-          if (!sessions || sessions.length === 0) return false;
-          return sessions.some(sess =>
-            sess.id === s.id ||
-            (sess.subjectId === s.subjectId && sess.topicId === s.topicId && sess.date && sess.date.split('T')[0] === s.date.split('T')[0])
-          );
-        };
-
-        const candidateStudies = (scheduledStudies || []).filter(s => s.date && s.date <= todayStr);
-
-        // Agrupar tarefas por groupId (alinhado com o Planner)
-        const groupedMap = new Map<string, ScheduledStudy[]>();
-        const nonGrouped: ScheduledStudy[] = [];
-
-        candidateStudies.forEach(s => {
-          const { groupId } = parseNotesGroup(s.notes);
-          if (groupId) {
-            if (!groupedMap.has(groupId)) {
-              groupedMap.set(groupId, []);
-            }
-            groupedMap.get(groupId)!.push(s);
-          } else {
-            nonGrouped.push(s);
-          }
-        });
-
-        // 1. Processar tarefas agrupadas por groupId
-        groupedMap.forEach((tasks) => {
-          const isAnyDone = tasks.some(t => isStudyCompleted(t));
-          if (isAnyDone) return;
-
-          const firstTask = tasks[0];
-          const subIds = Array.from(new Set(tasks.map(t => t.subjectId).filter(Boolean)));
-          const topIds = Array.from(new Set(tasks.map(t => t.topicId).filter(Boolean)));
-
-          const subNames = subIds.map(id => subjects.find(s => s.id === id)?.name).filter(Boolean).join(', ');
-          const topTitles = topIds.map(id => {
-            for (const sub of subjects) {
-              const found = sub.topics?.find(t => t.id === id);
-              if (found) return found.title;
-            }
-            return null;
-          }).filter(Boolean);
-
-          const { cleanNotes } = parseNotesGroup(firstTask.notes);
-          const combinedTopicTitle = topTitles.length > 0 ? topTitles.join(', ') : (cleanNotes || firstTask.activityType || 'Estudo Pendente');
-
-          let sDateMs = new Date(firstTask.date).getTime();
-          sDateMs += new Date(firstTask.date).getTimezoneOffset() * 60000;
-          const sDateNoon = new Date(sDateMs).setHours(12, 0, 0, 0);
-          const todayNoon = new Date().setHours(12, 0, 0, 0);
-
-          const diffDays = Math.round((todayNoon - sDateNoon) / (1000 * 60 * 60 * 24));
-          const isDelayed = diffDays > 0;
-
-          let labelType = 'Tarefa Programada';
-          if (firstTask.activityType && (firstTask.activityType.toLowerCase().includes('revisão') || firstTask.activityType.toLowerCase().includes('revisao'))) {
-            labelType = isDelayed ? 'Revisão Atrasada' : 'Revisão';
-          } else {
-            labelType = isDelayed ? 'Tarefa Atrasada' : 'Tarefa Programada';
-          }
-
-          upcomingReviews.push({
-            subjectName: subNames || 'Estudo',
-            topicName: combinedTopicTitle,
-            daysUntil: diffDays < 0 ? 0 : diffDays,
-            reviewType: labelType
-          });
-        });
-
-        // 2. Processar tarefas individuais não agrupadas
-        nonGrouped.forEach(s => {
-          if (isStudyCompleted(s)) return;
-
-          const sub = subjects.find(sub => sub.id === s.subjectId);
-          if (sub) {
-            const topic = sub.topics?.find(t => t.id === s.topicId);
-            let sDateMs = new Date(s.date).getTime();
-            sDateMs += new Date(s.date).getTimezoneOffset() * 60000;
-            const sDateNoon = new Date(sDateMs).setHours(12, 0, 0, 0);
-            const todayNoon = new Date().setHours(12, 0, 0, 0);
-
-            const diffDays = Math.round((todayNoon - sDateNoon) / (1000 * 60 * 60 * 24));
-            const isDelayed = diffDays > 0;
-
-            let labelType = 'Tarefa Programada';
-            if (s.activityType && (s.activityType.toLowerCase().includes('revisão') || s.activityType.toLowerCase().includes('revisao'))) {
-              labelType = isDelayed ? 'Revisão Atrasada' : 'Revisão';
-            } else {
-              labelType = isDelayed ? 'Tarefa Atrasada' : 'Tarefa Programada';
-            }
-
-            upcomingReviews.push({
-              subjectName: sub.name,
-              topicName: topic?.title || s.activityType || 'Estudo Pendente',
-              daysUntil: diffDays < 0 ? 0 : diffDays,
-              reviewType: labelType
-            });
-          }
-        });
-
-        // Sort by delay (delayed tasks first, then scheduled for today)
-        upcomingReviews.sort((a, b) => b.daysUntil - a.daysUntil);
-
-        return (
-          <div className="flex flex-col h-full gap-2">
-            {upcomingReviews.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full opacity-60 space-y-2">
-                <div className="w-9 h-9 rounded-full bg-zinc-50 dark:bg-zinc-800 flex items-center justify-center text-zinc-500 shadow-sm">
-                  <Check className="w-5 h-5" />
-                </div>
-                <p className="text-[10px] font-bold text-zinc-600 dark:text-zinc-300">Nenhuma atividade pendente!</p>
-              </div>
-            ) : (
-              <div className="space-y-2 overflow-y-auto max-h-full pr-1">
-                {upcomingReviews.slice(0, 3).map((rev, i) => {
-                  const isToday = rev.daysUntil === 0;
-                  const isDelayed1d = rev.daysUntil === 1;
-                  const isDelayed2dPlus = rev.daysUntil >= 2;
-
-                  let cardClass = "flex items-center gap-2.5 rounded-xl p-3 border transition-all duration-300 ";
-                  if (isToday) {
-                    cardClass += "bg-zinc-50 dark:bg-zinc-800/30 border-zinc-100 dark:border-zinc-800 hover:border-zinc-200 dark:hover:border-zinc-700";
-                  } else if (isDelayed1d) {
-                    cardClass += "bg-amber-50/15 dark:bg-amber-950/10 border-amber-200/25 dark:border-amber-900/20 hover:border-amber-300/40 dark:hover:border-amber-800/30 shadow-xs";
-                  } else {
-                    cardClass += "bg-rose-50/15 dark:bg-rose-950/10 border-rose-200/25 dark:border-rose-900/20 hover:border-rose-300/40 dark:hover:border-rose-800/30 shadow-xs";
-                  }
-
-                  let badgeColorClass = "";
-                  if (isToday) {
-                    badgeColorClass = "bg-blue-500 text-white font-black";
-                  } else if (isDelayed1d) {
-                    badgeColorClass = "bg-amber-500 text-white font-black shadow-sm shadow-amber-500/20";
-                  } else {
-                    badgeColorClass = "bg-rose-600 text-white font-black shadow-sm shadow-rose-600/30 animate-pulse";
-                  }
-
-                  return (
-                    <div key={i} className={cardClass}>
-                      <div className={`w-8 h-8 rounded-full shrink-0 flex items-center justify-center text-[9px] ${badgeColorClass}`}>
-                        {isToday ? 'Hoje' : `${rev.daysUntil}d`}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-[11px] font-bold text-zinc-700 dark:text-zinc-200 truncate">{rev.subjectName}</p>
-                        <p className="text-[9px] text-zinc-400 dark:text-zinc-550 truncate mt-0.5">{rev.topicName}</p>
-                      </div>
-                      {isToday ? (
-                        <span className="shrink-0 text-[8px] font-black uppercase text-zinc-400 bg-zinc-100 dark:bg-zinc-700 px-2 py-0.5 rounded-full">
-                          {rev.reviewType}
-                        </span>
-                      ) : isDelayed1d ? (
-                        <span className="shrink-0 flex items-center gap-0.5 text-[8px] font-black uppercase text-amber-700 bg-amber-100 dark:text-amber-300 dark:bg-amber-900/50 px-2 py-0.5 rounded-full border border-amber-200/50 dark:border-amber-800/40">
-                          <AlertCircle size={9} />
-                          Atrasada
-                        </span>
-                      ) : (
-                        <span className="shrink-0 flex items-center gap-0.5 text-[8px] font-black uppercase text-rose-700 bg-rose-100 dark:text-rose-300 dark:bg-rose-900/55 px-2 py-0.5 rounded-full border border-rose-200/50 dark:border-rose-800/40 animate-pulse">
-                          <AlertTriangle size={9} className="animate-bounce text-rose-500" />
-                          Atrasada
-                        </span>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        );
-      }
+              );
       case 'weekly_chart':
         return (
           <div className="flex flex-col h-full">
@@ -1767,50 +1612,58 @@ const Dashboard: React.FC<DashboardProps> = ({
         );
       case 'flashcards_overview': {
         const dueCount = flashcardStats?.due ?? 0;
+        const learningCount = flashcardStats?.learning ?? 0;
         const newCount = flashcardStats?.newCards ?? 0;
         const totalCount = flashcardStats?.total ?? 0;
+        const reviewedToday = flashcardStats?.reviewedToday ?? 0;
+        const totalDue = dueCount + learningCount;
 
         return (
-          <div className="flex flex-col h-full justify-between gap-3 p-1">
+          <div className="flex flex-col h-full justify-between gap-2.5 p-1">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
-                  <Layers size={16} />
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold text-zinc-800 dark:text-zinc-100">Flashcards FSRS</h4>
-                  <p className="text-[10px] text-zinc-400">Repetição Espaçada</p>
-                </div>
+              <div>
+                <h4 className="text-xs font-black uppercase tracking-tight text-zinc-900 dark:text-white flex items-center gap-1.5">
+                  Flashcards
+                  <span className="text-[9px] font-mono font-bold text-indigo-500 bg-indigo-50 dark:bg-indigo-950/60 px-1.5 py-0.5 rounded border border-indigo-200/50">
+                    FSRS 4.5
+                  </span>
+                </h4>
+                <p className="text-[10px] text-zinc-400">Repetição Espaçada</p>
               </div>
               <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${
-                dueCount > 0 ? 'bg-amber-100 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400' : 'bg-emerald-100 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400'
+                totalDue > 0 ? 'bg-amber-100 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400' : 'bg-emerald-100 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400'
               }`}>
-                {dueCount > 0 ? `${dueCount} pendentes` : 'Em dia'}
+                {totalDue > 0 ? `${totalDue} pendentes` : 'Em dia'}
               </span>
             </div>
 
+            {/* 3 COLUNAS DO ANKI: NOVO, APRENDER, REVISAR */}
             <div className="grid grid-cols-3 gap-2">
-              <div className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200/60 dark:border-zinc-800 text-center">
-                <span className="text-[9px] font-bold uppercase text-zinc-400 block mb-0.5">Pendentes</span>
-                <span className="text-base font-black text-amber-500">{dueCount}</span>
+              <div className="p-2.5 rounded-xl bg-blue-50/60 dark:bg-blue-950/20 border border-blue-200/60 dark:border-blue-900/40 text-center">
+                <span className="text-[9px] font-bold uppercase text-blue-600 dark:text-blue-400 block mb-0.5">Novo</span>
+                <span className="text-base font-black text-blue-600 dark:text-blue-400 font-mono">{newCount}</span>
               </div>
-              <div className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200/60 dark:border-zinc-800 text-center">
-                <span className="text-[9px] font-bold uppercase text-zinc-400 block mb-0.5">Novos</span>
-                <span className="text-base font-black text-blue-500">{newCount}</span>
+              <div className="p-2.5 rounded-xl bg-rose-50/60 dark:bg-rose-950/20 border border-rose-200/60 dark:border-rose-900/40 text-center">
+                <span className="text-[9px] font-bold uppercase text-rose-600 dark:text-rose-400 block mb-0.5">Aprender</span>
+                <span className="text-base font-black text-rose-600 dark:text-rose-400 font-mono">{learningCount}</span>
               </div>
-              <div className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200/60 dark:border-zinc-800 text-center">
-                <span className="text-[9px] font-bold uppercase text-zinc-400 block mb-0.5">Coleção</span>
-                <span className="text-base font-black text-zinc-700 dark:text-zinc-200">{totalCount}</span>
+              <div className="p-2.5 rounded-xl bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200/60 dark:border-emerald-900/40 text-center">
+                <span className="text-[9px] font-bold uppercase text-emerald-600 dark:text-emerald-400 block mb-0.5">Revisar</span>
+                <span className="text-base font-black text-emerald-600 dark:text-emerald-400 font-mono">{dueCount}</span>
               </div>
+            </div>
+
+            <div className="flex items-center justify-between text-[10px] text-zinc-500 dark:text-zinc-400 px-1 font-medium">
+              <span>Coleção: <strong className="text-zinc-700 dark:text-zinc-200 font-mono">{totalCount}</strong></span>
+              <span>Revisados hoje: <strong className="text-zinc-700 dark:text-zinc-200 font-mono">{reviewedToday}</strong></span>
             </div>
 
             <button
               type="button"
               onClick={() => onNavigateTab?.('flashcards')}
-              className="w-full py-2 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-sm"
+              className="w-full py-2.5 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-sm cursor-pointer"
             >
-              <Layers size={13} />
-              <span>Estudar Flashcards</span>
+              <span>Praticar Flashcards</span>
             </button>
           </div>
         );
@@ -1973,7 +1826,7 @@ const Dashboard: React.FC<DashboardProps> = ({
           const heightClass = (() => {
             if (widget.id === 'general_stats') return 'min-h-[170px]';
             if (widget.id === 'study_frequency') return 'min-h-[190px]';
-            if (widget.id === 'study_tasks') return 'min-h-[260px]';
+            if (widget.id === 'flashcards_overview') return 'min-h-[260px]';
             if (widget.id === 'weekly_chart') return 'min-h-[260px]';
             if (widget.id === 'general_summary') return 'min-h-[260px]';
             if (widget.id === 'unified_subject_analysis') return 'min-h-[260px]';
@@ -1990,7 +1843,7 @@ const Dashboard: React.FC<DashboardProps> = ({
               className={`${sizeClass} ${heightClass} ${widget.isVisible ? 'opacity-100' : 'opacity-40'} bg-white dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm relative group hover:shadow-md transition-all duration-300 flex flex-col ${isEditMode ? 'cursor-move ring-2 ring-emerald-500/20' : ''} ${draggedWidgetIndex === index ? 'opacity-50 scale-95' : ''}`}
             >
               <div className="flex justify-between items-center mb-3 shrink-0">
-                <h4 className="text-[10px] font-black text-zinc-800 dark:text-zinc-200 uppercase tracking-widest bg-zinc-50 dark:bg-zinc-800/50 px-2.5 py-1 rounded-full">{widget.id === 'study_tasks' ? 'Tarefas Pendentes' : widget.id === 'study_frequency' ? 'Disciplina e Assunto' : widget.title}</h4>
+                <h4 className="text-[10px] font-black text-zinc-800 dark:text-zinc-200 uppercase tracking-widest bg-zinc-50 dark:bg-zinc-800/50 px-2.5 py-1 rounded-full">{widget.id === 'flashcards_overview' ? 'Flashcards' : widget.id === 'study_frequency' ? 'Disciplina e Assunto' : widget.title}</h4>
                 <div className="flex gap-2 items-center">
                   {!isEditMode && ['weekly_chart', 'unified_subject_analysis'].includes(widget.id) && (
                     <button

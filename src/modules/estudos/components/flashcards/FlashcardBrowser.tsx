@@ -235,14 +235,16 @@ export const FlashcardBrowser: React.FC<FlashcardBrowserProps> = ({
                       )}
                     </div>
 
-                    <div className="font-bold text-xs sm:text-sm text-zinc-900 dark:text-white line-clamp-2 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
-                      {item.card.front}
-                    </div>
+                    <div
+                      className="font-bold text-xs sm:text-sm text-zinc-900 dark:text-white line-clamp-2 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors"
+                      dangerouslySetInnerHTML={{ __html: item.card.front }}
+                    />
 
                     {item.card.card_type !== 'cloze' && (
-                      <div className="text-xs text-zinc-500 dark:text-zinc-400 line-clamp-1">
-                        {item.card.back}
-                      </div>
+                      <div
+                        className="text-xs text-zinc-500 dark:text-zinc-400 line-clamp-1"
+                        dangerouslySetInnerHTML={{ __html: item.card.back }}
+                      />
                     )}
 
                     {item.card.tags.length > 0 && (

@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { FlashcardDeck, FlashcardType, Flashcard, CardWithState } from '../../types/flashcards';
 import { Subject, Topic } from '../../types';
+import { RichTextToolbar } from './RichTextToolbar';
 
 interface FlashcardEditorProps {
   decks: FlashcardDeck[];
@@ -12,6 +13,7 @@ interface FlashcardEditorProps {
   onSave: (cardData: {
     id?: string;
     deck_id: string;
+    deck_ids?: string[];
     card_type: FlashcardType;
     front: string;
     back: string;
@@ -37,7 +39,14 @@ export const FlashcardEditor: React.FC<FlashcardEditorProps> = ({
     ? ('card' in editingCard ? (editingCard as CardWithState).card : (editingCard as Flashcard))
     : null;
 
-  const [deckId, setDeckId] = useState(targetCard?.deck_id || initialDeckId || decks[0]?.id || '');
+  // Baralhos selecionados (permite 1 ou múltiplos baralhos)
+  const [selectedDeckIds, setSelectedDeckIds] = useState<string[]>(() => {
+    if (targetCard?.deck_id) return [targetCard.deck_id];
+    if (initialDeckId) return [initialDeckId];
+    if (decks.length > 0) return [decks[0].id];
+    return [];
+  });
+
   const [subjectId, setSubjectId] = useState(targetCard?.subject_id || initialSubjectId || '');
   const [topicId, setTopicId] = useState(targetCard?.topic_id || initialTopicId || '');
   const [cardType, setCardType] = useState<FlashcardType>(targetCard?.card_type || 'basic');
@@ -53,29 +62,32 @@ export const FlashcardEditor: React.FC<FlashcardEditorProps> = ({
 
   const clozeTextareaRef = useRef<HTMLTextAreaElement>(null);
   const frontTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const backTextareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Selecionar o primeiro deck disponível caso não haja
+  // Selecionar o primeiro deck disponível caso a lista inicial esteja vazia
   useEffect(() => {
-    if (!deckId && decks.length > 0) {
-      setDeckId(decks[0].id);
+    if (selectedDeckIds.length === 0 && decks.length > 0) {
+      setSelectedDeckIds([decks[0].id]);
     }
-  }, [decks, deckId]);
+  }, [decks, selectedDeckIds]);
 
-  // Se o baralho selecionado tiver subject_id vinculado, autocompletar
+  // Se o primeiro baralho selecionado tiver subject_id vinculado, autocompletar disciplina
   useEffect(() => {
-    const selDeck = decks.find(d => d.id === deckId);
-    if (selDeck?.subject_id && !subjectId) {
-      setSubjectId(selDeck.subject_id);
-      if (selDeck.topic_id && !topicId) {
-        setTopicId(selDeck.topic_id);
+    if (selectedDeckIds.length > 0 && !subjectId) {
+      const primaryDeck = decks.find(d => d.id === selectedDeckIds[0]);
+      if (primaryDeck?.subject_id) {
+        setSubjectId(primaryDeck.subject_id);
+        if (primaryDeck.topic_id && !topicId) {
+          setTopicId(primaryDeck.topic_id);
+        }
       }
     }
-  }, [deckId, decks, subjectId, topicId]);
+  }, [selectedDeckIds, decks, subjectId, topicId]);
 
   const selectedSubject = subjects.find(s => s.id === subjectId);
   const availableTopics: Topic[] = selectedSubject?.topics || [];
 
-  // Atalho para Cloze: Ctrl + Shift + C
+  // Inserir lacuna (Cloze): insere marcador {{c1::palavra}}
   const handleInsertCloze = () => {
     const textarea = clozeTextareaRef.current;
     if (!textarea) return;
@@ -84,20 +96,17 @@ export const FlashcardEditor: React.FC<FlashcardEditorProps> = ({
     const end = textarea.selectionEnd;
     const selectedText = clozeText.substring(start, end) || 'palavra';
 
-    // Determinar próximo índice de cloze (c1, c2, etc.)
-    const existingMatches = clozeText.match(/\{\{c(\d+)::/g) || [];
-    const nextIndex = existingMatches.length + 1;
-
+    // Determinar o índice do cloze (usa c1 como padrão para todos serem ocultados no mesmo cartão)
     const before = clozeText.substring(0, start);
     const after = clozeText.substring(end);
-    const replacement = `{{c${nextIndex}::${selectedText}}}`;
+    const replacement = `{{c1::${selectedText}}}`;
 
     setClozeText(before + replacement + after);
 
     setTimeout(() => {
       textarea.focus();
       textarea.setSelectionRange(start + 6, start + 6 + selectedText.length);
-    }, 50);
+    }, 40);
   };
 
   // Atalhos de teclado no formulário (Ctrl+Enter para salvar)
@@ -115,7 +124,7 @@ export const FlashcardEditor: React.FC<FlashcardEditorProps> = ({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [front, back, clozeText, cardType, deckId, tags, subjectId, topicId]);
+  }, [front, back, clozeText, cardType, selectedDeckIds, tags, subjectId, topicId]);
 
   const handleAddTag = () => {
     const clean = tagInput.trim().replace(/^#/, '');
@@ -129,8 +138,18 @@ export const FlashcardEditor: React.FC<FlashcardEditorProps> = ({
     setTags(tags.filter(t => t !== tagToRemove));
   };
 
+  const handleToggleDeck = (id: string) => {
+    if (selectedDeckIds.includes(id)) {
+      if (selectedDeckIds.length > 1) {
+        setSelectedDeckIds(selectedDeckIds.filter(dId => dId !== id));
+      }
+    } else {
+      setSelectedDeckIds([...selectedDeckIds, id]);
+    }
+  };
+
   const handleSubmit = async (createAnother: boolean) => {
-    if (!deckId) return;
+    if (selectedDeckIds.length === 0) return;
 
     if (cardType === 'cloze') {
       if (!clozeText.trim()) return;
@@ -142,7 +161,8 @@ export const FlashcardEditor: React.FC<FlashcardEditorProps> = ({
     try {
       await onSave({
         id: targetCard?.id,
-        deck_id: deckId,
+        deck_id: selectedDeckIds[0],
+        deck_ids: selectedDeckIds,
         card_type: cardType,
         front: cardType === 'cloze' ? clozeText : front,
         back: cardType === 'cloze' ? 'Cloze revelado' : back,
@@ -186,8 +206,9 @@ export const FlashcardEditor: React.FC<FlashcardEditorProps> = ({
           </div>
 
           <button
+            type="button"
             onClick={onClose}
-            className="w-8 h-8 rounded-full flex items-center justify-center text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors text-sm font-bold"
+            className="w-8 h-8 rounded-full flex items-center justify-center text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors text-sm font-bold cursor-pointer"
           >
             ✕
           </button>
@@ -204,7 +225,7 @@ export const FlashcardEditor: React.FC<FlashcardEditorProps> = ({
               <button
                 type="button"
                 onClick={() => setCardType('basic')}
-                className={`py-2.5 px-3 rounded-2xl text-xs font-bold uppercase transition-all border ${
+                className={`py-2.5 px-3 rounded-2xl text-xs font-bold uppercase transition-all border cursor-pointer ${
                   cardType === 'basic'
                     ? 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 border-transparent shadow-sm'
                     : 'border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800/50'
@@ -216,7 +237,7 @@ export const FlashcardEditor: React.FC<FlashcardEditorProps> = ({
               <button
                 type="button"
                 onClick={() => setCardType('reversed')}
-                className={`py-2.5 px-3 rounded-2xl text-xs font-bold uppercase transition-all border ${
+                className={`py-2.5 px-3 rounded-2xl text-xs font-bold uppercase transition-all border cursor-pointer ${
                   cardType === 'reversed'
                     ? 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 border-transparent shadow-sm'
                     : 'border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800/50'
@@ -228,7 +249,7 @@ export const FlashcardEditor: React.FC<FlashcardEditorProps> = ({
               <button
                 type="button"
                 onClick={() => setCardType('cloze')}
-                className={`py-2.5 px-3 rounded-2xl text-xs font-bold uppercase transition-all border ${
+                className={`py-2.5 px-3 rounded-2xl text-xs font-bold uppercase transition-all border cursor-pointer ${
                   cardType === 'cloze'
                     ? 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 border-transparent shadow-sm'
                     : 'border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800/50'
@@ -239,25 +260,51 @@ export const FlashcardEditor: React.FC<FlashcardEditorProps> = ({
             </div>
           </div>
 
-          {/* BARALHO E MATÉRIA */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="text-[10px] font-black uppercase tracking-wider text-zinc-400 mb-1.5 block">
-                Baralho *
+          {/* VINCULAÇÃO A MÚLTIPLOS BARALHOS */}
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-[10px] font-black uppercase tracking-wider text-zinc-400 block">
+                Baralhos Vinculados * ({selectedDeckIds.length} selecionado{selectedDeckIds.length === 1 ? '' : 's'})
               </label>
-              <select
-                value={deckId}
-                onChange={e => setDeckId(e.target.value)}
-                className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-2xl text-xs font-bold text-zinc-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
-              >
-                {decks.map(d => (
-                  <option key={d.id} value={d.id}>
-                    {d.name}
-                  </option>
-                ))}
-              </select>
+              <span className="text-[10px] text-zinc-400">Você pode vincular a mais de um baralho</span>
             </div>
 
+            <div className="flex flex-wrap gap-2 max-h-36 overflow-y-auto p-3 bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700/80 rounded-2xl custom-scrollbar">
+              {decks.length === 0 ? (
+                <span className="text-xs text-zinc-400">Nenhum baralho disponível.</span>
+              ) : (
+                decks.map(d => {
+                  const isSelected = selectedDeckIds.includes(d.id);
+                  return (
+                    <button
+                      key={d.id}
+                      type="button"
+                      onClick={() => handleToggleDeck(d.id)}
+                      className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer border ${
+                        isSelected
+                          ? 'bg-white dark:bg-zinc-900 border-indigo-500 text-zinc-900 dark:text-white shadow-xs ring-1 ring-indigo-500/30 font-bold'
+                          : 'bg-zinc-100/70 dark:bg-zinc-800/80 border-zinc-200/80 dark:border-zinc-700/60 text-zinc-500 dark:text-zinc-400 hover:border-zinc-300'
+                      }`}
+                    >
+                      <span
+                        className="w-2.5 h-2.5 rounded-full shrink-0"
+                        style={{ backgroundColor: d.color || '#3b82f6' }}
+                      />
+                      <span className="truncate max-w-[190px]">{d.name}</span>
+                      {isSelected && (
+                        <span className="text-[11px] text-indigo-600 dark:text-indigo-400 font-black ml-0.5">
+                          ✓
+                        </span>
+                      )}
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          </div>
+
+          {/* DISCIPLINA E TÓPICO */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="text-[10px] font-black uppercase tracking-wider text-zinc-400 mb-1.5 block">
                 Disciplina Vinculada (Opcional)
@@ -278,18 +325,16 @@ export const FlashcardEditor: React.FC<FlashcardEditorProps> = ({
                 ))}
               </select>
             </div>
-          </div>
 
-          {/* ASSUNTO / TÓPICO SE HOUVER DISCIPLINA */}
-          {subjectId && availableTopics.length > 0 && (
-            <div className="animate-in fade-in">
+            <div>
               <label className="text-[10px] font-black uppercase tracking-wider text-zinc-400 mb-1.5 block">
                 Assunto Específico (Opcional)
               </label>
               <select
                 value={topicId}
                 onChange={e => setTopicId(e.target.value)}
-                className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-2xl text-xs font-bold text-zinc-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
+                disabled={!subjectId || availableTopics.length === 0}
+                className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-2xl text-xs font-bold text-zinc-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
               >
                 <option value="">Geral da disciplina</option>
                 {availableTopics.map(t => (
@@ -299,43 +344,48 @@ export const FlashcardEditor: React.FC<FlashcardEditorProps> = ({
                 ))}
               </select>
             </div>
-          )}
+          </div>
 
-          {/* CAMPOS DE CONTEÚDO */}
+          {/* CAMPOS DE CONTEÚDO COM EDITOR RICO */}
           {cardType === 'cloze' ? (
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="text-[10px] font-black uppercase tracking-wider text-zinc-400 block">
-                  Texto com Lacuna (Cloze)
-                </label>
-                <button
-                  type="button"
-                  onClick={handleInsertCloze}
-                  className="px-2.5 py-1 text-[10px] font-bold uppercase rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-200/50 dark:border-indigo-800/50 hover:bg-indigo-100 flex items-center gap-1 cursor-pointer"
-                  title="Selecione o texto e clique para criar lacuna (Ctrl+Shift+C)"
-                >
-                  Inserir Lacuna [Ctrl+Shift+C]
-                </button>
-              </div>
+              <label className="text-[10px] font-black uppercase tracking-wider text-zinc-400 block">
+                Texto com Lacuna (Cloze)
+              </label>
+
+              {/* TOOLBAR RICA PARA CLOZE */}
+              <RichTextToolbar
+                textareaRef={clozeTextareaRef}
+                value={clozeText}
+                onChange={setClozeText}
+                showClozeButton={true}
+                onInsertCloze={handleInsertCloze}
+              />
 
               <textarea
                 ref={clozeTextareaRef}
                 rows={5}
-                placeholder="Exemplo: O {{c1::erro de tipo essencial}} exclui o dolo."
+                placeholder="Exemplo: O {{c1::erro de tipo essencial}} exclui o {{c1::dolo}}."
                 value={clozeText}
                 onChange={e => setClozeText(e.target.value)}
                 className="w-full p-4 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-2xl text-sm font-medium text-zinc-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 leading-relaxed font-sans"
               />
               <p className="text-[11px] text-zinc-400">
-                Dica: selecione uma palavra no texto acima e aperte <kbd className="px-1 py-0.5 bg-zinc-200 dark:bg-zinc-800 rounded font-mono">Ctrl+Shift+C</kbd> para ocultá-la durante a revisão.
+                Selecione as palavras que deseja ocultar e use o botão <strong>"[ ... ] Ocultar Palavra"</strong> ou o atalho <kbd className="px-1 py-0.5 bg-zinc-200 dark:bg-zinc-800 rounded font-mono">Ctrl+Shift+C</kbd>. Todas as palavras ocultadas serão mascaradas na revisão.
               </p>
             </div>
           ) : (
             <div className="space-y-4">
-              <div>
-                <label className="text-[10px] font-black uppercase tracking-wider text-zinc-400 mb-1.5 block">
+              {/* FRENTE COM TOOLBAR */}
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black uppercase tracking-wider text-zinc-400 block">
                   Frente (Pergunta ou Conceito)
                 </label>
+                <RichTextToolbar
+                  textareaRef={frontTextareaRef}
+                  value={front}
+                  onChange={setFront}
+                />
                 <textarea
                   ref={frontTextareaRef}
                   rows={3}
@@ -346,11 +396,18 @@ export const FlashcardEditor: React.FC<FlashcardEditorProps> = ({
                 />
               </div>
 
-              <div>
-                <label className="text-[10px] font-black uppercase tracking-wider text-zinc-400 mb-1.5 block">
+              {/* VERSO COM TOOLBAR */}
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black uppercase tracking-wider text-zinc-400 block">
                   Verso (Resposta)
                 </label>
+                <RichTextToolbar
+                  textareaRef={backTextareaRef}
+                  value={back}
+                  onChange={setBack}
+                />
                 <textarea
+                  ref={backTextareaRef}
                   rows={3}
                   placeholder="Ex: 5 anos (art. 206, § 5º, I do Código Civil)."
                   value={back}
@@ -383,7 +440,7 @@ export const FlashcardEditor: React.FC<FlashcardEditorProps> = ({
               <button
                 type="button"
                 onClick={handleAddTag}
-                className="px-4 py-2 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 rounded-xl text-xs font-bold uppercase transition-all"
+                className="px-4 py-2 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 rounded-xl text-xs font-bold uppercase transition-all cursor-pointer"
               >
                 Adicionar
               </button>
@@ -400,7 +457,7 @@ export const FlashcardEditor: React.FC<FlashcardEditorProps> = ({
                     <button
                       type="button"
                       onClick={() => handleRemoveTag(t)}
-                      className="hover:text-rose-500 ml-0.5"
+                      className="hover:text-rose-500 ml-0.5 cursor-pointer"
                     >
                       ×
                     </button>

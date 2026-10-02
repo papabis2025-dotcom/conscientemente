@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { FlashcardDeck } from '../../types/flashcards';
 import { Subject } from '../../types';
 import { ColorPickerPalette } from '../ColorPickerPalette';
 import { getColorHex } from '../../utils/colors';
+import { RichTextToolbar } from './RichTextToolbar';
 
 interface FlashcardDeckManagerProps {
   decks: FlashcardDeck[];
@@ -39,6 +40,7 @@ export const FlashcardDeckManager: React.FC<FlashcardDeckManagerProps> = ({
   const [subjectId, setSubjectId] = useState<string>('');
   const [color, setColor] = useState('#3b82f6');
   const [activeMenuDeckId, setActiveMenuDeckId] = useState<string | null>(null);
+  const descriptionTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleOpenCreate = (parentDeckId?: string) => {
     setEditingDeck(null);
@@ -364,6 +366,26 @@ export const FlashcardDeckManager: React.FC<FlashcardDeckManagerProps> = ({
                       </option>
                     ))}
                 </select>
+              </div>
+
+              {/* DESCRIÇÃO COM EDITOR RICO */}
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black uppercase tracking-wider text-zinc-400 block">
+                  Descrição / Orientações do Baralho (Opcional)
+                </label>
+                <RichTextToolbar
+                  textareaRef={descriptionTextareaRef}
+                  value={description}
+                  onChange={setDescription}
+                />
+                <textarea
+                  ref={descriptionTextareaRef}
+                  rows={3}
+                  placeholder="Ex: Orientações de estudo, regras mnemônicas, anotações com marcação..."
+                  value={description}
+                  onChange={e => setDescription(e.target.value)}
+                  className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-medium text-zinc-900 dark:text-white outline-none focus:ring-1 focus:ring-indigo-500 leading-relaxed"
+                />
               </div>
 
               {/* SELETOR DE COR IDÊNTICO AO DE DISCIPLINAS */}

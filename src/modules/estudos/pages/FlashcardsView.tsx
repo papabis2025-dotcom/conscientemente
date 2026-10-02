@@ -155,11 +155,12 @@ export const FlashcardsView: React.FC<FlashcardsViewProps> = ({
     loadData();
   };
 
-  // Salvar ou atualizar cartão no Supabase
+  // Salvar ou atualizar cartão no Supabase (suporta múltiplos baralhos)
   const handleSaveCard = async (
     cardData: {
       id?: string;
       deck_id: string;
+      deck_ids?: string[];
       card_type: FlashcardType;
       front: string;
       back: string;
@@ -170,10 +171,32 @@ export const FlashcardsView: React.FC<FlashcardsViewProps> = ({
     },
     createAnother: boolean
   ) => {
+    const targetDeckIds = cardData.deck_ids && cardData.deck_ids.length > 0
+      ? cardData.deck_ids
+      : [cardData.deck_id];
+
     if (cardData.id) {
-      await flashcardsApi.cards.update(cardData.id, cardData);
+      await flashcardsApi.cards.update(cardData.id, {
+        ...cardData,
+        deck_id: targetDeckIds[0]
+      });
+
+      if (targetDeckIds.length > 1) {
+        for (let i = 1; i < targetDeckIds.length; i++) {
+          await flashcardsApi.cards.create({
+            ...cardData,
+            id: undefined,
+            deck_id: targetDeckIds[i]
+          });
+        }
+      }
     } else {
-      await flashcardsApi.cards.create(cardData);
+      for (const dId of targetDeckIds) {
+        await flashcardsApi.cards.create({
+          ...cardData,
+          deck_id: dId
+        });
+      }
     }
 
     if (!createAnother) {

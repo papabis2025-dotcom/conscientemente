@@ -35,6 +35,7 @@ export interface FlashcardDeck {
   card_count?: number;
   due_count?: number;
   new_count?: number;
+  learning_count?: number;
   children?: FlashcardDeck[];
 }
 
@@ -102,6 +103,12 @@ export interface FlashcardSettings {
   request_retention: number; // Ex: 0.9 (90%)
   show_next_review_time: boolean;
   enable_keyboard_shortcuts: boolean;
+  // Espaçamentos e multiplicadores por classificação:
+  again_interval_minutes?: number; // Padrão: 10
+  hard_factor?: number; // Padrão: 1.2
+  good_factor?: number; // Padrão: 1.0
+  easy_bonus?: number; // Padrão: 1.3
+  maximum_interval_days?: number; // Padrão: 36500
   created_at?: string;
   updated_at?: string;
 }

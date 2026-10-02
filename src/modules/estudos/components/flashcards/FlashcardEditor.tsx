@@ -1,17 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { FlashcardDeck, FlashcardType } from '../../types/flashcards';
+import { FlashcardDeck, FlashcardType, Flashcard, CardWithState } from '../../types/flashcards';
 import { Subject, Topic } from '../../types';
-import {
-  X,
-  Save,
-  Plus,
-  Tag as TagIcon,
-  Layers,
-  Sparkles,
-  HelpCircle,
-  Scissors,
-  Check
-} from 'lucide-react';
 
 interface FlashcardEditorProps {
   decks: FlashcardDeck[];
@@ -19,7 +8,9 @@ interface FlashcardEditorProps {
   initialDeckId?: string;
   initialSubjectId?: string;
   initialTopicId?: string;
+  editingCard?: CardWithState | Flashcard | null;
   onSave: (cardData: {
+    id?: string;
     deck_id: string;
     card_type: FlashcardType;
     front: string;
@@ -38,20 +29,27 @@ export const FlashcardEditor: React.FC<FlashcardEditorProps> = ({
   initialDeckId,
   initialSubjectId,
   initialTopicId,
+  editingCard,
   onSave,
   onClose,
 }) => {
-  const [deckId, setDeckId] = useState(initialDeckId || decks[0]?.id || '');
-  const [subjectId, setSubjectId] = useState(initialSubjectId || '');
-  const [topicId, setTopicId] = useState(initialTopicId || '');
-  const [cardType, setCardType] = useState<FlashcardType>('basic');
-  const [front, setFront] = useState('');
-  const [back, setBack] = useState('');
-  const [clozeText, setClozeText] = useState('');
+  const targetCard: Flashcard | null = editingCard
+    ? ('card' in editingCard ? (editingCard as CardWithState).card : (editingCard as Flashcard))
+    : null;
+
+  const [deckId, setDeckId] = useState(targetCard?.deck_id || initialDeckId || decks[0]?.id || '');
+  const [subjectId, setSubjectId] = useState(targetCard?.subject_id || initialSubjectId || '');
+  const [topicId, setTopicId] = useState(targetCard?.topic_id || initialTopicId || '');
+  const [cardType, setCardType] = useState<FlashcardType>(targetCard?.card_type || 'basic');
+  const [front, setFront] = useState(targetCard?.front || '');
+  const [back, setBack] = useState(targetCard?.back || '');
+  const [clozeText, setClozeText] = useState(targetCard?.cloze_text || targetCard?.front || '');
   const [tagInput, setTagInput] = useState('');
-  const [tags, setTags] = useState<string[]>([]);
+  const [tags, setTags] = useState<string[]>(targetCard?.tags || []);
   const [isSaving, setIsSaving] = useState(false);
   const [successToast, setSuccessToast] = useState(false);
+
+  const isEditMode = !!targetCard;
 
   const clozeTextareaRef = useRef<HTMLTextAreaElement>(null);
   const frontTextareaRef = useRef<HTMLTextAreaElement>(null);
@@ -143,6 +141,7 @@ export const FlashcardEditor: React.FC<FlashcardEditorProps> = ({
     setIsSaving(true);
     try {
       await onSave({
+        id: targetCard?.id,
         deck_id: deckId,
         card_type: cardType,
         front: cardType === 'cloze' ? clozeText : front,
@@ -176,26 +175,21 @@ export const FlashcardEditor: React.FC<FlashcardEditorProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/75 backdrop-blur-sm p-4 overflow-y-auto animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[2.5rem] shadow-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-200 my-8">
+      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-200 my-8">
         {/* HEADER DO EDITOR */}
-        <div className="p-6 sm:p-8 pb-4 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-200/50 dark:border-indigo-800/50">
-              <Plus size={20} />
-            </div>
-            <div>
-              <h3 className="text-lg font-black uppercase tracking-tight text-zinc-900 dark:text-white">
-                Novo Flashcard
-              </h3>
-              <p className="text-xs text-zinc-400">Atalho: Ctrl+Enter para salvar rapidamente</p>
-            </div>
+        <div className="p-6 sm:p-7 pb-4 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between">
+          <div>
+            <h3 className="text-base font-black uppercase tracking-tight text-zinc-900 dark:text-white">
+              {isEditMode ? 'Editar Flashcard' : 'Novo Flashcard'}
+            </h3>
+            <p className="text-xs text-zinc-400">Atalho: Ctrl+Enter para salvar rapidamente</p>
           </div>
 
           <button
             onClick={onClose}
-            className="w-9 h-9 rounded-full flex items-center justify-center text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+            className="w-8 h-8 rounded-full flex items-center justify-center text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors text-sm font-bold"
           >
-            <X size={18} />
+            ✕
           </button>
         </div>
 
@@ -320,7 +314,7 @@ export const FlashcardEditor: React.FC<FlashcardEditorProps> = ({
                   className="px-2.5 py-1 text-[10px] font-bold uppercase rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-200/50 dark:border-indigo-800/50 hover:bg-indigo-100 flex items-center gap-1 cursor-pointer"
                   title="Selecione o texto e clique para criar lacuna (Ctrl+Shift+C)"
                 >
-                  <Scissors size={12} /> Inserir Lacuna [Ctrl+Shift+C]
+                  Inserir Lacuna [Ctrl+Shift+C]
                 </button>
               </div>
 
@@ -418,32 +412,34 @@ export const FlashcardEditor: React.FC<FlashcardEditorProps> = ({
         </div>
 
         {/* FOOTER COM BOTÕES DE SALVAMENTO */}
-        <div className="p-6 sm:p-8 pt-4 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between gap-3 bg-zinc-50/50 dark:bg-zinc-900/50">
+        <div className="p-6 sm:p-7 pt-4 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between gap-3 bg-zinc-50/50 dark:bg-zinc-900/50">
           <div className="flex items-center gap-2">
             {successToast && (
-              <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1 animate-in fade-in">
-                <Check size={14} /> Cartão salvo com sucesso!
+              <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 animate-in fade-in">
+                Cartão salvo com sucesso!
               </span>
             )}
           </div>
 
           <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => handleSubmit(true)}
-              disabled={isSaving}
-              className="px-4 py-3 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 font-bold uppercase text-xs rounded-2xl transition-all cursor-pointer disabled:opacity-50"
-            >
-              Salvar e Criar Outro
-            </button>
+            {!isEditMode && (
+              <button
+                type="button"
+                onClick={() => handleSubmit(true)}
+                disabled={isSaving}
+                className="px-4 py-2.5 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 font-bold uppercase text-xs rounded-xl transition-all cursor-pointer disabled:opacity-50"
+              >
+                Salvar e Criar Outro
+              </button>
+            )}
 
             <button
               type="button"
               onClick={() => handleSubmit(false)}
               disabled={isSaving}
-              className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold uppercase text-xs rounded-2xl shadow-lg shadow-indigo-600/20 active:scale-95 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+              className="px-5 py-2.5 bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-white text-white dark:text-zinc-900 font-bold uppercase text-xs rounded-xl shadow-md active:scale-95 transition-all cursor-pointer disabled:opacity-50"
             >
-              <Save size={16} /> Salvar
+              {isEditMode ? 'Atualizar Cartão' : 'Salvar Cartão'}
             </button>
           </div>
         </div>

@@ -58,32 +58,35 @@ export const flashcardsApi = {
           .eq('user_id', user.id);
 
         const now = new Date();
-        const dueCardsSet = new Set(
-          (states || [])
-            .filter(s => new Date(s.due_at) <= now || s.state === State.New)
-            .map(s => s.card_id)
-        );
+        const stateMap = new Map((states || []).map(s => [s.card_id, s]));
 
-        const newCardsSet = new Set(
-          (states || []).filter(s => s.state === State.New).map(s => s.card_id)
-        );
-
-        const countMap: Record<string, { total: number; due: number; new: number }> = {};
+        const countMap: Record<string, { total: number; new: number; learning: number; review: number }> = {};
         (cardsCount || []).forEach(c => {
           if (!countMap[c.deck_id]) {
-            countMap[c.deck_id] = { total: 0, due: 0, new: 0 };
+            countMap[c.deck_id] = { total: 0, new: 0, learning: 0, review: 0 };
           }
           if (!c.is_suspended) {
             countMap[c.deck_id].total += 1;
-            if (dueCardsSet.has(c.id)) countMap[c.deck_id].due += 1;
-            if (newCardsSet.has(c.id)) countMap[c.deck_id].new += 1;
+            const st = stateMap.get(c.id);
+            if (!st || st.state === State.New) {
+              countMap[c.deck_id].new += 1;
+            } else if (st.state === State.Learning || st.state === State.Relearning) {
+              if (new Date(st.due_at) <= now) {
+                countMap[c.deck_id].learning += 1;
+              }
+            } else if (st.state === State.Review) {
+              if (new Date(st.due_at) <= now) {
+                countMap[c.deck_id].review += 1;
+              }
+            }
           }
         });
 
         decks.forEach(d => {
           d.card_count = countMap[d.id]?.total || 0;
-          d.due_count = countMap[d.id]?.due || 0;
           d.new_count = countMap[d.id]?.new || 0;
+          d.learning_count = countMap[d.id]?.learning || 0;
+          d.due_count = countMap[d.id]?.review || 0;
         });
       } catch (e) {
         console.warn('Não foi possível computar contadores detalhados de baralhos:', e);
@@ -530,45 +533,96 @@ export const flashcardsApi = {
       const user = await getAuthUser();
       if (!user) return null;
 
-      const { data, error } = await supabase
+      let localSpacing: any = {};
+      try {
+        const raw = localStorage.getItem('cp_flashcard_spacing_settings');
+        if (raw) localSpacing = JSON.parse(raw);
+      } catch {}
+
+      const { data } = await supabase
         .from('flashcard_settings')
         .select('*')
         .eq('user_id', user.id)
         .maybeSingle();
 
-      if (error || !data) {
-        return {
-          new_cards_per_day: 20,
-          max_reviews_per_day: 200,
-          request_retention: 0.9,
-          show_next_review_time: true,
-          enable_keyboard_shortcuts: true,
-        };
-      }
-      return data;
+      const settings: FlashcardSettings = {
+        new_cards_per_day: data?.new_cards_per_day ?? 20,
+        max_reviews_per_day: data?.max_reviews_per_day ?? 200,
+        request_retention: data?.request_retention ?? 0.9,
+        show_next_review_time: data?.show_next_review_time ?? true,
+        enable_keyboard_shortcuts: data?.enable_keyboard_shortcuts ?? true,
+        again_interval_minutes: localSpacing.again_interval_minutes ?? 10,
+        hard_factor: localSpacing.hard_factor ?? 1.2,
+        good_factor: localSpacing.good_factor ?? 1.0,
+        easy_bonus: localSpacing.easy_bonus ?? 1.3,
+        maximum_interval_days: localSpacing.maximum_interval_days ?? 36500,
+      };
+
+      defaultScheduler.updateParameters({
+        requestRetention: settings.request_retention,
+        againIntervalMinutes: settings.again_interval_minutes,
+        hardMultiplier: settings.hard_factor,
+        goodMultiplier: settings.good_factor,
+        easyMultiplier: settings.easy_bonus,
+        maximumInterval: settings.maximum_interval_days,
+      });
+
+      return settings;
     },
 
     update: async (updates: Partial<FlashcardSettings>): Promise<FlashcardSettings | null> => {
       const user = await getAuthUser();
       if (!user) return null;
 
-      const payload = {
-        ...updates,
+      // Salvar espaçamento de classificação no cache local
+      let existingSpacing: any = {};
+      try {
+        const raw = localStorage.getItem('cp_flashcard_spacing_settings');
+        if (raw) existingSpacing = JSON.parse(raw);
+      } catch {}
+
+      const spacingPayload = {
+        again_interval_minutes: updates.again_interval_minutes ?? existingSpacing.again_interval_minutes ?? 10,
+        hard_factor: updates.hard_factor ?? existingSpacing.hard_factor ?? 1.2,
+        good_factor: updates.good_factor ?? existingSpacing.good_factor ?? 1.0,
+        easy_bonus: updates.easy_bonus ?? existingSpacing.easy_bonus ?? 1.3,
+        maximum_interval_days: updates.maximum_interval_days ?? existingSpacing.maximum_interval_days ?? 36500,
+      };
+      localStorage.setItem('cp_flashcard_spacing_settings', JSON.stringify(spacingPayload));
+
+      defaultScheduler.updateParameters({
+        requestRetention: updates.request_retention,
+        againIntervalMinutes: spacingPayload.again_interval_minutes,
+        hardMultiplier: spacingPayload.hard_factor,
+        goodMultiplier: spacingPayload.good_factor,
+        easyMultiplier: spacingPayload.easy_bonus,
+        maximumInterval: spacingPayload.maximum_interval_days,
+      });
+
+      const basePayload: any = {
         user_id: user.id,
         updated_at: new Date().toISOString()
       };
+      if (updates.new_cards_per_day !== undefined) basePayload.new_cards_per_day = updates.new_cards_per_day;
+      if (updates.max_reviews_per_day !== undefined) basePayload.max_reviews_per_day = updates.max_reviews_per_day;
+      if (updates.request_retention !== undefined) basePayload.request_retention = updates.request_retention;
+      if (updates.show_next_review_time !== undefined) basePayload.show_next_review_time = updates.show_next_review_time;
+      if (updates.enable_keyboard_shortcuts !== undefined) basePayload.enable_keyboard_shortcuts = updates.enable_keyboard_shortcuts;
 
       const { data, error } = await supabase
         .from('flashcard_settings')
-        .upsert(payload, { onConflict: 'user_id' })
+        .upsert(basePayload, { onConflict: 'user_id' })
         .select()
         .single();
 
       if (error) {
         console.error('Erro ao salvar configurações de flashcards:', error);
-        throw error;
       }
-      return data;
+
+      return {
+        ...(data || basePayload),
+        ...spacingPayload
+      };
     }
   },
 

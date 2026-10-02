@@ -23,12 +23,20 @@ export const DEFAULT_FSRS_WEIGHTS = [
 export interface FSRSParameters {
   requestRetention: number; // Padrão: 0.9 (90%)
   maximumInterval: number; // Padrão: 36500 (100 anos)
+  againIntervalMinutes: number; // Padrão: 10 min
+  hardMultiplier: number; // Padrão: 1.2
+  goodMultiplier: number; // Padrão: 1.0
+  easyMultiplier: number; // Padrão: 1.3
   w: number[];
 }
 
 export const defaultParameters: FSRSParameters = {
   requestRetention: 0.9,
   maximumInterval: 36500,
+  againIntervalMinutes: 10,
+  hardMultiplier: 1.2,
+  goodMultiplier: 1.0,
+  easyMultiplier: 1.3,
   w: DEFAULT_FSRS_WEIGHTS,
 };
 
@@ -41,6 +49,18 @@ export class FlashcardScheduler {
       ...customParams,
       w: customParams?.w || DEFAULT_FSRS_WEIGHTS,
     };
+  }
+
+  public updateParameters(customParams: Partial<FSRSParameters>) {
+    this.params = {
+      ...this.params,
+      ...customParams,
+      w: customParams.w || this.params.w,
+    };
+  }
+
+  public getParameters(): FSRSParameters {
+    return { ...this.params };
   }
 
   /**
@@ -161,19 +181,19 @@ export class FlashcardScheduler {
 
       if (rating === Rating.Again) {
         nextState = State.Learning;
-        nextScheduledDays = 0; // Menos de 1 dia (ex: 5 minutos)
-        nextDueAt = new Date(reviewDate.getTime() + 5 * 60 * 1000);
+        nextScheduledDays = 0;
+        nextDueAt = new Date(reviewDate.getTime() + this.params.againIntervalMinutes * 60 * 1000);
       } else if (rating === Rating.Hard) {
         nextState = State.Learning;
         nextScheduledDays = 0;
-        nextDueAt = new Date(reviewDate.getTime() + 15 * 60 * 1000);
+        nextDueAt = new Date(reviewDate.getTime() + Math.round(this.params.againIntervalMinutes * 1.5) * 60 * 1000);
       } else if (rating === Rating.Good) {
         nextState = State.Review;
-        nextScheduledDays = Math.max(1, Math.round(nextStability));
+        nextScheduledDays = Math.max(1, Math.min(this.params.maximumInterval, Math.round(nextStability * this.params.goodMultiplier)));
         nextDueAt = new Date(reviewDate.getTime() + nextScheduledDays * 24 * 60 * 60 * 1000);
       } else { // Rating.Easy
         nextState = State.Review;
-        nextScheduledDays = Math.max(3, Math.round(nextStability * 1.5));
+        nextScheduledDays = Math.max(2, Math.min(this.params.maximumInterval, Math.round(nextStability * this.params.easyMultiplier)));
         nextDueAt = new Date(reviewDate.getTime() + nextScheduledDays * 24 * 60 * 60 * 1000);
       }
     } else if (current.state === State.Learning || current.state === State.Relearning) {
@@ -183,21 +203,21 @@ export class FlashcardScheduler {
         nextState = current.state;
         nextStability = Math.max(0.1, current.stability * 0.8);
         nextScheduledDays = 0;
-        nextDueAt = new Date(reviewDate.getTime() + 5 * 60 * 1000); // 5 min
+        nextDueAt = new Date(reviewDate.getTime() + this.params.againIntervalMinutes * 60 * 1000);
       } else if (rating === Rating.Hard) {
         nextState = current.state;
         nextStability = Math.max(0.2, current.stability * 0.9);
         nextScheduledDays = 0;
-        nextDueAt = new Date(reviewDate.getTime() + 12 * 60 * 1000); // 12 min
+        nextDueAt = new Date(reviewDate.getTime() + Math.round(this.params.againIntervalMinutes * 1.2) * 60 * 1000);
       } else if (rating === Rating.Good) {
         nextState = State.Review;
         nextStability = Math.max(1, current.stability * 1.2);
-        nextScheduledDays = Math.max(1, Math.round(nextStability));
+        nextScheduledDays = Math.max(1, Math.min(this.params.maximumInterval, Math.round(nextStability * this.params.goodMultiplier)));
         nextDueAt = new Date(reviewDate.getTime() + nextScheduledDays * 24 * 60 * 60 * 1000);
       } else { // Easy
         nextState = State.Review;
         nextStability = Math.max(2, current.stability * 1.6);
-        nextScheduledDays = Math.max(3, Math.round(nextStability));
+        nextScheduledDays = Math.max(2, Math.min(this.params.maximumInterval, Math.round(nextStability * this.params.easyMultiplier)));
         nextDueAt = new Date(reviewDate.getTime() + nextScheduledDays * 24 * 60 * 60 * 1000);
       }
     } else { // State.Review
@@ -209,11 +229,13 @@ export class FlashcardScheduler {
         newLapses += 1;
         nextStability = this.nextStabilityFailure(nextDifficulty, current.stability, r);
         nextScheduledDays = 0;
-        nextDueAt = new Date(reviewDate.getTime() + 10 * 60 * 1000); // 10 min
+        nextDueAt = new Date(reviewDate.getTime() + this.params.againIntervalMinutes * 60 * 1000);
       } else {
         nextState = State.Review;
         nextStability = this.nextStabilitySuccess(nextDifficulty, current.stability, r, rating);
-        nextScheduledDays = this.nextInterval(nextStability, customRetention);
+        const baseInterval = this.nextInterval(nextStability, customRetention);
+        const mult = rating === Rating.Hard ? this.params.hardMultiplier : rating === Rating.Good ? this.params.goodMultiplier : this.params.easyMultiplier;
+        nextScheduledDays = Math.max(1, Math.min(this.params.maximumInterval, Math.round(baseInterval * mult)));
         nextDueAt = new Date(reviewDate.getTime() + nextScheduledDays * 24 * 60 * 60 * 1000);
       }
     }

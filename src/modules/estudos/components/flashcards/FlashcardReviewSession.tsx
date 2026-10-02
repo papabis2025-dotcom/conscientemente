@@ -3,18 +3,6 @@ import { CardWithState, Rating, NextIntervalsPreview, FlashcardSessionSummary } 
 import { flashcardsApi } from '../../services/flashcards/api';
 import { defaultScheduler } from '../../services/flashcards/scheduler/fsrs';
 import { ClozeRenderer } from './ClozeRenderer';
-import {
-  X,
-  RotateCw,
-  Clock,
-  Sparkles,
-  Trophy,
-  CheckCircle2,
-  AlertCircle,
-  ThumbsUp,
-  Flame,
-  ArrowRight
-} from 'lucide-react';
 
 interface FlashcardReviewSessionProps {
   cardsQueue: CardWithState[];
@@ -176,7 +164,6 @@ export const FlashcardReviewSession: React.FC<FlashcardReviewSessionProps> = ({
   if (!currentItem) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-8">
-        <Trophy size={56} className="text-amber-500 mb-4 animate-bounce" />
         <h2 className="text-2xl font-black uppercase tracking-tight text-zinc-900 dark:text-white">
           Sessão Concluída!
         </h2>
@@ -185,7 +172,7 @@ export const FlashcardReviewSession: React.FC<FlashcardReviewSessionProps> = ({
         </p>
         <button
           onClick={onExit}
-          className="mt-6 px-6 py-3 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-bold uppercase text-xs rounded-2xl hover:scale-105 transition-all shadow-lg"
+          className="mt-6 px-6 py-3 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-bold uppercase text-xs rounded-2xl hover:scale-105 transition-all shadow-lg cursor-pointer"
         >
           Voltar aos Baralhos
         </button>
@@ -216,8 +203,7 @@ export const FlashcardReviewSession: React.FC<FlashcardReviewSessionProps> = ({
         </div>
 
         <div className="flex items-center gap-5">
-          <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-zinc-500 dark:text-zinc-400">
-            <Clock size={14} />
+          <div className="text-xs font-mono font-bold text-zinc-500 dark:text-zinc-400">
             <span>{formatTimer(elapsedSeconds)}</span>
           </div>
 
@@ -229,10 +215,10 @@ export const FlashcardReviewSession: React.FC<FlashcardReviewSessionProps> = ({
 
           <button
             onClick={onExit}
-            className="w-8 h-8 rounded-full flex items-center justify-center text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+            className="w-8 h-8 rounded-full flex items-center justify-center text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors text-sm font-bold cursor-pointer"
             title="Sair da Revisão"
           >
-            <X size={18} />
+            ✕
           </button>
         </div>
       </div>

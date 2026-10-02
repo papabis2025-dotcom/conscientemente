@@ -10,17 +10,6 @@ import {
   Pie,
   Cell
 } from 'recharts';
-import {
-  Flame,
-  Award,
-  Clock,
-  Calendar,
-  Layers,
-  Sparkles,
-  TrendingUp,
-  BrainCircuit,
-  CheckCircle2
-} from 'lucide-react';
 
 interface FlashcardStatsProps {
   statsSummary: {
@@ -92,75 +81,57 @@ export const FlashcardStats: React.FC<FlashcardStatsProps> = ({
       {/* 4 CARDS DE MÉTRICAS PRINCIPAIS */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {/* CARD 1 - STREAK */}
-        <div className="p-5 rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center border border-amber-500/20 shrink-0">
-            <Flame size={24} />
+        <div className="p-4 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-sm">
+          <span className="text-[10px] font-black uppercase text-amber-500 block tracking-wider mb-1">
+            Sequência
+          </span>
+          <div className="text-2xl font-black text-zinc-900 dark:text-white font-mono">
+            {statsSummary.streak} {statsSummary.streak === 1 ? 'dia' : 'dias'}
           </div>
-          <div>
-            <span className="text-[10px] font-black uppercase text-zinc-400 block tracking-wider">
-              Sequência
-            </span>
-            <div className="text-xl font-black text-zinc-900 dark:text-white">
-              {statsSummary.streak} {statsSummary.streak === 1 ? 'dia' : 'dias'}
-            </div>
-          </div>
+          <span className="text-[10px] text-zinc-400">Dias seguidos de estudo</span>
         </div>
 
         {/* CARD 2 - RETENÇÃO */}
-        <div className="p-5 rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center border border-emerald-500/20 shrink-0">
-            <Award size={24} />
+        <div className="p-4 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-sm">
+          <span className="text-[10px] font-black uppercase text-emerald-500 block tracking-wider mb-1">
+            Taxa de Retenção
+          </span>
+          <div className="text-2xl font-black text-zinc-900 dark:text-white font-mono">
+            {statsSummary.retentionRate}%
           </div>
-          <div>
-            <span className="text-[10px] font-black uppercase text-zinc-400 block tracking-wider">
-              Retenção (30d)
-            </span>
-            <div className="text-xl font-black text-zinc-900 dark:text-white">
-              {statsSummary.retentionRate}%
-            </div>
-          </div>
+          <span className="text-[10px] text-zinc-400">Precisão média (30 dias)</span>
         </div>
 
         {/* CARD 3 - REVISADOS HOJE */}
-        <div className="p-5 rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center border border-indigo-500/20 shrink-0">
-            <BrainCircuit size={24} />
+        <div className="p-4 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-sm">
+          <span className="text-[10px] font-black uppercase text-indigo-500 block tracking-wider mb-1">
+            Revisados Hoje
+          </span>
+          <div className="text-2xl font-black text-zinc-900 dark:text-white font-mono">
+            {statsSummary.reviewedToday}
           </div>
-          <div>
-            <span className="text-[10px] font-black uppercase text-zinc-400 block tracking-wider">
-              Revisados Hoje
-            </span>
-            <div className="text-xl font-black text-zinc-900 dark:text-white">
-              {statsSummary.reviewedToday}
-            </div>
-          </div>
+          <span className="text-[10px] text-zinc-400">Cartões praticados</span>
         </div>
 
         {/* CARD 4 - TOTAL NO BANCO */}
-        <div className="p-5 rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-blue-500/10 text-blue-500 flex items-center justify-center border border-blue-500/20 shrink-0">
-            <Layers size={24} />
+        <div className="p-4 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-sm">
+          <span className="text-[10px] font-black uppercase text-blue-500 block tracking-wider mb-1">
+            Total de Cartões
+          </span>
+          <div className="text-2xl font-black text-zinc-900 dark:text-white font-mono">
+            {statsSummary.totalCards}
           </div>
-          <div>
-            <span className="text-[10px] font-black uppercase text-zinc-400 block tracking-wider">
-              Total de Cartões
-            </span>
-            <div className="text-xl font-black text-zinc-900 dark:text-white">
-              {statsSummary.totalCards}
-            </div>
-          </div>
+          <span className="text-[10px] text-zinc-400">Na sua coleção</span>
         </div>
       </div>
 
       {/* HEATMAP DE ATIVIDADE (ÚLTIMOS 90 DIAS) */}
-      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 shadow-sm space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-sm font-black uppercase tracking-tight text-zinc-900 dark:text-white flex items-center gap-2">
-              Histórico de Revisões <Calendar size={16} className="text-indigo-500" />
-            </h3>
-            <p className="text-xs text-zinc-400">Intensidade diária de repetição espaçada</p>
-          </div>
+      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5 shadow-sm space-y-3">
+        <div>
+          <h3 className="text-sm font-black uppercase tracking-tight text-zinc-900 dark:text-white">
+            Histórico de Revisões
+          </h3>
+          <p className="text-xs text-zinc-400">Intensidade diária de repetição espaçada</p>
         </div>
 
         {/* GRADE DO HEATMAP */}
@@ -191,8 +162,8 @@ export const FlashcardStats: React.FC<FlashcardStatsProps> = ({
         {/* GRÁFICO 1 - PREVISÃO DE CARGA (FORECAST 14 DIAS) */}
         <div className="lg:col-span-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 shadow-sm">
           <div className="mb-4">
-            <h3 className="text-sm font-black uppercase tracking-tight text-zinc-900 dark:text-white flex items-center gap-2">
-              Previsão de Revisões (Próximos 14 Dias) <TrendingUp size={16} className="text-indigo-500" />
+            <h3 className="text-sm font-black uppercase tracking-tight text-zinc-900 dark:text-white">
+              Previsão de Revisões (Próximos 14 Dias)
             </h3>
             <p className="text-xs text-zinc-400">Quantidade de cartões previstos para vencer</p>
           </div>

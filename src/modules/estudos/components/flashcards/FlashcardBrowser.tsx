@@ -1,18 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { CardWithState, FlashcardDeck, State } from '../../types/flashcards';
 import { Subject } from '../../types';
-import {
-  Search,
-  Filter,
-  Trash2,
-  PauseCircle,
-  PlayCircle,
-  Edit3,
-  Layers,
-  Sparkles,
-  Calendar,
-  Tag as TagIcon
-} from 'lucide-react';
 
 interface FlashcardBrowserProps {
   cardsWithState: CardWithState[];
@@ -136,24 +124,23 @@ export const FlashcardBrowser: React.FC<FlashcardBrowserProps> = ({
   return (
     <div className="space-y-4">
       {/* BARRA DE FILTROS E BUSCA */}
-      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-5 shadow-sm space-y-4">
-        <div className="relative">
-          <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" />
+      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-4 shadow-sm space-y-3">
+        <div>
           <input
             type="text"
-            placeholder="Pesquisar por pergunta, resposta ou #tag..."
+            placeholder="Pesquisar por pergunta, resposta ou #tag... (Clique em qualquer cartão para editar)"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full pl-11 pr-4 py-3 bg-zinc-50 dark:bg-zinc-800 border-none rounded-2xl text-xs font-bold text-zinc-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 ring-1 ring-zinc-200/50 dark:ring-zinc-700/50"
+            className="w-full px-4 py-2.5 bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-medium text-zinc-900 dark:text-white outline-none focus:ring-1 focus:ring-indigo-500"
           />
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
           {/* BARALHO */}
           <select
             value={selectedDeckId}
             onChange={e => setSelectedDeckId(e.target.value)}
-            className="p-2.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-bold text-zinc-700 dark:text-zinc-300 outline-none"
+            className="p-2 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-semibold text-zinc-700 dark:text-zinc-300 outline-none"
           >
             <option value="all">Todos os Baralhos</option>
             {decks.map(d => (
@@ -167,9 +154,9 @@ export const FlashcardBrowser: React.FC<FlashcardBrowserProps> = ({
           <select
             value={selectedSubjectId}
             onChange={e => setSelectedSubjectId(e.target.value)}
-            className="p-2.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-bold text-zinc-700 dark:text-zinc-300 outline-none"
+            className="p-2 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-semibold text-zinc-700 dark:text-zinc-300 outline-none"
           >
-            <option value="all">Todas as Matérias</option>
+            <option value="all">Todas as Disciplinas</option>
             {subjects.map(s => (
               <option key={s.id} value={s.id}>
                 {s.name}
@@ -181,13 +168,12 @@ export const FlashcardBrowser: React.FC<FlashcardBrowserProps> = ({
           <select
             value={selectedStatus}
             onChange={e => setSelectedStatus(e.target.value)}
-            className="p-2.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-bold text-zinc-700 dark:text-zinc-300 outline-none"
+            className="p-2 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-semibold text-zinc-700 dark:text-zinc-300 outline-none"
           >
             <option value="all">Todos os Estados</option>
-            <option value="due">Vencem Hoje / Atrasados</option>
             <option value="new">Novos</option>
-            <option value="learning">Em Aprendizagem</option>
-            <option value="review">Em Revisão (Maduros)</option>
+            <option value="learning">Aprender</option>
+            <option value="review">Revisar</option>
             <option value="suspended">Suspensos</option>
           </select>
 
@@ -195,12 +181,12 @@ export const FlashcardBrowser: React.FC<FlashcardBrowserProps> = ({
           <select
             value={selectedTag}
             onChange={e => setSelectedTag(e.target.value)}
-            className="p-2.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-bold text-zinc-700 dark:text-zinc-300 outline-none"
+            className="p-2 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-semibold text-zinc-700 dark:text-zinc-300 outline-none"
           >
             <option value="all">Todas as Tags</option>
-            {allTags.map(tag => (
-              <option key={tag} value={tag}>
-                #{tag}
+            {allTags.map(t => (
+              <option key={t} value={t}>
+                #{t}
               </option>
             ))}
           </select>
@@ -209,13 +195,13 @@ export const FlashcardBrowser: React.FC<FlashcardBrowserProps> = ({
 
       {/* CONTADOR DE RESULTADOS */}
       <div className="flex items-center justify-between px-2 text-xs font-bold text-zinc-500 dark:text-zinc-400">
-        <span>{filteredCards.length} {filteredCards.length === 1 ? 'cartão encontrado' : 'cartões encontrados'}</span>
+        <span>{filteredCards.length} {filteredCards.length === 1 ? 'cartão encontrado' : 'cartões encontrados'} (Clique no cartão para editar)</span>
       </div>
 
       {/* LISTA / TABELA DE CARTÕES */}
-      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-sm overflow-hidden">
         {filteredCards.length === 0 ? (
-          <div className="p-12 text-center text-zinc-400">
+          <div className="p-12 text-center text-zinc-400 text-xs">
             Nenhum flashcard encontrado com os filtros aplicados.
           </div>
         ) : (
@@ -228,7 +214,8 @@ export const FlashcardBrowser: React.FC<FlashcardBrowserProps> = ({
               return (
                 <div
                   key={item.card.id}
-                  className="p-4 sm:p-5 hover:bg-zinc-50/80 dark:hover:bg-zinc-800/40 transition-colors flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
+                  onClick={() => onEditCard(item)}
+                  className="p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 cursor-pointer group"
                 >
                   <div className="flex-1 min-w-0 space-y-1">
                     <div className="flex items-center gap-2 flex-wrap mb-1">
@@ -248,7 +235,7 @@ export const FlashcardBrowser: React.FC<FlashcardBrowserProps> = ({
                       )}
                     </div>
 
-                    <div className="font-bold text-xs sm:text-sm text-zinc-900 dark:text-white line-clamp-2">
+                    <div className="font-bold text-xs sm:text-sm text-zinc-900 dark:text-white line-clamp-2 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                       {item.card.front}
                     </div>
 
@@ -269,31 +256,42 @@ export const FlashcardBrowser: React.FC<FlashcardBrowserProps> = ({
                     )}
                   </div>
 
-                  <div className="flex items-center gap-4 shrink-0 self-end sm:self-center">
-                    <div className="text-right text-[11px] font-mono text-zinc-400 hidden md:block">
+                  <div className="flex items-center gap-3 shrink-0 self-end sm:self-center" onClick={e => e.stopPropagation()}>
+                    <div className="text-right text-[10px] font-mono text-zinc-400 hidden md:block">
                       <div>Próx: <strong className="text-zinc-700 dark:text-zinc-200">{dueDate}</strong></div>
                       <div>Reps: {item.scheduling.reps} (Lapses: {item.scheduling.lapses})</div>
                     </div>
 
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1.5">
                       <button
-                        onClick={() => onToggleSuspend(item.card.id, item.card.is_suspended)}
-                        className={`p-2 rounded-xl border transition-all ${
-                          item.card.is_suspended
-                            ? 'text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800'
-                            : 'text-zinc-400 hover:text-amber-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 border-transparent'
-                        }`}
-                        title={item.card.is_suspended ? 'Reativar Cartão' : 'Suspender Cartão'}
+                        type="button"
+                        onClick={() => onEditCard(item)}
+                        className="px-2.5 py-1 text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 rounded-lg transition-colors cursor-pointer"
+                        title="Editar Cartão"
                       >
-                        {item.card.is_suspended ? <PlayCircle size={16} /> : <PauseCircle size={16} />}
+                        Editar
                       </button>
 
                       <button
+                        type="button"
+                        onClick={() => onToggleSuspend(item.card.id, item.card.is_suspended)}
+                        className={`px-2.5 py-1 text-xs font-bold rounded-lg border transition-colors cursor-pointer ${
+                          item.card.is_suspended
+                            ? 'text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800'
+                            : 'text-zinc-500 hover:text-amber-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 border-zinc-200 dark:border-zinc-700'
+                        }`}
+                        title={item.card.is_suspended ? 'Reativar Cartão' : 'Suspender Cartão'}
+                      >
+                        {item.card.is_suspended ? 'Reativar' : 'Suspender'}
+                      </button>
+
+                      <button
+                        type="button"
                         onClick={() => onDeleteCard(item.card.id)}
-                        className="p-2 text-zinc-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl transition-all"
+                        className="px-2 py-1 text-xs font-bold text-zinc-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition-colors cursor-pointer"
                         title="Excluir Cartão"
                       >
-                        <Trash2 size={16} />
+                        Excluir
                       </button>
                     </div>
                   </div>

@@ -27,7 +27,8 @@ import {
   CalendarRange,
   Link,
   History,
-  Check
+  Check,
+  Layers
 } from 'lucide-react';
 import logoImg from '../assets/logo.png';
 
@@ -77,6 +78,7 @@ const DEFAULT_MENU_ITEMS: MenuItem[] = [
   { id: 'subjects', label: 'Disciplinas', icon: Library },
   { id: 'statistics', label: 'Análise Estatística', icon: Percent },
   { id: 'cronograma', label: 'Cronograma', icon: CalendarRange },
+  { id: 'flashcards', label: 'Flashcards', icon: Layers },
   { id: 'simulados', label: 'Simulados', icon: NotebookPen },
   { id: 'calendar', label: 'Planner', icon: Calendar },
   { id: 'questions_links', label: 'Cadernos de Questões', icon: Link },

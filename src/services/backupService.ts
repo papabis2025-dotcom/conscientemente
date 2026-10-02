@@ -16,6 +16,11 @@ export interface BackupData {
     saudeTreinos?: any[];
     tarefas?: any[];
     userPreferences?: any;
+    flashcardDecks?: any[];
+    flashcardCards?: any[];
+    flashcardSchedulingState?: any[];
+    flashcardReviewLogs?: any[];
+    flashcardSettings?: any;
   };
   localSettings: Record<string, string | null>;
 }
@@ -36,11 +41,17 @@ export const backupService = {
     let saudeTreinos: any[] = [];
     let tarefas: any[] = [];
     let userPreferences: any = null;
+    let flashcardDecks: any[] = [];
+    let flashcardCards: any[] = [];
+    let flashcardSchedulingState: any[] = [];
+    let flashcardReviewLogs: any[] = [];
+    let flashcardSettings: any = null;
 
     if (user) {
       const [
         cRes, sessRes, simRes, schedRes, goalRes,
-        habRes, habLogRes, finRes, saudeRes, tarRes, prefRes
+        habRes, habLogRes, finRes, saudeRes, tarRes, prefRes,
+        fcDecksRes, fcCardsRes, fcSchedRes, fcLogsRes, fcSettingsRes
       ] = await Promise.allSettled([
         supabase.from('concursos').select('*').eq('user_id', user.id),
         supabase.from('study_sessions').select('*').eq('user_id', user.id),
@@ -52,7 +63,12 @@ export const backupService = {
         supabase.from('financas_transacoes').select('*').eq('user_id', user.id),
         supabase.from('saude_treinos').select('*').eq('user_id', user.id),
         supabase.from('tarefas').select('*').eq('user_id', user.id),
-        supabase.from('user_preferences').select('*').eq('user_id', user.id).maybeSingle()
+        supabase.from('user_preferences').select('*').eq('user_id', user.id).maybeSingle(),
+        supabase.from('flashcard_decks').select('*').eq('user_id', user.id),
+        supabase.from('flashcard_cards').select('*').eq('user_id', user.id),
+        supabase.from('flashcard_scheduling_state').select('*').eq('user_id', user.id),
+        supabase.from('flashcard_review_logs').select('*').eq('user_id', user.id),
+        supabase.from('flashcard_settings').select('*').eq('user_id', user.id).maybeSingle()
       ]);
 
       if (cRes.status === 'fulfilled' && !cRes.value.error) concursos = cRes.value.data || [];
@@ -66,6 +82,11 @@ export const backupService = {
       if (saudeRes.status === 'fulfilled' && !saudeRes.value.error) saudeTreinos = saudeRes.value.data || [];
       if (tarRes.status === 'fulfilled' && !tarRes.value.error) tarefas = tarRes.value.data || [];
       if (prefRes.status === 'fulfilled' && !prefRes.value.error) userPreferences = prefRes.value.data;
+      if (fcDecksRes.status === 'fulfilled' && !fcDecksRes.value.error) flashcardDecks = fcDecksRes.value.data || [];
+      if (fcCardsRes.status === 'fulfilled' && !fcCardsRes.value.error) flashcardCards = fcCardsRes.value.data || [];
+      if (fcSchedRes.status === 'fulfilled' && !fcSchedRes.value.error) flashcardSchedulingState = fcSchedRes.value.data || [];
+      if (fcLogsRes.status === 'fulfilled' && !fcLogsRes.value.error) flashcardReviewLogs = fcLogsRes.value.data || [];
+      if (fcSettingsRes.status === 'fulfilled' && !fcSettingsRes.value.error) flashcardSettings = fcSettingsRes.value.data;
     } else {
       // Fallback offline
       try { concursos = await api.concursos.list(); } catch {}
@@ -98,7 +119,12 @@ export const backupService = {
         financasTransacoes,
         saudeTreinos,
         tarefas,
-        userPreferences
+        userPreferences,
+        flashcardDecks,
+        flashcardCards,
+        flashcardSchedulingState,
+        flashcardReviewLogs,
+        flashcardSettings
       },
       localSettings
     };
@@ -136,7 +162,12 @@ export const backupService = {
       financasTransacoes,
       saudeTreinos,
       tarefas,
-      userPreferences
+      userPreferences,
+      flashcardDecks,
+      flashcardCards,
+      flashcardSchedulingState,
+      flashcardReviewLogs,
+      flashcardSettings
     } = parsed.data;
 
     let itemCount = 0;
@@ -301,6 +332,30 @@ export const backupService = {
       if (userPreferences) {
         const prefPayload = { ...userPreferences, user_id: user.id };
         await supabase.from('user_preferences').upsert(prefPayload, { onConflict: 'user_id' });
+      }
+
+      // 11. Flashcards (Decks, Cards, Scheduling State, Review Logs, Settings)
+      if (Array.isArray(flashcardDecks) && flashcardDecks.length > 0) {
+        const formatted = flashcardDecks.map((d: any) => ({ ...d, user_id: user.id }));
+        await supabase.from('flashcard_decks').upsert(formatted, { onConflict: 'id' });
+        itemCount += formatted.length;
+      }
+      if (Array.isArray(flashcardCards) && flashcardCards.length > 0) {
+        const formatted = flashcardCards.map((c: any) => ({ ...c, user_id: user.id }));
+        await supabase.from('flashcard_cards').upsert(formatted, { onConflict: 'id' });
+        itemCount += formatted.length;
+      }
+      if (Array.isArray(flashcardSchedulingState) && flashcardSchedulingState.length > 0) {
+        const formatted = flashcardSchedulingState.map((s: any) => ({ ...s, user_id: user.id }));
+        await supabase.from('flashcard_scheduling_state').upsert(formatted, { onConflict: 'card_id' });
+      }
+      if (Array.isArray(flashcardReviewLogs) && flashcardReviewLogs.length > 0) {
+        const formatted = flashcardReviewLogs.map((l: any) => ({ ...l, user_id: user.id }));
+        await supabase.from('flashcard_review_logs').upsert(formatted, { onConflict: 'id' });
+      }
+      if (flashcardSettings) {
+        const settingsPayload = { ...flashcardSettings, user_id: user.id };
+        await supabase.from('flashcard_settings').upsert(settingsPayload, { onConflict: 'user_id' });
       }
     } else {
       // Offline fallback

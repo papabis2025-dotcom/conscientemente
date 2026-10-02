@@ -5,10 +5,11 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
   LabelList
 } from 'recharts';
-import { Eye, EyeOff, X, Trophy, Maximize2, Clock, Target, BookOpen, Check, AlertTriangle, AlertCircle, Calendar, FileText, Compass, Award, GraduationCap, ChevronDown } from 'lucide-react';
+import { Eye, EyeOff, X, Trophy, Maximize2, Clock, Target, BookOpen, Check, AlertTriangle, AlertCircle, Calendar, FileText, Compass, Award, GraduationCap, ChevronDown, Layers } from 'lucide-react';
 
 import { Subject, StudySession, Concurso, Simulado, ScheduledStudy } from '../types';
 import { getColorHex } from '../utils/colors';
+import { flashcardsApi } from '../services/flashcards/api';
 
 const EDUCATION_LEVEL_OPTIONS = [
   { value: 'all', label: 'Todos os Níveis' },
@@ -45,6 +46,7 @@ interface DashboardProps {
   onUpdateTasks?: (tasks: { id: string, subjectId: string, subjectName: string, topicId?: string, topicName?: string, done: boolean, date: string }[]) => void;
   scheduledStudies?: ScheduledStudy[];
   onToggleReorderMode?: (isReorder: boolean) => void;
+  onNavigateTab?: (tab: string) => void;
 }
 
 const parseNotesGroup = (notes?: string) => {
@@ -77,6 +79,7 @@ const DEFAULT_WIDGETS: WidgetState[] = [
   { id: 'general_stats', title: 'Desempenho Geral', isVisible: true, size: 'wide' },
   { id: 'study_frequency', title: 'Disciplina e Assunto', isVisible: true, size: 'normal' },
   { id: 'study_tasks', title: 'Tarefas Pendentes', isVisible: true, size: 'normal' },
+  { id: 'flashcards_overview', title: 'Flashcards FSRS', isVisible: true, size: 'normal' },
   { id: 'weekly_chart', title: 'Volume de Estudo', isVisible: true, size: 'wide' },
   { id: 'general_summary', title: 'Resumo geral', isVisible: true, size: 'normal' },
   { id: 'unified_subject_analysis', title: 'Análise por Disciplina', isVisible: true, size: 'normal' },
@@ -157,8 +160,25 @@ const Dashboard: React.FC<DashboardProps> = ({
   onStartTimer, onPauseTimer, onResumeTimer, onResetTimer, onStopAlarm,
   studyTasks = [],
   onUpdateTasks,
-  scheduledStudies = []
+  scheduledStudies = [],
+  onNavigateTab
 }) => {
+  const [flashcardStats, setFlashcardStats] = useState<{ due: number; newCards: number; total: number } | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    flashcardsApi.queue.getStudyQueue().then(queue => {
+      if (isMounted) {
+        setFlashcardStats({
+          due: queue.counts.overdue + queue.counts.learning + queue.counts.review,
+          newCards: queue.counts.newCards,
+          total: queue.counts.total
+        });
+      }
+    }).catch(() => {});
+    return () => { isMounted = false; };
+  }, []);
+
   const [widgets, setWidgets] = useState<WidgetState[]>(() => {
     const saved = localStorage.getItem('cp_dashboard_layout_v20');
     if (!saved) return DEFAULT_WIDGETS;
@@ -173,13 +193,20 @@ const Dashboard: React.FC<DashboardProps> = ({
         }
         return w;
       });
+
       // Deduplicar widgets por id, preservando a primeira ocorrência
       const seen = new Set<string>();
-      return migrated.filter(w => {
+      const filtered = migrated.filter(w => {
         if (seen.has(w.id)) return false;
         seen.add(w.id);
         return true;
       });
+
+      if (!seen.has('flashcards_overview')) {
+        filtered.push({ id: 'flashcards_overview', title: 'Flashcards FSRS', isVisible: true, size: 'normal' });
+      }
+
+      return filtered;
     } catch {
       return DEFAULT_WIDGETS;
     }
@@ -1738,6 +1765,56 @@ const Dashboard: React.FC<DashboardProps> = ({
             </div>
           </div>
         );
+      case 'flashcards_overview': {
+        const dueCount = flashcardStats?.due ?? 0;
+        const newCount = flashcardStats?.newCards ?? 0;
+        const totalCount = flashcardStats?.total ?? 0;
+
+        return (
+          <div className="flex flex-col h-full justify-between gap-3 p-1">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+                  <Layers size={16} />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-zinc-800 dark:text-zinc-100">Flashcards FSRS</h4>
+                  <p className="text-[10px] text-zinc-400">Repetição Espaçada</p>
+                </div>
+              </div>
+              <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${
+                dueCount > 0 ? 'bg-amber-100 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400' : 'bg-emerald-100 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400'
+              }`}>
+                {dueCount > 0 ? `${dueCount} pendentes` : 'Em dia'}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2">
+              <div className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200/60 dark:border-zinc-800 text-center">
+                <span className="text-[9px] font-bold uppercase text-zinc-400 block mb-0.5">Pendentes</span>
+                <span className="text-base font-black text-amber-500">{dueCount}</span>
+              </div>
+              <div className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200/60 dark:border-zinc-800 text-center">
+                <span className="text-[9px] font-bold uppercase text-zinc-400 block mb-0.5">Novos</span>
+                <span className="text-base font-black text-blue-500">{newCount}</span>
+              </div>
+              <div className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200/60 dark:border-zinc-800 text-center">
+                <span className="text-[9px] font-bold uppercase text-zinc-400 block mb-0.5">Coleção</span>
+                <span className="text-base font-black text-zinc-700 dark:text-zinc-200">{totalCount}</span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => onNavigateTab?.('flashcards')}
+              className="w-full py-2 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-sm"
+            >
+              <Layers size={13} />
+              <span>Estudar Flashcards</span>
+            </button>
+          </div>
+        );
+      }
       default: return null;
     }
   };

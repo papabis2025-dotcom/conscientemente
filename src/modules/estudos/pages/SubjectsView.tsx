@@ -23,7 +23,8 @@ import {
   Lock,
   Unlock,
   FileSpreadsheet,
-  Palette
+  Palette,
+  Layers
 } from 'lucide-react';
 import { exportToXlsx, exportToCsv } from '../utils/exportUtils';
 
@@ -36,6 +37,7 @@ interface SubjectsViewProps {
   scheduledStudies: any[];
   concursos?: Concurso[];
   onToggleScheduledStudyStatus?: (idOrIds: string | string[]) => void;
+  onNavigateToFlashcards?: (subjectId?: string) => void;
 }
 
 const isTopicCompletedHelper = (subjectId: string, topicId: string, isCompletedFlag: boolean, scheduledStudies: any[], sessions: StudySession[]) => {
@@ -57,7 +59,7 @@ const isTopicCompletedHelper = (subjectId: string, topicId: string, isCompletedF
   return reviews.every(r => r.status === 'realizado');
 };
 
-const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdateSubjects, selectedConcursoId, onSelectConcursoId, concursos, scheduledStudies, onToggleScheduledStudyStatus }) => {
+const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdateSubjects, selectedConcursoId, onSelectConcursoId, concursos, scheduledStudies, onToggleScheduledStudyStatus, onNavigateToFlashcards }) => {
   const [newSubjectName, setNewSubjectName] = useState('');
   const [selectedColor, setSelectedColor] = useState(COLORS[0]);
   const [editingSubjectId, setEditingSubjectId] = useState<string | null>(null);
@@ -1154,6 +1156,20 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
 
                       <td className="px-4 py-3 text-right">
                         <div className="flex items-center justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                          {onNavigateToFlashcards && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onNavigateToFlashcards(subject.id);
+                              }}
+                              className="px-2 py-1 bg-zinc-100 hover:bg-indigo-50 dark:bg-zinc-800 dark:hover:bg-indigo-900/30 text-zinc-500 hover:text-indigo-600 dark:text-zinc-400 dark:hover:text-indigo-300 rounded-lg transition-colors flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider"
+                              title={`Ver flashcards de ${subject.name}`}
+                            >
+                              <Layers size={12} />
+                              <span className="hidden sm:inline">Cards</span>
+                            </button>
+                          )}
                           <button onClick={(e) => startEditing(subject, e)} className="p-1.5 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg text-zinc-400 hover:text-zinc-900 dark:text-zinc-300 transition-colors">
                             <Edit2 size={13} />
                           </button>

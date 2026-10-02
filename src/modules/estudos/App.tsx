@@ -14,6 +14,7 @@ import LoginView from './pages/LoginView';
 import CronogramaView from './pages/CronogramaView';
 import QuestionsNotebooksView from './pages/QuestionsNotebooksView';
 import AtividadesView from './pages/AtividadesView';
+import { FlashcardsView } from './pages/FlashcardsView';
 import { Concurso, ActivityType, StudySession, Topic } from './types';
 import { useAppData } from './hooks/useAppData';
 import { useTimer } from './hooks/useTimer';
@@ -26,6 +27,7 @@ interface AppProps {
 
 const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme }) => {
   const [activeTab, setActiveTabState] = useState('dashboard');
+  const [selectedFlashcardSubjectId, setSelectedFlashcardSubjectId] = useState<string | undefined>(undefined);
 
   const setActiveTab = (tab: string) => {
     setActiveTabState(tab);
@@ -271,11 +273,11 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard':
-        return <Dashboard subjects={filteredSubjects} sessions={sessions} simulados={simulados} activeConcurso={activeConcurso} selectedConcursoId={selectedConcursoId} onSelectConcursoId={setSelectedConcursoId} concursos={concursos} theme={theme} onToggleReorderMode={setIsReorderMode} onAddSession={addSession} globalDailyGoal={globalDailyGoal} studyTasks={studyTasks} onUpdateTasks={setStudyTasks} scheduledStudies={scheduledStudies} timeLeft={timeLeft} isActive={isActive} isAlarmPlaying={isAlarmPlaying} onStartTimer={startTimer} onPauseTimer={pauseTimer} onResumeTimer={resumeTimer} onResetTimer={resetTimer} onStopAlarm={stopAlarm} />;
+        return <Dashboard subjects={filteredSubjects} sessions={sessions} simulados={simulados} activeConcurso={activeConcurso} selectedConcursoId={selectedConcursoId} onSelectConcursoId={setSelectedConcursoId} concursos={concursos} theme={theme} onToggleReorderMode={setIsReorderMode} onAddSession={addSession} globalDailyGoal={globalDailyGoal} studyTasks={studyTasks} onUpdateTasks={setStudyTasks} scheduledStudies={scheduledStudies} timeLeft={timeLeft} isActive={isActive} isAlarmPlaying={isAlarmPlaying} onStartTimer={startTimer} onPauseTimer={pauseTimer} onResumeTimer={resumeTimer} onResetTimer={resetTimer} onStopAlarm={stopAlarm} onNavigateTab={setActiveTab} />;
       case 'concursos':
         return <ConcursosView concursos={concursos} onUpdateConcursos={setConcursos} onSelectConcurso={(c) => { setSelectedConcursoId(c.id); setActiveTab('dashboard'); }} scheduledStudies={allScheduledStudies || scheduledStudies} sessions={allSessions || sessions} />;
       case 'subjects':
-        return <SubjectsView subjects={selectedConcursoId === 'all' ? filteredSubjects : (activeConcurso?.subjects || [])} sessions={sessions} onUpdateSubjects={(subs) => setConcursos(concursos.map(c => c.id === selectedConcursoId ? { ...c, subjects: subs } : c))} selectedConcursoId={selectedConcursoId} onSelectConcursoId={setSelectedConcursoId} concursos={concursos} scheduledStudies={scheduledStudies} onToggleScheduledStudyStatus={toggleScheduledStudyStatus} />;
+        return <SubjectsView subjects={selectedConcursoId === 'all' ? filteredSubjects : (activeConcurso?.subjects || [])} sessions={sessions} onUpdateSubjects={(subs) => setConcursos(concursos.map(c => c.id === selectedConcursoId ? { ...c, subjects: subs } : c))} selectedConcursoId={selectedConcursoId} onSelectConcursoId={setSelectedConcursoId} concursos={concursos} scheduledStudies={scheduledStudies} onToggleScheduledStudyStatus={toggleScheduledStudyStatus} onNavigateToFlashcards={(subId) => { setSelectedFlashcardSubjectId(subId); setActiveTab('flashcards'); }} />;
       case 'questions':
         return <QuestionsView subjects={filteredSubjects} sessions={sessions} dailyGoals={dailyGoals} onUpdateDailyGoals={setDailyGoals} onAddSession={addSession} onDeleteSession={deleteSession} />;
       case 'simulados':
@@ -295,6 +297,15 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
           onResetConcursoSchedule={resetConcursoSchedule}
           onUpdateScheduledStudy={updateScheduledStudy}
           onSyncReviews={syncPlannedReviews}
+        />;
+      case 'flashcards':
+        return <FlashcardsView
+          subjects={filteredSubjects}
+          allSubjects={allSubjects}
+          activeConcurso={activeConcurso}
+          selectedConcursoId={selectedConcursoId}
+          theme={theme}
+          initialSubjectId={selectedFlashcardSubjectId}
         />;
       case 'calendar':
         return <CalendarView

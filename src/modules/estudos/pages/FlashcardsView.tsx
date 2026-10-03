@@ -60,10 +60,10 @@ export const FlashcardsView: React.FC<FlashcardsViewProps> = ({
     request_retention: 0.9,
     show_next_review_time: true,
     enable_keyboard_shortcuts: true,
-    again_interval_minutes: 10,
-    hard_factor: 1.2,
-    good_factor: 1.0,
-    easy_bonus: 1.3,
+    again_spacing: { value: 10, unit: 'minutes' },
+    hard_spacing: { value: 1, unit: 'days' },
+    good_spacing: { value: 3, unit: 'days' },
+    easy_spacing: { value: 7, unit: 'days' },
     maximum_interval_days: 36500
   });
 
@@ -98,7 +98,7 @@ export const FlashcardsView: React.FC<FlashcardsViewProps> = ({
         flashcardsApi.queue.getStudyQueue(),
         flashcardsApi.settings.get(),
         flashcardsApi.stats.getSummary(),
-        flashcardsApi.stats.getForecast(30),
+        flashcardsApi.stats.getForecast(14),
         flashcardsApi.stats.getHeatmapData()
       ]);
 
@@ -155,7 +155,7 @@ export const FlashcardsView: React.FC<FlashcardsViewProps> = ({
     loadData();
   };
 
-  // Salvar ou atualizar cartão no Supabase (suporta múltiplos baralhos)
+  // Salvar ou atualizar cartão no Supabase (suporta múltiplos baralhos e múltiplas disciplinas)
   const handleSaveCard = async (
     cardData: {
       id?: string;
@@ -167,43 +167,58 @@ export const FlashcardsView: React.FC<FlashcardsViewProps> = ({
       cloze_text?: string;
       tags: string[];
       subject_id?: string;
+      subject_ids?: string[];
       topic_id?: string;
+      topic_ids?: string[];
     },
     createAnother: boolean
   ) => {
-    const targetDeckIds = cardData.deck_ids && cardData.deck_ids.length > 0
-      ? cardData.deck_ids
-      : [cardData.deck_id];
+    try {
+      const targetDeckIds = cardData.deck_ids && cardData.deck_ids.length > 0
+        ? cardData.deck_ids
+        : [cardData.deck_id];
 
-    if (cardData.id) {
-      await flashcardsApi.cards.update(cardData.id, {
-        ...cardData,
-        deck_id: targetDeckIds[0]
-      });
+      const targetSubjectIds = cardData.subject_ids && cardData.subject_ids.length > 0
+        ? cardData.subject_ids
+        : (cardData.subject_id ? [cardData.subject_id] : []);
 
-      if (targetDeckIds.length > 1) {
-        for (let i = 1; i < targetDeckIds.length; i++) {
-          await flashcardsApi.cards.create({
-            ...cardData,
-            id: undefined,
-            deck_id: targetDeckIds[i]
-          });
-        }
-      }
-    } else {
-      for (const dId of targetDeckIds) {
+      if (cardData.id) {
+        await flashcardsApi.cards.update(cardData.id, {
+          deck_id: targetDeckIds[0],
+          deck_ids: targetDeckIds,
+          card_type: cardData.card_type,
+          front: cardData.front,
+          back: cardData.back,
+          cloze_text: cardData.cloze_text || null,
+          tags: cardData.tags || [],
+          subject_id: targetSubjectIds[0] || null,
+          subject_ids: targetSubjectIds,
+          topic_id: cardData.topic_id || null,
+        });
+      } else {
         await flashcardsApi.cards.create({
-          ...cardData,
-          deck_id: dId
+          deck_id: targetDeckIds[0],
+          deck_ids: targetDeckIds,
+          card_type: cardData.card_type,
+          front: cardData.front,
+          back: cardData.back,
+          cloze_text: cardData.cloze_text || null,
+          tags: cardData.tags || [],
+          subject_id: targetSubjectIds[0] || null,
+          subject_ids: targetSubjectIds,
+          topic_id: cardData.topic_id || null,
         });
       }
-    }
 
-    if (!createAnother) {
-      setShowEditorModal(false);
-      setEditingCard(null);
+      if (!createAnother) {
+        setShowEditorModal(false);
+        setEditingCard(null);
+      }
+      await loadData();
+    } catch (err: any) {
+      console.error('Falha ao salvar/atualizar cartão:', err);
+      throw err;
     }
-    loadData();
   };
 
   // Abrir editor para editar cartão existente
@@ -395,6 +410,7 @@ export const FlashcardsView: React.FC<FlashcardsViewProps> = ({
       {/* MODAL DO EDITOR DE FLASHCARDS (CRIAR E EDITAR) */}
       {showEditorModal && (
         <FlashcardEditor
+          key={editingCard ? ('card' in editingCard ? editingCard.card.id : editingCard.id) : 'new-card'}
           decks={decks}
           subjects={subjects}
           editingCard={editingCard}

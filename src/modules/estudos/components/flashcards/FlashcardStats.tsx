@@ -41,15 +41,19 @@ export const FlashcardStats: React.FC<FlashcardStatsProps> = ({
 
   // Formatar forecast para os próximos 14 dias
   const formattedForecast = useMemo(() => {
-    return forecast.slice(0, 14).map(item => {
+    return forecast.slice(0, 14).map((item, idx) => {
       const parts = item.date.split('-');
       const dayMonth = `${parts[2]}/${parts[1]}`;
       return {
-        dia: dayMonth,
+        dia: idx === 0 ? `Hoje (${dayMonth})` : dayMonth,
         cartoes: item.count
       };
     });
   }, [forecast]);
+
+  const totalForecastCards = useMemo(() => {
+    return formattedForecast.reduce((acc, curr) => acc + curr.cartoes, 0);
+  }, [formattedForecast]);
 
   // Preparar os últimos 90 dias para o Heatmap compacto
   const heatmapDays = useMemo(() => {
@@ -161,11 +165,16 @@ export const FlashcardStats: React.FC<FlashcardStatsProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* GRÁFICO 1 - PREVISÃO DE CARGA (FORECAST 14 DIAS) */}
         <div className="lg:col-span-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 shadow-sm">
-          <div className="mb-4">
-            <h3 className="text-sm font-black uppercase tracking-tight text-zinc-900 dark:text-white">
-              Previsão de Revisões (Próximos 14 Dias)
-            </h3>
-            <p className="text-xs text-zinc-400">Quantidade de cartões previstos para vencer</p>
+          <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+            <div>
+              <h3 className="text-sm font-black uppercase tracking-tight text-zinc-900 dark:text-white">
+                Previsão de Revisões (Próximos 14 Dias)
+              </h3>
+              <p className="text-xs text-zinc-400">Quantidade de cartões previstos para vencer</p>
+            </div>
+            <span className="text-xs font-mono font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 px-2.5 py-1 rounded-lg border border-indigo-200/50">
+              {totalForecastCards} {totalForecastCards === 1 ? 'cartão previsto' : 'cartões previstos'}
+            </span>
           </div>
 
           <div className="h-56 w-full">

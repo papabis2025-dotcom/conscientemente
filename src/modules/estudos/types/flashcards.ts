@@ -51,7 +51,9 @@ export interface Flashcard {
   tags: string[];
   concurso_id?: string | null;
   subject_id?: string | null;
+  subject_ids?: string[];
   topic_id?: string | null;
+  topic_ids?: string[];
   source_type: 'manual' | 'question' | 'summary' | 'ai';
   source_id?: string | null;
   is_suspended: boolean;
@@ -97,6 +99,13 @@ export interface FlashcardReviewLog {
   created_at: string;
 }
 
+export type SpacingUnit = 'minutes' | 'days';
+
+export interface ClassificationSpacing {
+  value: number;
+  unit: SpacingUnit;
+}
+
 export interface FlashcardSettings {
   user_id?: string;
   new_cards_per_day: number;
@@ -104,12 +113,17 @@ export interface FlashcardSettings {
   request_retention: number; // Ex: 0.9 (90%)
   show_next_review_time: boolean;
   enable_keyboard_shortcuts: boolean;
-  // Espaçamentos e multiplicadores por classificação:
-  again_interval_minutes?: number; // Padrão: 10
-  hard_factor?: number; // Padrão: 1.2
-  good_factor?: number; // Padrão: 1.0
-  easy_bonus?: number; // Padrão: 1.3
+  // Espaçamentos diretos por classificação (apenas dias ou minutos, sem multiplicadores):
+  again_spacing?: ClassificationSpacing; // Padrão: { value: 10, unit: 'minutes' }
+  hard_spacing?: ClassificationSpacing;  // Padrão: { value: 1, unit: 'days' }
+  good_spacing?: ClassificationSpacing;  // Padrão: { value: 3, unit: 'days' }
+  easy_spacing?: ClassificationSpacing;  // Padrão: { value: 7, unit: 'days' }
   maximum_interval_days?: number; // Padrão: 36500
+  // Campos legados para compatibilidade reversa suave:
+  again_interval_minutes?: number;
+  hard_factor?: number;
+  good_factor?: number;
+  easy_bonus?: number;
   created_at?: string;
   updated_at?: string;
 }

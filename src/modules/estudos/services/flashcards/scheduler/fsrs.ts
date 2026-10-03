@@ -7,7 +7,7 @@
 // Separado totalmente de UI, estado visual e banco de dados.
 // ==============================================================================
 
-import { State, Rating, CardSchedulingState, FlashcardReviewLog, NextIntervalsPreview } from '../../../types/flashcards';
+import { State, Rating, CardSchedulingState, FlashcardReviewLog, NextIntervalsPreview, ClassificationSpacing } from '../../../types/flashcards';
 
 export const SCHEDULER_VERSION = 'fsrs-4.5';
 
@@ -23,16 +23,40 @@ export const DEFAULT_FSRS_WEIGHTS = [
 export interface FSRSParameters {
   requestRetention: number; // Padrão: 0.9 (90%)
   maximumInterval: number; // Padrão: 36500 (100 anos)
-  againIntervalMinutes: number; // Padrão: 10 min
-  hardMultiplier: number; // Padrão: 1.2
-  goodMultiplier: number; // Padrão: 1.0
-  easyMultiplier: number; // Padrão: 1.3
+  // Espaçamento direto por classificação (apenas dias ou minutos, sem multiplicadores):
+  againSpacing: ClassificationSpacing; // Padrão: 10 min
+  hardSpacing: ClassificationSpacing;  // Padrão: 1 dia (ou minutos)
+  goodSpacing: ClassificationSpacing;  // Padrão: 3 dias (ou minutos)
+  easySpacing: ClassificationSpacing;  // Padrão: 7 dias (ou minutos)
+  // Legados para retrocompatibilidade
+  againIntervalMinutes?: number;
+  hardMultiplier?: number;
+  goodMultiplier?: number;
+  easyMultiplier?: number;
   w: number[];
+}
+
+export function spacingToMs(spacing: ClassificationSpacing): number {
+  if (spacing.unit === 'minutes') {
+    return Math.max(1, spacing.value) * 60 * 1000;
+  }
+  return Math.max(1, spacing.value) * 24 * 60 * 60 * 1000;
+}
+
+export function spacingToDays(spacing: ClassificationSpacing): number {
+  if (spacing.unit === 'minutes') {
+    return 0;
+  }
+  return Math.max(1, spacing.value);
 }
 
 export const defaultParameters: FSRSParameters = {
   requestRetention: 0.9,
   maximumInterval: 36500,
+  againSpacing: { value: 10, unit: 'minutes' },
+  hardSpacing: { value: 1, unit: 'days' },
+  goodSpacing: { value: 3, unit: 'days' },
+  easySpacing: { value: 7, unit: 'days' },
   againIntervalMinutes: 10,
   hardMultiplier: 1.2,
   goodMultiplier: 1.0,
@@ -175,67 +199,53 @@ export class FlashcardScheduler {
     let nextDueAt: Date;
     let newLapses = current.lapses;
 
-    if (current.state === State.New) {
-      nextDifficulty = this.initDifficulty(rating);
-      nextStability = this.initStability(rating);
-
-      if (rating === Rating.Again) {
-        nextState = State.Learning;
+    if (rating === Rating.Again) {
+      nextDifficulty = current.state === State.New ? this.initDifficulty(rating) : this.nextDifficulty(current.difficulty, rating);
+      nextStability = current.state === State.New ? this.initStability(rating) : Math.max(0.1, current.stability * 0.8);
+      nextState = current.state === State.Review ? State.Relearning : State.Learning;
+      if (current.state === State.Review) newLapses += 1;
+      nextScheduledDays = spacingToDays(this.params.againSpacing);
+      nextDueAt = new Date(reviewDate.getTime() + spacingToMs(this.params.againSpacing));
+    } else if (rating === Rating.Hard) {
+      nextDifficulty = current.state === State.New ? this.initDifficulty(rating) : this.nextDifficulty(current.difficulty, rating);
+      nextStability = current.state === State.New ? this.initStability(rating) : Math.max(0.2, current.stability * 0.9);
+      nextScheduledDays = spacingToDays(this.params.hardSpacing);
+      nextDueAt = new Date(reviewDate.getTime() + spacingToMs(this.params.hardSpacing));
+      nextState = nextScheduledDays === 0 ? State.Learning : State.Review;
+    } else if (rating === Rating.Good) {
+      nextDifficulty = current.state === State.New ? this.initDifficulty(rating) : this.nextDifficulty(current.difficulty, rating);
+      nextStability = current.state === State.New ? this.initStability(rating) : Math.max(1, current.stability * 1.2);
+      nextState = State.Review;
+      
+      const configDays = spacingToDays(this.params.goodSpacing);
+      if (this.params.goodSpacing.unit === 'minutes' && configDays === 0) {
         nextScheduledDays = 0;
-        nextDueAt = new Date(reviewDate.getTime() + this.params.againIntervalMinutes * 60 * 1000);
-      } else if (rating === Rating.Hard) {
-        nextState = State.Learning;
-        nextScheduledDays = 0;
-        nextDueAt = new Date(reviewDate.getTime() + Math.round(this.params.againIntervalMinutes * 1.5) * 60 * 1000);
-      } else if (rating === Rating.Good) {
-        nextState = State.Review;
-        nextScheduledDays = Math.max(1, Math.min(this.params.maximumInterval, Math.round(nextStability * this.params.goodMultiplier)));
-        nextDueAt = new Date(reviewDate.getTime() + nextScheduledDays * 24 * 60 * 60 * 1000);
-      } else { // Rating.Easy
-        nextState = State.Review;
-        nextScheduledDays = Math.max(2, Math.min(this.params.maximumInterval, Math.round(nextStability * this.params.easyMultiplier)));
-        nextDueAt = new Date(reviewDate.getTime() + nextScheduledDays * 24 * 60 * 60 * 1000);
-      }
-    } else if (current.state === State.Learning || current.state === State.Relearning) {
-      nextDifficulty = this.nextDifficulty(current.difficulty, rating);
-
-      if (rating === Rating.Again) {
-        nextState = current.state;
-        nextStability = Math.max(0.1, current.stability * 0.8);
-        nextScheduledDays = 0;
-        nextDueAt = new Date(reviewDate.getTime() + this.params.againIntervalMinutes * 60 * 1000);
-      } else if (rating === Rating.Hard) {
-        nextState = current.state;
-        nextStability = Math.max(0.2, current.stability * 0.9);
-        nextScheduledDays = 0;
-        nextDueAt = new Date(reviewDate.getTime() + Math.round(this.params.againIntervalMinutes * 1.2) * 60 * 1000);
-      } else if (rating === Rating.Good) {
-        nextState = State.Review;
-        nextStability = Math.max(1, current.stability * 1.2);
-        nextScheduledDays = Math.max(1, Math.min(this.params.maximumInterval, Math.round(nextStability * this.params.goodMultiplier)));
-        nextDueAt = new Date(reviewDate.getTime() + nextScheduledDays * 24 * 60 * 60 * 1000);
-      } else { // Easy
-        nextState = State.Review;
-        nextStability = Math.max(2, current.stability * 1.6);
-        nextScheduledDays = Math.max(2, Math.min(this.params.maximumInterval, Math.round(nextStability * this.params.easyMultiplier)));
-        nextDueAt = new Date(reviewDate.getTime() + nextScheduledDays * 24 * 60 * 60 * 1000);
-      }
-    } else { // State.Review
-      const r = this.retrievability(elapsedDays, current.stability);
-      nextDifficulty = this.nextDifficulty(current.difficulty, rating);
-
-      if (rating === Rating.Again) {
-        nextState = State.Relearning;
-        newLapses += 1;
-        nextStability = this.nextStabilityFailure(nextDifficulty, current.stability, r);
-        nextScheduledDays = 0;
-        nextDueAt = new Date(reviewDate.getTime() + this.params.againIntervalMinutes * 60 * 1000);
+        nextDueAt = new Date(reviewDate.getTime() + spacingToMs(this.params.goodSpacing));
       } else {
-        nextState = State.Review;
-        nextStability = this.nextStabilitySuccess(nextDifficulty, current.stability, r, rating);
-        const baseInterval = this.nextInterval(nextStability, customRetention);
-        const mult = rating === Rating.Hard ? this.params.hardMultiplier : rating === Rating.Good ? this.params.goodMultiplier : this.params.easyMultiplier;
-        nextScheduledDays = Math.max(1, Math.min(this.params.maximumInterval, Math.round(baseInterval * mult)));
+        if (current.state === State.Review && current.reps > 1) {
+          const fsrsDays = this.nextInterval(nextStability, customRetention);
+          nextScheduledDays = Math.max(configDays, Math.min(this.params.maximumInterval, fsrsDays));
+        } else {
+          nextScheduledDays = Math.max(1, configDays);
+        }
+        nextDueAt = new Date(reviewDate.getTime() + nextScheduledDays * 24 * 60 * 60 * 1000);
+      }
+    } else { // Rating.Easy
+      nextDifficulty = current.state === State.New ? this.initDifficulty(rating) : this.nextDifficulty(current.difficulty, rating);
+      nextStability = current.state === State.New ? this.initStability(rating) : Math.max(2, current.stability * 1.6);
+      nextState = State.Review;
+      
+      const configDays = spacingToDays(this.params.easySpacing);
+      if (this.params.easySpacing.unit === 'minutes' && configDays === 0) {
+        nextScheduledDays = 0;
+        nextDueAt = new Date(reviewDate.getTime() + spacingToMs(this.params.easySpacing));
+      } else {
+        if (current.state === State.Review && current.reps > 1) {
+          const fsrsDays = this.nextInterval(nextStability, customRetention);
+          nextScheduledDays = Math.max(configDays, Math.min(this.params.maximumInterval, Math.round(fsrsDays * 1.3)));
+        } else {
+          nextScheduledDays = Math.max(1, configDays);
+        }
         nextDueAt = new Date(reviewDate.getTime() + nextScheduledDays * 24 * 60 * 60 * 1000);
       }
     }
@@ -289,31 +299,33 @@ export class FlashcardScheduler {
 
     return {
       again: {
-        intervalLabel: this.formatIntervalLabel(againRes.nextScheduling),
+        intervalLabel: this.formatIntervalLabel(againRes.nextScheduling, now),
         scheduledDays: againRes.nextScheduling.scheduled_days,
         state: againRes.nextScheduling.state
       },
       hard: {
-        intervalLabel: this.formatIntervalLabel(hardRes.nextScheduling),
+        intervalLabel: this.formatIntervalLabel(hardRes.nextScheduling, now),
         scheduledDays: hardRes.nextScheduling.scheduled_days,
         state: hardRes.nextScheduling.state
       },
       good: {
-        intervalLabel: this.formatIntervalLabel(goodRes.nextScheduling),
+        intervalLabel: this.formatIntervalLabel(goodRes.nextScheduling, now),
         scheduledDays: goodRes.nextScheduling.scheduled_days,
         state: goodRes.nextScheduling.state
       },
       easy: {
-        intervalLabel: this.formatIntervalLabel(easyRes.nextScheduling),
+        intervalLabel: this.formatIntervalLabel(easyRes.nextScheduling, now),
         scheduledDays: easyRes.nextScheduling.scheduled_days,
         state: easyRes.nextScheduling.state
       }
     };
   }
 
-  private formatIntervalLabel(scheduling: CardSchedulingState): string {
+  private formatIntervalLabel(scheduling: CardSchedulingState, now: Date = new Date()): string {
     if (scheduling.scheduled_days === 0) {
-      return '< 10 min';
+      const diffMs = new Date(scheduling.due_at).getTime() - now.getTime();
+      const diffMin = Math.max(1, Math.round(diffMs / (60 * 1000)));
+      return `${diffMin} min`;
     }
     const days = scheduling.scheduled_days;
     if (days === 1) return '1 dia';

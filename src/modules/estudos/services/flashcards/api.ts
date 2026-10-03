@@ -22,6 +22,41 @@ const getAuthUser = async () => {
   return session?.user || null;
 };
 
+// Helper para normalizar e restaurar deck_ids e subject_ids (tanto de colunas nativas quanto do source_id JSON)
+export const hydrateCardMeta = (c: any): Flashcard => {
+  if (!c) return c;
+
+  let deckIds: string[] = Array.isArray(c.deck_ids) && c.deck_ids.length > 0 ? [...c.deck_ids] : [];
+  let subjectIds: string[] = Array.isArray(c.subject_ids) && c.subject_ids.length > 0 ? [...c.subject_ids] : [];
+
+  if (typeof c.source_id === 'string' && c.source_id.startsWith('{')) {
+    try {
+      const parsed = JSON.parse(c.source_id);
+      if (deckIds.length === 0 && Array.isArray(parsed.deck_ids)) {
+        deckIds = parsed.deck_ids;
+      }
+      if (subjectIds.length === 0 && Array.isArray(parsed.subject_ids)) {
+        subjectIds = parsed.subject_ids;
+      }
+    } catch {
+      // Ignora se não for JSON válido
+    }
+  }
+
+  if (c.deck_id && !deckIds.includes(c.deck_id)) {
+    deckIds.unshift(c.deck_id);
+  }
+  if (c.subject_id && !subjectIds.includes(c.subject_id)) {
+    subjectIds.unshift(c.subject_id);
+  }
+
+  return {
+    ...c,
+    deck_ids: deckIds,
+    subject_ids: subjectIds
+  };
+};
+
 export const flashcardsApi = {
   // ----------------------------------------------------------------------------
   // BARALHOS (DECKS)
@@ -46,11 +81,23 @@ export const flashcardsApi = {
 
       // Carregar contadores rápidos de cartões por baralho
       try {
-        const { data: cardsCount } = await supabase
+        let cardsCount: any[] | null = null;
+        const resWithDeckIds = await supabase
           .from('flashcard_cards')
-          .select('deck_id, id, is_suspended, is_deleted')
+          .select('deck_id, deck_ids, id, is_suspended, is_deleted, source_id')
           .eq('user_id', user.id)
           .eq('is_deleted', false);
+
+        if (resWithDeckIds.error) {
+          const resFallback = await supabase
+            .from('flashcard_cards')
+            .select('deck_id, id, is_suspended, is_deleted, source_id')
+            .eq('user_id', user.id)
+            .eq('is_deleted', false);
+          cardsCount = (resFallback.data || []).map(hydrateCardMeta);
+        } else {
+          cardsCount = (resWithDeckIds.data || []).map(hydrateCardMeta);
+        }
 
         const { data: states } = await supabase
           .from('flashcard_scheduling_state')
@@ -61,25 +108,37 @@ export const flashcardsApi = {
         const stateMap = new Map((states || []).map(s => [s.card_id, s]));
 
         const countMap: Record<string, { total: number; new: number; learning: number; review: number }> = {};
+        decks.forEach(d => {
+          countMap[d.id] = { total: 0, new: 0, learning: 0, review: 0 };
+        });
+
         (cardsCount || []).forEach(c => {
-          if (!countMap[c.deck_id]) {
-            countMap[c.deck_id] = { total: 0, new: 0, learning: 0, review: 0 };
+          const linkedDecks = new Set<string>();
+          if (c.deck_id) linkedDecks.add(c.deck_id);
+          if (Array.isArray(c.deck_ids)) {
+            c.deck_ids.forEach((id: string) => { if (id) linkedDecks.add(id); });
           }
-          if (!c.is_suspended) {
-            countMap[c.deck_id].total += 1;
-            const st = stateMap.get(c.id);
-            if (!st || st.state === State.New) {
-              countMap[c.deck_id].new += 1;
-            } else if (st.state === State.Learning || st.state === State.Relearning) {
-              if (new Date(st.due_at) <= now) {
-                countMap[c.deck_id].learning += 1;
-              }
-            } else if (st.state === State.Review) {
-              if (new Date(st.due_at) <= now) {
-                countMap[c.deck_id].review += 1;
+
+          linkedDecks.forEach(dId => {
+            if (!countMap[dId]) {
+              countMap[dId] = { total: 0, new: 0, learning: 0, review: 0 };
+            }
+            if (!c.is_suspended) {
+              countMap[dId].total += 1;
+              const st = stateMap.get(c.id);
+              if (!st || st.state === State.New) {
+                countMap[dId].new += 1;
+              } else if (st.state === State.Learning || st.state === State.Relearning) {
+                if (new Date(st.due_at) <= now) {
+                  countMap[dId].learning += 1;
+                }
+              } else if (st.state === State.Review) {
+                if (new Date(st.due_at) <= now) {
+                  countMap[dId].review += 1;
+                }
               }
             }
-          }
+          });
         });
 
         decks.forEach(d => {
@@ -186,16 +245,31 @@ export const flashcardsApi = {
         .eq('user_id', user.id)
         .eq('is_deleted', false);
 
-      if (options?.deckId) query = query.eq('deck_id', options.deckId);
-      if (options?.subjectId) query = query.eq('subject_id', options.subjectId);
       if (options?.topicId) query = query.eq('topic_id', options.topicId);
       if (options?.isSuspended !== undefined) query = query.eq('is_suspended', options.isSuspended);
 
-      const { data: cards, error } = await query.order('created_at', { ascending: false });
+      const { data: rawCards, error } = await query.order('created_at', { ascending: false });
 
-      if (error || !cards) {
+      if (error || !rawCards) {
         console.error('Erro ao listar cartões:', error);
         return [];
+      }
+
+      let cards = rawCards.map(hydrateCardMeta);
+
+      // Filtragem que contempla múltiplos baralhos e múltiplas disciplinas
+      if (options?.deckId) {
+        cards = cards.filter(c =>
+          c.deck_id === options.deckId ||
+          (Array.isArray(c.deck_ids) && c.deck_ids.includes(options.deckId))
+        );
+      }
+
+      if (options?.subjectId) {
+        cards = cards.filter(c =>
+          c.subject_id === options.subjectId ||
+          (Array.isArray(c.subject_ids) && c.subject_ids.includes(options.subjectId))
+        );
       }
 
       const cardIds = cards.map(c => c.id);
@@ -250,8 +324,19 @@ export const flashcardsApi = {
       ] : [card];
 
       for (const item of cardsToCreate) {
-        const cardPayload = {
-          deck_id: item.deck_id,
+        const primaryDeckId = item.deck_id || (item.deck_ids && item.deck_ids[0]) || '';
+        const deckIdsList = item.deck_ids && item.deck_ids.length > 0 ? item.deck_ids : (primaryDeckId ? [primaryDeckId] : []);
+        const primarySubjectId = item.subject_id || (item.subject_ids && item.subject_ids[0]) || null;
+        const subjectIdsList = item.subject_ids && item.subject_ids.length > 0 ? item.subject_ids : (primarySubjectId ? [primarySubjectId] : []);
+
+        const metaJson = JSON.stringify({
+          deck_ids: deckIdsList,
+          subject_ids: subjectIdsList,
+          orig_source_id: item.source_id || null
+        });
+
+        const safePayload: any = {
+          deck_id: primaryDeckId,
           user_id: user.id,
           card_type: item.card_type || 'basic',
           front: item.front?.trim() || '',
@@ -259,19 +344,50 @@ export const flashcardsApi = {
           cloze_text: item.cloze_text?.trim() || null,
           tags: item.tags || [],
           concurso_id: item.concurso_id || null,
-          subject_id: item.subject_id || null,
+          subject_id: primarySubjectId,
           topic_id: item.topic_id || null,
           source_type: item.source_type || 'manual',
-          source_id: item.source_id || null,
+          source_id: metaJson,
           is_suspended: false,
           is_deleted: false,
         };
 
-        const { data: newCard, error: cardErr } = await supabase
+        let newCard: any = null;
+        let cardErr: any = null;
+
+        const insertRes = await supabase
           .from('flashcard_cards')
-          .insert(cardPayload)
+          .insert({
+            ...safePayload,
+            deck_ids: deckIdsList,
+            subject_ids: subjectIdsList
+          })
           .select()
           .single();
+
+        newCard = insertRes.data;
+        cardErr = insertRes.error;
+
+        // Fallback defensivo caso o banco ainda não tenha as colunas nativas deck_ids/subject_ids
+        if (cardErr) {
+          const errMsg = cardErr.message || '';
+          const isMissingCol =
+            cardErr.code === '42703' ||
+            cardErr.code === 'PGRST204' ||
+            errMsg.includes('deck_ids') ||
+            errMsg.includes('subject_ids') ||
+            errMsg.includes('schema cache');
+
+          if (isMissingCol) {
+            const retry = await supabase
+              .from('flashcard_cards')
+              .insert(safePayload)
+              .select()
+              .single();
+            newCard = retry.data;
+            cardErr = retry.error;
+          }
+        }
 
         if (cardErr || !newCard) {
           console.error('Erro ao criar cartão:', cardErr);
@@ -291,7 +407,7 @@ export const flashcardsApi = {
         }
 
         results.push({
-          card: newCard,
+          card: hydrateCardMeta(newCard),
           scheduling: newSched || initialSched
         });
       }
@@ -303,22 +419,73 @@ export const flashcardsApi = {
       const user = await getAuthUser();
       if (!user) return null;
 
-      const { data, error } = await supabase
+      const primaryDeckId = updates.deck_id || (updates.deck_ids && updates.deck_ids[0]) || '';
+      const deckIdsList = updates.deck_ids && updates.deck_ids.length > 0 ? updates.deck_ids : (primaryDeckId ? [primaryDeckId] : []);
+      const primarySubjectId = updates.subject_id !== undefined ? updates.subject_id : ((updates.subject_ids && updates.subject_ids[0]) || null);
+      const subjectIdsList = updates.subject_ids && updates.subject_ids.length > 0 ? updates.subject_ids : (primarySubjectId ? [primarySubjectId] : []);
+
+      const metaJson = JSON.stringify({
+        deck_ids: deckIdsList,
+        subject_ids: subjectIdsList,
+        orig_source_id: updates.source_id || null
+      });
+
+      const safePayload: any = {
+        updated_at: new Date().toISOString()
+      };
+
+      if (primaryDeckId) safePayload.deck_id = primaryDeckId;
+      if (updates.card_type !== undefined) safePayload.card_type = updates.card_type;
+      if (updates.front !== undefined) safePayload.front = updates.front.trim();
+      if (updates.back !== undefined) safePayload.back = updates.back.trim();
+      if (updates.cloze_text !== undefined) safePayload.cloze_text = updates.cloze_text?.trim() || null;
+      if (updates.tags !== undefined) safePayload.tags = updates.tags;
+      if (updates.concurso_id !== undefined) safePayload.concurso_id = updates.concurso_id;
+      if (primarySubjectId !== undefined) safePayload.subject_id = primarySubjectId;
+      if (updates.topic_id !== undefined) safePayload.topic_id = updates.topic_id;
+      if (updates.is_suspended !== undefined) safePayload.is_suspended = updates.is_suspended;
+      if (updates.is_deleted !== undefined) safePayload.is_deleted = updates.is_deleted;
+      safePayload.source_id = metaJson;
+
+      let result = await supabase
         .from('flashcard_cards')
         .update({
-          ...updates,
-          updated_at: new Date().toISOString()
+          ...safePayload,
+          deck_ids: deckIdsList,
+          subject_ids: subjectIdsList
         })
         .eq('id', id)
         .eq('user_id', user.id)
         .select()
         .single();
 
-      if (error) {
-        console.error('Erro ao atualizar cartão:', error);
-        throw error;
+      // Fallback defensivo caso as colunas deck_ids/subject_ids ainda não existam no banco remoto
+      if (result.error) {
+        const errMsg = result.error.message || '';
+        const isMissingCol =
+          result.error.code === '42703' ||
+          result.error.code === 'PGRST204' ||
+          errMsg.includes('deck_ids') ||
+          errMsg.includes('subject_ids') ||
+          errMsg.includes('schema cache');
+
+        if (isMissingCol) {
+          result = await supabase
+            .from('flashcard_cards')
+            .update(safePayload)
+            .eq('id', id)
+            .eq('user_id', user.id)
+            .select()
+            .single();
+        }
       }
-      return data;
+
+      if (result.error) {
+        console.error('Erro ao atualizar cartão:', result.error);
+        throw result.error;
+      }
+
+      return hydrateCardMeta(result.data);
     },
 
     toggleSuspend: async (id: string, isSuspended: boolean): Promise<boolean> => {
@@ -384,12 +551,31 @@ export const flashcardsApi = {
         .eq('is_deleted', false)
         .eq('is_suspended', false);
 
-      if (options?.deckId) query = query.eq('deck_id', options.deckId);
-      if (options?.subjectId) query = query.eq('subject_id', options.subjectId);
       if (options?.topicId) query = query.eq('topic_id', options.topicId);
 
-      const { data: cards } = await query;
-      if (!cards || cards.length === 0) {
+      const { data: rawCards } = await query;
+      if (!rawCards || rawCards.length === 0) {
+        return {
+          dueCards: [],
+          counts: { overdue: 0, learning: 0, review: 0, newCards: 0, total: 0 }
+        };
+      }
+
+      let cards = (rawCards || []).map(hydrateCardMeta);
+      if (options?.deckId) {
+        cards = cards.filter(c =>
+          c.deck_id === options.deckId ||
+          (Array.isArray(c.deck_ids) && c.deck_ids.includes(options.deckId))
+        );
+      }
+      if (options?.subjectId) {
+        cards = cards.filter(c =>
+          c.subject_id === options.subjectId ||
+          (Array.isArray(c.subject_ids) && c.subject_ids.includes(options.subjectId))
+        );
+      }
+
+      if (cards.length === 0) {
         return {
           dueCards: [],
           counts: { overdue: 0, learning: 0, review: 0, newCards: 0, total: 0 }
@@ -545,25 +731,42 @@ export const flashcardsApi = {
         .eq('user_id', user.id)
         .maybeSingle();
 
+      const againSpacing = localSpacing.again_spacing || {
+        value: localSpacing.again_interval_minutes || 10,
+        unit: 'minutes' as const
+      };
+      const hardSpacing = localSpacing.hard_spacing || {
+        value: 1,
+        unit: 'days' as const
+      };
+      const goodSpacing = localSpacing.good_spacing || {
+        value: 3,
+        unit: 'days' as const
+      };
+      const easySpacing = localSpacing.easy_spacing || {
+        value: 7,
+        unit: 'days' as const
+      };
+
       const settings: FlashcardSettings = {
         new_cards_per_day: data?.new_cards_per_day ?? 20,
         max_reviews_per_day: data?.max_reviews_per_day ?? 200,
         request_retention: data?.request_retention ?? 0.9,
         show_next_review_time: data?.show_next_review_time ?? true,
         enable_keyboard_shortcuts: data?.enable_keyboard_shortcuts ?? true,
-        again_interval_minutes: localSpacing.again_interval_minutes ?? 10,
-        hard_factor: localSpacing.hard_factor ?? 1.2,
-        good_factor: localSpacing.good_factor ?? 1.0,
-        easy_bonus: localSpacing.easy_bonus ?? 1.3,
+        again_spacing: againSpacing,
+        hard_spacing: hardSpacing,
+        good_spacing: goodSpacing,
+        easy_spacing: easySpacing,
         maximum_interval_days: localSpacing.maximum_interval_days ?? 36500,
       };
 
       defaultScheduler.updateParameters({
         requestRetention: settings.request_retention,
-        againIntervalMinutes: settings.again_interval_minutes,
-        hardMultiplier: settings.hard_factor,
-        goodMultiplier: settings.good_factor,
-        easyMultiplier: settings.easy_bonus,
+        againSpacing: settings.again_spacing,
+        hardSpacing: settings.hard_spacing,
+        goodSpacing: settings.good_spacing,
+        easySpacing: settings.easy_spacing,
         maximumInterval: settings.maximum_interval_days,
       });
 
@@ -582,20 +785,20 @@ export const flashcardsApi = {
       } catch {}
 
       const spacingPayload = {
-        again_interval_minutes: updates.again_interval_minutes ?? existingSpacing.again_interval_minutes ?? 10,
-        hard_factor: updates.hard_factor ?? existingSpacing.hard_factor ?? 1.2,
-        good_factor: updates.good_factor ?? existingSpacing.good_factor ?? 1.0,
-        easy_bonus: updates.easy_bonus ?? existingSpacing.easy_bonus ?? 1.3,
+        again_spacing: updates.again_spacing ?? existingSpacing.again_spacing ?? { value: 10, unit: 'minutes' as const },
+        hard_spacing: updates.hard_spacing ?? existingSpacing.hard_spacing ?? { value: 1, unit: 'days' as const },
+        good_spacing: updates.good_spacing ?? existingSpacing.good_spacing ?? { value: 3, unit: 'days' as const },
+        easy_spacing: updates.easy_spacing ?? existingSpacing.easy_spacing ?? { value: 7, unit: 'days' as const },
         maximum_interval_days: updates.maximum_interval_days ?? existingSpacing.maximum_interval_days ?? 36500,
       };
       localStorage.setItem('cp_flashcard_spacing_settings', JSON.stringify(spacingPayload));
 
       defaultScheduler.updateParameters({
         requestRetention: updates.request_retention,
-        againIntervalMinutes: spacingPayload.again_interval_minutes,
-        hardMultiplier: spacingPayload.hard_factor,
-        goodMultiplier: spacingPayload.good_factor,
-        easyMultiplier: spacingPayload.easy_bonus,
+        againSpacing: spacingPayload.again_spacing,
+        hardSpacing: spacingPayload.hard_spacing,
+        goodSpacing: spacingPayload.good_spacing,
+        easySpacing: spacingPayload.easy_spacing,
         maximumInterval: spacingPayload.maximum_interval_days,
       });
 
@@ -746,32 +949,67 @@ export const flashcardsApi = {
       };
     },
 
-    getForecast: async (days: number = 30): Promise<{ date: string; count: number }[]> => {
+    getForecast: async (days: number = 14): Promise<{ date: string; count: number }[]> => {
       const user = await getAuthUser();
       if (!user) return [];
 
+      // Buscar cartões ativos para não contabilizar cartões deletados ou suspensos
+      const { data: activeCards } = await supabase
+        .from('flashcard_cards')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('is_deleted', false)
+        .eq('is_suspended', false);
+
+      const activeIds = new Set((activeCards || []).map(c => c.id));
+      const targetDays = Math.max(1, Math.min(days, 30));
+
+      const now = new Date();
+      // Criar mapa ordenado dos próximos 14 dias em horário local
+      const forecastDays: { dateKey: string; start: Date; end: Date; count: number }[] = [];
+
+      for (let i = 0; i < targetDays; i++) {
+        const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i);
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const dayNum = String(d.getDate()).padStart(2, '0');
+        const dateKey = `${y}-${m}-${dayNum}`;
+
+        const start = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0);
+        const end = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999);
+
+        forecastDays.push({ dateKey, start, end, count: 0 });
+      }
+
+      if (activeIds.size === 0) {
+        return forecastDays.map(f => ({ date: f.dateKey, count: 0 }));
+      }
+
       const { data: states } = await supabase
         .from('flashcard_scheduling_state')
-        .select('due_at')
+        .select('card_id, due_at, state')
         .eq('user_id', user.id)
         .neq('state', State.New);
 
-      const map: Record<string, number> = {};
-      const now = new Date();
-
-      for (let i = 0; i <= days; i++) {
-        const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i);
-        map[d.toISOString().split('T')[0]] = 0;
-      }
-
       (states || []).forEach(s => {
-        const day = s.due_at.split('T')[0];
-        if (map[day] !== undefined) {
-          map[day] += 1;
+        if (!activeIds.has(s.card_id)) return;
+        const dueDate = new Date(s.due_at);
+
+        // Se venceu no passado ou hoje, agrupa no Dia 0 (Hoje)
+        if (dueDate <= forecastDays[0].end) {
+          forecastDays[0].count += 1;
+        } else {
+          // Dias futuros (1 a targetDays - 1)
+          for (let i = 1; i < forecastDays.length; i++) {
+            if (dueDate >= forecastDays[i].start && dueDate <= forecastDays[i].end) {
+              forecastDays[i].count += 1;
+              break;
+            }
+          }
         }
       });
 
-      return Object.entries(map).map(([date, count]) => ({ date, count }));
+      return forecastDays.map(f => ({ date: f.dateKey, count: f.count }));
     },
 
     getHeatmapData: async (): Promise<Record<string, number>> => {

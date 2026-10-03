@@ -18,11 +18,19 @@ export const FlashcardSettingsModal: React.FC<FlashcardSettingsModalProps> = ({
   const [showNextReviewTime, setShowNextReviewTime] = useState(settings.show_next_review_time);
   const [enableKeyboardShortcuts, setEnableKeyboardShortcuts] = useState(settings.enable_keyboard_shortcuts);
 
-  // Espaçamentos por classificação
-  const [againIntervalMinutes, setAgainIntervalMinutes] = useState(settings.again_interval_minutes || 10);
-  const [hardFactor, setHardFactor] = useState(settings.hard_factor || 1.2);
-  const [goodFactor, setGoodFactor] = useState(settings.good_factor || 1.0);
-  const [easyBonus, setEasyBonus] = useState(settings.easy_bonus || 1.3);
+  // Espaçamentos diretos por classificação (apenas dias ou minutos, sem multiplicadores)
+  const [againVal, setAgainVal] = useState(settings.again_spacing?.value ?? (settings.again_interval_minutes || 10));
+  const [againUnit, setAgainUnit] = useState<'minutes' | 'days'>(settings.again_spacing?.unit ?? 'minutes');
+
+  const [hardVal, setHardVal] = useState(settings.hard_spacing?.value ?? 1);
+  const [hardUnit, setHardUnit] = useState<'minutes' | 'days'>(settings.hard_spacing?.unit ?? 'days');
+
+  const [goodVal, setGoodVal] = useState(settings.good_spacing?.value ?? 3);
+  const [goodUnit, setGoodUnit] = useState<'minutes' | 'days'>(settings.good_spacing?.unit ?? 'days');
+
+  const [easyVal, setEasyVal] = useState(settings.easy_spacing?.value ?? 7);
+  const [easyUnit, setEasyUnit] = useState<'minutes' | 'days'>(settings.easy_spacing?.unit ?? 'days');
+
   const [maximumIntervalDays, setMaximumIntervalDays] = useState(settings.maximum_interval_days || 36500);
 
   const [isSaving, setIsSaving] = useState(false);
@@ -38,10 +46,10 @@ export const FlashcardSettingsModal: React.FC<FlashcardSettingsModalProps> = ({
         request_retention: Math.min(0.97, Math.max(0.75, requestRetention / 100)),
         show_next_review_time: showNextReviewTime,
         enable_keyboard_shortcuts: enableKeyboardShortcuts,
-        again_interval_minutes: Number(againIntervalMinutes) || 10,
-        hard_factor: Number(hardFactor) || 1.2,
-        good_factor: Number(goodFactor) || 1.0,
-        easy_bonus: Number(easyBonus) || 1.3,
+        again_spacing: { value: Math.max(1, Number(againVal) || 1), unit: againUnit },
+        hard_spacing: { value: Math.max(1, Number(hardVal) || 1), unit: hardUnit },
+        good_spacing: { value: Math.max(1, Number(goodVal) || 1), unit: goodUnit },
+        easy_spacing: { value: Math.max(1, Number(easyVal) || 1), unit: easyUnit },
         maximum_interval_days: Number(maximumIntervalDays) || 36500,
       });
       setSavedSuccess(true);
@@ -64,7 +72,7 @@ export const FlashcardSettingsModal: React.FC<FlashcardSettingsModalProps> = ({
             <h3 className="text-base font-black uppercase tracking-tight text-zinc-900 dark:text-white">
               Opções de Repetição e Espaçamento
             </h3>
-            <p className="text-xs text-zinc-400">Personalize o comportamento e os intervalos das classificações</p>
+            <p className="text-xs text-zinc-400">Configure o intervalo exato de cada classificação (dias ou minutos)</p>
           </div>
 
           <button
@@ -78,91 +86,199 @@ export const FlashcardSettingsModal: React.FC<FlashcardSettingsModalProps> = ({
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* SEÇÃO 1: ESPAÇAMENTO DE CADA CLASSIFICAÇÃO */}
           <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200/70 dark:border-zinc-700/60 space-y-4">
-            <h4 className="text-xs font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
-              Espaçamento por Classificação (1 a 4)
-            </h4>
+            <div>
+              <h4 className="text-xs font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+                Espaçamento por Classificação (Dias ou Minutos)
+              </h4>
+              <p className="text-[11px] text-zinc-400 mt-0.5">Defina o tempo direto para cada resposta, sem multiplicadores.</p>
+            </div>
 
             {/* 1. ERREI (AGAIN) */}
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="text-[11px] font-bold text-zinc-700 dark:text-zinc-300">
-                  1. Errei / Novamente (Passo de Reaprendizagem)
+            <div className="p-3 bg-white dark:bg-zinc-900/80 rounded-xl border border-zinc-200/80 dark:border-zinc-700/60">
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-xs font-bold text-rose-600 dark:text-rose-400">
+                  1. Errei / Novamente
                 </label>
-                <span className="text-xs font-mono font-bold text-rose-500">{againIntervalMinutes} min</span>
+                <span className="text-xs font-mono font-bold text-rose-500">
+                  {againVal} {againUnit === 'minutes' ? 'min' : againVal === 1 ? 'dia' : 'dias'}
+                </span>
               </div>
-              <input
-                type="number"
-                min={1}
-                max={1440}
-                value={againIntervalMinutes}
-                onChange={e => setAgainIntervalMinutes(Number(e.target.value))}
-                className="w-full p-2.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-bold text-zinc-900 dark:text-white outline-none focus:ring-1 focus:ring-indigo-500"
-              />
-              <p className="text-[10px] text-zinc-400 mt-0.5">Tempo em minutos até o cartão retornar quando você errar.</p>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min={1}
+                  max={againUnit === 'minutes' ? 1440 : 365}
+                  value={againVal}
+                  onChange={e => setAgainVal(Number(e.target.value))}
+                  className="flex-1 p-2 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg text-xs font-bold text-zinc-900 dark:text-white outline-none focus:ring-1 focus:ring-rose-500"
+                />
+                <div className="flex rounded-lg overflow-hidden border border-zinc-200 dark:border-zinc-700 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setAgainUnit('minutes')}
+                    className={`px-3 py-1.5 text-xs font-bold transition-colors ${
+                      againUnit === 'minutes'
+                        ? 'bg-rose-500 text-white'
+                        : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
+                    }`}
+                  >
+                    Minutos
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAgainUnit('days')}
+                    className={`px-3 py-1.5 text-xs font-bold transition-colors ${
+                      againUnit === 'days'
+                        ? 'bg-rose-500 text-white'
+                        : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
+                    }`}
+                  >
+                    Dias
+                  </button>
+                </div>
+              </div>
             </div>
 
             {/* 2. DIFÍCIL (HARD) */}
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="text-[11px] font-bold text-zinc-700 dark:text-zinc-300">
-                  2. Difícil (Multiplicador de Intervalo)
+            <div className="p-3 bg-white dark:bg-zinc-900/80 rounded-xl border border-zinc-200/80 dark:border-zinc-700/60">
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-xs font-bold text-amber-600 dark:text-amber-400">
+                  2. Difícil
                 </label>
-                <span className="text-xs font-mono font-bold text-amber-500">{hardFactor}x</span>
+                <span className="text-xs font-mono font-bold text-amber-500">
+                  {hardVal} {hardUnit === 'minutes' ? 'min' : hardVal === 1 ? 'dia' : 'dias'}
+                </span>
               </div>
-              <input
-                type="number"
-                step="0.1"
-                min={0.5}
-                max={2.5}
-                value={hardFactor}
-                onChange={e => setHardFactor(Number(e.target.value))}
-                className="w-full p-2.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-bold text-zinc-900 dark:text-white outline-none focus:ring-1 focus:ring-indigo-500"
-              />
-              <p className="text-[10px] text-zinc-400 mt-0.5">Fator aplicado sobre o intervalo base quando for difícil (padrão: 1.2x).</p>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min={1}
+                  max={hardUnit === 'minutes' ? 1440 : 365}
+                  value={hardVal}
+                  onChange={e => setHardVal(Number(e.target.value))}
+                  className="flex-1 p-2 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg text-xs font-bold text-zinc-900 dark:text-white outline-none focus:ring-1 focus:ring-amber-500"
+                />
+                <div className="flex rounded-lg overflow-hidden border border-zinc-200 dark:border-zinc-700 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setHardUnit('minutes')}
+                    className={`px-3 py-1.5 text-xs font-bold transition-colors ${
+                      hardUnit === 'minutes'
+                        ? 'bg-amber-500 text-white'
+                        : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
+                    }`}
+                  >
+                    Minutos
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setHardUnit('days')}
+                    className={`px-3 py-1.5 text-xs font-bold transition-colors ${
+                      hardUnit === 'days'
+                        ? 'bg-amber-500 text-white'
+                        : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
+                    }`}
+                  >
+                    Dias
+                  </button>
+                </div>
+              </div>
             </div>
 
             {/* 3. BOM (GOOD) */}
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="text-[11px] font-bold text-zinc-700 dark:text-zinc-300">
-                  3. Bom (Multiplicador Regular)
+            <div className="p-3 bg-white dark:bg-zinc-900/80 rounded-xl border border-zinc-200/80 dark:border-zinc-700/60">
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-xs font-bold text-indigo-600 dark:text-indigo-400">
+                  3. Bom
                 </label>
-                <span className="text-xs font-mono font-bold text-indigo-500">{goodFactor}x</span>
+                <span className="text-xs font-mono font-bold text-indigo-500">
+                  {goodVal} {goodUnit === 'minutes' ? 'min' : goodVal === 1 ? 'dia' : 'dias'}
+                </span>
               </div>
-              <input
-                type="number"
-                step="0.1"
-                min={0.5}
-                max={2.5}
-                value={goodFactor}
-                onChange={e => setGoodFactor(Number(e.target.value))}
-                className="w-full p-2.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-bold text-zinc-900 dark:text-white outline-none focus:ring-1 focus:ring-indigo-500"
-              />
-              <p className="text-[10px] text-zinc-400 mt-0.5">Fator padrão da curva de estabilidade FSRS (padrão: 1.0x).</p>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min={1}
+                  max={goodUnit === 'minutes' ? 1440 : 365}
+                  value={goodVal}
+                  onChange={e => setGoodVal(Number(e.target.value))}
+                  className="flex-1 p-2 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg text-xs font-bold text-zinc-900 dark:text-white outline-none focus:ring-1 focus:ring-indigo-500"
+                />
+                <div className="flex rounded-lg overflow-hidden border border-zinc-200 dark:border-zinc-700 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setGoodUnit('minutes')}
+                    className={`px-3 py-1.5 text-xs font-bold transition-colors ${
+                      goodUnit === 'minutes'
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
+                    }`}
+                  >
+                    Minutos
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setGoodUnit('days')}
+                    className={`px-3 py-1.5 text-xs font-bold transition-colors ${
+                      goodUnit === 'days'
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
+                    }`}
+                  >
+                    Dias
+                  </button>
+                </div>
+              </div>
             </div>
 
             {/* 4. FÁCIL (EASY) */}
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="text-[11px] font-bold text-zinc-700 dark:text-zinc-300">
-                  4. Fácil (Bônus de Espaçamento)
+            <div className="p-3 bg-white dark:bg-zinc-900/80 rounded-xl border border-zinc-200/80 dark:border-zinc-700/60">
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                  4. Fácil
                 </label>
-                <span className="text-xs font-mono font-bold text-emerald-500">{easyBonus}x</span>
+                <span className="text-xs font-mono font-bold text-emerald-500">
+                  {easyVal} {easyUnit === 'minutes' ? 'min' : easyVal === 1 ? 'dia' : 'dias'}
+                </span>
               </div>
-              <input
-                type="number"
-                step="0.1"
-                min={1.0}
-                max={3.0}
-                value={easyBonus}
-                onChange={e => setEasyBonus(Number(e.target.value))}
-                className="w-full p-2.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-bold text-zinc-900 dark:text-white outline-none focus:ring-1 focus:ring-indigo-500"
-              />
-              <p className="text-[10px] text-zinc-400 mt-0.5">Multiplicador bônus quando o cartão for respondido com facilidade (padrão: 1.3x).</p>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min={1}
+                  max={easyUnit === 'minutes' ? 1440 : 365}
+                  value={easyVal}
+                  onChange={e => setEasyVal(Number(e.target.value))}
+                  className="flex-1 p-2 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg text-xs font-bold text-zinc-900 dark:text-white outline-none focus:ring-1 focus:ring-emerald-500"
+                />
+                <div className="flex rounded-lg overflow-hidden border border-zinc-200 dark:border-zinc-700 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setEasyUnit('minutes')}
+                    className={`px-3 py-1.5 text-xs font-bold transition-colors ${
+                      easyUnit === 'minutes'
+                        ? 'bg-emerald-600 text-white'
+                        : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
+                    }`}
+                  >
+                    Minutos
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEasyUnit('days')}
+                    className={`px-3 py-1.5 text-xs font-bold transition-colors ${
+                      easyUnit === 'days'
+                        ? 'bg-emerald-600 text-white'
+                        : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
+                    }`}
+                  >
+                    Dias
+                  </button>
+                </div>
+              </div>
             </div>
 
             {/* INTERVALO MÁXIMO */}
-            <div>
+            <div className="pt-1">
               <div className="flex items-center justify-between mb-1">
                 <label className="text-[11px] font-bold text-zinc-700 dark:text-zinc-300">
                   Intervalo Máximo Permitido

@@ -39,10 +39,18 @@ export const FlashcardBrowser: React.FC<FlashcardBrowserProps> = ({
     const now = new Date();
     return cardsWithState.filter(item => {
       // 1. Deck
-      if (selectedDeckId !== 'all' && item.card.deck_id !== selectedDeckId) return false;
+      if (selectedDeckId !== 'all') {
+        const matchesDeck = item.card.deck_id === selectedDeckId ||
+          (Array.isArray(item.card.deck_ids) && item.card.deck_ids.includes(selectedDeckId));
+        if (!matchesDeck) return false;
+      }
 
       // 2. Disciplina
-      if (selectedSubjectId !== 'all' && item.card.subject_id !== selectedSubjectId) return false;
+      if (selectedSubjectId !== 'all') {
+        const matchesSubject = item.card.subject_id === selectedSubjectId ||
+          (Array.isArray(item.card.subject_ids) && item.card.subject_ids.includes(selectedSubjectId));
+        if (!matchesSubject) return false;
+      }
 
       // 3. Tag
       if (selectedTag !== 'all' && !item.card.tags.includes(selectedTag)) return false;
@@ -207,8 +215,15 @@ export const FlashcardBrowser: React.FC<FlashcardBrowserProps> = ({
         ) : (
           <div className="divide-y divide-zinc-100 dark:divide-zinc-800/80">
             {filteredCards.map(item => {
-              const deckName = deckMap.get(item.card.deck_id) || 'Sem Baralho';
-              const subjectName = item.card.subject_id ? subjectMap.get(item.card.subject_id) : null;
+              const cardDecks = (item.card.deck_ids && item.card.deck_ids.length > 0)
+                ? item.card.deck_ids
+                : [item.card.deck_id];
+              const deckNames = cardDecks.map(id => deckMap.get(id)).filter(Boolean);
+
+              const cardSubjects = (item.card.subject_ids && item.card.subject_ids.length > 0)
+                ? item.card.subject_ids
+                : (item.card.subject_id ? [item.card.subject_id] : []);
+              const subjectNames = cardSubjects.map(id => subjectMap.get(id)).filter(Boolean);
               const dueDate = new Date(item.scheduling.due_at).toLocaleDateString('pt-BR');
 
               return (
@@ -220,14 +235,16 @@ export const FlashcardBrowser: React.FC<FlashcardBrowserProps> = ({
                   <div className="flex-1 min-w-0 space-y-1">
                     <div className="flex items-center gap-2 flex-wrap mb-1">
                       {getStateBadge(item.scheduling.state, item.card.is_suspended)}
-                      <span className="text-[10px] font-black uppercase text-indigo-500 bg-indigo-50 dark:bg-indigo-950/40 px-2 py-0.5 rounded">
-                        {deckName}
-                      </span>
-                      {subjectName && (
-                        <span className="text-[10px] font-bold text-zinc-500 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded">
-                          {subjectName}
+                      {deckNames.map(name => (
+                        <span key={name} className="text-[10px] font-black uppercase text-indigo-500 bg-indigo-50 dark:bg-indigo-950/40 px-2 py-0.5 rounded">
+                          {name}
                         </span>
-                      )}
+                      ))}
+                      {subjectNames.map(name => (
+                        <span key={name} className="text-[10px] font-bold text-zinc-500 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded">
+                          {name}
+                        </span>
+                      ))}
                       {item.card.card_type === 'cloze' && (
                         <span className="text-[10px] font-bold text-amber-500 bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.5 rounded">
                           Cloze

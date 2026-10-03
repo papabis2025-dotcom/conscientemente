@@ -171,6 +171,14 @@ export const FlashcardDeckManager: React.FC<FlashcardDeckManagerProps> = ({
               {reviewCount}
             </span>
 
+            {/* TOTAL DE CARTÕES */}
+            <span
+              className="w-10 text-right text-zinc-700 dark:text-zinc-300 font-bold"
+              title={`Total de cartões neste baralho: ${deck.card_count ?? 0}`}
+            >
+              {deck.card_count ?? 0}
+            </span>
+
             {/* BOTÃO OPÇÕES (ENGRENAGEM ANKI) */}
             <div className="w-6 flex items-center justify-center relative" onClick={e => e.stopPropagation()}>
               <button
@@ -230,9 +238,10 @@ export const FlashcardDeckManager: React.FC<FlashcardDeckManagerProps> = ({
         <div className="flex items-center justify-between pb-3 mb-1 border-b border-zinc-200/80 dark:border-zinc-800/80 px-3 text-xs font-bold text-zinc-800 dark:text-zinc-200">
           <span className="flex-1">Baralho</span>
           <div className="flex items-center gap-6 sm:gap-10 shrink-0 pr-8">
-            <span className="w-8 text-right text-blue-500 dark:text-blue-400">Novo</span>
-            <span className="w-8 text-right text-rose-500 dark:text-rose-400">Aprender</span>
-            <span className="w-8 text-right text-emerald-500 dark:text-emerald-400">Revisar</span>
+            <span className="w-8 text-right text-blue-500 dark:text-blue-400" title="Novos cartões hoje">Novo</span>
+            <span className="w-8 text-right text-rose-500 dark:text-rose-400" title="Em aprendizagem hoje">Aprender</span>
+            <span className="w-8 text-right text-emerald-500 dark:text-emerald-400" title="Revisões pendentes hoje">Revisar</span>
+            <span className="w-10 text-right text-zinc-700 dark:text-zinc-300 font-bold" title="Quantidade total de cartões no baralho">Total</span>
           </div>
         </div>
 

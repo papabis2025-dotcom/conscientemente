@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { FlashcardDeck, FlashcardType, Flashcard, CardWithState } from '../../types/flashcards';
 import { Subject, Topic } from '../../types';
 import { RichTextToolbar } from './RichTextToolbar';
+import { getColorHex } from '../../utils/colors';
 
 interface FlashcardEditorProps {
   decks: FlashcardDeck[];
@@ -20,7 +21,9 @@ interface FlashcardEditorProps {
     cloze_text?: string;
     tags: string[];
     subject_id?: string;
+    subject_ids?: string[];
     topic_id?: string;
+    topic_ids?: string[];
   }, createAnother: boolean) => Promise<void>;
   onClose: () => void;
 }
@@ -39,15 +42,23 @@ export const FlashcardEditor: React.FC<FlashcardEditorProps> = ({
     ? ('card' in editingCard ? (editingCard as CardWithState).card : (editingCard as Flashcard))
     : null;
 
-  // Baralhos selecionados (permite 1 ou múltiplos baralhos)
+  // Baralhos selecionados (permite múltiplos baralhos tanto na criação quanto na edição)
   const [selectedDeckIds, setSelectedDeckIds] = useState<string[]>(() => {
+    if (targetCard?.deck_ids && targetCard.deck_ids.length > 0) return targetCard.deck_ids;
     if (targetCard?.deck_id) return [targetCard.deck_id];
     if (initialDeckId) return [initialDeckId];
     if (decks.length > 0) return [decks[0].id];
     return [];
   });
 
-  const [subjectId, setSubjectId] = useState(targetCard?.subject_id || initialSubjectId || '');
+  // Disciplinas selecionadas (permite múltiplas disciplinas tanto na criação quanto na edição)
+  const [selectedSubjectIds, setSelectedSubjectIds] = useState<string[]>(() => {
+    if (targetCard?.subject_ids && targetCard.subject_ids.length > 0) return targetCard.subject_ids;
+    if (targetCard?.subject_id) return [targetCard.subject_id];
+    if (initialSubjectId) return [initialSubjectId];
+    return [];
+  });
+
   const [topicId, setTopicId] = useState(targetCard?.topic_id || initialTopicId || '');
   const [cardType, setCardType] = useState<FlashcardType>(targetCard?.card_type || 'basic');
   const [front, setFront] = useState(targetCard?.front || '');
@@ -57,12 +68,35 @@ export const FlashcardEditor: React.FC<FlashcardEditorProps> = ({
   const [tags, setTags] = useState<string[]>(targetCard?.tags || []);
   const [isSaving, setIsSaving] = useState(false);
   const [successToast, setSuccessToast] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const isEditMode = !!targetCard;
 
   const clozeTextareaRef = useRef<HTMLTextAreaElement>(null);
   const frontTextareaRef = useRef<HTMLTextAreaElement>(null);
   const backTextareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Sincronizar estados locais caso targetCard mude
+  useEffect(() => {
+    if (targetCard) {
+      const dIds = targetCard.deck_ids && targetCard.deck_ids.length > 0
+        ? targetCard.deck_ids
+        : (targetCard.deck_id ? [targetCard.deck_id] : (decks.length > 0 ? [decks[0].id] : []));
+      const sIds = targetCard.subject_ids && targetCard.subject_ids.length > 0
+        ? targetCard.subject_ids
+        : (targetCard.subject_id ? [targetCard.subject_id] : []);
+
+      setSelectedDeckIds(dIds);
+      setSelectedSubjectIds(sIds);
+      setTopicId(targetCard.topic_id || '');
+      setCardType(targetCard.card_type || 'basic');
+      setFront(targetCard.front || '');
+      setBack(targetCard.back || '');
+      setClozeText(targetCard.cloze_text || targetCard.front || '');
+      setTags(targetCard.tags || []);
+      setSaveError(null);
+    }
+  }, [targetCard?.id]);
 
   // Selecionar o primeiro deck disponível caso a lista inicial esteja vazia
   useEffect(() => {
@@ -71,21 +105,23 @@ export const FlashcardEditor: React.FC<FlashcardEditorProps> = ({
     }
   }, [decks, selectedDeckIds]);
 
-  // Se o primeiro baralho selecionado tiver subject_id vinculado, autocompletar disciplina
+  // Se o primeiro baralho selecionado tiver subject_id vinculado e nenhuma disciplina foi escolhida ainda
   useEffect(() => {
-    if (selectedDeckIds.length > 0 && !subjectId) {
+    if (selectedDeckIds.length > 0 && selectedSubjectIds.length === 0 && !targetCard) {
       const primaryDeck = decks.find(d => d.id === selectedDeckIds[0]);
       if (primaryDeck?.subject_id) {
-        setSubjectId(primaryDeck.subject_id);
+        setSelectedSubjectIds([primaryDeck.subject_id]);
         if (primaryDeck.topic_id && !topicId) {
           setTopicId(primaryDeck.topic_id);
         }
       }
     }
-  }, [selectedDeckIds, decks, subjectId, topicId]);
+  }, [selectedDeckIds, decks, selectedSubjectIds.length, targetCard, topicId]);
 
-  const selectedSubject = subjects.find(s => s.id === subjectId);
-  const availableTopics: Topic[] = selectedSubject?.topics || [];
+  // Tópicos disponíveis a partir das disciplinas selecionadas
+  const availableTopics: Topic[] = subjects
+    .filter(s => selectedSubjectIds.includes(s.id))
+    .flatMap(s => s.topics || []);
 
   // Inserir lacuna (Cloze): insere marcador {{c1::palavra}}
   const handleInsertCloze = () => {
@@ -124,7 +160,7 @@ export const FlashcardEditor: React.FC<FlashcardEditorProps> = ({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [front, back, clozeText, cardType, selectedDeckIds, tags, subjectId, topicId]);
+  }, [front, back, clozeText, cardType, selectedDeckIds, selectedSubjectIds, tags, topicId]);
 
   const handleAddTag = () => {
     const clean = tagInput.trim().replace(/^#/, '');
@@ -148,6 +184,14 @@ export const FlashcardEditor: React.FC<FlashcardEditorProps> = ({
     }
   };
 
+  const handleToggleSubject = (id: string) => {
+    if (selectedSubjectIds.includes(id)) {
+      setSelectedSubjectIds(selectedSubjectIds.filter(sId => sId !== id));
+    } else {
+      setSelectedSubjectIds([...selectedSubjectIds, id]);
+    }
+  };
+
   const handleSubmit = async (createAnother: boolean) => {
     if (selectedDeckIds.length === 0) return;
 
@@ -158,6 +202,7 @@ export const FlashcardEditor: React.FC<FlashcardEditorProps> = ({
     }
 
     setIsSaving(true);
+    setSaveError(null);
     try {
       await onSave({
         id: targetCard?.id,
@@ -168,7 +213,8 @@ export const FlashcardEditor: React.FC<FlashcardEditorProps> = ({
         back: cardType === 'cloze' ? 'Cloze revelado' : back,
         cloze_text: cardType === 'cloze' ? clozeText : undefined,
         tags,
-        subject_id: subjectId || undefined,
+        subject_id: selectedSubjectIds[0] || undefined,
+        subject_ids: selectedSubjectIds,
         topic_id: topicId || undefined,
       }, createAnother);
 
@@ -186,8 +232,9 @@ export const FlashcardEditor: React.FC<FlashcardEditorProps> = ({
       } else {
         onClose();
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error('Erro ao salvar cartão:', e);
+      setSaveError(e?.message || 'Não foi possível salvar o cartão. Tente novamente.');
     } finally {
       setIsSaving(false);
     }
@@ -213,6 +260,12 @@ export const FlashcardEditor: React.FC<FlashcardEditorProps> = ({
             ✕
           </button>
         </div>
+
+        {saveError && (
+          <div className="p-3 mx-6 sm:mx-8 mt-4 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 rounded-xl text-xs text-rose-600 dark:text-rose-300 font-medium">
+            ⚠️ {saveError}
+          </div>
+        )}
 
         {/* CORPO DO FORMULÁRIO */}
         <div className="p-6 sm:p-8 space-y-5 max-h-[72vh] overflow-y-auto custom-scrollbar">
@@ -303,29 +356,66 @@ export const FlashcardEditor: React.FC<FlashcardEditorProps> = ({
             </div>
           </div>
 
-          {/* DISCIPLINA E TÓPICO */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="text-[10px] font-black uppercase tracking-wider text-zinc-400 mb-1.5 block">
-                Disciplina Vinculada (Opcional)
+          {/* VINCULAÇÃO A MÚLTIPLAS DISCIPLINAS */}
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-[10px] font-black uppercase tracking-wider text-zinc-400 block">
+                Disciplinas Vinculadas (Opcional - {selectedSubjectIds.length} selecionada{selectedSubjectIds.length === 1 ? '' : 's'})
               </label>
-              <select
-                value={subjectId}
-                onChange={e => {
-                  setSubjectId(e.target.value);
-                  setTopicId('');
-                }}
-                className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-2xl text-xs font-bold text-zinc-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
-              >
-                <option value="">Nenhuma disciplina</option>
-                {subjects.map(s => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
-                  </option>
-                ))}
-              </select>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-zinc-400">Você pode vincular a mais de uma disciplina</span>
+                {selectedSubjectIds.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedSubjectIds([]);
+                      setTopicId('');
+                    }}
+                    className="text-[10px] font-bold text-rose-500 hover:underline cursor-pointer"
+                  >
+                    Limpar
+                  </button>
+                )}
+              </div>
             </div>
 
+            <div className="flex flex-wrap gap-2 max-h-36 overflow-y-auto p-3 bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700/80 rounded-2xl custom-scrollbar">
+              {subjects.length === 0 ? (
+                <span className="text-xs text-zinc-400">Nenhuma disciplina cadastrada.</span>
+              ) : (
+                subjects.map(s => {
+                  const isSelected = selectedSubjectIds.includes(s.id);
+                  const subColor = s.color ? getColorHex(s.color) : '#6366f1';
+                  return (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => handleToggleSubject(s.id)}
+                      className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer border ${
+                        isSelected
+                          ? 'bg-white dark:bg-zinc-900 border-indigo-500 text-zinc-900 dark:text-white shadow-xs ring-1 ring-indigo-500/30 font-bold'
+                          : 'bg-zinc-100/70 dark:bg-zinc-800/80 border-zinc-200/80 dark:border-zinc-700/60 text-zinc-500 dark:text-zinc-400 hover:border-zinc-300'
+                      }`}
+                    >
+                      <span
+                        className="w-2.5 h-2.5 rounded-full shrink-0"
+                        style={{ backgroundColor: subColor }}
+                      />
+                      <span className="truncate max-w-[190px]">{s.name}</span>
+                      {isSelected && (
+                        <span className="text-[11px] text-indigo-600 dark:text-indigo-400 font-black ml-0.5">
+                          ✓
+                        </span>
+                      )}
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          </div>
+
+          {/* ASSUNTO ESPECÍFICO (OPCIONAL) */}
+          {availableTopics.length > 0 && (
             <div>
               <label className="text-[10px] font-black uppercase tracking-wider text-zinc-400 mb-1.5 block">
                 Assunto Específico (Opcional)
@@ -333,10 +423,9 @@ export const FlashcardEditor: React.FC<FlashcardEditorProps> = ({
               <select
                 value={topicId}
                 onChange={e => setTopicId(e.target.value)}
-                disabled={!subjectId || availableTopics.length === 0}
-                className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-2xl text-xs font-bold text-zinc-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
+                className="w-full p-2.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-bold text-zinc-900 dark:text-white outline-none focus:ring-1 focus:ring-indigo-500"
               >
-                <option value="">Geral da disciplina</option>
+                <option value="">Geral da(s) disciplina(s)</option>
                 {availableTopics.map(t => (
                   <option key={t.id} value={t.id}>
                     {t.title}
@@ -344,7 +433,7 @@ export const FlashcardEditor: React.FC<FlashcardEditorProps> = ({
                 ))}
               </select>
             </div>
-          </div>
+          )}
 
           {/* CAMPOS DE CONTEÚDO COM EDITOR RICO */}
           {cardType === 'cloze' ? (

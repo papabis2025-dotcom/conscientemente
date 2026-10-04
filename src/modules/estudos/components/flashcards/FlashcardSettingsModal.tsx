@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { FlashcardSettings } from '../../types/flashcards';
+import { showToast } from '../../../../components/Toast';
 
 interface FlashcardSettingsModalProps {
   settings: FlashcardSettings;
@@ -53,6 +54,7 @@ export const FlashcardSettingsModal: React.FC<FlashcardSettingsModalProps> = ({
         maximum_interval_days: Number(maximumIntervalDays) || 36500,
       });
       setSavedSuccess(true);
+      showToast('Preferências de espaçamento salvas e sincronizadas na nuvem!', 'success');
       setTimeout(() => {
         setSavedSuccess(false);
         onClose();

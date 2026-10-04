@@ -410,7 +410,7 @@ export const FlashcardsView: React.FC<FlashcardsViewProps> = ({
       {/* MODAL DO EDITOR DE FLASHCARDS (CRIAR E EDITAR) */}
       {showEditorModal && (
         <FlashcardEditor
-          key={editingCard ? ('card' in editingCard ? editingCard.card.id : editingCard.id) : 'new-card'}
+          key={editingCard ? editingCard.card.id : 'new-card'}
           decks={decks}
           subjects={subjects}
           editingCard={editingCard}

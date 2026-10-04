@@ -3,6 +3,8 @@ import { AlertTriangle, Target, Edit2, Trash2, BookOpen, Image as ImageIcon, X, 
 import { Concurso, Subject, StudySession } from '../types';
 import ColorPickerPalette from '../components/ColorPickerPalette';
 import { getColorHex } from '../utils/colors';
+import { showToast } from '../../../components/Toast';
+import { getLocalDateString } from '../../../utils/dateUtils';
 
 interface ConcursosViewProps {
   concursos: Concurso[];
@@ -97,7 +99,7 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
         const startX = (img.width - size) / 2;
         const startY = (img.height - size) / 2;
 
-        const TARGET_SIZE = 400;
+        const TARGET_SIZE = 160;
         const canvas = document.createElement('canvas');
         canvas.width = TARGET_SIZE;
         canvas.height = TARGET_SIZE;
@@ -106,7 +108,7 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
           ctx.imageSmoothingEnabled = true;
           ctx.imageSmoothingQuality = 'high';
           ctx.drawImage(img, startX, startY, size, size, 0, 0, TARGET_SIZE, TARGET_SIZE);
-          const compressed = canvas.toDataURL('image/jpeg', 0.88);
+          const compressed = canvas.toDataURL('image/jpeg', 0.75);
           if (isEdit) {
             setEditFormData(prev => ({ ...prev, imageUrl: compressed }));
           } else {
@@ -173,17 +175,18 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
       };
 
       await onUpdateConcursos([...concursos, newConc]);
+      showToast('Concurso criado e sincronizado na nuvem!', 'success');
       setNewConcName('');
       setBanca('');
       setEducationLevel('');
-      setStartDate(new Date().toISOString().split('T')[0]);
+      setStartDate(getLocalDateString());
       setTargetDate('');
       setIsAdding(false);
       setNewImageUrl('');
       setNewSubjects([]);
     } catch (err) {
       console.error('Erro ao adicionar concurso:', err);
-      alert('Ocorreu um erro ao salvar o novo concurso na nuvem. Verifique sua conexão.');
+      showToast('Erro ao salvar concurso na nuvem. Verifique a conexão.', 'error');
     } finally {
       setIsSaving(false);
     }
@@ -282,10 +285,11 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
       });
 
       await onUpdateConcursos(updatedConcursos);
+      showToast('Concurso atualizado com sucesso!', 'success');
       closeEditModal();
     } catch (err) {
       console.error('Erro ao salvar edições do concurso:', err);
-      alert('Ocorreu um erro ao salvar as alterações na nuvem. Verifique sua conexão e tente novamente.');
+      showToast('Erro ao salvar alterações na nuvem. Verifique a conexão.', 'error');
     } finally {
       setIsSaving(false);
     }
@@ -873,10 +877,11 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
                       setIsSaving(true);
                       try {
                         await onUpdateConcursos(concursos.filter(c => c.id !== deleteConfirmation.id));
+                        showToast('Concurso excluído!', 'info');
                         setDeleteConfirmation({ isOpen: false, id: null, name: '' });
                       } catch (err) {
                         console.error('Erro ao excluir concurso:', err);
-                        alert('Ocorreu um erro ao excluir o concurso na nuvem.');
+                        showToast('Ocorreu um erro ao excluir o concurso na nuvem.', 'error');
                       } finally {
                         setIsSaving(false);
                       }

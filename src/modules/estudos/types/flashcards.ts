@@ -47,7 +47,7 @@ export interface Flashcard {
   card_type: FlashcardType;
   front: string;
   back: string;
-  cloze_text?: string;
+  cloze_text?: string | null;
   tags: string[];
   concurso_id?: string | null;
   subject_id?: string | null;

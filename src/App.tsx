@@ -1,18 +1,21 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from './services/supabase';
-import Login from './pages/Login';
-import HubHome from './pages/HubHome';
-import HabitosHub from './pages/HabitosHub';
-import EstudosApp from './modules/estudos/App';
-import FinancasApp from './modules/financas/App';
-import SaudeApp from './modules/saude/App';
-import TarefasApp from './modules/tarefas/App';
-import AnotacoesApp from './modules/anotacoes/App';
 import type { Session } from '@supabase/supabase-js';
 import { playSound } from './utils/audio';
 import { Brain, Lock } from 'lucide-react';
 import GlobalSidebar from './components/GlobalSidebar';
 import FaviconIcon from './components/FaviconIcon';
+import { ToastContainer } from './components/Toast';
+
+// Code-splitting dos módulos para carregamento sob demanda ultra-rápido
+const Login = React.lazy(() => import('./pages/Login'));
+const HubHome = React.lazy(() => import('./pages/HubHome'));
+const HabitosHub = React.lazy(() => import('./pages/HabitosHub'));
+const EstudosApp = React.lazy(() => import('./modules/estudos/App'));
+const FinancasApp = React.lazy(() => import('./modules/financas/App'));
+const SaudeApp = React.lazy(() => import('./modules/saude/App'));
+const TarefasApp = React.lazy(() => import('./modules/tarefas/App'));
+const AnotacoesApp = React.lazy(() => import('./modules/anotacoes/App'));
 
 interface SyncedPayload {
   updatedAt: number;
@@ -74,6 +77,7 @@ const SYNC_KEYS = [
   'gp_concurso_edulevels_map',
   'cp_concursos_backup',
   'cn_profile_photo',
+  'cp_flashcard_spacing_settings',
 ];
 
 function getSanitizedLocalSettings(): Record<string, string | null> {
@@ -1050,7 +1054,16 @@ const App: React.FC = () => {
   }
 
   if (!session) {
-    return <Login onLogin={handleLoginSuccess} />;
+    return (
+      <React.Suspense fallback={
+        <div className="min-h-screen flex items-center justify-center bg-zinc-50 dark:bg-zinc-950">
+          <FaviconIcon size={40} className="text-zinc-700 dark:text-zinc-300 animate-pulse" />
+        </div>
+      }>
+        <Login onLogin={handleLoginSuccess} />
+        <ToastContainer />
+      </React.Suspense>
+    );
   }
 
   const userName = session.user.user_metadata?.name
@@ -1235,8 +1248,17 @@ const App: React.FC = () => {
       )}
 
       <div className="flex-1 min-h-screen overflow-x-hidden relative">
-        {pageContent}
+        <React.Suspense fallback={
+          <div className="min-h-[50vh] flex flex-col items-center justify-center gap-3">
+            <div className="w-8 h-8 border-2 border-indigo-500/20 border-t-indigo-600 rounded-full animate-spin" />
+            <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">Carregando módulo...</span>
+          </div>
+        }>
+          {pageContent}
+        </React.Suspense>
       </div>
+
+      <ToastContainer />
     </div>
   );
 };

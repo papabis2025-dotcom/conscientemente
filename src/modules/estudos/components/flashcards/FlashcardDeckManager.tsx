@@ -4,6 +4,8 @@ import { Subject } from '../../types';
 import { ColorPickerPalette } from '../ColorPickerPalette';
 import { getColorHex } from '../../utils/colors';
 import { RichTextToolbar } from './RichTextToolbar';
+import { ConfirmModal } from '../../../../components/ConfirmModal';
+import { showToast } from '../../../../components/Toast';
 
 interface FlashcardDeckManagerProps {
   decks: FlashcardDeck[];
@@ -40,6 +42,7 @@ export const FlashcardDeckManager: React.FC<FlashcardDeckManagerProps> = ({
   const [subjectId, setSubjectId] = useState<string>('');
   const [color, setColor] = useState('#3b82f6');
   const [activeMenuDeckId, setActiveMenuDeckId] = useState<string | null>(null);
+  const [deckToDelete, setDeckToDelete] = useState<FlashcardDeck | null>(null);
   const descriptionTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleOpenCreate = (parentDeckId?: string) => {
@@ -209,12 +212,10 @@ export const FlashcardDeckManager: React.FC<FlashcardDeckManagerProps> = ({
                   <button
                     type="button"
                     onClick={() => {
-                      if (confirm(`Excluir o baralho "${deck.name}" e seus cartões?`)) {
-                        onDeleteDeck(deck.id);
-                        setActiveMenuDeckId(null);
-                      }
+                      setDeckToDelete(deck);
+                      setActiveMenuDeckId(null);
                     }}
-                    className="w-full text-left px-3 py-1.5 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400"
+                    className="w-full text-left px-3 py-1.5 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 cursor-pointer"
                   >
                     Excluir Baralho
                   </button>
@@ -425,6 +426,23 @@ export const FlashcardDeckManager: React.FC<FlashcardDeckManagerProps> = ({
           </div>
         </div>
       )}
+
+      {/* MODAL DE CONFIRMAÇÃO DE EXCLUSÃO */}
+      <ConfirmModal
+        isOpen={!!deckToDelete}
+        title="Excluir Baralho?"
+        message={`Tem certeza que deseja excluir o baralho "${deckToDelete?.name}" e todos os seus cartões? Esta ação não pode ser desfeita.`}
+        confirmLabel="Sim, Excluir"
+        isDestructive={true}
+        onCancel={() => setDeckToDelete(null)}
+        onConfirm={async () => {
+          if (deckToDelete) {
+            await onDeleteDeck(deckToDelete.id);
+            showToast('Baralho excluído com sucesso!', 'info');
+            setDeckToDelete(null);
+          }
+        }}
+      />
     </div>
   );
 };

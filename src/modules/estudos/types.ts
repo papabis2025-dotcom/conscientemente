@@ -27,6 +27,7 @@ export interface Concurso {
   banca: string;
   startDate: string; // ISO date string
   targetDate?: string; // ISO date string
+  targetRole?: string; // Cargo pretendido
   subjects: Subject[];
   categoryId?: string;
   imageUrl?: string; // Profile image URL or data URL

@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { StickyNote, BookOpen, Trash2, Plus, Save, ChevronLeft, ChevronRight, FileText, Folder, FolderPlus, Calendar, Menu, Search, ArrowLeft, LayoutTemplate } from 'lucide-react';
+import { anotacoesApi } from './api';
+import { showToast } from '../../components/Toast';
+import { getLocalDateString } from '../../utils/dateUtils';
 
 export interface Note {
   id: string;
@@ -76,16 +79,44 @@ const AnotacoesApp: React.FC = () => {
   });
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
 
-  // Load notes from localStorage
+  // Load notes and folders: initial from localStorage, then background sync from Supabase
   useEffect(() => {
+    let localNotes: Note[] = [];
     try {
       const saved = localStorage.getItem('cn_anotacoes');
       if (saved) {
-        setNotes(JSON.parse(saved));
+        localNotes = JSON.parse(saved);
+        setNotes(localNotes);
       }
     } catch (e) {
       console.error('Failed to load notes:', e);
     }
+
+    Promise.all([
+      anotacoesApi.listNotes(),
+      anotacoesApi.listFolders()
+    ]).then(([cloudNotes, cloudFolders]) => {
+      if (cloudNotes && cloudNotes.length > 0) {
+        const merged = [...cloudNotes];
+        localNotes.forEach(ln => {
+          if (!merged.some(mn => mn.id === ln.id)) {
+            merged.push(ln);
+            anotacoesApi.upsertNote(ln).catch(() => {});
+          }
+        });
+        setNotes(merged);
+        localStorage.setItem('cn_anotacoes', JSON.stringify(merged));
+      } else if (localNotes.length > 0) {
+        localNotes.forEach(ln => anotacoesApi.upsertNote(ln).catch(() => {}));
+      }
+
+      if (cloudFolders && cloudFolders.length > 0) {
+        setFolders(cloudFolders);
+        localStorage.setItem('cn_anotacoes_folders', JSON.stringify(cloudFolders));
+      }
+    }).catch(err => {
+      console.warn('Sincronização em nuvem de anotações não disponível:', err);
+    });
   }, []);
 
   const saveNotesToStorage = (updatedNotes: Note[]) => {
@@ -153,29 +184,23 @@ const AnotacoesApp: React.FC = () => {
     if (!editorContent.trim()) return;
 
     const title = editorTitle.trim() || 'Sem Título';
-    const today = new Date();
-    const dateStr = new Date(today.getTime() - today.getTimezoneOffset() * 60000).toISOString().split('T')[0];
+    const dateStr = getLocalDateString();
 
+    let targetNote: Note;
     if (selectedNote) {
-      const updated = notes.map(n => n.id === selectedNote.id ? {
-        ...n,
-        title,
-        content: editorContent,
-        date: dateStr,
-        timestamp: Date.now(),
-        folderId: editorFolderId
-      } : n);
-      saveNotesToStorage(updated);
-      setSelectedNote({
+      targetNote = {
         ...selectedNote,
         title,
         content: editorContent,
         date: dateStr,
         timestamp: Date.now(),
         folderId: editorFolderId
-      });
+      };
+      const updated = notes.map(n => n.id === selectedNote.id ? targetNote : n);
+      saveNotesToStorage(updated);
+      setSelectedNote(targetNote);
     } else {
-      const newNote: Note = {
+      targetNote = {
         id: `note_${Date.now()}`,
         title,
         content: editorContent,
@@ -184,11 +209,14 @@ const AnotacoesApp: React.FC = () => {
         timestamp: Date.now(),
         folderId: editorFolderId
       };
-      const updated = [newNote, ...notes];
+      const updated = [targetNote, ...notes];
       saveNotesToStorage(updated);
-      setSelectedNote(newNote);
+      setSelectedNote(targetNote);
     }
-    alert('Nota salva com sucesso!');
+
+    // Persistir em segundo plano no Supabase
+    anotacoesApi.upsertNote(targetNote).catch(() => {});
+    showToast('Nota salva na nuvem com sucesso!', 'success');
   };
 
   // Delete current or selected note
@@ -197,6 +225,9 @@ const AnotacoesApp: React.FC = () => {
     if (confirm('Tem certeza que deseja excluir esta nota?')) {
       const updated = notes.filter(n => n.id !== id);
       saveNotesToStorage(updated);
+      anotacoesApi.deleteNote(id).catch(() => {});
+      showToast('Nota excluída com sucesso!', 'info');
+
       if (selectedNote && selectedNote.id === id) {
         setSelectedNote(null);
         setCurrentView('library');
@@ -208,8 +239,8 @@ const AnotacoesApp: React.FC = () => {
           deletedList.push(id);
           localStorage.setItem('cn_deleted_note_ids', JSON.stringify(deletedList));
         }
-      } catch (e) {
-        console.error('Error tracking deleted note:', e);
+      } catch (err) {
+        console.error('Error tracking deleted note:', err);
       }
     }
   };
@@ -241,6 +272,8 @@ const AnotacoesApp: React.FC = () => {
     localStorage.setItem('cn_anotacoes_folders', JSON.stringify(updated));
     window.dispatchEvent(new Event('local-storage-sync'));
     window.dispatchEvent(new Event('local-settings-changed'));
+    anotacoesApi.upsertFolder(newFolder).catch(() => {});
+    showToast('Pasta criada!', 'success');
   };
 
   const handleDeleteFolder = (e: React.MouseEvent, id: string) => {
@@ -249,6 +282,8 @@ const AnotacoesApp: React.FC = () => {
       const updatedFolders = folders.filter(f => f.id !== id);
       setFolders(updatedFolders);
       localStorage.setItem('cn_anotacoes_folders', JSON.stringify(updatedFolders));
+      anotacoesApi.deleteFolder(id).catch(() => {});
+      showToast('Pasta excluída!', 'info');
 
       try {
         const deletedRaw = localStorage.getItem('cn_deleted_folder_ids') || '[]';

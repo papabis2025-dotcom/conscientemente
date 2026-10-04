@@ -259,16 +259,18 @@ export const flashcardsApi = {
 
       // Filtragem que contempla múltiplos baralhos e múltiplas disciplinas
       if (options?.deckId) {
+        const deckId = options.deckId;
         cards = cards.filter(c =>
-          c.deck_id === options.deckId ||
-          (Array.isArray(c.deck_ids) && c.deck_ids.includes(options.deckId))
+          c.deck_id === deckId ||
+          (Array.isArray(c.deck_ids) && c.deck_ids.includes(deckId))
         );
       }
 
       if (options?.subjectId) {
+        const subjectId = options.subjectId;
         cards = cards.filter(c =>
-          c.subject_id === options.subjectId ||
-          (Array.isArray(c.subject_ids) && c.subject_ids.includes(options.subjectId))
+          c.subject_id === subjectId ||
+          (Array.isArray(c.subject_ids) && c.subject_ids.includes(subjectId))
         );
       }
 
@@ -563,15 +565,17 @@ export const flashcardsApi = {
 
       let cards = (rawCards || []).map(hydrateCardMeta);
       if (options?.deckId) {
+        const deckId = options.deckId;
         cards = cards.filter(c =>
-          c.deck_id === options.deckId ||
-          (Array.isArray(c.deck_ids) && c.deck_ids.includes(options.deckId))
+          c.deck_id === deckId ||
+          (Array.isArray(c.deck_ids) && c.deck_ids.includes(deckId))
         );
       }
       if (options?.subjectId) {
+        const subjectId = options.subjectId;
         cards = cards.filter(c =>
-          c.subject_id === options.subjectId ||
-          (Array.isArray(c.subject_ids) && c.subject_ids.includes(options.subjectId))
+          c.subject_id === subjectId ||
+          (Array.isArray(c.subject_ids) && c.subject_ids.includes(subjectId))
         );
       }
 
@@ -792,6 +796,8 @@ export const flashcardsApi = {
         maximum_interval_days: updates.maximum_interval_days ?? existingSpacing.maximum_interval_days ?? 36500,
       };
       localStorage.setItem('cp_flashcard_spacing_settings', JSON.stringify(spacingPayload));
+      window.dispatchEvent(new Event('local-storage-sync'));
+      window.dispatchEvent(new Event('local-settings-changed'));
 
       defaultScheduler.updateParameters({
         requestRetention: updates.request_retention,

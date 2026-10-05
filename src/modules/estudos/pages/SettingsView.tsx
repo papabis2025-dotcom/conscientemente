@@ -22,24 +22,6 @@ const SettingsView: React.FC<SettingsViewProps> = ({
   const [isImporting, setIsImporting] = useState(false);
   const [localDailyGoal, setLocalDailyGoal] = useState(globalDailyGoal);
   
-  // Gemini API key state
-  const [apiKey, setApiKey] = useState(() => localStorage.getItem('gemini_api_key') || '');
-  const [showApiKey, setShowApiKey] = useState(false);
-  const [keySavedMessage, setKeySavedMessage] = useState('');
-
-  const handleSaveApiKey = () => {
-    localStorage.setItem('gemini_api_key', apiKey.trim());
-    setKeySavedMessage('Chave de API salva com sucesso!');
-    setTimeout(() => setKeySavedMessage(''), 3000);
-  };
-
-  const handleClearApiKey = () => {
-    localStorage.removeItem('gemini_api_key');
-    setApiKey('');
-    setKeySavedMessage('Chave de API removida!');
-    setTimeout(() => setKeySavedMessage(''), 3000);
-  };
-
   // Update local state when global state changes (e.g. initial load)
   React.useEffect(() => {
     setLocalDailyGoal(globalDailyGoal);
@@ -165,68 +147,28 @@ const SettingsView: React.FC<SettingsViewProps> = ({
         </div>
       </div>
 
-      {/* Configuração da API do Gemini */}
+      {/* Configuração da IA no servidor */}
       <div className="bg-white dark:bg-zinc-900 p-8 rounded-[2.5rem] border border-zinc-200 dark:border-zinc-800 shadow-sm space-y-6">
         <h3 className="font-bold text-lg flex items-center gap-2">
           <Sparkles size={20} className="text-zinc-500 animate-pulse" /> Inteligência Artificial (Gemini)
         </h3>
         <div className="space-y-4">
           <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">
-            Configure sua chave de API do Gemini para habilitar recursos inteligentes, como a importação automática de simulados através de imagens/prints.
+            Os recursos inteligentes, como a importação automática de simulados por imagem,
+            usam uma conexão protegida no servidor e a sua sessão autenticada.
           </p>
-          
-          <div>
-            <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1.5 block">Chave de API do Gemini</label>
-            <div className="flex flex-col sm:flex-row gap-3">
-              <div className="relative flex-1">
-                <input
-                  type={showApiKey ? "text" : "password"}
-                  value={apiKey}
-                  onChange={(e) => setApiKey(e.target.value)}
-                  placeholder="Ex: AIzaSy..."
-                  className="w-full pl-4 pr-20 py-3 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-2xl outline-none focus:ring-2 focus:ring-zinc-500 text-zinc-850 dark:text-white"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowApiKey(!showApiKey)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-zinc-400 uppercase hover:text-zinc-650 dark:hover:text-zinc-200 transition-colors"
-                >
-                  {showApiKey ? "Ocultar" : "Mostrar"}
-                </button>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={handleSaveApiKey}
-                  className="bg-emerald-500 text-white px-6 py-3 rounded-2xl font-black uppercase text-xs hover:bg-emerald-600 shadow-lg shadow-emerald-500/10 active:scale-95 transition-all"
-                >
-                  Salvar
-                </button>
-                {apiKey && (
-                  <button
-                    type="button"
-                    onClick={handleClearApiKey}
-                    className="border border-rose-200 dark:border-rose-900/60 text-rose-500 dark:text-rose-400 px-4 py-3 rounded-2xl font-black uppercase text-xs hover:bg-rose-50 dark:hover:bg-rose-950/20 active:scale-95 transition-all"
-                  >
-                    Limpar
-                  </button>
-                )}
-              </div>
+          <div className="flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 dark:border-emerald-900/60 dark:bg-emerald-950/20">
+            <div className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-500" aria-hidden="true" />
+            <div>
+              <p className="text-xs font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+                Credencial protegida
+              </p>
+              <p className="mt-1 text-xs leading-relaxed text-zinc-600 dark:text-zinc-400">
+                Nenhuma chave é armazenada neste navegador. A configuração é feita pelo administrador
+                nos segredos da função do Supabase. Se a IA estiver indisponível, entre em contato com
+                o responsável pela instalação.
+              </p>
             </div>
-            {keySavedMessage && (
-              <p className="text-xs text-emerald-500 mt-2 font-black uppercase tracking-wider animate-in fade-in duration-300">{keySavedMessage}</p>
-            )}
-            <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-3 font-medium">
-              Obtenha uma chave gratuita no{" "}
-              <a
-                href="https://aistudio.google.com/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-500 hover:underline font-bold"
-              >
-                Google AI Studio
-              </a>.
-            </p>
           </div>
         </div>
       </div>

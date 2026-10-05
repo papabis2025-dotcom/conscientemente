@@ -11,6 +11,11 @@ import { supabase } from '../modules/estudos/services/supabase';
 import { playSound } from '../utils/audio';
 import FaviconIcon from './FaviconIcon';
 import { backupService } from '../services/backupService';
+import {
+  createModulePin,
+  isModulePinConfigured,
+  type ModulePinMap,
+} from '../utils/modulePin';
 
 
 interface AppNotification {
@@ -153,7 +158,7 @@ const GlobalSidebar: React.FC<GlobalSidebarProps> = ({
   };
 
   // Module PIN states
-  const [modulePins, setModulePins] = useState<Record<string, string>>(() => {
+  const [modulePins, setModulePins] = useState<ModulePinMap>(() => {
     try {
       const parsed = JSON.parse(localStorage.getItem('cn_module_pins') || '{}');
       return parsed && typeof parsed === 'object' ? parsed : {};
@@ -163,16 +168,25 @@ const GlobalSidebar: React.FC<GlobalSidebarProps> = ({
   });
   const [modulePinInputs, setModulePinInputs] = useState<Record<string, string>>({});
 
-  const handleSaveModulePin = (modId: string, val: string) => {
+  const handleSaveModulePin = async (modId: string, val: string) => {
     if (val && (val.length !== 6 || !/^\d{6}$/.test(val))) {
       alert('O PIN do módulo deve conter exatamente 6 dígitos numéricos.');
       return;
     }
-    const updated = { ...modulePins, [modId]: val };
-    setModulePins(updated);
-    localStorage.setItem('cn_module_pins', JSON.stringify(updated));
-    window.dispatchEvent(new Event('local-storage-sync'));
-    alert(val ? `PIN de 6 dígitos configurado para o módulo ${modId}!` : `PIN removido para o módulo ${modId}!`);
+    try {
+      const updated: ModulePinMap = { ...modulePins };
+      if (val) updated[modId] = await createModulePin(val);
+      else delete updated[modId];
+      setModulePins(updated);
+      localStorage.setItem('cn_module_pins', JSON.stringify(updated));
+      window.dispatchEvent(new Event('local-storage-sync'));
+      window.dispatchEvent(new Event('local-settings-changed'));
+      setModulePinInputs(prev => ({ ...prev, [modId]: '' }));
+      alert(val ? `PIN de 6 dígitos configurado para o módulo ${modId}!` : `PIN removido para o módulo ${modId}!`);
+    } catch (error) {
+      console.error('Erro ao proteger o PIN do módulo:', error);
+      alert('Não foi possível proteger e salvar o PIN neste navegador.');
+    }
   };
 
   // Notifications state
@@ -1037,12 +1051,13 @@ const GlobalSidebar: React.FC<GlobalSidebarProps> = ({
                     ].map(mod => {
                       const safePins = (modulePins && typeof modulePins === 'object') ? modulePins : {};
                       const safeInputs = (modulePinInputs && typeof modulePinInputs === 'object') ? modulePinInputs : {};
-                      const currentPin = safePins[mod.id] || '';
-                      const inputValue = safeInputs[mod.id] !== undefined ? safeInputs[mod.id] : currentPin;
+                      const currentPin = safePins[mod.id];
+                      const hasPin = isModulePinConfigured(currentPin);
+                      const inputValue = safeInputs[mod.id] || '';
                       return (
                         <div key={mod.id} className="p-3.5 bg-zinc-50 dark:bg-zinc-800/40 rounded-2xl border border-zinc-200 dark:border-zinc-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                           <span className="text-xs font-bold text-zinc-800 dark:text-white uppercase tracking-wider flex items-center gap-2">
-                            <span className={`w-2 h-2 rounded-full ${currentPin ? 'bg-emerald-500' : 'bg-zinc-400'}`} />
+                            <span className={`w-2 h-2 rounded-full ${hasPin ? 'bg-emerald-500' : 'bg-zinc-400'}`} />
                             {mod.label}
                           </span>
                           <div className="flex items-center gap-2">
@@ -1062,11 +1077,12 @@ const GlobalSidebar: React.FC<GlobalSidebarProps> = ({
                               onClick={() => {
                                 handleSaveModulePin(mod.id, inputValue);
                               }}
-                              className="px-3 py-1.5 bg-zinc-900 text-white dark:bg-zinc-700 hover:bg-zinc-800 text-[10px] font-black uppercase tracking-wider rounded-xl transition-all"
+                              disabled={inputValue.length !== 6}
+                              className="px-3 py-1.5 bg-zinc-900 text-white dark:bg-zinc-700 hover:bg-zinc-800 text-[10px] font-black uppercase tracking-wider rounded-xl transition-all disabled:cursor-not-allowed disabled:opacity-40"
                             >
                               Salvar
                             </button>
-                            {currentPin && (
+                            {hasPin && (
                               <button
                                 type="button"
                                 onClick={() => handleSaveModulePin(mod.id, '')}

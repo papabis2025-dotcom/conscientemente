@@ -6,6 +6,12 @@ import { Brain, Lock } from 'lucide-react';
 import GlobalSidebar from './components/GlobalSidebar';
 import FaviconIcon from './components/FaviconIcon';
 import { ToastContainer } from './components/Toast';
+import {
+  createModulePin,
+  isModulePinConfigured,
+  type ModulePinMap,
+  verifyModulePin,
+} from './utils/modulePin';
 
 // Code-splitting dos módulos para carregamento sob demanda ultra-rápido
 const Login = React.lazy(() => import('./pages/Login'));
@@ -26,6 +32,7 @@ const SYNC_KEYS = [
   'cn_habits',
   'cn_habit_history',
   'cp_study_tasks',
+  'cp_scheduled_studies',
   'cp_global_daily_goal',
   'cp_selected_concurso_id',
   'cp_dashboard_layout_v19',
@@ -449,6 +456,12 @@ const App: React.FC = () => {
   const [globalAlignment, setGlobalAlignment] = useState<'left' | 'center' | 'right'>(() => {
     return (localStorage.getItem('cn_global_alignment') as any) || 'center';
   });
+
+  useEffect(() => {
+    // Versões antigas armazenavam a credencial do Gemini no navegador.
+    // A integração atual usa somente o segredo protegido da Edge Function.
+    localStorage.removeItem('gemini_api_key');
+  }, []);
 
   useEffect(() => {
     const handleSync = () => {
@@ -1097,7 +1110,7 @@ const App: React.FC = () => {
   }
   const bgClass = bgType === 'default' ? 'bg-zinc-50 dark:bg-zinc-950' : 'bg-transparent';
 
-  const modulePins: Record<string, string> = (() => {
+  const modulePins: ModulePinMap = (() => {
     try {
       return JSON.parse(localStorage.getItem('cn_module_pins') || '{}');
     } catch {
@@ -1106,8 +1119,34 @@ const App: React.FC = () => {
   })();
   const requiredPin = modulePins[currentRoute];
 
+  const unlockCurrentModule = async () => {
+    if (!requiredPin || !await verifyModulePin(pinInput, requiredPin)) {
+      setPinError('PIN incorreto. Verifique a senha de 6 dígitos.');
+      setPinInput('');
+      return;
+    }
+
+    // Migra automaticamente PINs antigos em texto puro para PBKDF2 após a validação correta.
+    if (typeof requiredPin === 'string') {
+      try {
+        const migratedPins: ModulePinMap = {
+          ...modulePins,
+          [currentRoute]: await createModulePin(pinInput),
+        };
+        localStorage.setItem('cn_module_pins', JSON.stringify(migratedPins));
+        window.dispatchEvent(new Event('local-settings-changed'));
+      } catch (error) {
+        console.error('Não foi possível migrar o PIN do módulo:', error);
+      }
+    }
+
+    setUnlockedModules(prev => new Set([...prev, currentRoute]));
+    setPinInput('');
+    setPinError('');
+  };
+
   let pageContent;
-  if (requiredPin && requiredPin.length === 6 && !unlockedModules.has(currentRoute)) {
+  if (isModulePinConfigured(requiredPin) && !unlockedModules.has(currentRoute)) {
     const moduleNames: Record<string, string> = {
       estudos: 'Estudos',
       financas: 'Finanças',
@@ -1130,16 +1169,9 @@ const App: React.FC = () => {
           </div>
 
           <form
-            onSubmit={(e) => {
+            onSubmit={async (e) => {
               e.preventDefault();
-              if (pinInput === requiredPin) {
-                setUnlockedModules(prev => new Set([...prev, currentRoute]));
-                setPinInput('');
-                setPinError('');
-              } else {
-                setPinError('PIN incorreto. Verifique a senha de 6 dígitos.');
-                setPinInput('');
-              }
+              await unlockCurrentModule();
             }}
             className="space-y-4"
           >
@@ -1153,11 +1185,6 @@ const App: React.FC = () => {
                 const val = e.target.value.replace(/\D/g, '').slice(0, 6);
                 setPinInput(val);
                 setPinError('');
-                if (val.length === 6 && val === requiredPin) {
-                  setUnlockedModules(prev => new Set([...prev, currentRoute]));
-                  setPinInput('');
-                  setPinError('');
-                }
               }}
               className="w-full px-4 py-4 bg-zinc-50 dark:bg-zinc-955 border border-zinc-200 dark:border-zinc-700 rounded-2xl text-2xl font-mono text-center tracking-[0.5em] text-zinc-900 dark:text-white outline-none focus:ring-2 focus:ring-amber-500"
             />

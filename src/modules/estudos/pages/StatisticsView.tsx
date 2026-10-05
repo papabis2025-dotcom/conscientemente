@@ -613,7 +613,7 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, sim
       {label}{sortBy === col ? (sortOrder === 'desc' ? ' ↓' : ' ↑') : ''}
     </th>;
 
-  const handleExportSpreadsheet = () => {
+  const handleExportSpreadsheet = async () => {
     const headers = [
       'Tipo',
       'Disciplina / Assunto',
@@ -676,7 +676,12 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, sim
     });
 
     const concursoName = (concursos || []).find(c => c.id === selectedConcursoId)?.name || 'Visao_Global';
-    exportToXlsx(`Analise_Estatistica_${concursoName.replace(/[^a-zA-Z0-9_-]/g, '_')}`, 'Análise Estatística', headers, rows);
+    try {
+      await exportToXlsx(`Analise_Estatistica_${concursoName.replace(/[^a-zA-Z0-9_-]/g, '_')}`, 'Análise Estatística', headers, rows);
+    } catch (error) {
+      console.error('Erro ao exportar planilha:', error);
+      alert('Não foi possível gerar a planilha. Tente novamente.');
+    }
   };
 
   return (

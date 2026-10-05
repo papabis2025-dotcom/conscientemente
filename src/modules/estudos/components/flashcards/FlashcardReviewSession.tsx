@@ -3,6 +3,7 @@ import { CardWithState, Rating, NextIntervalsPreview, FlashcardSessionSummary } 
 import { flashcardsApi } from '../../services/flashcards/api';
 import { defaultScheduler } from '../../services/flashcards/scheduler/fsrs';
 import { ClozeRenderer } from './ClozeRenderer';
+import { sanitizeHtml } from '../../../../utils/sanitizeHtml';
 
 interface FlashcardReviewSessionProps {
   cardsQueue: CardWithState[];
@@ -249,7 +250,7 @@ export const FlashcardReviewSession: React.FC<FlashcardReviewSessionProps> = ({
               ) : (
                 <div
                   className="whitespace-pre-wrap"
-                  dangerouslySetInnerHTML={{ __html: currentItem.card.front }}
+                  dangerouslySetInnerHTML={{ __html: sanitizeHtml(currentItem.card.front) }}
                 />
               )}
             </div>
@@ -269,7 +270,7 @@ export const FlashcardReviewSession: React.FC<FlashcardReviewSessionProps> = ({
             <div className="flex-1 flex flex-col justify-center text-center animate-in fade-in slide-in-from-bottom-2 duration-200">
               <div
                 className="text-lg sm:text-2xl font-bold text-indigo-600 dark:text-indigo-400 leading-relaxed max-w-2xl mx-auto whitespace-pre-wrap"
-                dangerouslySetInnerHTML={{ __html: currentItem.card.back }}
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(currentItem.card.back) }}
               />
             </div>
           )}

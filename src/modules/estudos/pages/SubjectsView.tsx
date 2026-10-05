@@ -774,7 +774,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
     setEditTopicTitle('');
   };
 
-  const handleExportSpreadsheet = () => {
+  const handleExportSpreadsheet = async () => {
     const headers = [
       'Disciplina',
       'Peso Disciplina',
@@ -841,7 +841,12 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
     });
 
     const concursoName = (concursos || []).find(c => c.id === selectedConcursoId)?.name || 'Geral';
-    exportToXlsx(`Disciplinas_${concursoName.replace(/[^a-zA-Z0-9_-]/g, '_')}`, 'Disciplinas', headers, rows);
+    try {
+      await exportToXlsx(`Disciplinas_${concursoName.replace(/[^a-zA-Z0-9_-]/g, '_')}`, 'Disciplinas', headers, rows);
+    } catch (error) {
+      console.error('Erro ao exportar planilha:', error);
+      alert('Não foi possível gerar a planilha. Tente novamente.');
+    }
   };
 
   return (

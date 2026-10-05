@@ -15,6 +15,7 @@ import {
   FlashcardSessionSummary
 } from '../../types/flashcards';
 import { defaultScheduler } from './scheduler/fsrs';
+import { sanitizeHtml } from '../../../../utils/sanitizeHtml';
 
 // Helper leve para obter o usuário da sessão local sem chamadas de rede extras
 const getAuthUser = async () => {
@@ -341,9 +342,9 @@ export const flashcardsApi = {
           deck_id: primaryDeckId,
           user_id: user.id,
           card_type: item.card_type || 'basic',
-          front: item.front?.trim() || '',
-          back: item.back?.trim() || '',
-          cloze_text: item.cloze_text?.trim() || null,
+          front: sanitizeHtml(item.front || '').trim(),
+          back: sanitizeHtml(item.back || '').trim(),
+          cloze_text: item.cloze_text ? sanitizeHtml(item.cloze_text).trim() || null : null,
           tags: item.tags || [],
           concurso_id: item.concurso_id || null,
           subject_id: primarySubjectId,
@@ -438,9 +439,9 @@ export const flashcardsApi = {
 
       if (primaryDeckId) safePayload.deck_id = primaryDeckId;
       if (updates.card_type !== undefined) safePayload.card_type = updates.card_type;
-      if (updates.front !== undefined) safePayload.front = updates.front.trim();
-      if (updates.back !== undefined) safePayload.back = updates.back.trim();
-      if (updates.cloze_text !== undefined) safePayload.cloze_text = updates.cloze_text?.trim() || null;
+      if (updates.front !== undefined) safePayload.front = sanitizeHtml(updates.front).trim();
+      if (updates.back !== undefined) safePayload.back = sanitizeHtml(updates.back).trim();
+      if (updates.cloze_text !== undefined) safePayload.cloze_text = updates.cloze_text ? sanitizeHtml(updates.cloze_text).trim() || null : null;
       if (updates.tags !== undefined) safePayload.tags = updates.tags;
       if (updates.concurso_id !== undefined) safePayload.concurso_id = updates.concurso_id;
       if (primarySubjectId !== undefined) safePayload.subject_id = primarySubjectId;

@@ -3,6 +3,7 @@ import { FlashcardDeck, FlashcardType, Flashcard, CardWithState } from '../../ty
 import { Subject, Topic } from '../../types';
 import { RichTextToolbar } from './RichTextToolbar';
 import { getColorHex } from '../../utils/colors';
+import { sanitizeHtml } from '../../../../utils/sanitizeHtml';
 
 interface FlashcardEditorProps {
   decks: FlashcardDeck[];
@@ -195,10 +196,14 @@ export const FlashcardEditor: React.FC<FlashcardEditorProps> = ({
   const handleSubmit = async (createAnother: boolean) => {
     if (selectedDeckIds.length === 0) return;
 
+    const sanitizedFront = sanitizeHtml(front).trim();
+    const sanitizedBack = sanitizeHtml(back).trim();
+    const sanitizedClozeText = sanitizeHtml(clozeText).trim();
+
     if (cardType === 'cloze') {
-      if (!clozeText.trim()) return;
+      if (!sanitizedClozeText) return;
     } else {
-      if (!front.trim() || !back.trim()) return;
+      if (!sanitizedFront || !sanitizedBack) return;
     }
 
     setIsSaving(true);
@@ -209,9 +214,9 @@ export const FlashcardEditor: React.FC<FlashcardEditorProps> = ({
         deck_id: selectedDeckIds[0],
         deck_ids: selectedDeckIds,
         card_type: cardType,
-        front: cardType === 'cloze' ? clozeText : front,
-        back: cardType === 'cloze' ? 'Cloze revelado' : back,
-        cloze_text: cardType === 'cloze' ? clozeText : undefined,
+        front: cardType === 'cloze' ? sanitizedClozeText : sanitizedFront,
+        back: cardType === 'cloze' ? 'Cloze revelado' : sanitizedBack,
+        cloze_text: cardType === 'cloze' ? sanitizedClozeText : undefined,
         tags,
         subject_id: selectedSubjectIds[0] || undefined,
         subject_ids: selectedSubjectIds,

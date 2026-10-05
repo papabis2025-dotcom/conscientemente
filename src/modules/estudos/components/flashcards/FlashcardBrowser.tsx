@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { CardWithState, FlashcardDeck, State } from '../../types/flashcards';
 import { Subject } from '../../types';
+import { sanitizeHtml } from '../../../../utils/sanitizeHtml';
 
 interface FlashcardBrowserProps {
   cardsWithState: CardWithState[];
@@ -254,13 +255,13 @@ export const FlashcardBrowser: React.FC<FlashcardBrowserProps> = ({
 
                     <div
                       className="font-bold text-xs sm:text-sm text-zinc-900 dark:text-white line-clamp-2 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors"
-                      dangerouslySetInnerHTML={{ __html: item.card.front }}
+                      dangerouslySetInnerHTML={{ __html: sanitizeHtml(item.card.front) }}
                     />
 
                     {item.card.card_type !== 'cloze' && (
                       <div
                         className="text-xs text-zinc-500 dark:text-zinc-400 line-clamp-1"
-                        dangerouslySetInnerHTML={{ __html: item.card.back }}
+                        dangerouslySetInnerHTML={{ __html: sanitizeHtml(item.card.back) }}
                       />
                     )}
 

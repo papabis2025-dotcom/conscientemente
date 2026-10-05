@@ -1,4 +1,5 @@
-import * as XLSX from 'xlsx';
+import writeExcelFile from 'write-excel-file/browser';
+import type { Cell, SheetData } from 'write-excel-file/browser';
 
 /**
  * Utilitários para exportação de dados em planilhas (Excel / Google Planilhas) e PDF
@@ -7,26 +8,28 @@ import * as XLSX from 'xlsx';
 /**
  * Exporta dados tabulares para um arquivo nativo do Excel (.xlsx) 100% compatível com o Google Planilhas
  */
-export function exportToXlsx(filename: string, sheetName: string, headers: string[], rows: (string | number | boolean | null | undefined)[][]) {
-  const data = [headers, ...rows];
-  const worksheet = XLSX.utils.aoa_to_sheet(data);
+export async function exportToXlsx(filename: string, sheetName: string, headers: string[], rows: (string | number | boolean | null | undefined)[][]): Promise<void> {
+  const data: SheetData = [
+    headers.map(header => ({ value: header, type: String, fontWeight: 'bold' })),
+    ...rows.map(row => row.map(value => value as Cell)),
+  ];
 
-  // Ajusta a largura das colunas dinamicamente com base no maior conteúdo
-  const colWidths = headers.map((h, colIdx) => {
+  // Ajusta a largura das colunas dinamicamente com base no maior conteúdo.
+  const columns = headers.map((h, colIdx) => {
     let maxLen = String(h || '').length;
     rows.forEach(r => {
       const cellVal = String(r[colIdx] ?? '');
       if (cellVal.length > maxLen) maxLen = cellVal.length;
     });
-    return { wch: Math.min(60, Math.max(12, maxLen + 3)) };
+    return { width: Math.min(60, Math.max(12, maxLen + 3)) };
   });
-  worksheet['!cols'] = colWidths;
-
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, sheetName.slice(0, 31));
 
   const finalFilename = filename.endsWith('.xlsx') ? filename : `${filename}.xlsx`;
-  XLSX.writeFile(workbook, finalFilename);
+  await writeExcelFile(data, {
+    sheet: sheetName.slice(0, 31),
+    columns,
+    stickyRowsCount: 1,
+  }).toFile(finalFilename);
 }
 
 /**
@@ -35,7 +38,9 @@ export function exportToXlsx(filename: string, sheetName: string, headers: strin
 export function exportToCsv(filename: string, headers: string[], rows: (string | number | boolean | null | undefined)[][]) {
   const sanitizeCell = (val: string | number | boolean | null | undefined): string => {
     if (val === null || val === undefined) return '';
-    const str = String(val);
+    let str = String(val);
+    // Evita injeção de fórmulas quando o CSV for aberto em Excel/Google Planilhas.
+    if (/^[=+\-@]/.test(str)) str = `'${str}`;
     if (str.includes(';') || str.includes('\n') || str.includes('"')) {
       return `"${str.replace(/"/g, '""')}"`;
     }

@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { api } from '../modules/estudos/services/api';
+import { sanitizeHtml } from '../utils/sanitizeHtml';
 
 export interface BackupData {
   version: string;
@@ -25,9 +26,160 @@ export interface BackupData {
   localSettings: Record<string, string | null>;
 }
 
+const BACKUP_VERSION = '2.0';
+const MAX_BACKUP_FILE_BYTES = 25 * 1024 * 1024;
+
+const APP_STORAGE_PREFIXES = [
+  'cn_',
+  'cp_',
+  'gp_',
+  'estudos_',
+  'financas_',
+  'saude_',
+  'tarefas_',
+  'anotacoes_',
+  'global_',
+  'isSidebarCollapsed_',
+] as const;
+
+const isAppStorageKey = (key: string): boolean =>
+  APP_STORAGE_PREFIXES.some(prefix => key.startsWith(prefix))
+  || key.endsWith('ActiveTab')
+  || key.includes('active_tab');
+
+const BACKUP_ARRAY_FIELDS = [
+  'concursos',
+  'sessions',
+  'simulados',
+  'scheduledStudies',
+  'dailyGoals',
+  'habits',
+  'habitLogs',
+  'financasTransacoes',
+  'saudeTreinos',
+  'tarefas',
+  'flashcardDecks',
+  'flashcardCards',
+  'flashcardSchedulingState',
+  'flashcardReviewLogs'
+] as const;
+
+const BACKUP_OBJECT_FIELDS = ['userPreferences', 'flashcardSettings'] as const;
+
+type UnknownRecord = Record<string, unknown>;
+
+const isRecord = (value: unknown): value is UnknownRecord =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const describeError = (error: unknown): string => {
+  if (error instanceof Error) return error.message;
+
+  if (isRecord(error)) {
+    const details = ['message', 'code', 'details', 'hint']
+      .map((key) => error[key])
+      .filter((value): value is string => typeof value === 'string' && value.length > 0);
+
+    if (details.length > 0) return details.join(' | ');
+  }
+
+  try {
+    return JSON.stringify(error) || String(error);
+  } catch {
+    return String(error);
+  }
+};
+
+const runStage = async <T>(stage: string, operation: () => PromiseLike<T>): Promise<T> => {
+  try {
+    return await operation();
+  } catch (error) {
+    throw new Error(`Falha na etapa "${stage}": ${describeError(error)}`);
+  }
+};
+
+const getSupabaseData = async <TResult extends { data: unknown; error: unknown }>(
+  stage: string,
+  request: PromiseLike<TResult>
+): Promise<TResult['data']> => runStage(stage, async () => {
+  const result = await request;
+
+  if (result.error) {
+    throw result.error;
+  }
+
+  return result.data;
+});
+
+const validateBackup = (value: unknown): BackupData => {
+  if (!isRecord(value)) {
+    throw new Error('Formato de arquivo de backup inválido: o conteúdo deve ser um objeto JSON.');
+  }
+
+  if (typeof value.version !== 'string') {
+    throw new Error('Formato de arquivo de backup inválido: versão ausente.');
+  }
+
+  if (value.version !== BACKUP_VERSION) {
+    throw new Error(
+      `Versão de backup não suportada (${value.version}). Versão esperada: ${BACKUP_VERSION}.`
+    );
+  }
+
+  if (typeof value.exportDate !== 'string' || Number.isNaN(Date.parse(value.exportDate))) {
+    throw new Error('Formato de arquivo de backup inválido: data de exportação ausente ou inválida.');
+  }
+
+  if (!isRecord(value.data)) {
+    throw new Error('Formato de arquivo de backup inválido: campo "data" ausente ou inválido.');
+  }
+
+  for (const field of BACKUP_ARRAY_FIELDS) {
+    const entries = value.data[field];
+    if (entries === undefined) continue;
+
+    if (!Array.isArray(entries)) {
+      throw new Error(`Formato de arquivo de backup inválido: "data.${field}" deve ser uma lista.`);
+    }
+
+    const invalidIndex = entries.findIndex((entry) => !isRecord(entry));
+    if (invalidIndex >= 0) {
+      throw new Error(
+        `Formato de arquivo de backup inválido: "data.${field}[${invalidIndex}]" deve ser um objeto.`
+      );
+    }
+  }
+
+  for (const field of BACKUP_OBJECT_FIELDS) {
+    const entry = value.data[field];
+    if (entry !== undefined && entry !== null && !isRecord(entry)) {
+      throw new Error(`Formato de arquivo de backup inválido: "data.${field}" deve ser um objeto.`);
+    }
+  }
+
+  if (!isRecord(value.localSettings)) {
+    throw new Error('Formato de arquivo de backup inválido: campo "localSettings" ausente ou inválido.');
+  }
+
+  for (const [key, settingValue] of Object.entries(value.localSettings)) {
+    // Backups antigos podiam conter chaves de bibliotecas. Elas são aceitas para
+    // compatibilidade, mas nunca restauradas nem incluídas em novos backups.
+    if (!isAppStorageKey(key)) continue;
+    if (settingValue !== null && typeof settingValue !== 'string') {
+      throw new Error(
+        `Formato de arquivo de backup inválido: "localSettings.${key}" deve ser texto ou nulo.`
+      );
+    }
+  }
+
+  return value as unknown as BackupData;
+};
+
 export const backupService = {
   async exportBackup(): Promise<void> {
-    const { data: { session } } = await supabase.auth.getSession();
+    const { session } = await getSupabaseData(
+      'verificar a sessão para exportação',
+      supabase.auth.getSession()
+    );
     const user = session?.user;
 
     let concursos: any[] = [];
@@ -49,64 +201,79 @@ export const backupService = {
 
     if (user) {
       const [
-        cRes, sessRes, simRes, schedRes, goalRes,
-        habRes, habLogRes, finRes, saudeRes, tarRes, prefRes,
-        fcDecksRes, fcCardsRes, fcSchedRes, fcLogsRes, fcSettingsRes
-      ] = await Promise.allSettled([
-        supabase.from('concursos').select('*').eq('user_id', user.id),
-        supabase.from('study_sessions').select('*').eq('user_id', user.id),
-        supabase.from('simulados').select('*').eq('user_id', user.id),
-        supabase.from('scheduled_studies').select('*').eq('user_id', user.id),
-        supabase.from('daily_goals').select('*').eq('user_id', user.id),
-        supabase.from('habits').select('*').eq('user_id', user.id),
-        supabase.from('habit_logs').select('*').eq('user_id', user.id),
-        supabase.from('financas_transacoes').select('*').eq('user_id', user.id),
-        supabase.from('saude_treinos').select('*').eq('user_id', user.id),
-        supabase.from('tarefas').select('*').eq('user_id', user.id),
-        supabase.from('user_preferences').select('*').eq('user_id', user.id).maybeSingle(),
-        supabase.from('flashcard_decks').select('*').eq('user_id', user.id),
-        supabase.from('flashcard_cards').select('*').eq('user_id', user.id),
-        supabase.from('flashcard_scheduling_state').select('*').eq('user_id', user.id),
-        supabase.from('flashcard_review_logs').select('*').eq('user_id', user.id),
-        supabase.from('flashcard_settings').select('*').eq('user_id', user.id).maybeSingle()
+        loadedConcursos,
+        loadedSessions,
+        loadedSimulados,
+        loadedScheduledStudies,
+        loadedDailyGoals,
+        loadedHabits,
+        loadedHabitLogs,
+        loadedFinancasTransacoes,
+        loadedSaudeTreinos,
+        loadedTarefas,
+        loadedUserPreferences,
+        loadedFlashcardDecks,
+        loadedFlashcardCards,
+        loadedFlashcardSchedulingState,
+        loadedFlashcardReviewLogs,
+        loadedFlashcardSettings
+      ] = await Promise.all([
+        getSupabaseData('exportar concursos', supabase.from('concursos').select('*').eq('user_id', user.id)),
+        getSupabaseData('exportar sessões de estudo', supabase.from('study_sessions').select('*').eq('user_id', user.id)),
+        getSupabaseData('exportar simulados', supabase.from('simulados').select('*').eq('user_id', user.id)),
+        getSupabaseData('exportar estudos agendados', supabase.from('scheduled_studies').select('*').eq('user_id', user.id)),
+        getSupabaseData('exportar metas diárias', supabase.from('daily_goals').select('*').eq('user_id', user.id)),
+        getSupabaseData('exportar hábitos', supabase.from('habits').select('*').eq('user_id', user.id)),
+        getSupabaseData('exportar registros de hábitos', supabase.from('habit_logs').select('*').eq('user_id', user.id)),
+        getSupabaseData('exportar transações financeiras', supabase.from('financas_transacoes').select('*').eq('user_id', user.id)),
+        getSupabaseData('exportar treinos de saúde', supabase.from('saude_treinos').select('*').eq('user_id', user.id)),
+        getSupabaseData('exportar tarefas', supabase.from('tarefas').select('*').eq('user_id', user.id)),
+        getSupabaseData('exportar preferências do usuário', supabase.from('user_preferences').select('*').eq('user_id', user.id).maybeSingle()),
+        getSupabaseData('exportar baralhos de flashcards', supabase.from('flashcard_decks').select('*').eq('user_id', user.id)),
+        getSupabaseData('exportar flashcards', supabase.from('flashcard_cards').select('*').eq('user_id', user.id)),
+        getSupabaseData('exportar agendamentos de flashcards', supabase.from('flashcard_scheduling_state').select('*').eq('user_id', user.id)),
+        getSupabaseData('exportar revisões de flashcards', supabase.from('flashcard_review_logs').select('*').eq('user_id', user.id)),
+        getSupabaseData('exportar configurações de flashcards', supabase.from('flashcard_settings').select('*').eq('user_id', user.id).maybeSingle())
       ]);
 
-      if (cRes.status === 'fulfilled' && !cRes.value.error) concursos = cRes.value.data || [];
-      if (sessRes.status === 'fulfilled' && !sessRes.value.error) sessions = sessRes.value.data || [];
-      if (simRes.status === 'fulfilled' && !simRes.value.error) simulados = simRes.value.data || [];
-      if (schedRes.status === 'fulfilled' && !schedRes.value.error) scheduledStudies = schedRes.value.data || [];
-      if (goalRes.status === 'fulfilled' && !goalRes.value.error) dailyGoals = goalRes.value.data || [];
-      if (habRes.status === 'fulfilled' && !habRes.value.error) habits = habRes.value.data || [];
-      if (habLogRes.status === 'fulfilled' && !habLogRes.value.error) habitLogs = habLogRes.value.data || [];
-      if (finRes.status === 'fulfilled' && !finRes.value.error) financasTransacoes = finRes.value.data || [];
-      if (saudeRes.status === 'fulfilled' && !saudeRes.value.error) saudeTreinos = saudeRes.value.data || [];
-      if (tarRes.status === 'fulfilled' && !tarRes.value.error) tarefas = tarRes.value.data || [];
-      if (prefRes.status === 'fulfilled' && !prefRes.value.error) userPreferences = prefRes.value.data;
-      if (fcDecksRes.status === 'fulfilled' && !fcDecksRes.value.error) flashcardDecks = fcDecksRes.value.data || [];
-      if (fcCardsRes.status === 'fulfilled' && !fcCardsRes.value.error) flashcardCards = fcCardsRes.value.data || [];
-      if (fcSchedRes.status === 'fulfilled' && !fcSchedRes.value.error) flashcardSchedulingState = fcSchedRes.value.data || [];
-      if (fcLogsRes.status === 'fulfilled' && !fcLogsRes.value.error) flashcardReviewLogs = fcLogsRes.value.data || [];
-      if (fcSettingsRes.status === 'fulfilled' && !fcSettingsRes.value.error) flashcardSettings = fcSettingsRes.value.data;
+      concursos = loadedConcursos || [];
+      sessions = loadedSessions || [];
+      simulados = loadedSimulados || [];
+      scheduledStudies = loadedScheduledStudies || [];
+      dailyGoals = loadedDailyGoals || [];
+      habits = loadedHabits || [];
+      habitLogs = loadedHabitLogs || [];
+      financasTransacoes = loadedFinancasTransacoes || [];
+      saudeTreinos = loadedSaudeTreinos || [];
+      tarefas = loadedTarefas || [];
+      userPreferences = loadedUserPreferences;
+      flashcardDecks = loadedFlashcardDecks || [];
+      flashcardCards = loadedFlashcardCards || [];
+      flashcardSchedulingState = loadedFlashcardSchedulingState || [];
+      flashcardReviewLogs = loadedFlashcardReviewLogs || [];
+      flashcardSettings = loadedFlashcardSettings;
     } else {
       // Fallback offline
-      try { concursos = await api.concursos.list(); } catch {}
-      try { sessions = await api.sessions.list(); } catch {}
-      try { simulados = await api.simulados.list(); } catch {}
-      try { scheduledStudies = await api.schedule.list(); } catch {}
-      try { dailyGoals = await api.dailyGoals.list(); } catch {}
+      [concursos, sessions, simulados, scheduledStudies, dailyGoals] = await Promise.all([
+        runStage('exportar concursos no modo offline', () => api.concursos.list()),
+        runStage('exportar sessões de estudo no modo offline', () => api.sessions.list()),
+        runStage('exportar simulados no modo offline', () => api.simulados.list()),
+        runStage('exportar estudos agendados no modo offline', () => api.schedule.list()),
+        runStage('exportar metas diárias no modo offline', () => api.dailyGoals.list())
+      ]);
     }
 
     // Capture all localStorage settings
     const localSettings: Record<string, string | null> = {};
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (key) {
+      if (key && isAppStorageKey(key)) {
         localSettings[key] = localStorage.getItem(key);
       }
     }
 
     const exportPayload: BackupData = {
-      version: '2.0',
+      version: BACKUP_VERSION,
       exportDate: new Date().toISOString(),
       data: {
         concursos,
@@ -141,14 +308,25 @@ export const backupService = {
   },
 
   async importBackup(file: File): Promise<{ success: boolean; itemCount: number }> {
-    const text = await file.text();
-    const parsed: BackupData = JSON.parse(text);
+    if (file.size > MAX_BACKUP_FILE_BYTES) {
+      throw new Error('O arquivo de backup excede o limite de 25 MB.');
+    }
+    const text = await runStage('ler o arquivo de backup', () => file.text());
+    let rawBackup: unknown;
 
-    if (!parsed || !parsed.data) {
-      throw new Error('Formato de arquivo de backup inválido.');
+    try {
+      rawBackup = JSON.parse(text);
+    } catch {
+      throw new Error('Formato de arquivo de backup inválido: o arquivo não contém um JSON válido.');
     }
 
-    const { data: { session } } = await supabase.auth.getSession();
+    // A validação acontece integralmente antes de qualquer mutação local ou remota.
+    const parsed = validateBackup(rawBackup);
+
+    const { session } = await getSupabaseData(
+      'verificar a sessão para importação',
+      supabase.auth.getSession()
+    );
     const user = session?.user;
 
     const {
@@ -186,7 +364,10 @@ export const backupService = {
           image_url: c.imageUrl || c.image_url || null,
           subjects: c.subjects || []
         }));
-        await supabase.from('concursos').upsert(formatted, { onConflict: 'id' });
+        await getSupabaseData(
+          'importar concursos',
+          supabase.from('concursos').upsert(formatted, { onConflict: 'id' })
+        );
         itemCount += formatted.length;
       }
 
@@ -205,7 +386,10 @@ export const backupService = {
           activity_type: s.activityType || s.activity_type || null,
           questions_link: s.questionsLink || s.questions_link || null
         }));
-        await supabase.from('study_sessions').upsert(formatted, { onConflict: 'id' });
+        await getSupabaseData(
+          'importar sessões de estudo',
+          supabase.from('study_sessions').upsert(formatted, { onConflict: 'id' })
+        );
         itemCount += formatted.length;
       }
 
@@ -219,7 +403,10 @@ export const backupService = {
           total_questions: sim.totalQuestions || sim.total_questions || 0,
           results: sim.results || {}
         }));
-        await supabase.from('simulados').upsert(formatted, { onConflict: 'id' });
+        await getSupabaseData(
+          'importar simulados',
+          supabase.from('simulados').upsert(formatted, { onConflict: 'id' })
+        );
         itemCount += formatted.length;
       }
 
@@ -239,7 +426,10 @@ export const backupService = {
           questions_link: item.questionsLink || item.questions_link || null,
           status: item.status || 'planejado'
         }));
-        await supabase.from('scheduled_studies').upsert(formatted, { onConflict: 'id' });
+        await getSupabaseData(
+          'importar estudos agendados',
+          supabase.from('scheduled_studies').upsert(formatted, { onConflict: 'id' })
+        );
         itemCount += formatted.length;
       }
 
@@ -251,7 +441,10 @@ export const backupService = {
           date: g.date,
           questions_target: g.questionsTarget || g.questions_target || 0
         }));
-        await supabase.from('daily_goals').upsert(formatted, { onConflict: 'user_id, date' });
+        await getSupabaseData(
+          'importar metas diárias',
+          supabase.from('daily_goals').upsert(formatted, { onConflict: 'user_id, date' })
+        );
         itemCount += formatted.length;
       }
 
@@ -262,7 +455,10 @@ export const backupService = {
           user_id: user.id,
           name: h.name
         }));
-        await supabase.from('habits').upsert(formatted, { onConflict: 'id' });
+        await getSupabaseData(
+          'importar hábitos',
+          supabase.from('habits').upsert(formatted, { onConflict: 'id' })
+        );
         itemCount += formatted.length;
       }
       if (Array.isArray(habitLogs) && habitLogs.length > 0) {
@@ -271,7 +467,10 @@ export const backupService = {
           habit_id: hl.habit_id || hl.habitId,
           logged_date: hl.logged_date || hl.loggedDate || hl.date
         }));
-        await supabase.from('habit_logs').upsert(formatted, { onConflict: 'user_id, habit_id, logged_date' });
+        await getSupabaseData(
+          'importar registros de hábitos',
+          supabase.from('habit_logs').upsert(formatted, { onConflict: 'user_id, habit_id, logged_date' })
+        );
         itemCount += formatted.length;
       }
 
@@ -289,7 +488,10 @@ export const backupService = {
           payment_method: t.paymentMethod || t.payment_method || null,
           pending: t.pending
         }));
-        await supabase.from('financas_transacoes').upsert(formatted, { onConflict: 'id' });
+        await getSupabaseData(
+          'importar transações financeiras',
+          supabase.from('financas_transacoes').upsert(formatted, { onConflict: 'id' })
+        );
         itemCount += formatted.length;
       }
 
@@ -306,7 +508,10 @@ export const backupService = {
           cardio_level: t.level || t.cardio_level || 0,
           muscles: t.muscles || []
         }));
-        await supabase.from('saude_treinos').upsert(formatted, { onConflict: 'id' });
+        await getSupabaseData(
+          'importar treinos de saúde',
+          supabase.from('saude_treinos').upsert(formatted, { onConflict: 'id' })
+        );
         itemCount += formatted.length;
       }
 
@@ -324,58 +529,135 @@ export const backupService = {
           recurrence_type: t.recurrenceType || t.recurrence_type || 'none',
           recurrence_value: t.recurrenceValue || t.recurrence_value || null
         }));
-        await supabase.from('tarefas').upsert(formatted, { onConflict: 'id' });
+        await getSupabaseData(
+          'importar tarefas',
+          supabase.from('tarefas').upsert(formatted, { onConflict: 'id' })
+        );
         itemCount += formatted.length;
       }
 
       // 10. User preferences
       if (userPreferences) {
         const prefPayload = { ...userPreferences, user_id: user.id };
-        await supabase.from('user_preferences').upsert(prefPayload, { onConflict: 'user_id' });
+        await getSupabaseData(
+          'importar preferências do usuário',
+          supabase.from('user_preferences').upsert(prefPayload, { onConflict: 'user_id' })
+        );
+        itemCount += 1;
       }
 
       // 11. Flashcards (Decks, Cards, Scheduling State, Review Logs, Settings)
       if (Array.isArray(flashcardDecks) && flashcardDecks.length > 0) {
         const formatted = flashcardDecks.map((d: any) => ({ ...d, user_id: user.id }));
-        await supabase.from('flashcard_decks').upsert(formatted, { onConflict: 'id' });
+        await getSupabaseData(
+          'importar baralhos de flashcards',
+          supabase.from('flashcard_decks').upsert(formatted, { onConflict: 'id' })
+        );
         itemCount += formatted.length;
       }
       if (Array.isArray(flashcardCards) && flashcardCards.length > 0) {
-        const formatted = flashcardCards.map((c: any) => ({ ...c, user_id: user.id }));
-        await supabase.from('flashcard_cards').upsert(formatted, { onConflict: 'id' });
+        const formatted = flashcardCards.map((c: any) => ({
+          ...c,
+          user_id: user.id,
+          front: sanitizeHtml(typeof c.front === 'string' ? c.front : '').trim(),
+          back: sanitizeHtml(typeof c.back === 'string' ? c.back : '').trim(),
+          cloze_text: typeof c.cloze_text === 'string'
+            ? sanitizeHtml(c.cloze_text).trim() || null
+            : null,
+        }));
+        await getSupabaseData(
+          'importar flashcards',
+          supabase.from('flashcard_cards').upsert(formatted, { onConflict: 'id' })
+        );
         itemCount += formatted.length;
       }
       if (Array.isArray(flashcardSchedulingState) && flashcardSchedulingState.length > 0) {
         const formatted = flashcardSchedulingState.map((s: any) => ({ ...s, user_id: user.id }));
-        await supabase.from('flashcard_scheduling_state').upsert(formatted, { onConflict: 'card_id' });
+        await getSupabaseData(
+          'importar agendamentos de flashcards',
+          supabase.from('flashcard_scheduling_state').upsert(formatted, { onConflict: 'card_id' })
+        );
+        itemCount += formatted.length;
       }
       if (Array.isArray(flashcardReviewLogs) && flashcardReviewLogs.length > 0) {
         const formatted = flashcardReviewLogs.map((l: any) => ({ ...l, user_id: user.id }));
-        await supabase.from('flashcard_review_logs').upsert(formatted, { onConflict: 'id' });
+        await getSupabaseData(
+          'importar revisões de flashcards',
+          supabase.from('flashcard_review_logs').upsert(formatted, { onConflict: 'id' })
+        );
+        itemCount += formatted.length;
       }
       if (flashcardSettings) {
         const settingsPayload = { ...flashcardSettings, user_id: user.id };
-        await supabase.from('flashcard_settings').upsert(settingsPayload, { onConflict: 'user_id' });
+        await getSupabaseData(
+          'importar configurações de flashcards',
+          supabase.from('flashcard_settings').upsert(settingsPayload, { onConflict: 'user_id' })
+        );
+        itemCount += 1;
       }
     } else {
       // Offline fallback
-      if (concursos) for (const c of concursos) await api.concursos.upsert(c);
-      if (sessions) for (const s of sessions) await api.sessions.create(s);
-      if (simulados) for (const s of simulados) await api.simulados.create(s);
-      if (scheduledStudies) for (const s of scheduledStudies) await api.schedule.create(s);
-      if (dailyGoals) for (const g of dailyGoals) await api.dailyGoals.upsert(g);
+      if (concursos) {
+        for (const [index, concurso] of concursos.entries()) {
+          await runStage(
+            `importar concurso no modo offline (${index + 1}/${concursos.length})`,
+            () => api.concursos.upsert(concurso)
+          );
+          itemCount += 1;
+        }
+      }
+
+      if (sessions) {
+        for (const [index, sessionItem] of sessions.entries()) {
+          await runStage(
+            `importar sessão de estudo no modo offline (${index + 1}/${sessions.length})`,
+            () => api.sessions.create(sessionItem)
+          );
+          itemCount += 1;
+        }
+      }
+
+      if (simulados) {
+        for (const [index, simulado] of simulados.entries()) {
+          await runStage(
+            `importar simulado no modo offline (${index + 1}/${simulados.length})`,
+            () => api.simulados.create(simulado)
+          );
+          itemCount += 1;
+        }
+      }
+
+      if (scheduledStudies) {
+        for (const [index, scheduledStudy] of scheduledStudies.entries()) {
+          await runStage(
+            `importar estudo agendado no modo offline (${index + 1}/${scheduledStudies.length})`,
+            () => api.schedule.create(scheduledStudy)
+          );
+          itemCount += 1;
+        }
+      }
+
+      if (dailyGoals) {
+        for (const [index, dailyGoal] of dailyGoals.entries()) {
+          await runStage(
+            `importar meta diária no modo offline (${index + 1}/${dailyGoals.length})`,
+            () => api.dailyGoals.upsert(dailyGoal)
+          );
+          itemCount += 1;
+        }
+      }
     }
 
-    // 11. Restore localSettings into localStorage
-    if (parsed.localSettings && typeof parsed.localSettings === 'object') {
+    // Restore localSettings into localStorage only after all data writes succeed.
+    await runStage('restaurar configurações locais', async () => {
       Object.entries(parsed.localSettings).forEach(([key, val]) => {
-        if (val !== null && val !== undefined) {
-          localStorage.setItem(key, typeof val === 'string' ? val : JSON.stringify(val));
+        if (val !== null && isAppStorageKey(key)) {
+          localStorage.setItem(key, val);
         }
       });
       window.dispatchEvent(new Event('local-storage-sync'));
       window.dispatchEvent(new Event('local-settings-changed'));
-    }
+    });
 
     return { success: true, itemCount };
   }

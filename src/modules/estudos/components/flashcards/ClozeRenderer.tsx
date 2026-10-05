@@ -1,4 +1,5 @@
 import React from 'react';
+import { sanitizeHtml } from '../../../../utils/sanitizeHtml';
 
 interface ClozeRendererProps {
   text: string;
@@ -41,7 +42,7 @@ export const ClozeRenderer: React.FC<ClozeRendererProps> = ({
       parts.push(
         <span
           key={`plain-${lastIndex}`}
-          dangerouslySetInnerHTML={{ __html: plainText }}
+          dangerouslySetInnerHTML={{ __html: sanitizeHtml(plainText) }}
         />
       );
     }
@@ -56,7 +57,7 @@ export const ClozeRenderer: React.FC<ClozeRendererProps> = ({
           <span
             key={`cloze-revealed-${matchStart}`}
             className="font-black text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 px-2 py-0.5 rounded-lg border border-indigo-200 dark:border-indigo-800/60 transition-all inline-block mx-1 shadow-xs"
-            dangerouslySetInnerHTML={{ __html: hiddenAnswer }}
+            dangerouslySetInnerHTML={{ __html: sanitizeHtml(hiddenAnswer) }}
           />
         );
       } else {
@@ -75,7 +76,7 @@ export const ClozeRenderer: React.FC<ClozeRendererProps> = ({
         <span
           key={`cloze-other-${matchStart}`}
           className="font-semibold text-zinc-700 dark:text-zinc-300"
-          dangerouslySetInnerHTML={{ __html: hiddenAnswer }}
+          dangerouslySetInnerHTML={{ __html: sanitizeHtml(hiddenAnswer) }}
         />
       );
     }
@@ -89,14 +90,14 @@ export const ClozeRenderer: React.FC<ClozeRendererProps> = ({
     parts.push(
       <span
         key={`trailing-${lastIndex}`}
-        dangerouslySetInnerHTML={{ __html: trailingText }}
+        dangerouslySetInnerHTML={{ __html: sanitizeHtml(trailingText) }}
       />
     );
   }
 
   return (
     <div className={`leading-relaxed whitespace-pre-wrap select-text ${className}`}>
-      {parts.length > 0 ? parts : <span dangerouslySetInnerHTML={{ __html: text }} />}
+      {parts.length > 0 ? parts : <span dangerouslySetInnerHTML={{ __html: sanitizeHtml(text) }} />}
     </div>
   );
 };

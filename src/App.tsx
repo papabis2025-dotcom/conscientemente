@@ -12,6 +12,11 @@ import {
   type ModulePinMap,
   verifyModulePin,
 } from './utils/modulePin';
+import {
+  applyIdeThemeTokens,
+  getIdeThemeById,
+  IDE_THEME_STORAGE_KEY,
+} from './utils/ideThemes';
 
 // Code-splitting dos módulos para carregamento sob demanda ultra-rápido
 const Login = React.lazy(() => import('./pages/Login'));
@@ -39,6 +44,7 @@ const SYNC_KEYS = [
   'cp_dashboard_layout_v20',
   'cp_menu_order',
   'cn_theme',
+  'cn_ide_theme',
   'cn_notifications',
   'cn_cleared_notifications',
   'cn_anotacoes',
@@ -976,6 +982,23 @@ const App: React.FC = () => {
     else root.classList.remove('dark');
     localStorage.setItem('cn_theme', theme);
   }, [theme]);
+
+  // Apply Antigravity IDE theme tokens
+  useEffect(() => {
+    const syncIdeTheme = () => {
+      const activeId = localStorage.getItem(IDE_THEME_STORAGE_KEY);
+      const ideTheme = getIdeThemeById(activeId);
+      applyIdeThemeTokens(ideTheme || null);
+    };
+
+    syncIdeTheme();
+    window.addEventListener('local-storage-sync', syncIdeTheme);
+    window.addEventListener('local-settings-changed', syncIdeTheme);
+    return () => {
+      window.removeEventListener('local-storage-sync', syncIdeTheme);
+      window.removeEventListener('local-settings-changed', syncIdeTheme);
+    };
+  }, []);
 
   // Automatically adapt theme when a new custom background color is selected
   useEffect(() => {

@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "test": "node --test --experimental-strip-types tests/modulePin.test.ts tests/sanitizeHtml.test.ts",
+    "test": "node --test --experimental-strip-types tests/modulePin.test.ts tests/sanitizeHtml.test.ts tests/ideThemes.test.ts",
     "typecheck": "tsc --noEmit",
     "build": "vite build",
     "preview": "vite preview"

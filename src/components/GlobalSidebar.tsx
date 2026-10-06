@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   Brain, Bell, Settings, User, Sun, Moon, Sliders, LogOut, 
   ChevronLeft, ChevronRight, X, Database, Cloud, CheckCircle2, 
-  AlertTriangle, FileText, Check, Lock, Camera, Trash2 
+  AlertTriangle, FileText, Check, Lock, Camera, Trash2, Sparkles, Palette 
 } from 'lucide-react';
 import { LogEntry } from '../modules/estudos/types';
 import LogView from '../modules/estudos/pages/LogView';
@@ -16,6 +16,12 @@ import {
   isModulePinConfigured,
   type ModulePinMap,
 } from '../utils/modulePin';
+import {
+  IDE_THEMES,
+  IDE_THEME_STORAGE_KEY,
+  applyIdeThemeTokens,
+  type IdeTheme,
+} from '../utils/ideThemes';
 
 
 interface AppNotification {
@@ -187,6 +193,54 @@ const GlobalSidebar: React.FC<GlobalSidebarProps> = ({
       console.error('Erro ao proteger o PIN do módulo:', error);
       alert('Não foi possível proteger e salvar o PIN neste navegador.');
     }
+  };
+
+  // Antigravity IDE themes state
+  const [activeIdeTheme, setActiveIdeTheme] = useState<string>(() => {
+    return localStorage.getItem(IDE_THEME_STORAGE_KEY) || '';
+  });
+
+  useEffect(() => {
+    const handleThemeSync = () => {
+      setActiveIdeTheme(localStorage.getItem(IDE_THEME_STORAGE_KEY) || '');
+    };
+    window.addEventListener('local-storage-sync', handleThemeSync);
+    window.addEventListener('local-settings-changed', handleThemeSync);
+    return () => {
+      window.removeEventListener('local-storage-sync', handleThemeSync);
+      window.removeEventListener('local-settings-changed', handleThemeSync);
+    };
+  }, []);
+
+  const handleSelectIdeTheme = (themeItem: IdeTheme | null) => {
+    if (!themeItem) {
+      setActiveIdeTheme('');
+      localStorage.removeItem(IDE_THEME_STORAGE_KEY);
+      applyIdeThemeTokens(null);
+      setBgType('default');
+      localStorage.setItem('cn_custom_bg_type', 'default');
+      window.dispatchEvent(new Event('local-storage-sync'));
+      window.dispatchEvent(new Event('local-settings-changed'));
+      return;
+    }
+
+    setActiveIdeTheme(themeItem.id);
+    localStorage.setItem(IDE_THEME_STORAGE_KEY, themeItem.id);
+    applyIdeThemeTokens(themeItem);
+
+    setBgType('color');
+    setBgColor(themeItem.bg);
+    localStorage.setItem('cn_custom_bg_type', 'color');
+    localStorage.setItem('cn_custom_bg_color', themeItem.bg);
+
+    if (themeItem.mode !== theme) {
+      toggleTheme();
+    } else {
+      localStorage.setItem('cn_theme', themeItem.mode);
+    }
+
+    window.dispatchEvent(new Event('local-storage-sync'));
+    window.dispatchEvent(new Event('local-settings-changed'));
   };
 
   // Notifications state
@@ -1134,6 +1188,94 @@ const GlobalSidebar: React.FC<GlobalSidebarProps> = ({
                       />
                       <div className="w-11 h-6 bg-zinc-200 dark:bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-zinc-600 peer-checked:bg-emerald-500"></div>
                     </label>
+                  </div>
+                </div>
+
+                {/* Galeria de Temas do Antigravity IDE */}
+                <div className="space-y-4 pt-6 border-t border-zinc-200 dark:border-zinc-800">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <Sparkles size={16} className="text-indigo-500 animate-pulse" />
+                        <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Temas do Antigravity IDE</p>
+                        <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/50">
+                          {IDE_THEMES.length} temas
+                        </span>
+                      </div>
+                      <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+                        Paletas icônicas do ambiente de desenvolvimento (Tokyo Night, SynthWave '84, Abyss, Monokai, Solarized e mais).
+                      </p>
+                    </div>
+
+                    {activeIdeTheme && (
+                      <button
+                        type="button"
+                        onClick={() => handleSelectIdeTheme(null)}
+                        className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 px-3 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all self-start sm:self-auto cursor-pointer"
+                      >
+                        Restaurar Padrão
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                    {IDE_THEMES.map((item) => {
+                      const isSelected = activeIdeTheme === item.id;
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => handleSelectIdeTheme(item)}
+                          className={`group relative p-3 rounded-2xl border text-left transition-all duration-200 flex flex-col justify-between gap-3 cursor-pointer ${
+                            isSelected
+                              ? 'border-indigo-500 ring-2 ring-indigo-500/20 bg-indigo-50/40 dark:bg-indigo-950/30 shadow-md scale-[1.02]'
+                              : 'border-zinc-200 dark:border-zinc-800 bg-zinc-50/60 dark:bg-zinc-800/40 hover:border-zinc-400 dark:hover:border-zinc-700 hover:scale-[1.01]'
+                          }`}
+                        >
+                          <div>
+                            <div className="flex items-center justify-between gap-1 mb-1.5">
+                              <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-zinc-200/70 dark:bg-zinc-700/60 text-zinc-600 dark:text-zinc-300">
+                                {item.mode === 'dark' ? 'Dark' : 'Light'}
+                              </span>
+                              {isSelected && (
+                                <span className="w-4 h-4 rounded-full bg-indigo-600 text-white flex items-center justify-center">
+                                  <Check size={10} strokeWidth={3} />
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs font-bold text-zinc-900 dark:text-white line-clamp-1 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                              {item.name}
+                            </p>
+                            <p className="text-[10px] text-zinc-500 dark:text-zinc-400 line-clamp-1 mt-0.5">
+                              {item.tag}
+                            </p>
+                          </div>
+
+                          <div className="flex items-center gap-1.5 pt-2 border-t border-zinc-200/60 dark:border-zinc-700/60">
+                            <span
+                              className="w-4 h-4 rounded-full border border-black/10 dark:border-white/10 shadow-xs shrink-0"
+                              style={{ backgroundColor: item.bg }}
+                              title={`Fundo: ${item.bg}`}
+                            />
+                            <span
+                              className="w-4 h-4 rounded-full border border-black/10 dark:border-white/10 shadow-xs shrink-0"
+                              style={{ backgroundColor: item.surface }}
+                              title={`Superfície: ${item.surface}`}
+                            />
+                            <span
+                              className="w-4 h-4 rounded-full border border-black/10 dark:border-white/10 shadow-xs shrink-0"
+                              style={{ backgroundColor: item.accent }}
+                              title={`Acento: ${item.accent}`}
+                            />
+                            <span
+                              className="w-4 h-4 rounded-full border border-black/10 dark:border-white/10 shadow-xs shrink-0"
+                              style={{ backgroundColor: item.secondary }}
+                              title={`Secundário: ${item.secondary}`}
+                            />
+                          </div>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 

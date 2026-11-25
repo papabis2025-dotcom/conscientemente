@@ -32,6 +32,25 @@ export interface Concurso {
   categoryId?: string;
   imageUrl?: string; // Profile image URL or data URL
   educationLevel?: string; // Nível de escolaridade exigido
+  /**
+   * Status do concurso marcado pelo usuário: aprovado ou reprovado.
+   */
+  status?: 'approved' | 'rejected';
+  /**
+   * Posição/classificação obtida quando aprovado.
+   */
+  placement?: number;
+}
+  id: string;
+  name: string;
+  banca: string;
+  startDate: string; // ISO date string
+  targetDate?: string; // ISO date string
+  targetRole?: string; // Cargo pretendido
+  subjects: Subject[];
+  categoryId?: string;
+  imageUrl?: string; // Profile image URL or data URL
+  educationLevel?: string; // Nível de escolaridade exigido
 }
 
 export interface Subject {

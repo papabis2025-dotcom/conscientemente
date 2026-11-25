@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { AlertTriangle, Target, Edit2, Trash2, BookOpen, Image as ImageIcon, X, Plus, GraduationCap, Palette, Check } from 'lucide-react';
 import { AlertTriangle, Target, Edit2, Trash2, BookOpen, Image as ImageIcon, X, Plus, GraduationCap, Palette } from 'lucide-react';
 import { Concurso, Subject, StudySession } from '../types';
 import ColorPickerPalette from '../components/ColorPickerPalette';
@@ -143,7 +144,45 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
     setNewSubjects(newSubjects.filter((_, i) => i !== idx));
   };
 
-  const addConcurso = async () => {
+  const toggleStatus = async (id: string, newStatus: 'approved' | 'rejected') => {
+    if (isSaving) return;
+    setIsSaving(true);
+    try {
+      const updated = concursos.map(conc => {
+        if (conc.id === id) {
+          const updatedConc = { ...conc, status: newStatus } as any;
+          if (newStatus === 'rejected') {
+            delete updatedConc.placement;
+          }
+          return updatedConc;
+        }
+        return conc;
+      });
+      await onUpdateConcursos(updated);
+      showToast(`Concurso ${newStatus === 'approved' ? 'aprovado' : 'reprovado'}`, 'success');
+    } catch (e) {
+      console.error(e);
+      showToast('Erro ao atualizar status do concurso', 'error');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const updatePlacement = async (id: string, placement: number) => {
+    if (isSaving) return;
+    setIsSaving(true);
+    try {
+      const updated = concursos.map(conc => conc.id === id ? { ...conc, placement } : conc);
+      await onUpdateConcursos(updated);
+      showToast('Posição salva', 'success');
+    } catch (e) {
+      console.error(e);
+      showToast('Erro ao salvar posição', 'error');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+ {
     if (!newConcName.trim() || !banca.trim()) {
       alert('Preencha o nome e a banca do concurso.');
       return;
@@ -302,7 +341,11 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   };
 
-  return (
+              return (
+              <div
+                key={conc.id}
+                className={`bg-white dark:bg-zinc-900 rounded-[2rem] border border-zinc-200 dark:border-zinc-800 p-4 shadow-sm hover:border-blue-400 dark:hover:border-zinc-700 hover:shadow-md transition-all group relative overflow-hidden flex flex-col justify-between h-[230px] ${conc.status === 'approved' ? 'bg-green-50 dark:bg-green-900/30' : ''} ${conc.status === 'rejected' ? 'bg-rose-50 dark:bg-rose-900/30' : ''}`}
+              >
     <div className="space-y-8 animate-in fade-in duration-500">
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 px-1">
         <div>
@@ -482,7 +525,11 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
           const progress = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
           const daysActive = calculateDaysSince(conc.startDate);
 
-          return (
+                      return (
+              <div
+                key={conc.id}
+                className={`bg-white dark:bg-zinc-900 rounded-[2rem] border border-zinc-200 dark:border-zinc-800 p-4 shadow-sm hover:border-blue-400 dark:hover:border-zinc-700 hover:shadow-md transition-all group relative overflow-hidden flex flex-col justify-between h-[230px] ${conc.status === 'approved' ? 'bg-green-50 dark:bg-green-900/30' : ''} ${conc.status === 'rejected' ? 'bg-rose-50 dark:bg-rose-900/30' : ''}`}
+              >
             <div key={conc.id} className="bg-white dark:bg-zinc-900 rounded-[2rem] border border-zinc-200 dark:border-zinc-800 p-4 shadow-sm hover:border-blue-400 dark:hover:border-zinc-700 hover:shadow-md transition-all group relative overflow-hidden flex flex-col justify-between h-[230px]">
               <div className="absolute top-2.5 right-2.5 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
                 <button
@@ -498,6 +545,21 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
                   title="Excluir Concurso"
                 >
                   <Trash2 size={13} />
+                </button>
+                {/* Botões Aprovar / Reprovar */}
+                <button
+                  onClick={() => toggleStatus(conc.id, 'approved')}
+                  className="text-green-600 hover:text-green-800 transition-colors p-1.5 rounded-lg bg-green-100/80 dark:bg-green-800/20 hover:bg-green-200 dark:hover:bg-green-700/30"
+                  title="Marcar como aprovado"
+                >
+                  <Check size={13} />
+                </button>
+                <button
+                  onClick={() => toggleStatus(conc.id, 'rejected')}
+                  className="text-rose-600 hover:text-rose-800 transition-colors p-1.5 rounded-lg bg-rose-100/80 dark:bg-rose-800/20 hover:bg-rose-200 dark:hover:bg-rose-700/30"
+                  title="Marcar como reprovado"
+                >
+                  <X size={13} />
                 </button>
               </div>
 
@@ -523,7 +585,20 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
                       </span>
                     )}
                   </div>
-                  <h3 className="text-sm font-black text-zinc-800 dark:text-white leading-tight line-clamp-2" title={conc.name}>{conc.name}</h3>
+                                    <h3 className="text-sm font-black text-zinc-800 dark:text-white leading-tight line-clamp-2" title={conc.name}>{conc.name}</h3>
+                  {conc.status === 'approved' && (
+                    <div className="mt-2 flex items-center gap-1">
+                      <label className="text-[10px] font-black uppercase text-green-800">Posição:</label>
+                      <input
+                        type="number"
+                        min={1}
+                        value={conc.placement ?? ''}
+                        onChange={e => updatePlacement(conc.id, Number(e.target.value) || 0)}
+                        className="w-12 p-0.5 text-sm border rounded bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100"
+                        placeholder="--"
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
 

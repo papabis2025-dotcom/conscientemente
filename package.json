@@ -5,14 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "test": "node --test --experimental-strip-types tests/modulePin.test.ts tests/sanitizeHtml.test.ts tests/ideThemes.test.ts",
+    "typecheck": "tsc --noEmit",
     "build": "vite build",
-    "preview": "vite preview",
-    "lint": "eslint src --ext .ts,.tsx",
-    "format": "prettier --write \"src/**/*.tsx\" \"src/**/*.ts\"",
-    "test": "vitest run"
+    "preview": "vite preview"
   },
   "dependencies": {
-    "@google/genai": "^2.8.0",
     "@supabase/supabase-js": "^2.90.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.562.0",
@@ -20,9 +18,27 @@
     "react-dom": "^19.2.3",
     "recharts": "^2.12.7",
     "tailwind-merge": "^3.4.0",
-    "xlsx": "^0.18.5"
+    "write-excel-file": "^4.1.1"
   },
-  "devDependencies": {
+    "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.18",
+    "@types/node": "^22.14.0",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.0.0",
+    "autoprefixer": "^10.4.23",
+    "eslint": "^8.57.0",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "linkedom": "^0.18.13",
+    "postcss": "^8.5.6",
+    "prettier": "^3.10.1",
+    "sharp": "^0.35.3",
+    "tailwindcss": "^4.1.18",
+    "typescript": "~5.8.2",
+    "vite": "^6.2.0",
+    "vitest": "^5.1.1"
+  }
     "@tailwindcss/postcss": "^4.1.18",
     "@testing-library/jest-dom": "^8.0.0",
     "@testing-library/react": "^16.3.3",
@@ -34,15 +50,11 @@
     "@typescript-eslint/parser": "^8.73.0",
     "@vitejs/plugin-react": "^5.0.0",
     "autoprefixer": "^10.4.23",
-    "eslint": "^8.57.0",
-    "eslint-plugin-react": "^7.37.5",
-    "eslint-plugin-react-hooks": "^7.1.1",
+    "linkedom": "^0.18.13",
     "postcss": "^8.5.6",
-    "prettier": "^3.10.1",
     "sharp": "^0.35.3",
     "tailwindcss": "^4.1.18",
     "typescript": "~5.8.2",
-    "vite": "^6.2.0",
-    "vitest": "^5.1.1"
+    "vite": "^6.2.0"
   }
 }

@@ -923,7 +923,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                     } catch (e) {}
                 }
 
-                // Obtém mapa de escolaridades atualizado (nuvem + local)
+                // Obtém mapa de escolaridades e resultados atualizado (nuvem + local)
                 let cloudEduMap: Record<string, string> = {};
                 try {
                     const rawCloud = userSettings?.gp_concurso_edulevels_map;
@@ -937,13 +937,29 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                     }
                 } catch (e) {}
 
+                let cloudResultsMap: Record<string, { status?: 'approved' | 'rejected'; placement?: number }> = {};
+                try {
+                    const rawCloud = userSettings?.gp_concurso_results_map;
+                    if (rawCloud && typeof rawCloud === 'object') {
+                        cloudResultsMap = rawCloud;
+                    } else if (typeof rawCloud === 'string') {
+                        cloudResultsMap = JSON.parse(rawCloud);
+                    } else {
+                        const localMapRaw = localStorage.getItem('gp_concurso_results_map');
+                        if (localMapRaw) cloudResultsMap = JSON.parse(localMapRaw);
+                    }
+                } catch (e) {}
+
                 finalConcursos = mergedConcursos.map(c => {
                     const localImg = localStorage.getItem(`gp_concurso_img_${c.id}`);
                     const localEdu = localStorage.getItem(`gp_concurso_edulevel_${c.id}`) || cloudEduMap[c.id];
+                    const resInfo = cloudResultsMap[c.id];
                     return {
                         ...c,
                         imageUrl: localImg || c.imageUrl,
-                        educationLevel: c.educationLevel || localEdu || undefined
+                        educationLevel: c.educationLevel || localEdu || undefined,
+                        status: c.status || resInfo?.status || undefined,
+                        placement: c.placement !== undefined ? c.placement : (resInfo?.placement !== undefined ? resInfo.placement : undefined)
                     };
                 });
                 setConcursos(finalConcursos);
@@ -1719,6 +1735,22 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                 }
             }
 
+            // Sincroniza mapa de resultados (status e placement)
+            try {
+                let resultsMap: Record<string, { status?: 'approved' | 'rejected'; placement?: number }> = {};
+                const localMapRaw = localStorage.getItem('gp_concurso_results_map');
+                if (localMapRaw) resultsMap = JSON.parse(localMapRaw);
+                newConcursos.forEach(nc => {
+                    if (nc.status) {
+                        resultsMap[nc.id] = { status: nc.status, placement: nc.placement };
+                    } else {
+                        delete resultsMap[nc.id];
+                    }
+                });
+                localStorage.setItem('gp_concurso_results_map', JSON.stringify(resultsMap));
+                api.settings.update({ gp_concurso_results_map: resultsMap }).catch(err => console.error('Error syncing results map:', err));
+            } catch (e) {}
+
             // Find changed/new concursos by comparing with previous state
             for (const newConc of newConcursos) {
                 // Sync image to localStorage
@@ -1734,7 +1766,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
 
                 const oldConc = concursos.find(c => c.id === newConc.id);
 
-                // Compara TODOS os campos: nome, banca, datas, escolaridade, imagem, categoria e disciplinas (metas, pesos, cores)
+                // Compara TODOS os campos: nome, banca, datas, escolaridade, imagem, categoria, status, colocação e disciplinas
                 const isChanged = !oldConc ||
                     oldConc.name !== newConc.name ||
                     oldConc.banca !== newConc.banca ||
@@ -1743,6 +1775,8 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                     oldConc.educationLevel !== newConc.educationLevel ||
                     oldConc.imageUrl !== newConc.imageUrl ||
                     oldConc.categoryId !== newConc.categoryId ||
+                    oldConc.status !== newConc.status ||
+                    oldConc.placement !== newConc.placement ||
                     JSON.stringify(oldConc.subjects || []) !== JSON.stringify(newConc.subjects || []);
 
                 if (isChanged) {

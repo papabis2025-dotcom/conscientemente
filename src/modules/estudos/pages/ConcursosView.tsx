@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { AlertTriangle, Edit2, Trash2, BookOpen, Image as ImageIcon, X, GraduationCap, Palette, Check } from 'lucide-react';
+import { AlertTriangle, Edit2, Trash2, BookOpen, Image as ImageIcon, X, GraduationCap, Palette, Check, Trophy, XCircle, CheckCircle2 } from 'lucide-react';
 import { Concurso, Subject, StudySession } from '../types';
 import ColorPickerPalette from '../components/ColorPickerPalette';
 import { getColorHex } from '../utils/colors';
@@ -143,22 +143,30 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
     setNewSubjects(newSubjects.filter((_, i) => i !== idx));
   };
 
-  const toggleStatus = async (id: string, newStatus: 'approved' | 'rejected') => {
+  const toggleStatus = async (id: string, targetStatus?: 'approved' | 'rejected') => {
     if (isSaving) return;
     setIsSaving(true);
     try {
       const updated = concursos.map(conc => {
         if (conc.id === id) {
-          const updatedConc = { ...conc, status: newStatus } as any;
-          if (newStatus === 'rejected') {
-            delete updatedConc.placement;
-          }
-          return updatedConc;
+          const nextStatus = conc.status === targetStatus ? undefined : targetStatus;
+          return {
+            ...conc,
+            status: nextStatus,
+            placement: nextStatus === 'approved' ? conc.placement : undefined
+          };
         }
         return conc;
       });
       await onUpdateConcursos(updated);
-      showToast(`Concurso ${newStatus === 'approved' ? 'aprovado' : 'reprovado'}`, 'success');
+      const concObj = updated.find(c => c.id === id);
+      if (concObj?.status === 'approved') {
+        showToast('Concurso marcado como Aprovado! 🎉', 'success');
+      } else if (concObj?.status === 'rejected') {
+        showToast('Concurso marcado como Reprovado.', 'info');
+      } else {
+        showToast('Status do concurso redefinido para Em Andamento.', 'info');
+      }
     } catch (e) {
       console.error(e);
       showToast('Erro ao atualizar status do concurso', 'error');
@@ -167,16 +175,18 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
     }
   };
 
-  const updatePlacement = async (id: string, placement: number) => {
+  const updatePlacement = async (id: string, placement?: number) => {
     if (isSaving) return;
+    const current = concursos.find(c => c.id === id);
+    if (current?.placement === placement) return;
     setIsSaving(true);
     try {
       const updated = concursos.map(conc => conc.id === id ? { ...conc, placement } : conc);
       await onUpdateConcursos(updated);
-      showToast('Posição salva', 'success');
+      showToast('Colocação atualizada!', 'success');
     } catch (e) {
       console.error(e);
-      showToast('Erro ao salvar posição', 'error');
+      showToast('Erro ao salvar colocação', 'error');
     } finally {
       setIsSaving(false);
     }
@@ -239,7 +249,9 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
       educationLevel: conc.educationLevel || '',
       startDate: conc.startDate.split('T')[0],
       targetDate: conc.targetDate ? conc.targetDate.split('T')[0] : '',
-      imageUrl: conc.imageUrl || ''
+      imageUrl: conc.imageUrl || '',
+      status: conc.status,
+      placement: conc.placement
     });
     setEditSubjects(JSON.parse(JSON.stringify(conc.subjects || [])));
     setModalNewSubName('');
@@ -317,6 +329,8 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
             startDate: editFormData.startDate ? new Date(`${editFormData.startDate}T12:00:00`).toISOString() : c.startDate,
             targetDate: editFormData.targetDate ? new Date(`${editFormData.targetDate}T12:00:00`).toISOString() : undefined,
             imageUrl: editFormData.imageUrl !== undefined ? editFormData.imageUrl : c.imageUrl,
+            status: editFormData.status,
+            placement: editFormData.status === 'approved' ? (editFormData.placement ? Number(editFormData.placement) : undefined) : undefined,
             subjects: editSubjects
           };
         }
@@ -524,37 +538,24 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
           return (
             <div
               key={conc.id}
-              className={`rounded-[2rem] border p-4 shadow-sm hover:border-blue-400 dark:hover:border-zinc-700 hover:shadow-md transition-all group relative overflow-hidden flex flex-col justify-between h-[230px] ${conc.status === 'approved' ? 'bg-green-50 dark:bg-green-900/30 border-green-300 dark:border-green-700' : conc.status === 'rejected' ? 'bg-rose-50 dark:bg-rose-900/30 border-rose-300 dark:border-rose-700' : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800'}`}
+              className={`rounded-[2rem] border p-4 shadow-sm hover:border-blue-400 dark:hover:border-zinc-700 hover:shadow-md transition-all group relative overflow-hidden flex flex-col justify-between min-h-[300px] h-auto ${conc.status === 'approved' ? 'bg-emerald-50/30 dark:bg-emerald-950/20 border-emerald-300 dark:border-emerald-700' : conc.status === 'rejected' ? 'bg-rose-50/30 dark:bg-rose-950/20 border-rose-300 dark:border-rose-700' : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800'}`}
             >
-              <div className="absolute top-2.5 right-2.5 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+              <div className="absolute top-2.5 right-2.5 flex gap-1 z-10">
                 <button
+                  type="button"
                   onClick={() => openEditModal(conc)}
-                  className="text-zinc-400 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-white transition-colors p-1.5 rounded-lg bg-zinc-100/80 dark:bg-zinc-800/80 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                  className="text-zinc-400 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-white transition-colors p-1.5 rounded-lg bg-zinc-100/90 dark:bg-zinc-800/90 hover:bg-zinc-200 dark:hover:bg-zinc-700"
                   title="Editar Concurso e Disciplinas (Peso e Metas)"
                 >
                   <Edit2 size={13} />
                 </button>
                 <button
+                  type="button"
                   onClick={() => setDeleteConfirmation({ isOpen: true, id: conc.id, name: conc.name })}
-                  className="text-zinc-400 hover:text-rose-500 transition-colors p-1.5 rounded-lg bg-zinc-100/80 dark:bg-zinc-800/80 hover:bg-rose-50 dark:hover:bg-rose-950/40"
+                  className="text-zinc-400 hover:text-rose-500 transition-colors p-1.5 rounded-lg bg-zinc-100/90 dark:bg-zinc-800/90 hover:bg-rose-50 dark:hover:bg-rose-950/40"
                   title="Excluir Concurso"
                 >
                   <Trash2 size={13} />
-                </button>
-                {/* Botões Aprovar / Reprovar */}
-                <button
-                  onClick={() => toggleStatus(conc.id, 'approved')}
-                  className="text-green-600 hover:text-green-800 transition-colors p-1.5 rounded-lg bg-green-100/80 dark:bg-green-800/20 hover:bg-green-200 dark:hover:bg-green-700/30"
-                  title="Marcar como aprovado"
-                >
-                  <Check size={13} />
-                </button>
-                <button
-                  onClick={() => toggleStatus(conc.id, 'rejected')}
-                  className="text-rose-600 hover:text-rose-800 transition-colors p-1.5 rounded-lg bg-rose-100/80 dark:bg-rose-800/20 hover:bg-rose-200 dark:hover:bg-rose-700/30"
-                  title="Marcar como reprovado"
-                >
-                  <X size={13} />
                 </button>
               </div>
 
@@ -580,24 +581,87 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
                       </span>
                     )}
                   </div>
-                                    <h3 className="text-sm font-black text-zinc-800 dark:text-white leading-tight line-clamp-2" title={conc.name}>{conc.name}</h3>
-                  {conc.status === 'approved' && (
-                    <div className="mt-2 flex items-center gap-1">
-                      <label className="text-[10px] font-black uppercase text-green-800">Posição:</label>
-                      <input
-                        type="number"
-                        min={1}
-                        value={conc.placement ?? ''}
-                        onChange={e => updatePlacement(conc.id, Number(e.target.value) || 0)}
-                        className="w-12 p-0.5 text-sm border rounded bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100"
-                        placeholder="--"
-                      />
-                    </div>
-                  )}
+                  <h3 className="text-sm font-black text-zinc-800 dark:text-white leading-tight line-clamp-2" title={conc.name}>{conc.name}</h3>
                 </div>
               </div>
 
-              <div className="space-y-1.5">
+              {/* SEÇÃO DE RESULTADO / CONCLUSÃO (APROVADO / REPROVADO / COLOCAÇÃO) */}
+              {conc.status === 'approved' ? (
+                <div className="my-2 p-2.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-700/60 flex flex-col gap-1.5 shadow-xs animate-in fade-in">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
+                      <Trophy size={13} className="text-emerald-600 dark:text-emerald-400" /> Concluído: Aprovado
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => toggleStatus(conc.id, 'approved')}
+                      className="text-[9px] font-bold text-emerald-700 hover:text-emerald-900 dark:text-emerald-300 underline"
+                      title="Desmarcar aprovação"
+                    >
+                      Desmarcar
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-2 bg-white dark:bg-zinc-900/90 px-2.5 py-1.5 rounded-xl border border-emerald-200 dark:border-emerald-800/60">
+                    <span className="text-[10px] font-black uppercase text-emerald-800 dark:text-emerald-300 shrink-0">Colocação:</span>
+                    <input
+                      key={conc.placement ?? 'empty'}
+                      type="number"
+                      min={1}
+                      defaultValue={conc.placement ?? ''}
+                      placeholder="Ex: 3"
+                      onBlur={(e) => {
+                        const val = parseInt(e.target.value, 10);
+                        updatePlacement(conc.id, isNaN(val) ? undefined : val);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          (e.target as HTMLInputElement).blur();
+                        }
+                      }}
+                      className="w-16 px-1 text-xs font-black text-center bg-transparent border-b border-emerald-400 focus:outline-none text-zinc-900 dark:text-white"
+                    />
+                    <span className="text-[10px] font-bold text-zinc-400">º lugar</span>
+                  </div>
+                </div>
+              ) : conc.status === 'rejected' ? (
+                <div className="my-2 p-2.5 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-700/60 flex items-center justify-between shadow-xs animate-in fade-in">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-rose-800 dark:text-rose-300 flex items-center gap-1.5">
+                    <XCircle size={13} className="text-rose-600 dark:text-rose-400" /> Concluído: Reprovado
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => toggleStatus(conc.id, 'rejected')}
+                    className="text-[9px] font-bold text-rose-700 hover:text-rose-900 dark:text-rose-300 underline"
+                    title="Desmarcar reprovação"
+                  >
+                    Desmarcar
+                  </button>
+                </div>
+              ) : (
+                <div className="my-2 pt-1 border-t border-zinc-100 dark:border-zinc-800/80 flex items-center justify-between gap-1.5">
+                  <span className="text-[9px] font-black uppercase tracking-wider text-zinc-400">Resultado:</span>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => toggleStatus(conc.id, 'approved')}
+                      className="px-2.5 py-1 rounded-xl text-[9px] font-black uppercase tracking-wider bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60 transition-all flex items-center gap-1 active:scale-95"
+                      title="Marcar como Concluído e Aprovado"
+                    >
+                      <Check size={11} /> Aprovado
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => toggleStatus(conc.id, 'rejected')}
+                      className="px-2.5 py-1 rounded-xl text-[9px] font-black uppercase tracking-wider bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-800/60 transition-all flex items-center gap-1 active:scale-95"
+                      title="Marcar como Concluído e Reprovado"
+                    >
+                      <X size={11} /> Reprovado
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-1.5 my-1">
                 <div className="flex justify-between text-[10px] font-black uppercase text-zinc-400 tracking-wider">
                   <span>Progresso do Edital</span>
                   <span className="text-zinc-900 dark:text-zinc-100 font-bold">{progress}%</span>
@@ -610,14 +674,15 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
                 </div>
               </div>
 
-              <div className="flex justify-between items-center text-[10px] font-bold text-zinc-500 dark:text-zinc-400 px-1">
+              <div className="flex justify-between items-center text-[10px] font-bold text-zinc-500 dark:text-zinc-400 px-1 mb-2">
                 <span>{conc.subjects.length} disciplinas</span>
                 <span>Início: {new Date(conc.startDate).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })}</span>
               </div>
 
               <button
+                type="button"
                 onClick={() => onSelectConcurso(conc)}
-                className="w-full bg-zinc-50 dark:bg-zinc-800 hover:bg-zinc-950 dark:hover:bg-zinc-100 hover:text-white dark:hover:text-zinc-950 text-zinc-700 dark:text-zinc-300 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border border-zinc-200 dark:border-zinc-700 active:scale-[0.98] shadow-xs"
+                className="w-full bg-zinc-50 dark:bg-zinc-800 hover:bg-zinc-950 dark:hover:bg-zinc-100 hover:text-white dark:hover:text-zinc-950 text-zinc-700 dark:text-zinc-300 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border border-zinc-200 dark:border-zinc-700 active:scale-[0.98] shadow-xs"
               >
                 Focar neste concurso →
               </button>
@@ -730,6 +795,48 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
                       >
                         <X size={8} />
                       </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Status e Resultado do Concurso */}
+                <div className="md:col-span-4 p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 space-y-3">
+                  <span className="text-[10px] font-black uppercase text-zinc-500 tracking-wider block">Status do Concurso (Resultado)</span>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setEditFormData({ ...editFormData, status: undefined, placement: undefined })}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${!editFormData.status ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-sm' : 'bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700'}`}
+                    >
+                      Em Andamento
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditFormData({ ...editFormData, status: 'approved' })}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all ${editFormData.status === 'approved' ? 'bg-emerald-600 text-white shadow-sm' : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800'}`}
+                    >
+                      <Trophy size={13} /> Aprovado
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditFormData({ ...editFormData, status: 'rejected', placement: undefined })}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all ${editFormData.status === 'rejected' ? 'bg-rose-600 text-white shadow-sm' : 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-800'}`}
+                    >
+                      <XCircle size={13} /> Reprovado
+                    </button>
+                  </div>
+                  {editFormData.status === 'approved' && (
+                    <div className="flex items-center gap-2 pt-1 animate-in fade-in">
+                      <label className="text-[10px] font-black uppercase text-emerald-700 dark:text-emerald-400">Colocação / Posição:</label>
+                      <input
+                        type="number"
+                        min={1}
+                        placeholder="Ex: 3"
+                        value={editFormData.placement ?? ''}
+                        onChange={(e) => setEditFormData({ ...editFormData, placement: e.target.value ? parseInt(e.target.value, 10) : undefined })}
+                        className="w-24 px-3 py-1 bg-white dark:bg-zinc-900 border border-emerald-300 dark:border-emerald-700 rounded-xl text-xs font-bold text-zinc-800 dark:text-white"
+                      />
+                      <span className="text-xs font-bold text-zinc-400">º lugar</span>
                     </div>
                   )}
                 </div>

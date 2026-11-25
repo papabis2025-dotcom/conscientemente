@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { AlertTriangle, Target, Edit2, Trash2, BookOpen, Image as ImageIcon, X, Plus, GraduationCap, Palette, Check } from 'lucide-react';
-import { AlertTriangle, Target, Edit2, Trash2, BookOpen, Image as ImageIcon, X, Plus, GraduationCap, Palette } from 'lucide-react';
+import { AlertTriangle, Edit2, Trash2, BookOpen, Image as ImageIcon, X, GraduationCap, Palette, Check } from 'lucide-react';
 import { Concurso, Subject, StudySession } from '../types';
 import ColorPickerPalette from '../components/ColorPickerPalette';
 import { getColorHex } from '../utils/colors';
@@ -182,7 +181,8 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
       setIsSaving(false);
     }
   };
- {
+ 
+  const addConcurso = async () => {
     if (!newConcName.trim() || !banca.trim()) {
       alert('Preencha o nome e a banca do concurso.');
       return;
@@ -341,11 +341,7 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   };
 
-              return (
-              <div
-                key={conc.id}
-                className={`bg-white dark:bg-zinc-900 rounded-[2rem] border border-zinc-200 dark:border-zinc-800 p-4 shadow-sm hover:border-blue-400 dark:hover:border-zinc-700 hover:shadow-md transition-all group relative overflow-hidden flex flex-col justify-between h-[230px] ${conc.status === 'approved' ? 'bg-green-50 dark:bg-green-900/30' : ''} ${conc.status === 'rejected' ? 'bg-rose-50 dark:bg-rose-900/30' : ''}`}
-              >
+  return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 px-1">
         <div>
@@ -525,12 +521,11 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
           const progress = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
           const daysActive = calculateDaysSince(conc.startDate);
 
-                      return (
-              <div
-                key={conc.id}
-                className={`bg-white dark:bg-zinc-900 rounded-[2rem] border border-zinc-200 dark:border-zinc-800 p-4 shadow-sm hover:border-blue-400 dark:hover:border-zinc-700 hover:shadow-md transition-all group relative overflow-hidden flex flex-col justify-between h-[230px] ${conc.status === 'approved' ? 'bg-green-50 dark:bg-green-900/30' : ''} ${conc.status === 'rejected' ? 'bg-rose-50 dark:bg-rose-900/30' : ''}`}
-              >
-            <div key={conc.id} className="bg-white dark:bg-zinc-900 rounded-[2rem] border border-zinc-200 dark:border-zinc-800 p-4 shadow-sm hover:border-blue-400 dark:hover:border-zinc-700 hover:shadow-md transition-all group relative overflow-hidden flex flex-col justify-between h-[230px]">
+          return (
+            <div
+              key={conc.id}
+              className={`rounded-[2rem] border p-4 shadow-sm hover:border-blue-400 dark:hover:border-zinc-700 hover:shadow-md transition-all group relative overflow-hidden flex flex-col justify-between h-[230px] ${conc.status === 'approved' ? 'bg-green-50 dark:bg-green-900/30 border-green-300 dark:border-green-700' : conc.status === 'rejected' ? 'bg-rose-50 dark:bg-rose-900/30 border-rose-300 dark:border-rose-700' : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800'}`}
+            >
               <div className="absolute top-2.5 right-2.5 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
                 <button
                   onClick={() => openEditModal(conc)}

@@ -41,17 +41,6 @@ export interface Concurso {
    */
   placement?: number;
 }
-  id: string;
-  name: string;
-  banca: string;
-  startDate: string; // ISO date string
-  targetDate?: string; // ISO date string
-  targetRole?: string; // Cargo pretendido
-  subjects: Subject[];
-  categoryId?: string;
-  imageUrl?: string; // Profile image URL or data URL
-  educationLevel?: string; // Nível de escolaridade exigido
-}
 
 export interface Subject {
   id: string;

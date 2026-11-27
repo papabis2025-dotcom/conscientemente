@@ -3,6 +3,7 @@ import { Subject, StudySession, Concurso, ScheduledStudy, DailyGoal, LogEntry, U
 import { supabase } from '../services/supabase';
 import { api } from '../services/api';
 import { createSaveQueue, isPendingGeneratedStudy } from '../utils/persistence';
+import { calculatePhaseWeights } from '../utils/phaseWeights';
 
 const getDeterministicSessionId = (simId: string, subjectId: string): string => {
     if (simId.length < 36 || subjectId.length < 36) {
@@ -54,6 +55,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
 
     const [concursos, setConcursos] = useState<Concurso[]>([]);
     const concursoWrites = useRef(createSaveQueue());
+    const phaseWritesPending = useRef(new Set<string>());
     const pendingConcursos = useRef(0);
     const concursoRevision = useRef(0);
     const scheduleRevision = useRef(0);
@@ -809,11 +811,6 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
 
             // Apply cloud user preferences before processing schedule and planned reviews
             if (userSettings) {
-                if (userSettings.selectedConcursoId && userSettings.selectedConcursoId !== selectedConcursoId) {
-                    setSelectedConcursoIdState(userSettings.selectedConcursoId);
-                    localStorage.setItem('cp_selected_concurso_id', userSettings.selectedConcursoId);
-                }
-                
                 // Sync customReviewDays: se vier da nuvem, adota na íntegra localmente
                 if (userSettings.customReviewDays && Array.isArray(userSettings.customReviewDays) && userSettings.customReviewDays.length > 0) {
                     const cloudStr = JSON.stringify(userSettings.customReviewDays);
@@ -921,20 +918,10 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
 
             let finalConcursos: Concurso[] = concursosData || [];
             if (concursosData && pendingConcursos.current === 0 && concursoVersion === concursoRevision.current) {
-                let mergedConcursos = [...concursosData];
-                const dbIds = new Set(concursosData.map(c => c.id));
-                const savedLocalConcursosRaw = localStorage.getItem('cp_concursos_backup');
-                if (savedLocalConcursosRaw) {
-                    try {
-                        const localConcursos: Concurso[] = JSON.parse(savedLocalConcursosRaw);
-                        localConcursos.forEach(lc => {
-                            if (!dbIds.has(lc.id)) {
-                                mergedConcursos.push(lc);
-                                api.concursos.upsert(lc).catch(err => console.error('Error auto-pushing local concurso to cloud:', err));
-                            }
-                        });
-                    } catch (e) {}
-                }
+                const savedSelection = userSettings?.selectedConcursoId || localStorage.getItem('cp_selected_concurso_id');
+                const nextSelection = concursosData.some(c => c.id === savedSelection) ? savedSelection : 'all';
+                setSelectedConcursoIdState(nextSelection);
+                localStorage.setItem('cp_selected_concurso_id', nextSelection);
 
                 // Obtém mapa de escolaridades e resultados atualizado (nuvem + local)
                 let cloudEduMap: Record<string, string> = {};
@@ -963,7 +950,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                     }
                 } catch (e) {}
 
-                finalConcursos = mergedConcursos.map(c => {
+                finalConcursos = concursosData.map(c => {
                     const localImg = localStorage.getItem(`gp_concurso_img_${c.id}`);
                     const localEdu = localStorage.getItem(`gp_concurso_edulevel_${c.id}`) || cloudEduMap[c.id];
                     const resInfo = cloudResultsMap[c.id];
@@ -976,7 +963,6 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                     };
                 });
                 setConcursos(finalConcursos);
-                localStorage.setItem('cp_concursos_backup', JSON.stringify(finalConcursos));
             }
             let finalSessions = sessionsData || [];
             let finalScheduleRaw = scheduleData || [];
@@ -1667,8 +1653,39 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
 
     const updateConcursos = async (newConcursos: Concurso[]) => {
         setSaveError(null);
-        setConcursos(newConcursos);
-        localStorage.setItem('cp_concursos_backup', JSON.stringify(newConcursos));
+        const oldById = new Map(concursos.map(course => [course.id, course]));
+        const phaseChanges = new Set<string>();
+        for (const course of newConcursos) {
+            const old = oldById.get(course.id);
+            if (course !== old && phaseWritesPending.current.has(course.id)) {
+                const message = 'Aguarde o salvamento deste curso antes de editá-lo novamente.';
+                setSaveError(message);
+                throw new Error(message);
+            }
+            if (!course.phaseWeighting && !old?.phaseWeighting) continue;
+            if (JSON.stringify(old?.phaseWeighting) === JSON.stringify(course.phaseWeighting) &&
+                JSON.stringify(old?.subjects) === JSON.stringify(course.subjects)) continue;
+            const { errors } = calculatePhaseWeights(course.phaseWeighting, course.subjects || []);
+            if (errors.length > 0) {
+                const message = `${course.name}: ${errors.join(' ')} Ajuste a seção Fases e pesos em Editais.`;
+                setSaveError(message);
+                throw new Error(message);
+            }
+            phaseChanges.add(course.id);
+        }
+        const newIds = new Set(newConcursos.map(c => c.id));
+        const deletedIds = concursos.filter(c => !newIds.has(c.id)).map(c => c.id);
+        if (deletedIds.some(id => phaseWritesPending.current.has(id))) {
+            throw new Error('Aguarde o salvamento deste curso antes de excluí-lo.');
+        }
+        phaseChanges.forEach(id => phaseWritesPending.current.add(id));
+        if (deletedIds.length === 0) {
+            setConcursos(newConcursos.flatMap(course => {
+                if (!phaseChanges.has(course.id)) return [course];
+                const old = oldById.get(course.id);
+                return old ? [old] : [];
+            }));
+        }
         
         const revision = ++concursoRevision.current;
         pendingConcursos.current++;
@@ -1676,6 +1693,15 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         return concursoWrites.current(async () => {
             const failures: unknown[] = [];
             try {
+                for (const id of deletedIds) {
+                    await api.concursos.delete(id);
+                    setConcursos(current => current.filter(c => c.id !== id));
+                    if (localStorage.getItem('cp_selected_concurso_id') === id) {
+                        setSelectedConcursoIdState('all');
+                        localStorage.setItem('cp_selected_concurso_id', 'all');
+                    }
+                }
+
                 let eduMapUpdated = false;
                 let eduLevelsMap: Record<string, string> = {};
                 try {
@@ -1702,15 +1728,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                     api.settings.update({ gp_concurso_edulevels_map: eduLevelsMap }).catch(() => {});
                 }
 
-                // Find deleted concursos
-                const deletedIds = concursos.filter(c => !newConcursos.find(nc => nc.id === c.id)).map(c => c.id);
                 for (const id of deletedIds) {
-                    try {
-                        await api.concursos.delete(id);
-                    } catch (e) {
-                        failures.push(e);
-                        console.error('Error deleting concurso from cloud:', e);
-                    }
                     localStorage.removeItem(`gp_concurso_img_${id}`);
                     localStorage.removeItem(`gp_concurso_edulevel_${id}`);
                     if (eduLevelsMap[id]) {
@@ -1729,18 +1747,19 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                 const newSubjects = newConcursos.flatMap(c => c.subjects || []);
                 const removedSubjectIds = oldSubjects.filter(os => !newSubjects.find(ns => ns.id === os.id)).map(s => s.id);
 
-                if (removedSubjectIds.length > 0) {
+                const removeSubjectRecords = async (ids: string[]) => {
+                    if (!ids.length) return;
                     // Update local state
-                    setSessions(prev => prev.filter(s => !removedSubjectIds.includes(s.subjectId)));
-                    setScheduledStudies(prev => prev.filter(s => !removedSubjectIds.includes(s.subjectId)));
+                    setSessions(prev => prev.filter(s => !ids.includes(s.subjectId)));
+                    setScheduledStudies(prev => prev.filter(s => !ids.includes(s.subjectId)));
                     // Simulados: Remove result rows for this subject
                     setSimulados(prev => prev.map(sim => ({
                         ...sim,
-                        results: sim.results.filter(r => !removedSubjectIds.includes(r.subjectId))
+                        results: sim.results.filter(r => !ids.includes(r.subjectId))
                     })));
 
                     // Update DB
-                    for (const subId of removedSubjectIds) {
+                    for (const subId of ids) {
                         try {
                             await api.sessions.deleteBySubject(subId);
                             await api.schedule.deleteBySubject(subId);
@@ -1749,13 +1768,16 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                             console.error('Error removing sessions/schedule for deleted subject:', e);
                         }
                     }
-                }
+                };
+                const deferredRemovedIds = new Set([...phaseChanges].flatMap(id => (oldById.get(id)?.subjects || []).map(s => s.id)));
+                await removeSubjectRecords(removedSubjectIds.filter(id => !deferredRemovedIds.has(id)));
 
                 // Sincroniza mapa de resultados (status e placement)
                 try {
                     let resultsMap: Record<string, { status?: 'approved' | 'rejected'; placement?: number }> = {};
                     const localMapRaw = localStorage.getItem('gp_concurso_results_map');
                     if (localMapRaw) resultsMap = JSON.parse(localMapRaw);
+                    deletedIds.forEach(id => delete resultsMap[id]);
                     newConcursos.forEach(nc => {
                         if (nc.status) {
                             resultsMap[nc.id] = { status: nc.status, placement: nc.placement };
@@ -1793,13 +1815,21 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                         oldConc.categoryId !== newConc.categoryId ||
                         oldConc.status !== newConc.status ||
                         oldConc.placement !== newConc.placement ||
+                        phaseChanges.has(newConc.id) ||
                         JSON.stringify(oldConc.subjects || []) !== JSON.stringify(newConc.subjects || []);
 
                     if (isChanged) {
                         try {
                             const upserted = await api.concursos.upsert(newConc);
                             if (!upserted) throw new Error('Salvamento do edital não confirmado.');
-                            if (upserted && upserted.id !== newConc.id) {
+                            if (phaseChanges.has(newConc.id)) {
+                                const confirmed = { ...newConc, id: upserted.id };
+                                setConcursos(current => current.some(c => c.id === newConc.id)
+                                    ? current.map(c => c.id === newConc.id ? confirmed : c)
+                                    : [...current, confirmed]);
+                                await removeSubjectRecords(removedSubjectIds.filter(id => oldConc?.subjects?.some(s => s.id === id)));
+                            }
+                            if (upserted.id !== newConc.id) {
                                 // Update local ID if it changed (e.g. from ai-... to uuid)
                                 if (newConc.imageUrl) {
                                     localStorage.setItem(`gp_concurso_img_${upserted.id}`, newConc.imageUrl);
@@ -1817,15 +1847,20 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                         }
                     }
                 }
-                if (failures.length > 0) throw failures[0];
+                if (failures.length > 0) {
+                    if (deletedIds.length === 0) throw failures[0];
+                    setSaveError('Edital excluído. Alguns registros associados ainda não foram removidos da nuvem.');
+                }
                 if (revision !== concursoRevision.current) return;
                 setLastSaved(new Date().toLocaleTimeString());
                 window.dispatchEvent(new Event('local-settings-changed'));
             } catch (e) {
                 console.error('Error updating concursos:', e);
-                setSaveError('Erro ao atualizar concursos.');
+                setSaveError(deletedIds.length > 0 ? 'Não foi possível excluir o edital na nuvem. Tente novamente.' :
+                    (e instanceof Error ? e.message : 'Erro ao atualizar concursos.'));
                 throw e;
             } finally {
+                phaseChanges.forEach(id => phaseWritesPending.current.delete(id));
                 if (--pendingConcursos.current === 0) {
                     concursoRevision.current++;
                     if (scheduleWrites.current === 0) setIsSaving(false);

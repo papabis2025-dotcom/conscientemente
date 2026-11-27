@@ -17,7 +17,6 @@ import {
   Target,
   CheckCircle,
   AlertTriangle,
-  Trophy,
   Bot,
   GripVertical,
   Lock,
@@ -27,13 +26,14 @@ import {
   Layers
 } from 'lucide-react';
 import { exportToXlsx, exportToCsv } from '../utils/exportUtils';
+import { getSubjectWeight, type CalculatedWeight } from '../utils/phaseWeights';
 
 interface SubjectsViewProps {
+  phaseWeights: ReadonlyMap<string, CalculatedWeight>;
   subjects: Subject[];
   sessions: StudySession[];
   onUpdateSubjects: (subjects: Subject[]) => void;
   selectedConcursoId?: string | 'all';
-  onSelectConcursoId?: (id: string | 'all') => void;
   scheduledStudies: any[];
   concursos?: Concurso[];
   onToggleScheduledStudyStatus?: (idOrIds: string | string[]) => void;
@@ -59,7 +59,7 @@ const isTopicCompletedHelper = (subjectId: string, topicId: string, isCompletedF
   return reviews.every(r => r.status === 'realizado');
 };
 
-const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdateSubjects, selectedConcursoId, onSelectConcursoId, concursos, scheduledStudies, onToggleScheduledStudyStatus, onNavigateToFlashcards }) => {
+const SubjectsView: React.FC<SubjectsViewProps> = ({ phaseWeights, subjects, sessions, onUpdateSubjects, selectedConcursoId, concursos, scheduledStudies, onToggleScheduledStudyStatus, onNavigateToFlashcards }) => {
   const [newSubjectName, setNewSubjectName] = useState('');
   const [selectedColor, setSelectedColor] = useState(COLORS[0]);
   const [editingSubjectId, setEditingSubjectId] = useState<string | null>(null);
@@ -531,8 +531,8 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
       return sortOrder === 'desc' ? goalB - goalA : goalA - goalB;
     }
     if (sortBy === 'weight') {
-      const wA = a.weight || 0;
-      const wB = b.weight || 0;
+      const wA = getSubjectWeight(a, phaseWeights);
+      const wB = getSubjectWeight(b, phaseWeights);
       return sortOrder === 'desc' ? wB - wA : wA - wB;
     }
     const statsA = getSubjectStats(a.id);
@@ -768,7 +768,8 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
   const handleExportSpreadsheet = () => {
     const headers = [
       'Disciplina',
-      'Peso Disciplina',
+      'Peso relativo da disciplina',
+      'Peso por fases (%)',
       'Meta Questões',
       'Assunto / Tópico',
       'Prioridade Tópico',
@@ -794,7 +795,8 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
 
         rows.push([
           sub.name,
-          sub.weight || 1,
+          getSubjectWeight(sub, phaseWeights),
+          phaseWeights.get(sub.id)?.percentage ?? '',
           sub.questionsGoal || 0,
           'Geral',
           '-',
@@ -816,7 +818,8 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
 
           rows.push([
             sub.name,
-            sub.weight || 1,
+            getSubjectWeight(sub, phaseWeights),
+            phaseWeights.get(sub.id)?.percentage ?? '',
             sub.questionsGoal || 0,
             topic.title,
             topic.priority || 'Média',
@@ -838,29 +841,10 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
 
   return (
     <div className="space-y-4 animate-in fade-in duration-500">
-      {/* Barra de Seleção de Concurso e Ações */}
       <div className="flex flex-wrap items-center justify-between gap-3 px-1">
-        <div className="flex items-center gap-3">
-          {concursos && concursos.length > 0 && onSelectConcursoId && (
-            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-1.5 flex items-center gap-2 shadow-sm">
-              <Trophy size={14} className="text-amber-500 shrink-0" />
-              <select
-                value={selectedConcursoId && selectedConcursoId !== 'all' ? selectedConcursoId : concursos[0]?.id}
-                onChange={(e) => onSelectConcursoId(e.target.value)}
-                className="bg-white dark:bg-zinc-900 border-none outline-none text-xs font-bold text-zinc-800 dark:text-zinc-100 cursor-pointer max-w-[220px] uppercase tracking-wide focus:ring-0 truncate"
-              >
-                {concursos.map(c => (
-                  <option key={c.id} value={c.id} className="bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-100">
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-          <span className="text-xs text-zinc-400 font-medium hidden sm:inline">
-            Disciplinas e tópicos do concurso selecionado
-          </span>
-        </div>
+        <span className="text-xs text-zinc-400 font-medium">
+          Disciplinas e tópicos do concurso selecionado
+        </span>
 
         <button
           type="button"
@@ -968,7 +952,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
         <div className="flex flex-wrap gap-3 items-center">
           {selectedConcursoId === 'all' ? (
              <div className="bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800 px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2">
-                <AlertTriangle size={16} /> Selecione um edital para adicionar disciplinas
+                <AlertTriangle size={16} /> Selecione um edital na barra lateral para adicionar disciplinas
              </div>
           ) : (
             <div className="flex gap-2 items-center">
@@ -1143,6 +1127,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                           ) : (
                             <div>
                               <p className="text-sm font-bold text-zinc-800 dark:text-white">{subject.name}</p>
+                              {phaseWeights.has(subject.id) && <p className="text-[10px] font-semibold text-zinc-600 dark:text-zinc-300">Peso por fases {phaseWeights.get(subject.id)!.percentage.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}%</p>}
                               <p className="text-[10px] text-zinc-400 font-medium mt-0.5">{(subject.topics || []).length} tópico{(subject.topics || []).length !== 1 ? 's' : ''}</p>
                             </div>
                           )}
@@ -1570,7 +1555,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                   <td colSpan={6} className="py-12 text-center">
                     <div className="flex flex-col items-center justify-center opacity-50">
                       <Bot size={40} className="mb-2 text-zinc-400" />
-                      <p className="font-bold text-zinc-500">{selectedConcursoId === 'all' ? 'Selecione um edital acima para ver e adicionar disciplinas.' : 'Nenhuma disciplina encontrada neste edital.'}</p>
+                      <p className="font-bold text-zinc-500">{selectedConcursoId === 'all' ? 'Selecione um edital na barra lateral para ver e adicionar disciplinas.' : 'Nenhuma disciplina encontrada neste edital.'}</p>
                       {selectedConcursoId !== 'all' && <p className="text-sm text-zinc-400">Adicione manualmente usando o botão acima.</p>}
                     </div>
                   </td>

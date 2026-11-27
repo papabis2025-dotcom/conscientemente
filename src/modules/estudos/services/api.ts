@@ -1,4 +1,6 @@
 import { supabase } from './supabase';
+import { confirmConcursoDeletion } from '../utils/persistence';
+import { calculatePhaseWeights } from '../utils/phaseWeights';
 import { Concurso, StudySession, Simulado, ScheduledStudy, DailyGoal, LogEntry, Profile } from '../types';
 
 // Generic helper to get user from local session cache without HTTP network requests
@@ -185,23 +187,23 @@ export const api = {
         list: async (): Promise<Concurso[]> => {
             const user = await getAuthUser();
             if (!user) return [];
-            let result: any = await supabase
-                .from('concursos')
-                .select('id, name, banca, start_date, target_date, subjects, category_id, image_url, education_level, status, placement')
-                .eq('user_id', user.id)
-                .order('created_at', { ascending: false });
+            const baseColumns = 'id, name, banca, start_date, target_date, subjects, category_id, image_url';
+            const extendedColumns = `${baseColumns}, education_level, status, placement`;
+            const list = (columns: string) => supabase.from('concursos').select(columns)
+                .eq('user_id', user.id).order('created_at', { ascending: false });
 
             const isColumnError = (err: any) => {
                 if (!err) return false;
                 return err.code === '42703' || err.code === 'PGRST204' || (typeof err.message === 'string' && (err.message.includes('education_level') || err.message.includes('status') || err.message.includes('placement') || err.message.includes('schema cache') || err.message.includes('column')));
             };
 
-            if (isColumnError(result.error)) {
-                result = await supabase
-                    .from('concursos')
-                    .select('id, name, banca, start_date, target_date, subjects, category_id, image_url')
-                    .eq('user_id', user.id)
-                    .order('created_at', { ascending: false });
+            let result = await list(`${extendedColumns}, phase_weighting`);
+            if (isColumnError(result.error) && !result.error?.message.includes('phase_weighting')) {
+                result = await list(`${baseColumns}, phase_weighting`);
+            }
+            if (isColumnError(result.error) && result.error?.message.includes('phase_weighting')) {
+                result = await list(extendedColumns);
+                if (isColumnError(result.error)) result = await list(baseColumns);
             }
 
             // Carrega mapa de escolaridade e resultados do storage local como fallback
@@ -217,7 +219,7 @@ export const api = {
                 if (raw) localResultsMap = JSON.parse(raw);
             } catch (e) {}
 
-            const data = result.error ? null : result.data;
+            const data = await handleRequest<any[]>(result);
             return (data || []).map((c: any) => {
                 const resInfo = localResultsMap[c.id];
                 return {
@@ -227,6 +229,7 @@ export const api = {
                     startDate: c.start_date,
                     targetDate: c.target_date,
                     subjects: c.subjects || [],
+                    phaseWeighting: c.phase_weighting ?? undefined,
                     categoryId: c.category_id,
                     imageUrl: c.image_url,
                     educationLevel: c.education_level || localEduMap[c.id] || localStorage.getItem(`gp_concurso_edulevel_${c.id}`) || undefined,
@@ -238,6 +241,8 @@ export const api = {
         upsert: async (concurso: Concurso) => {
             const user = await getAuthUser();
             if (!user) throw new Error('Not authenticated');
+            const { errors } = calculatePhaseWeights(concurso.phaseWeighting, concurso.subjects || []);
+            if (errors.length) throw new Error(errors.join(' '));
 
             // Salva no mapa local de resultados
             try {
@@ -267,6 +272,7 @@ export const api = {
                 placement: concurso.placement ?? null,
                 subjects: concurso.subjects || []
             };
+            if (concurso.phaseWeighting) dbPayload.phase_weighting = concurso.phaseWeighting;
 
             const isColumnError = (err: any) => {
                 if (!err) return false;
@@ -315,6 +321,9 @@ export const api = {
                 } catch (e) {}
             }
 
+            if (result.error?.message.includes('phase_weighting')) {
+                throw new Error('O banco precisa da migração de fases e pesos para salvar esta configuração.');
+            }
             const data = await handleRequest<any>(Promise.resolve(result));
             if (!data) return null as any;
 
@@ -326,6 +335,7 @@ export const api = {
                 startDate: data.start_date,
                 targetDate: data.target_date,
                 subjects: data.subjects || [],
+                phaseWeighting: data.phase_weighting ?? undefined,
                 categoryId: data.category_id,
                 imageUrl: data.image_url || concurso.imageUrl,
                 educationLevel: data.education_level || concurso.educationLevel
@@ -333,18 +343,13 @@ export const api = {
         },
         delete: async (id: string) => {
             const user = await getAuthUser();
-            if (!user) return null;
-            // Remove do mapa de escolaridade em nuvem
-            try {
-                const raw = localStorage.getItem('gp_concurso_edulevels_map') || '{}';
-                const map = JSON.parse(raw);
-                if (map[id]) {
-                    delete map[id];
-                    localStorage.setItem('gp_concurso_edulevels_map', JSON.stringify(map));
-                    api.settings.update({ gp_concurso_edulevels_map: map }).catch(() => {});
-                }
-            } catch (e) {}
-            return handleRequest(supabase.from('concursos').delete().eq('id', id).eq('user_id', user.id));
+            if (!user) throw new Error('Sessão expirada. Entre novamente para excluir o edital.');
+            const rows = await handleRequest<{ id: string }[]>(
+                supabase.from('concursos').delete().eq('id', id).eq('user_id', user.id).select('id')
+            );
+            await confirmConcursoDeletion(rows, () => handleRequest<{ id: string }>(
+                supabase.from('concursos').select('id').eq('id', id).eq('user_id', user.id).maybeSingle()
+            ));
         },
         deleteAll: async () => {
             const user = await getAuthUser();

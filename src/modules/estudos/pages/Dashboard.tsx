@@ -27,7 +27,6 @@ interface DashboardProps {
   simulados: Simulado[];
   activeConcurso?: Concurso;
   selectedConcursoId: string | 'all';
-  onSelectConcursoId: (id: string | 'all') => void;
   concursos: Concurso[];
   theme?: 'light' | 'dark';
 
@@ -148,7 +147,6 @@ const Dashboard: React.FC<DashboardProps> = ({
   simulados,
   activeConcurso,
   selectedConcursoId,
-  onSelectConcursoId,
   concursos,
   theme = 'light',
   onToggleReorderMode,
@@ -1789,21 +1787,6 @@ const Dashboard: React.FC<DashboardProps> = ({
             </select>
           </div>
 
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl px-4 py-2 flex items-center gap-3 shadow-sm">
-             <Trophy size={16} className="text-amber-500" />
-             <select
-                value={selectedConcursoId}
-                onChange={(e) => onSelectConcursoId(e.target.value)}
-                className="bg-white dark:bg-zinc-900 border-none outline-none text-xs font-black text-zinc-800 dark:text-zinc-100 cursor-pointer w-32 uppercase tracking-wide focus:ring-0"
-             >
-                <option value="all" className="bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-100">Visão Global</option>
-                {concursos.map(c => (
-                  <option key={c.id} value={c.id} className="bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-100">
-                    {c.name}
-                  </option>
-                ))}
-             </select>
-          </div>
           
           <button onClick={() => setShowWidgetManager(true)} className="px-4 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 flex items-center gap-1.5 shadow-sm">
             <Eye size={12} /> Gerenciar Widgets

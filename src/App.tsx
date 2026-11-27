@@ -75,7 +75,6 @@ const SYNC_KEYS = [
   'estudos_review_days_locked',
   'estudos_weights_locked',
   'gp_concurso_edulevels_map',
-  'cp_concursos_backup',
   'cn_profile_photo',
   'cp_flashcard_spacing_settings',
 ];
@@ -148,7 +147,6 @@ function mergeSettings(
     if (
       key === 'cp_dashboard_layout_v19' ||
       key === 'cp_dashboard_layout_v20' ||
-      key === 'cp_concursos_backup' ||
       key === 'cn_saude_dashboard_layout' ||
       key === 'cn_home_cards_layout' ||
       key === 'cn_saude_sleep_logs' ||

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import Sidebar from './components/Sidebar';
 import Dashboard from './pages/Dashboard';
 import SubjectsView from './pages/SubjectsView';
@@ -21,6 +21,7 @@ const FlashcardsView = React.lazy(() => import('./pages/FlashcardsView').then(m 
 import { Concurso, ActivityType, StudySession, Topic } from './types';
 import { useAppData } from './hooks/useAppData';
 import { useTimer } from './hooks/useTimer';
+import { getCourseWeights } from './utils/phaseWeights';
 import { Clock, Save, X, Plus } from 'lucide-react';
 
 interface AppProps {
@@ -70,6 +71,9 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
     resetStudyHubDataOnly, syncPlannedReviews,
     addScheduledStudiesBatch, deleteScheduledStudiesBatch, resetConcursoSchedule
   } = useAppData(extTheme, extToggleTheme);
+  const phaseWeights = useMemo(() => getCourseWeights(
+    selectedConcursoId === 'all' ? concursos : activeConcurso ? [activeConcurso] : []
+  ), [concursos, selectedConcursoId, activeConcurso]);
 
   const {
     timeLeft, isActive, isAlarmPlaying,
@@ -276,11 +280,11 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard':
-        return <Dashboard subjects={filteredSubjects} sessions={sessions} simulados={simulados} activeConcurso={activeConcurso} selectedConcursoId={selectedConcursoId} onSelectConcursoId={setSelectedConcursoId} concursos={concursos} theme={theme} onToggleReorderMode={setIsReorderMode} onAddSession={addSession} globalDailyGoal={globalDailyGoal} studyTasks={studyTasks} onUpdateTasks={setStudyTasks} scheduledStudies={scheduledStudies} timeLeft={timeLeft} isActive={isActive} isAlarmPlaying={isAlarmPlaying} onStartTimer={startTimer} onPauseTimer={pauseTimer} onResumeTimer={resumeTimer} onResetTimer={resetTimer} onStopAlarm={stopAlarm} onNavigateTab={setActiveTab} />;
+        return <Dashboard subjects={filteredSubjects} sessions={sessions} simulados={simulados} activeConcurso={activeConcurso} selectedConcursoId={selectedConcursoId} concursos={concursos} theme={theme} onToggleReorderMode={setIsReorderMode} onAddSession={addSession} globalDailyGoal={globalDailyGoal} studyTasks={studyTasks} onUpdateTasks={setStudyTasks} scheduledStudies={scheduledStudies} timeLeft={timeLeft} isActive={isActive} isAlarmPlaying={isAlarmPlaying} onStartTimer={startTimer} onPauseTimer={pauseTimer} onResumeTimer={resumeTimer} onResetTimer={resetTimer} onStopAlarm={stopAlarm} onNavigateTab={setActiveTab} />;
       case 'concursos':
         return <ConcursosView concursos={concursos} onUpdateConcursos={setConcursos} onSelectConcurso={(c) => { setSelectedConcursoId(c.id); setActiveTab('dashboard'); }} scheduledStudies={allScheduledStudies || scheduledStudies} sessions={allSessions || sessions} />;
       case 'subjects':
-        return <SubjectsView subjects={selectedConcursoId === 'all' ? filteredSubjects : (activeConcurso?.subjects || [])} sessions={sessions} onUpdateSubjects={(subs) => { void setConcursos(concursos.map(c => c.id === selectedConcursoId ? { ...c, subjects: subs } : c)).catch(() => {}); }} selectedConcursoId={selectedConcursoId} onSelectConcursoId={setSelectedConcursoId} concursos={concursos} scheduledStudies={scheduledStudies} onToggleScheduledStudyStatus={toggleScheduledStudyStatus} onNavigateToFlashcards={(subId) => { setSelectedFlashcardSubjectId(subId); setActiveTab('flashcards'); }} />;
+        return <SubjectsView phaseWeights={phaseWeights} subjects={selectedConcursoId === 'all' ? filteredSubjects : (activeConcurso?.subjects || [])} sessions={sessions} onUpdateSubjects={(subs) => { void setConcursos(concursos.map(c => c.id === selectedConcursoId ? { ...c, subjects: subs } : c)).catch(() => {}); }} selectedConcursoId={selectedConcursoId} concursos={concursos} scheduledStudies={scheduledStudies} onToggleScheduledStudyStatus={toggleScheduledStudyStatus} onNavigateToFlashcards={(subId) => { setSelectedFlashcardSubjectId(subId); setActiveTab('flashcards'); }} />;
       case 'questions':
         return <QuestionsView subjects={filteredSubjects} sessions={sessions} dailyGoals={dailyGoals} onUpdateDailyGoals={setDailyGoals} onAddSession={addSession} onDeleteSession={deleteSession} />;
       case 'simulados':
@@ -292,7 +296,6 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
           simulados={simulados}
           concursos={concursos}
           selectedConcursoId={selectedConcursoId}
-          onSelectConcursoId={setSelectedConcursoId}
           scheduledStudies={allScheduledStudies || scheduledStudies}
           onAddScheduledStudiesBatch={addScheduledStudiesBatch}
           onDeleteScheduledStudiesBatch={deleteScheduledStudiesBatch}
@@ -316,7 +319,6 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
           sessions={allSessions || sessions}
           concursos={concursos}
           selectedConcursoId={selectedConcursoId}
-          onSelectConcursoId={setSelectedConcursoId}
           onSaveActivity={saveCalendarActivity}
           onDelete={deleteScheduledStudy}
           onToggleStatus={toggleScheduledStudyStatus}
@@ -340,13 +342,14 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
         />;
       case 'study_plan':
         return <StudyPlan
+          phaseWeights={phaseWeights}
           subjects={filteredSubjects}
           sessions={sessions}
           studyTasks={studyTasks}
           onUpdateTasks={setStudyTasks}
         />;
       case 'statistics':
-        return <StatisticsView subjects={filteredSubjects} sessions={sessions} simulados={simulados} concursos={concursos} selectedConcursoId={selectedConcursoId} onSelectConcursoId={setSelectedConcursoId} />;
+        return <StatisticsView phaseWeights={phaseWeights} subjects={filteredSubjects} sessions={sessions} simulados={simulados} concursos={concursos} selectedConcursoId={selectedConcursoId} />;
       case 'settings':
         return <SettingsView
           currentUserEmail={currentUser?.email || ''}

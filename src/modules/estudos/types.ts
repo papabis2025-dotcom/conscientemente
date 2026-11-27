@@ -21,6 +21,14 @@ export interface Profile {
   metadata?: any;
 }
 
+export type ExamPhase = 'objective' | 'written' | 'oral';
+export type PhaseBasis = 'equal' | 'questions' | 'points';
+export type PhaseParticipation = Partial<Record<ExamPhase, { points?: number }>>;
+export interface PhaseWeighting {
+  mode: 'manual' | 'phases';
+  phases: Record<ExamPhase, { share: number; basis: PhaseBasis }>;
+}
+
 export interface Concurso {
   id: string;
   name: string;
@@ -29,6 +37,7 @@ export interface Concurso {
   targetDate?: string; // ISO date string
   targetRole?: string; // Cargo pretendido
   subjects: Subject[];
+  phaseWeighting?: PhaseWeighting;
   categoryId?: string;
   imageUrl?: string; // Profile image URL or data URL
   educationLevel?: string; // Nível de escolaridade exigido
@@ -48,6 +57,7 @@ export interface Subject {
   color: string;
   questionsGoal?: number;  // Previsto no Edital
   weight?: number;          // Peso Total
+  examPhases?: PhaseParticipation;
   order?: number;           // Display order (drag & drop)
   topics: Topic[];
 }

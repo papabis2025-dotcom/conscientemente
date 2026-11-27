@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useRef } from 'react';
 import { Subject, ScheduledStudy, ActivityType, Topic, StudySession, Simulado, Concurso } from '../types';
 import { getColorHex, getBadgeStyle } from '../utils/colors';
-import { FileText, Layers, Video, BookOpen, Clipboard, Book, Clock, RefreshCw, Sparkles, Plus, Trash2, ExternalLink, Printer, Pin, Trophy } from 'lucide-react';
+import { FileText, Layers, Video, BookOpen, Clipboard, Book, Clock, RefreshCw, Sparkles, Plus, Trash2, ExternalLink, Printer, Pin } from 'lucide-react';
 import { exportToPdf } from '../utils/exportUtils';
 
 interface CalendarViewProps {
@@ -12,7 +12,6 @@ interface CalendarViewProps {
   sessions?: StudySession[];
   concursos?: Concurso[];
   selectedConcursoId?: string | 'all';
-  onSelectConcursoId?: (id: string | 'all') => void;
   onSaveActivity: (editingTaskId: string | null, formData: any, selectedDayKey: string) => Promise<void>;
   onDelete: (idOrIds: string | string[]) => Promise<void>;
   onToggleStatus?: (idOrIds: string | string[]) => void;
@@ -53,7 +52,6 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   sessions,
   concursos,
   selectedConcursoId,
-  onSelectConcursoId,
   onSaveActivity, 
   onDelete, 
   onToggleStatus,
@@ -1243,23 +1241,6 @@ const CalendarView: React.FC<CalendarViewProps> = ({
             </button>
           )}
 
-          {concursos && onSelectConcursoId && (
-            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl px-3 py-1.5 flex items-center gap-2 shadow-xs">
-              <Trophy size={14} className="text-amber-500 shrink-0" />
-              <select
-                value={selectedConcursoId || 'all'}
-                onChange={(e) => onSelectConcursoId(e.target.value as string | 'all')}
-                className="bg-transparent border-none outline-none text-xs font-black text-zinc-800 dark:text-zinc-100 cursor-pointer uppercase tracking-wide focus:ring-0"
-              >
-                <option value="all" className="bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-100">Visão Global</option>
-                {concursos.map(c => (
-                  <option key={c.id} value={c.id} className="bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-100">
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
 
           <button
             type="button"

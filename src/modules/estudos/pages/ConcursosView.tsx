@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { AlertTriangle, Edit2, Trash2, BookOpen, Image as ImageIcon, X, GraduationCap, Palette, Check, Trophy, XCircle, CheckCircle2 } from 'lucide-react';
-import { Concurso, Subject, StudySession } from '../types';
+import { Concurso, PhaseWeighting, Subject, StudySession } from '../types';
 import ColorPickerPalette from '../components/ColorPickerPalette';
+import PhaseWeightsEditor from '../components/PhaseWeightsEditor';
+import { calculatePhaseWeights } from '../utils/phaseWeights';
 import { getColorHex } from '../utils/colors';
 import { showToast } from '../../../components/Toast';
 import { getLocalDateString } from '../../../utils/dateUtils';
@@ -56,7 +58,8 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
   const [newImageUrl, setNewImageUrl] = useState('');
 
   // New Subject State in creation mode
-  const [newSubjects, setNewSubjects] = useState<{ name: string; goal: number; weight: number; color?: string }[]>([]);
+  const [newSubjects, setNewSubjects] = useState<Subject[]>([]);
+  const [newPhaseWeighting, setNewPhaseWeighting] = useState<PhaseWeighting>();
   const [tempSubName, setTempSubName] = useState('');
   const [tempSubGoal, setTempSubGoal] = useState('');
   const [tempSubWeight, setTempSubWeight] = useState('1');
@@ -124,13 +127,15 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
 
   const handleAddTempSubject = () => {
     if (!tempSubName.trim()) return;
-    setNewSubjects([
-      ...newSubjects,
+    setNewSubjects(current => [
+      ...current,
       {
+        id: crypto.randomUUID(),
         name: tempSubName.trim(),
-        goal: parseInt(tempSubGoal) || 0,
+        questionsGoal: parseInt(tempSubGoal) || undefined,
         weight: parseFloat(tempSubWeight) || 1,
-        color: tempSubColor
+        color: tempSubColor,
+        topics: []
       }
     ]);
     setTempSubName('');
@@ -198,27 +203,22 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
       return;
     }
     if (isSaving) return;
+    const { errors } = calculatePhaseWeights(newPhaseWeighting, newSubjects);
+    if (errors.length) {
+      showToast(errors[0], 'error');
+      return;
+    }
 
     setIsSaving(true);
     try {
-      const defaultColors = ['#3b82f6', '#10b981', '#8b5cf6', '#f59e0b', '#f43f5e', '#06b6d4'];
-
-      const subjectsList: Subject[] = newSubjects.map((s, i) => ({
-        id: crypto.randomUUID(),
-        name: s.name,
-        color: s.color || defaultColors[i % defaultColors.length],
-        questionsGoal: s.goal > 0 ? s.goal : undefined,
-        weight: s.weight || 1,
-        topics: []
-      }));
-
       const newConc: Concurso = {
         id: crypto.randomUUID(),
         name: newConcName.trim(),
         banca: banca.trim(),
         educationLevel: educationLevel.trim() || undefined,
         startDate: new Date(`${startDate}T12:00:00`).toISOString(),
-        subjects: subjectsList,
+        subjects: newSubjects,
+        phaseWeighting: newPhaseWeighting,
         targetDate: targetDate ? new Date(`${targetDate}T12:00:00`).toISOString() : undefined,
         imageUrl: newImageUrl.trim() || undefined
       };
@@ -233,9 +233,10 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
       setIsAdding(false);
       setNewImageUrl('');
       setNewSubjects([]);
+      setNewPhaseWeighting(undefined);
     } catch (err) {
       console.error('Erro ao adicionar concurso:', err);
-      showToast('Erro ao salvar concurso na nuvem. Verifique a conexão.', 'error');
+      showToast(err instanceof Error ? err.message : 'Erro ao salvar concurso na nuvem. Verifique a conexão.', 'error');
     } finally {
       setIsSaving(false);
     }
@@ -251,7 +252,8 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
       targetDate: conc.targetDate ? conc.targetDate.split('T')[0] : '',
       imageUrl: conc.imageUrl || '',
       status: conc.status,
-      placement: conc.placement
+      placement: conc.placement,
+      phaseWeighting: conc.phaseWeighting
     });
     setEditSubjects(JSON.parse(JSON.stringify(conc.subjects || [])));
     setModalNewSubName('');
@@ -316,6 +318,11 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
       alert('O nome e a banca do concurso são obrigatórios.');
       return;
     }
+    const { errors } = calculatePhaseWeights(editFormData.phaseWeighting, editSubjects);
+    if (errors.length) {
+      showToast(errors[0], 'error');
+      return;
+    }
 
     setIsSaving(true);
     try {
@@ -331,6 +338,7 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
             imageUrl: editFormData.imageUrl !== undefined ? editFormData.imageUrl : c.imageUrl,
             status: editFormData.status,
             placement: editFormData.status === 'approved' ? (editFormData.placement ? Number(editFormData.placement) : undefined) : undefined,
+            phaseWeighting: editFormData.phaseWeighting,
             subjects: editSubjects
           };
         }
@@ -342,7 +350,7 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
       closeEditModal();
     } catch (err) {
       console.error('Erro ao salvar edições do concurso:', err);
-      showToast('Erro ao salvar alterações na nuvem. Verifique a conexão.', 'error');
+      showToast(err instanceof Error ? err.message : 'Erro ao salvar alterações na nuvem. Verifique a conexão.', 'error');
     } finally {
       setIsSaving(false);
     }
@@ -506,10 +514,10 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
             {newSubjects.length > 0 && (
               <div className="flex flex-wrap gap-2">
                 {newSubjects.map((s, i) => (
-                  <div key={i} className="flex items-center gap-2 bg-white dark:bg-zinc-800 px-3 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-700 shadow-sm">
+                  <div key={s.id} className="flex items-center gap-2 bg-white dark:bg-zinc-800 px-3 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-700 shadow-sm">
                     <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: getColorHex(s.color || '#3b82f6') }} />
                     <span className="text-xs font-bold text-zinc-700 dark:text-zinc-300">{s.name}</span>
-                    {s.goal > 0 && <span className="text-[10px] bg-zinc-100 dark:bg-zinc-700 text-zinc-800 dark:text-zinc-200 px-1.5 py-0.5 rounded font-black">{s.goal} Qs</span>}
+                    {!!s.questionsGoal && <span className="text-[10px] bg-zinc-100 dark:bg-zinc-700 text-zinc-800 dark:text-zinc-200 px-1.5 py-0.5 rounded font-black">{s.questionsGoal} Qs</span>}
                     <span className="text-[10px] bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 px-1.5 py-0.5 rounded font-black">{s.weight}x</span>
                     <button type="button" onClick={() => removeTempSubject(i)} className="text-zinc-400 hover:text-rose-500 font-bold ml-1 text-sm">×</button>
                   </div>
@@ -518,6 +526,10 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
             )}
           </div>
 
+          <PhaseWeightsEditor value={newPhaseWeighting} subjects={newSubjects} disabled={isSaving}
+            onChange={setNewPhaseWeighting}
+            onSubjectChange={(id, examPhases) => setNewSubjects(current => current.map(s => s.id === id ? { ...s, examPhases } : s))}
+            onQuestionsChange={(id, questionsGoal) => setNewSubjects(current => current.map(s => s.id === id ? { ...s, questionsGoal } : s))} />
           <div className="flex justify-end gap-3">
             <button onClick={() => setIsAdding(false)} disabled={isSaving} className="px-6 py-3 text-zinc-400 font-black uppercase text-xs tracking-widest hover:text-rose-500 transition-colors disabled:opacity-50">Cancelar</button>
             <button onClick={addConcurso} disabled={isSaving} className="bg-zinc-900 dark:bg-zinc-700 text-white px-8 py-3 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-zinc-800 dark:hover:bg-zinc-600 shadow-lg shadow-zinc-900/10 dark:shadow-zinc-900/50 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed">{isSaving ? 'Salvando na Nuvem...' : 'Criar Edital'}</button>
@@ -906,9 +918,9 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
                         />
                       </div>
 
-                      {/* Peso da Disciplina */}
+                      {/* Peso manual da disciplina */}
                       <div className="flex items-center gap-1.5 w-full md:w-auto">
-                        <span className="text-[9px] font-black uppercase text-zinc-400 shrink-0">Peso:</span>
+                        <span className="text-[9px] font-black uppercase text-zinc-400 shrink-0">Peso manual:</span>
                         <input
                           type="number"
                           value={sub.weight !== undefined ? sub.weight : 1}
@@ -1005,6 +1017,10 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
                   </div>
                 </div>
               </div>
+              <PhaseWeightsEditor value={editFormData.phaseWeighting} subjects={editSubjects} disabled={isSaving}
+                onChange={phaseWeighting => setEditFormData(current => ({ ...current, phaseWeighting }))}
+                onSubjectChange={(id, examPhases) => setEditSubjects(current => current.map(s => s.id === id ? { ...s, examPhases } : s))}
+                onQuestionsChange={(id, questionsGoal) => setEditSubjects(current => current.map(s => s.id === id ? { ...s, questionsGoal } : s))} />
             </div>
 
             <div className="p-6 border-t border-zinc-100 dark:border-zinc-800 flex justify-end gap-3 bg-zinc-50/50 dark:bg-zinc-800/20">

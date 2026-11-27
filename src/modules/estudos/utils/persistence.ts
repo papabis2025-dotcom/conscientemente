@@ -13,3 +13,11 @@ export function createSaveQueue() {
     return result;
   };
 }
+
+export async function confirmConcursoDeletion(
+  deletedRows: readonly { id: string }[] | null,
+  findRemaining: () => Promise<{ id: string } | null>
+) {
+  if (deletedRows?.length) return;
+  if (await findRemaining()) throw new Error('O Supabase não permitiu excluir este edital.');
+}

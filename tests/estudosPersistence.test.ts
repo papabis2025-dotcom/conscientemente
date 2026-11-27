@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createSaveQueue, isPendingGeneratedStudy } from '../src/modules/estudos/utils/persistence.ts';
+import { confirmConcursoDeletion, createSaveQueue, isPendingGeneratedStudy } from '../src/modules/estudos/utils/persistence.ts';
 import type { ScheduledStudy } from '../src/modules/estudos/types.ts';
 
 test('gravações rápidas chegam à nuvem na mesma ordem das alterações', async () => {
@@ -43,4 +43,18 @@ test('regenerar remove apenas atividades pendentes geradas para o edital selecio
   assert.equal(isReplaced({ generatedByCronograma: false }), false);
   assert.equal(isReplaced({ status: 'realizado' }), false);
   assert.equal(isReplaced({ activityType: 'Revisão' }), false);
+});
+
+test('exclusão confirmada pelo banco dispensa consulta adicional', async () => {
+  await confirmConcursoDeletion([{ id: 'edital' }], async () => {
+    assert.fail('a exclusão já retornou o registro removido');
+  });
+});
+
+test('delete sem efeito falha se o edital ainda estiver no banco', async () => {
+  await assert.rejects(confirmConcursoDeletion([], async () => ({ id: 'edital' })), /não permitiu excluir/);
+});
+
+test('repetir a exclusão depois que o edital já saiu do banco é seguro', async () => {
+  await confirmConcursoDeletion([], async () => null);
 });

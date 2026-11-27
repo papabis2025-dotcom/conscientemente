@@ -2,17 +2,19 @@
 import React, { useEffect, useMemo } from 'react';
 import { CheckCircle, Circle, Lightbulb } from 'lucide-react';
 import { Subject, StudySession } from '../types';
+import { getSubjectWeight, type CalculatedWeight } from '../utils/phaseWeights';
 
 import AISuggestions from '../components/dashboard/AISuggestions';
 
 interface StudyPlanProps {
+    phaseWeights: ReadonlyMap<string, CalculatedWeight>;
     subjects: Subject[];
     sessions: StudySession[];
     studyTasks: { id: string, subjectId: string, subjectName: string, topicId?: string, topicName?: string, done: boolean, date: string }[];
     onUpdateTasks: (tasks: { id: string, subjectId: string, subjectName: string, topicId?: string, topicName?: string, done: boolean, date: string }[]) => void;
 }
 
-const StudyPlan: React.FC<StudyPlanProps> = ({ subjects, sessions, studyTasks, onUpdateTasks }) => {
+const StudyPlan: React.FC<StudyPlanProps> = ({ subjects, sessions, studyTasks, onUpdateTasks, phaseWeights }) => {
 
     useEffect(() => {
         const now = new Date();
@@ -68,9 +70,9 @@ const StudyPlan: React.FC<StudyPlanProps> = ({ subjects, sessions, studyTasks, o
 
             // 2. Generate ONE regular study task
             // Calculate scores for each subject
-            const rankedSubjects = subjects.map(sub => {
+            const rankedSubjects = subjects.filter(sub => getSubjectWeight(sub, phaseWeights) > 0).map(sub => {
                 // 1. Weight (Peso) - Default to 1 if not set
-                const weight = sub.weight || 1;
+                const weight = getSubjectWeight(sub, phaseWeights);
 
                 // 2. Performance (Accuracy)
                 const subSessions = sessions.filter(s => s.subjectId === sub.id);
@@ -143,7 +145,7 @@ const StudyPlan: React.FC<StudyPlanProps> = ({ subjects, sessions, studyTasks, o
             const otherTasks = studyTasks.filter(t => t.date !== today);
             onUpdateTasks([...otherTasks, ...tasksToadd]);
         }
-    }, [subjects, sessions, studyTasks]); // Removed onUpdateTasks from dep array to avoid infinite loop if it changes, though it should be stable.
+    }, [subjects, sessions, studyTasks, phaseWeights]); // Removed onUpdateTasks from dep array to avoid infinite loop if it changes, though it should be stable.
 
     const todaysTasks = useMemo(() => {
         const now = new Date();

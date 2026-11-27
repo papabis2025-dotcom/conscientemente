@@ -2,6 +2,7 @@ import React, { useState, useMemo, useCallback, useRef } from 'react';
 import { Subject, Topic, StudySession, Concurso, ScheduledStudy, Simulado, ActivityType } from '../types';
 import { isPendingGeneratedStudy } from '../utils/persistence';
 import { getLocalDateString } from '../../../utils/dateUtils';
+import { calculatePhaseWeights, getRankedSubjectWeight, getSubjectWeight } from '../utils/phaseWeights';
 import {
   CalendarDays,
   ChevronLeft,
@@ -17,7 +18,6 @@ import {
   Check,
   TrendingUp,
   Award,
-  Trophy,
   Activity,
   Zap,
   Settings,
@@ -39,7 +39,6 @@ interface CronogramaViewProps {
   simulados: Simulado[];
   concursos: Concurso[];
   selectedConcursoId: string;
-  onSelectConcursoId?: (id: string | 'all') => void;
   scheduledStudies: ScheduledStudy[];
   onAddScheduledStudiesBatch: (items: (Omit<ScheduledStudy, 'id' | 'status'> & { id?: string })[], concursoId: string) => Promise<void>;
   onDeleteScheduledStudiesBatch: (ids: string[]) => Promise<void>;
@@ -63,7 +62,6 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
   simulados,
   concursos,
   selectedConcursoId,
-  onSelectConcursoId,
   scheduledStudies,
   onAddScheduledStudiesBatch,
   onDeleteScheduledStudiesBatch,
@@ -380,6 +378,12 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
   // Handle generating new schedule
   const handleGenerate = async (overrideStartDateStr?: string) => {
     if (generating.current || !activeConcurso || subjects.length === 0) return false;
+    const { weights, errors } = calculatePhaseWeights(activeConcurso.phaseWeighting, subjects);
+    if (errors.length) {
+      alert(`Revise Fases e pesos em Editais. ${errors[0]}`);
+      return false;
+    }
+    const planningSubjects = subjects.filter(subject => getSubjectWeight(subject, weights) > 0);
     generating.current = true;
     setIsGenerating(true);
 
@@ -420,13 +424,9 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
       }
 
       // Calcula os máximos para normalização (idêntico à Análise Estatística)
-      const maxWeight = Math.max(1, ...subjects.map(s => {
-        const tw = (s.topics || []).reduce((acc, t) => acc + (t.weight || 0), 0);
-        const bw = s.weight !== undefined && s.weight > 0 ? s.weight : 1;
-        return tw > 0 ? parseFloat((bw * (tw / 100)).toFixed(2)) : bw;
-      }));
+      const maxWeight = Math.max(1, ...planningSubjects.map(s => getRankedSubjectWeight(s, getSubjectWeight(s, weights), weights.has(s.id))));
 
-      const maxQuestions = Math.max(1, ...subjects.map(sub => {
+      const maxQuestions = Math.max(1, ...planningSubjects.map(sub => {
         const subSessions = sessions.filter(s => s.subjectId === sub.id);
         let q = subSessions.reduce((acc, s) => acc + (s.questionsDone || 0), 0);
         (simulados || []).forEach(sim => {
@@ -435,7 +435,7 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
         return q;
       }));
 
-      const maxMinutes = Math.max(1, ...subjects.map(sub => {
+      const maxMinutes = Math.max(1, ...planningSubjects.map(sub => {
         const subSessions = sessions.filter(s => s.subjectId === sub.id);
         return subSessions.reduce((acc, s) => acc + (s.durationInMinutes || 0), 0);
       }));
@@ -456,7 +456,7 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
       };
 
       // 2. Perfil estatístico por disciplina (acurácia ponderada idêntica à Análise Estatística)
-      const subjectProfiles = subjects.map(sub => {
+      const subjectProfiles = planningSubjects.map(sub => {
         const subSessions = sessions.filter(s => s.subjectId === sub.id);
         let done    = subSessions.reduce((acc, s) => acc + (s.questionsDone    || 0), 0);
         let correct = subSessions.reduce((acc, s) => acc + (s.questionsCorrect || 0), 0);
@@ -469,11 +469,8 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
         });
 
         const subTopics = sub.topics || [];
-        const topicWeightsSum   = subTopics.reduce((acc, t) => acc + (t.weight || 0), 0);
-        const baseSubjectWeight = sub.weight !== undefined && sub.weight > 0 ? sub.weight : 1;
-        const weight = topicWeightsSum > 0
-          ? parseFloat((baseSubjectWeight * (topicWeightsSum / 100)).toFixed(2))
-          : baseSubjectWeight;
+        const baseSubjectWeight = getSubjectWeight(sub, weights);
+        const weight = getRankedSubjectWeight(sub, baseSubjectWeight, weights.has(sub.id));
 
         // Acurácia ponderada por peso dos tópicos
         let accuracy = 0;
@@ -652,7 +649,7 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
         if (daysSinceSimulado >= simuladoIntervalDays) {
           daysSinceSimulado = 0;
           simuladoDateStrs.add(dateStr);
-          const fallbackSubject = subjects[0] || { id: '' };
+          const fallbackSubject = planningSubjects[0] || { id: '' };
           items.push({
             date: dateStr,
             subjectId: fallbackSubject.id,
@@ -974,7 +971,7 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
             <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/30 p-6 rounded-2xl flex gap-4 items-center">
               <Info className="text-amber-500 shrink-0" size={24} />
               <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">
-                Por favor, selecione um concurso/curso específico no menu superior para criar um cronograma direcionado.
+                Selecione um curso na barra lateral para criar um cronograma.
               </p>
             </div>
           ) : (
@@ -1206,23 +1203,6 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
             ))}
           </div>
 
-          {concursos && onSelectConcursoId && (
-            <div className="bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3 py-1.5 flex items-center gap-2 shadow-xs">
-              <Trophy size={14} className="text-amber-500 shrink-0" />
-              <select
-                value={selectedConcursoId}
-                onChange={(e) => onSelectConcursoId(e.target.value as string | 'all')}
-                className="bg-transparent border-none outline-none text-xs font-black text-zinc-800 dark:text-zinc-100 cursor-pointer uppercase tracking-wide focus:ring-0"
-              >
-                <option value="all" className="bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-100">Visão Global</option>
-                {concursos.map(c => (
-                  <option key={c.id} value={c.id} className="bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-100">
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
         </div>
 
         {/* Week navigation (or Month/Day navigation depending on mode) */}

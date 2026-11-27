@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { api } from '../modules/estudos/services/api';
+import { calculatePhaseWeights } from '../modules/estudos/utils/phaseWeights';
 
 export interface BackupData {
   version: string;
@@ -71,7 +72,8 @@ export const backupService = {
         supabase.from('flashcard_settings').select('*').eq('user_id', user.id).maybeSingle()
       ]);
 
-      if (cRes.status === 'fulfilled' && !cRes.value.error) concursos = cRes.value.data || [];
+      if (cRes.status !== 'fulfilled' || cRes.value.error) throw new Error('Não foi possível incluir os editais no backup. Tente novamente.');
+      concursos = cRes.value.data || [];
       if (sessRes.status === 'fulfilled' && !sessRes.value.error) sessions = sessRes.value.data || [];
       if (simRes.status === 'fulfilled' && !simRes.value.error) simulados = simRes.value.data || [];
       if (schedRes.status === 'fulfilled' && !schedRes.value.error) scheduledStudies = schedRes.value.data || [];
@@ -175,6 +177,13 @@ export const backupService = {
     if (user) {
       // 1. Concursos
       if (Array.isArray(concursos) && concursos.length > 0) {
+        for (const course of concursos) {
+          const configuration = course.phaseWeighting ?? course.phase_weighting;
+          if (!configuration) continue;
+          if (!Array.isArray(course.subjects)) throw new Error(`Backup de ${course.name}: lista de disciplinas inválida.`);
+          const { errors } = calculatePhaseWeights(configuration, course.subjects);
+          if (errors.length) throw new Error(`Backup de ${course.name}: ${errors.join(' ')}`);
+        }
         const formatted = concursos.map((c: any) => ({
           id: c.id,
           user_id: user.id,
@@ -184,9 +193,18 @@ export const backupService = {
           target_date: c.targetDate || c.target_date || null,
           category_id: c.categoryId || c.category_id || null,
           image_url: c.imageUrl || c.image_url || null,
-          subjects: c.subjects || []
+          subjects: c.subjects || [],
+          phase_weighting: c.phaseWeighting ?? c.phase_weighting ?? null
         }));
-        await supabase.from('concursos').upsert(formatted, { onConflict: 'id' });
+        let result = await supabase.from('concursos').upsert(formatted, { onConflict: 'id' });
+        if (result.error?.message.includes('phase_weighting') && ['42703', 'PGRST204'].includes(result.error.code)) {
+          if (formatted.some(c => c.phase_weighting !== null)) {
+            throw new Error('Aplique a migração de fases e pesos antes de restaurar este backup.');
+          }
+          const legacy = formatted.map(({ phase_weighting: _phaseWeighting, ...course }) => course);
+          result = await supabase.from('concursos').upsert(legacy, { onConflict: 'id' });
+        }
+        if (result.error) throw new Error(`Não foi possível restaurar os editais do backup. ${result.error.message}`);
         itemCount += formatted.length;
       }
 

@@ -1,18 +1,21 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { Subject, StudySession, Concurso, Topic } from '../types';
 import { api } from '../services/api';
-import { ChevronDown, ChevronRight, Trophy, PieChart as PieChartIcon, Table, Lock, Unlock, FileSpreadsheet } from 'lucide-react';
+import { ChevronDown, ChevronRight, PieChart as PieChartIcon, Table, Lock, Unlock, FileSpreadsheet } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { exportToXlsx, exportToCsv } from '../utils/exportUtils';
+import { calculatePhaseWeights, EXAM_PHASES, getRankedSubjectWeight, getSubjectWeight, PHASE_LABELS, type CalculatedWeight } from '../utils/phaseWeights';
 
 interface StatisticsViewProps {
+  phaseWeights: ReadonlyMap<string, CalculatedWeight>;
   subjects: Subject[];
   sessions: StudySession[];
   simulados?: import('../types').Simulado[];
   concursos?: Concurso[];
   selectedConcursoId?: string | 'all';
-  onSelectConcursoId?: (id: string | 'all') => void;
 }
+
+const formatPhasePercent = (value: number) => `${value.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}%`;
 
 function getAccuracyBg(accuracy: number, hasData: boolean): string {
   if (!hasData) return '';
@@ -31,7 +34,10 @@ function getAccuracyText(accuracy: number, hasData: boolean): string {
   return 'text-emerald-700 dark:text-emerald-300 font-bold';
 }
 
-const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, simulados, concursos, selectedConcursoId, onSelectConcursoId }) => {
+const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, simulados, concursos, selectedConcursoId, phaseWeights }) => {
+  const weighting = concursos?.find(course => course.id === selectedConcursoId)?.phaseWeighting;
+  const isPhaseMode = weighting?.mode === 'phases';
+  const phaseErrors = useMemo(() => calculatePhaseWeights(weighting, subjects).errors, [weighting, subjects]);
   const [sortBy, setSortBy] = useState<'name' | 'questions' | 'correct' | 'questionsGoal' | 'time' | 'accuracy' | 'weight' | 'priority'>('priority');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [showTopics, setShowTopics] = useState(false);
@@ -246,6 +252,8 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, sim
   };
 
   interface MergedSubject extends Subject {
+    baseWeight: number;
+    isCalculated: boolean;
     mergedSubjectIds: string[];
     topicIdMap: Record<string, string[]>;
   }
@@ -254,6 +262,8 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, sim
     if (selectedConcursoId !== 'all') {
       return subjects.map(s => ({
         ...s,
+        baseWeight: getSubjectWeight(s, phaseWeights),
+        isCalculated: phaseWeights.has(s.id),
         mergedSubjectIds: [s.id],
         topicIdMap: (s.topics || []).reduce((acc, t) => {
           acc[t.id] = [t.id];
@@ -269,6 +279,7 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, sim
       topicsByName: Map<string, { topic: Topic; topicIds: string[] }>;
       totalQuestionsGoal: number;
       maxWeight: number;
+      isCalculated: boolean;
     }>();
 
     subjects.forEach(sub => {
@@ -291,7 +302,8 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, sim
           mergedSubjectIds: [sub.id],
           topicsByName,
           totalQuestionsGoal: sub.questionsGoal || 0,
-          maxWeight: sub.weight || 1
+          maxWeight: getSubjectWeight(sub, phaseWeights),
+          isCalculated: phaseWeights.has(sub.id)
         });
       } else {
         const entry = groupMap.get(key)!;
@@ -299,8 +311,10 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, sim
         if (sub.questionsGoal) {
           entry.totalQuestionsGoal += sub.questionsGoal;
         }
-        if (sub.weight && sub.weight > entry.maxWeight) {
-          entry.maxWeight = sub.weight;
+        const candidateWeight = getSubjectWeight(sub, phaseWeights);
+        if (candidateWeight > entry.maxWeight) {
+          entry.maxWeight = candidateWeight;
+          entry.isCalculated = phaseWeights.has(sub.id);
         }
 
         (sub.topics || []).forEach(t => {
@@ -318,7 +332,7 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, sim
       }
     });
 
-    return Array.from(groupMap.values()).map(({ subject, mergedSubjectIds, topicsByName, totalQuestionsGoal, maxWeight }) => {
+    return Array.from(groupMap.values()).map(({ subject, mergedSubjectIds, topicsByName, totalQuestionsGoal, maxWeight, isCalculated }) => {
       const consolidatedTopics: Topic[] = Array.from(topicsByName.values()).map(x => x.topic);
       const topicIdMap: Record<string, string[]> = {};
       Array.from(topicsByName.values()).forEach(x => {
@@ -329,12 +343,13 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, sim
         ...subject,
         topics: consolidatedTopics,
         questionsGoal: totalQuestionsGoal > 0 ? totalQuestionsGoal : undefined,
-        weight: maxWeight,
+        baseWeight: maxWeight,
+        isCalculated,
         mergedSubjectIds,
         topicIdMap
       };
     });
-  }, [subjects, selectedConcursoId]);
+  }, [subjects, selectedConcursoId, phaseWeights]);
 
   const subjectData = useMemo(() => {
     return effectiveSubjects.map(sub => {
@@ -430,14 +445,7 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, sim
         }
       }
       
-      const subTopics = sub.topics || [];
-      const topicWeightsSum = subTopics.reduce((acc, t) => acc + (t.weight || 0), 0);
-      const baseSubjectWeight = sub.weight !== undefined && sub.weight > 0 ? sub.weight : 1;
-
-      // Se a disciplina possui assuntos com pesos configurados, o Peso por Disciplina considera os assuntos
-      const weight = topicWeightsSum > 0
-        ? parseFloat((baseSubjectWeight * (topicWeightsSum / 100)).toFixed(2))
-        : baseSubjectWeight;
+      const weight = getRankedSubjectWeight(sub, sub.baseWeight, sub.isCalculated);
 
       const questionsGoal = sub.questionsGoal || 0;
 
@@ -447,11 +455,12 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, sim
 
 
   const maxWeight = useMemo(() => Math.max(1, ...subjectData.map(d => d.weight)), [subjectData]);
-  const maxQuestions = useMemo(() => Math.max(1, ...subjectData.map(d => d.questions)), [subjectData]);
-  const maxMinutes = useMemo(() => Math.max(1, ...subjectData.map(d => d.minutes)), [subjectData]);
+  const maxQuestions = useMemo(() => Math.max(1, ...subjectData.filter(d => d.sub.baseWeight > 0).map(d => d.questions)), [subjectData]);
+  const maxMinutes = useMemo(() => Math.max(1, ...subjectData.filter(d => d.sub.baseWeight > 0).map(d => d.minutes)), [subjectData]);
 
   // Priority uses dynamic weights, where less minutes studies gives higher priority
   const getPriority = (weight: number, accuracy: number, questions: number, minutes: number): number => {
+    if (weight <= 0) return 0;
     const wNorm = weight / maxWeight;
     const accPenalty = questions > 0 ? (100 - accuracy) / 100 : 0.5;
     const qPenalty = Math.max(0, 1 - questions / Math.max(1, maxQuestions));
@@ -622,7 +631,8 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, sim
       'Meta Prevista',
       'Tempo (min)',
       'Aproveitamento (%)',
-      'Peso',
+      'Peso relativo',
+      'Peso por fases (%)',
       'Prioridade (%)'
     ];
 
@@ -641,6 +651,7 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, sim
         minutes,
         accuracy,
         weight,
+        isPhaseMode ? phaseWeights.get(sub.id)?.percentage ?? '' : '',
         priorityPct
       ]);
 
@@ -653,7 +664,7 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, sim
           const tCorrect = topicSessions.reduce((acc, s) => acc + (s.questionsCorrect || 0), 0);
           const tAccuracy = tDone > 0 ? Math.min(100, Math.round((tCorrect / tDone) * 100)) : 0;
           const tMinutes = topicSessions.reduce((acc, s) => acc + (s.durationInMinutes || 0), 0);
-          const baseSubjW = sub.weight !== undefined && sub.weight > 0 ? sub.weight : 1;
+          const baseSubjW = sub.baseWeight;
           const tEffectiveWeight = topic.weight !== undefined && topic.weight > 0
             ? baseSubjW * (topic.weight / 100)
             : baseSubjW / Math.max(1, sub.topics.length);
@@ -669,6 +680,7 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, sim
             tMinutes,
             tAccuracy,
             topic.weight !== undefined ? topic.weight : '-',
+            '',
             tPriorityPct
           ]);
         });
@@ -682,26 +694,10 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, sim
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-10">
+      {isPhaseMode && <p className="px-1 text-sm text-zinc-600 dark:text-zinc-300">{phaseErrors.length ? `Revise Fases e pesos em Editais. ${phaseErrors[0]}` : 'O peso por fases mostra a participação no plano. A prioridade também considera aproveitamento, questões resolvidas e tempo de estudo.'}</p>}
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 px-1">
         <div>
           <div className="flex flex-wrap items-center gap-3">
-            {concursos && onSelectConcursoId && (
-              <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-1.5 flex items-center gap-2 shadow-sm">
-                <Trophy size={14} className="text-amber-500" />
-                <select
-                  value={selectedConcursoId}
-                  onChange={(e) => onSelectConcursoId(e.target.value as string | 'all')}
-                  className="bg-white dark:bg-zinc-900 border-none outline-none text-xs font-bold text-zinc-800 dark:text-zinc-100 cursor-pointer w-32 uppercase tracking-wide focus:ring-0"
-                >
-                  <option value="all" className="bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-100">Visão Global</option>
-                  {concursos.map(c => (
-                    <option key={c.id} value={c.id} className="bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-100">
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
             <button
               onClick={() => {
                 if (showTopics) {
@@ -808,12 +804,13 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, sim
                 {th('questionsGoal', 'Previstas', 'text-right')}
                 {th('time', 'Tempo', 'text-right')}
                 {th('accuracy', 'Aproveitamento', 'text-right')}
-                {th('weight', 'Peso', 'text-right')}
+                {th('weight', isPhaseMode ? 'Peso por fases' : 'Peso', 'text-right')}
                 {th('priority', 'Prioridade', 'text-right')}
               </tr>
             </thead>
             <tbody>
               {sortedData.map(({ sub, questions, correct, accuracy, weight, questionsGoal, minutes }) => {
+                const phaseWeight = isPhaseMode ? phaseWeights.get(sub.id) : undefined;
                 const priority = getPriority(weight, accuracy, questions, minutes);
                 const priorityPct = Math.round(priority * 100);
                 const hasData = questions > 0;
@@ -849,7 +846,12 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, sim
                           {hasData ? `${accuracy}%` : '-'}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-right text-zinc-600 dark:text-zinc-400 font-mono font-bold">{weight}</td>
+                      <td className="px-4 py-3 text-right text-zinc-600 dark:text-zinc-400 font-mono font-bold">
+                        {phaseWeight ? <>
+                          <div>{formatPhasePercent(phaseWeight.percentage)}</div>
+                          <div className="text-[10px] font-normal">{EXAM_PHASES.filter(phase => phaseWeight.contributions[phase] > 0).map(phase => `${PHASE_LABELS[phase]} ${formatPhasePercent(phaseWeight.contributions[phase])}`).join(' · ') || 'Fora do planejamento'}</div>
+                        </> : isPhaseMode ? '—' : weight.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}
+                      </td>
                       <td className="px-4 py-3 text-right font-mono">
                         <span className={`px-2.5 py-1 rounded-full font-black ${
                           priorityPct >= 75 ? 'bg-rose-100 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400'
@@ -875,7 +877,7 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, sim
                             const tMinutes = topicSessions.reduce((acc, s) => acc + (s.durationInMinutes || 0), 0);
                             const tHasData = tDone > 0;
 
-                            const baseSubjW = sub.weight !== undefined && sub.weight > 0 ? sub.weight : 1;
+                            const baseSubjW = sub.baseWeight;
                             const tEffectiveWeight = topic.weight !== undefined && topic.weight > 0
                               ? baseSubjW * (topic.weight / 100)
                               : baseSubjW / Math.max(1, sub.topics.length);

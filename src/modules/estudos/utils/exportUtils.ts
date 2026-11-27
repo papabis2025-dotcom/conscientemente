@@ -1,5 +1,3 @@
-import * as XLSX from 'xlsx';
-
 /**
  * Utilitários para exportação de dados em planilhas (Excel / Google Planilhas) e PDF
  */
@@ -7,9 +5,9 @@ import * as XLSX from 'xlsx';
 /**
  * Exporta dados tabulares para um arquivo nativo do Excel (.xlsx) 100% compatível com o Google Planilhas
  */
-export function exportToXlsx(filename: string, sheetName: string, headers: string[], rows: (string | number | boolean | null | undefined)[][]) {
-  const data = [headers, ...rows];
-  const worksheet = XLSX.utils.aoa_to_sheet(data);
+export async function exportToXlsx(filename: string, sheetName: string, headers: string[], rows: (string | number | boolean | null | undefined)[][]) {
+  const { default: writeXlsxFile } = await import('write-excel-file/browser');
+  const data = [headers, ...rows].map(row => row.map(value => value ?? null));
 
   // Ajusta a largura das colunas dinamicamente com base no maior conteúdo
   const colWidths = headers.map((h, colIdx) => {
@@ -18,15 +16,10 @@ export function exportToXlsx(filename: string, sheetName: string, headers: strin
       const cellVal = String(r[colIdx] ?? '');
       if (cellVal.length > maxLen) maxLen = cellVal.length;
     });
-    return { wch: Math.min(60, Math.max(12, maxLen + 3)) };
+    return { width: Math.min(60, Math.max(12, maxLen + 3)) };
   });
-  worksheet['!cols'] = colWidths;
-
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, sheetName.slice(0, 31));
-
   const finalFilename = filename.endsWith('.xlsx') ? filename : `${filename}.xlsx`;
-  XLSX.writeFile(workbook, finalFilename);
+  await writeXlsxFile(data, { sheet: sheetName.slice(0, 31), columns: colWidths }).toFile(finalFilename);
 }
 
 /**

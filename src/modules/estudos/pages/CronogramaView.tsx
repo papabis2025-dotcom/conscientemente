@@ -1,6 +1,7 @@
-import React, { useState, useMemo, useCallback } from 'react';
-import { Subject, Topic, StudySession, Concurso, ScheduledStudy, Simulado, ActivityType, isReviewTask } from '../types';
-import { api } from '../services/api';
+import React, { useState, useMemo, useCallback, useRef } from 'react';
+import { Subject, Topic, StudySession, Concurso, ScheduledStudy, Simulado, ActivityType } from '../types';
+import { isPendingGeneratedStudy } from '../utils/persistence';
+import { getLocalDateString } from '../../../utils/dateUtils';
 import {
   CalendarDays,
   ChevronLeft,
@@ -40,12 +41,10 @@ interface CronogramaViewProps {
   selectedConcursoId: string;
   onSelectConcursoId?: (id: string | 'all') => void;
   scheduledStudies: ScheduledStudy[];
-  onAddScheduledStudiesBatch: (items: (Omit<ScheduledStudy, 'id' | 'status'> & { id?: string })[]) => Promise<void>;
+  onAddScheduledStudiesBatch: (items: (Omit<ScheduledStudy, 'id' | 'status'> & { id?: string })[], concursoId: string) => Promise<void>;
   onDeleteScheduledStudiesBatch: (ids: string[]) => Promise<void>;
   onToggleScheduledStudyStatus: (id: string) => Promise<void>;
-  onResetConcursoSchedule?: (concursoId: string) => Promise<void>;
   onUpdateScheduledStudy?: (id: string, updates: Partial<ScheduledStudy>) => Promise<void>;
-  onSyncReviews?: (forceRecalculate?: boolean) => Promise<void>;
 }
 
 const WEEKDAYS = [
@@ -69,15 +68,14 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
   onAddScheduledStudiesBatch,
   onDeleteScheduledStudiesBatch,
   onToggleScheduledStudyStatus,
-  onResetConcursoSchedule,
-  onUpdateScheduledStudy,
-  onSyncReviews
+  onUpdateScheduledStudy
 }) => {
   // UI States
   const [viewMode, setViewMode] = useState<'day' | 'week' | 'month'>('week');
   const [currentWeekOffset, setCurrentWeekOffset] = useState(0);
-  const [selectedDateStr, setSelectedDateStr] = useState<string>(() => new Date().toISOString().split('T')[0]);
+  const [selectedDateStr, setSelectedDateStr] = useState<string>(() => getLocalDateString());
   const [isGenerating, setIsGenerating] = useState(false);
+  const generating = useRef(false);
   const [showPrefsModal, setShowPrefsModal] = useState(false);
   const [isCronogramaEnabled, setIsCronogramaEnabled] = useState(true);
 
@@ -85,7 +83,7 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
   const [durWeeks, setDurWeeks] = useState(8);
   const [dailyHours, setDailyHours] = useState(3);
   const [activeDays, setActiveDays] = useState<string[]>(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']);
-  const [startDateStr, setStartDateStr] = useState(() => new Date().toISOString().split('T')[0]);
+  const [startDateStr, setStartDateStr] = useState(() => getLocalDateString());
   const [subjectsPerDay, setSubjectsPerDay] = useState(2);
   const [topicsPerSubjectPerDay, setTopicsPerSubjectPerDay] = useState(1);
   const [simuladoIntervalDays, setSimuladoIntervalDays] = useState(7);
@@ -114,7 +112,7 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
         setSubjectsPerDay(2);
         setTopicsPerSubjectPerDay(1);
         setActiveDays(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']);
-        setStartDateStr(new Date().toISOString().split('T')[0]);
+        setStartDateStr(getLocalDateString());
         setIsCronogramaEnabled(true);
         setSimuladoIntervalDays(7);
         setSimuladoQuestionsLimit(60);
@@ -124,7 +122,7 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
     }
   }, [selectedConcursoId]);
 
-  const handleSavePreferences = (overrideStartDateStr?: string, silent?: boolean) => {
+  const handleSavePreferences = (overrideStartDateStr?: string, silent?: boolean, enabled = isCronogramaEnabled) => {
     const effectiveStart = overrideStartDateStr || startDateStr;
     const prefs = {
       durWeeks,
@@ -133,7 +131,7 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
       topicsPerSubjectPerDay,
       activeDays,
       startDateStr: effectiveStart,
-      isCronogramaEnabled,
+      isCronogramaEnabled: enabled,
       simuladoIntervalDays,
       simuladoQuestionsLimit
     };
@@ -157,11 +155,10 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
     }
 
     localStorage.setItem('cp_cronograma_prefs_map', JSON.stringify(map));
-    api.settings.update({ cp_cronograma_prefs_map: map }).catch(() => {});
     window.dispatchEvent(new Event('local-settings-changed'));
 
     if (!silent) {
-      alert('Preferências salvas com sucesso!');
+      alert('Preferências salvas neste dispositivo. A sincronização será feita em seguida.');
     }
   };
 
@@ -196,18 +193,10 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
       } catch (e) {}
       map[selectedConcursoId] = updatedPrefs;
       localStorage.setItem('cp_cronograma_prefs_map', JSON.stringify(map));
-      api.settings.update({ cp_cronograma_prefs_map: map }).catch(() => {});
       window.dispatchEvent(new Event('local-settings-changed'));
 
       // Apagar todas as tarefas pendentes de estudo regular do concurso ativo (preserva revisões e estudos manuais)
-      const uncompletedTasks = (scheduledStudies || []).filter(s => 
-        s.status !== 'realizado' &&
-        !isReviewTask(s) && (
-          activeConcursoSubjectIds.has(s.subjectId) ||
-          s.concursoId === selectedConcursoId ||
-          s.activityType === 'Simulado'
-        )
-      );
+      const uncompletedTasks = scheduledStudies.filter(s => isPendingGeneratedStudy(s, selectedConcursoId, activeConcursoSubjectIds));
       if (uncompletedTasks.length > 0) {
         const ids = uncompletedTasks.map(t => t.id);
         await onDeleteScheduledStudiesBatch(ids);
@@ -390,61 +379,15 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
 
   // Handle generating new schedule
   const handleGenerate = async (overrideStartDateStr?: string) => {
-    if (!activeConcurso || subjects.length === 0) return;
+    if (generating.current || !activeConcurso || subjects.length === 0) return false;
+    generating.current = true;
     setIsGenerating(true);
 
     try {
       setIsCronogramaEnabled(true);
-      const todayStr = new Date().toISOString().split('T')[0];
+      const todayStr = getLocalDateString();
       const effectiveStartDateStr = overrideStartDateStr || startDateStr || todayStr;
       setStartDateStr(effectiveStartDateStr);
-
-      const prefs = {
-        durWeeks,
-        dailyHours,
-        subjectsPerDay,
-        topicsPerSubjectPerDay,
-        activeDays,
-        startDateStr: effectiveStartDateStr,
-        isCronogramaEnabled: true,
-        simuladoIntervalDays,
-        simuladoQuestionsLimit
-      };
-
-      let map: Record<string, any> = {};
-      try {
-        const rawMap = localStorage.getItem('cp_cronograma_prefs_map');
-        if (rawMap) map = JSON.parse(rawMap);
-      } catch (e) {}
-
-      if (selectedConcursoId && selectedConcursoId !== 'all') {
-        localStorage.setItem(`cp_cronograma_prefs_${selectedConcursoId}`, JSON.stringify(prefs));
-        map[selectedConcursoId] = prefs;
-      } else {
-        localStorage.setItem('cp_cronograma_prefs_default', JSON.stringify(prefs));
-        map['default'] = prefs;
-      }
-      localStorage.setItem('cp_cronograma_prefs_map', JSON.stringify(map));
-      api.settings.update({ cp_cronograma_prefs_map: map }).catch(() => {});
-      window.dispatchEvent(new Event('local-settings-changed'));
-
-      // 0. Purgar tarefas pendentes antigas de estudo regular para evitar duplicatas ao re-gerar (preserva revisões e estudos manuais)
-      const uncompletedOldTasks = (scheduledStudies || []).filter(s =>
-        s.status !== 'realizado' &&
-        !isReviewTask(s) && (
-          activeConcursoSubjectIds.has(s.subjectId) ||
-          s.concursoId === selectedConcursoId ||
-          (s.activityType === 'Simulado' && s.concursoId === selectedConcursoId)
-        )
-      );
-      if (uncompletedOldTasks.length > 0) {
-        await onDeleteScheduledStudiesBatch(uncompletedOldTasks.map(t => t.id));
-      }
-      try {
-        await api.schedule.purgeUncompletedByConcurso(selectedConcursoId, Array.from(activeConcursoSubjectIds));
-      } catch (e) {
-        console.error('Error purging uncompleted tasks from DB:', e);
-      }
 
       // 1. Carrega os pesos customizados definidos na guia Análise Estatística para o concurso ativo (ou global)
       let weightAcc = 50, weightSubj = 25, weightQtd = 15, weightTime = 10;
@@ -820,17 +763,16 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
       // Não geramos mais revisões antecipadas/especulativas para matérias que ainda estão apenas planejadas.
 
       // Salva em lote
-      await onAddScheduledStudiesBatch(items);
-      try {
-        if (onSyncReviews) {
-          await onSyncReviews();
-        }
-      } catch (e) {}
+      await onAddScheduledStudiesBatch(items, activeConcurso.id);
+      handleSavePreferences(effectiveStartDateStr, true, true);
       setSelectedDateStr(effectiveStartDateStr);
+      return true;
     } catch (e) {
       console.error('Error generating schedule:', e);
-      alert('Erro ao gerar cronograma. Tente novamente.');
+      setIsCronogramaEnabled(isCronogramaEnabled);
+      return false;
     } finally {
+      generating.current = false;
       setIsGenerating(false);
     }
   };
@@ -845,18 +787,7 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
       return;
     }
 
-    setIsGenerating(true);
-    try {
-      const todayStr = new Date().toISOString().split('T')[0];
-      setStartDateStr(todayStr);
-      handleSavePreferences(todayStr, true);
-      await handleGenerate(todayStr);
-    } catch (e) {
-      console.error('Error restarting cronograma:', e);
-      alert('Ocorreu um erro ao reiniciar o cronograma.');
-    } finally {
-      setIsGenerating(false);
-    }
+    await handleGenerate(getLocalDateString());
   };
 
   // Complete click handler
@@ -1227,7 +1158,6 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
                 <button
                   type="button"
                   onClick={async () => {
-                    setIsCronogramaEnabled(true);
                     await handleGenerate();
                   }}
                   disabled={isGenerating}
@@ -2133,11 +2063,7 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
               <button
                 type="button"
                 onClick={async () => {
-                  const todayStr = new Date().toISOString().split('T')[0];
-                  setStartDateStr(todayStr);
-                  handleSavePreferences(todayStr, true);
-                  await handleGenerate(todayStr);
-                  setShowPrefsModal(false);
+                  if (await handleGenerate()) setShowPrefsModal(false);
                 }}
                 disabled={isGenerating}
                 className="flex-1 bg-emerald-500 hover:bg-emerald-600 active:scale-[0.98] text-white font-black uppercase tracking-widest text-xs py-3 rounded-xl shadow-lg shadow-emerald-500/10 hover:shadow-emerald-500/20 transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"

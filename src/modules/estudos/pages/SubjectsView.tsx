@@ -560,11 +560,6 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
 
   // DnD handlers for subject row reordering
   const handleSubjectDragStart = (e: React.DragEvent, id: string) => {
-    const target = e.target as HTMLElement;
-    if (!target.closest('.drag-handle')) {
-      e.preventDefault();
-      return;
-    }
     setDraggedSubjectId(id);
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('subject-id', id);
@@ -584,7 +579,6 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
       setDragOverSubjectId(null);
       return;
     }
-    // Re-order: insert source before target in the sorted array
     const sorted = [...subjects].sort((a, b) => (a.order ?? 9999) - (b.order ?? 9999));
     const sourceIdx = sorted.findIndex(s => s.id === sourceId);
     const targetIdx = sorted.findIndex(s => s.id === targetId);
@@ -592,10 +586,7 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
     const reordered = [...sorted];
     const [moved] = reordered.splice(sourceIdx, 1);
     reordered.splice(targetIdx, 0, moved);
-    const updated = subjects.map(s => {
-      const newIdx = reordered.findIndex(r => r.id === s.id);
-      return { ...s, order: newIdx + 1 };
-    });
+    const updated = reordered.map((subject, index) => ({ ...subject, order: index + 1 }));
     onUpdateSubjects(updated);
     setDraggedSubjectId(null);
     setDragOverSubjectId(null);
@@ -841,7 +832,8 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
     });
 
     const concursoName = (concursos || []).find(c => c.id === selectedConcursoId)?.name || 'Geral';
-    exportToXlsx(`Disciplinas_${concursoName.replace(/[^a-zA-Z0-9_-]/g, '_')}`, 'Disciplinas', headers, rows);
+    exportToXlsx(`Disciplinas_${concursoName.replace(/[^a-zA-Z0-9_-]/g, '_')}`, 'Disciplinas', headers, rows)
+      .catch(() => alert('Não foi possível exportar a planilha.'));
   };
 
   return (
@@ -1063,18 +1055,21 @@ const SubjectsView: React.FC<SubjectsViewProps> = ({ subjects, sessions, onUpdat
                         draggedSubjectId === subject.id ? 'opacity-40' : ''
                       }`}
                       onClick={() => toggleExpand(subject.id)}
-                      draggable={sortBy === 'default' && editingSubjectId !== subject.id}
-                      onDragStart={sortBy === 'default' ? (e) => handleSubjectDragStart(e, subject.id) : undefined}
                       onDragOver={sortBy === 'default' ? (e) => handleSubjectDragOver(e, subject.id) : undefined}
                       onDrop={sortBy === 'default' ? (e) => handleSubjectDrop(e, subject.id) : undefined}
-                      onDragEnd={sortBy === 'default' ? handleSubjectDragEnd : undefined}
                     >
                       <td className="px-2 py-3 w-10" onClick={(e) => e.stopPropagation()}>
                         {sortBy === 'default' ? (
-                          <div className="flex items-center gap-1 drag-handle">
+                          <div
+                            className="flex items-center gap-1 cursor-grab active:cursor-grabbing"
+                            draggable={editingSubjectId !== subject.id}
+                            onDragStart={e => handleSubjectDragStart(e, subject.id)}
+                            onDragEnd={handleSubjectDragEnd}
+                            title="Arraste para reordenar"
+                          >
                             <GripVertical
                               size={14}
-                              className="text-zinc-300 dark:text-zinc-600 cursor-grab active:cursor-grabbing shrink-0"
+                              className="text-zinc-300 dark:text-zinc-600 pointer-events-none shrink-0"
                             />
                           </div>
                         ) : (

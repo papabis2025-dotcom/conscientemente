@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "test": "node --test --experimental-strip-types tests/modulePin.test.ts tests/sanitizeHtml.test.ts tests/ideThemes.test.ts",
+    "test": "node --test --experimental-strip-types tests/*.test.ts",
     "typecheck": "tsc --noEmit",
     "build": "vite build",
     "preview": "vite preview"
@@ -13,13 +13,13 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.90.1",
     "clsx": "^2.1.1",
+    "dompurify": "^3.5.0",
     "lucide-react": "^0.562.0",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
     "recharts": "^2.12.7",
     "tailwind-merge": "^3.4.0",
-    "write-excel-file": "^4.1.1",
-    "xlsx": "^0.18.5"
+    "write-excel-file": "^4.1.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.18",

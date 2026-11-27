@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { Subject, ScheduledStudy, ActivityType, Topic, StudySession, Simulado, Concurso } from '../types';
 import { getColorHex, getBadgeStyle } from '../utils/colors';
 import { FileText, Layers, Video, BookOpen, Clipboard, Book, Clock, RefreshCw, Sparkles, Plus, Trash2, ExternalLink, Printer, Pin, Trophy } from 'lucide-react';
@@ -66,6 +66,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   const [showModal, setShowModal] = useState(false);
   const [editingTask, setEditingTask] = useState<ScheduledStudy | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
+  const savingActivity = useRef(false);
+  const [isSavingActivity, setIsSavingActivity] = useState(false);
   const [listGroupBy, setListGroupBy] = useState<ListGroupBy>('dia');
   const [listStatusFilter, setListStatusFilter] = useState<'todos' | 'planejado' | 'realizado'>('todos');
 
@@ -250,7 +252,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   };
 
   const handleSave = async () => {
-    if (selectedDayKey === null) return;
+    if (selectedDayKey === null || savingActivity.current) return;
 
     const isAulao = formData.activityTypes.includes('Aulão de Revisão');
     if (isAulao && (!formData.subjectIds || formData.subjectIds.length === 0)) {
@@ -269,6 +271,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({
 
     const filteredLinks = formData.questionsLinks ? formData.questionsLinks.filter(Boolean) : [];
     const linkPayload = filteredLinks.length > 0 ? JSON.stringify(filteredLinks) : null;
+    savingActivity.current = true;
+    setIsSavingActivity(true);
     try {
       await onSaveActivity(editingTask ? editingTask.id : null, {
         ...formData,
@@ -291,6 +295,9 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     } catch (e) {
       console.error('Error saving activity:', e);
       alert('Erro ao salvar a atividade. Verifique os dados e tente novamente.');
+    } finally {
+      savingActivity.current = false;
+      setIsSavingActivity(false);
     }
   };
 
@@ -1680,10 +1687,10 @@ const CalendarView: React.FC<CalendarViewProps> = ({
 
                 <button 
                   type="submit" 
-                  disabled={formData.activityTypes.includes('Aulão de Revisão') ? (formData.subjectIds || []).length === 0 : !formData.subjectId} 
+                  disabled={isSavingActivity || (formData.activityTypes.includes('Aulão de Revisão') ? (formData.subjectIds || []).length === 0 : !formData.subjectId)}
                   className="w-full py-4 bg-zinc-900 dark:bg-zinc-700 text-white rounded-2xl text-[10px] font-black uppercase shadow-lg disabled:opacity-30 active:scale-95 transition-all mt-4"
                 >
-                  {editingTask ? 'Salvar Alterações' : 'Salvar no Planner'}
+                  {isSavingActivity ? 'Salvando…' : editingTask ? 'Salvar Alterações' : 'Salvar no Planner'}
                 </button>
               </form>
             </div>

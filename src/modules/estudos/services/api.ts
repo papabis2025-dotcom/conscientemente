@@ -153,7 +153,7 @@ export const api = {
                         currentSettings[k] = val;
                     } else if (typeof val === 'number' || typeof val === 'boolean') {
                         currentSettings[k] = String(val);
-                    } else if (typeof val === 'object' && !currentSettings[k]) {
+                    } else if (typeof val === 'object') {
                         try {
                             currentSettings[k] = JSON.stringify(val);
                         } catch (e) {}
@@ -477,7 +477,7 @@ export const api = {
         deleteBatch: async (ids: string[]) => {
             if (ids.length === 0) return;
             const user = await getAuthUser();
-            if (!user) return;
+            if (!user) throw new Error('Not authenticated');
             const chunkSize = 50;
             const chunks: string[][] = [];
             for (let i = 0; i < ids.length; i += chunkSize) {
@@ -485,7 +485,7 @@ export const api = {
             }
             await Promise.all(
                 chunks.map(chunk =>
-                    supabase.from('study_sessions').delete().in('id', chunk).eq('user_id', user.id)
+                    handleRequest(supabase.from('study_sessions').delete().in('id', chunk).eq('user_id', user.id))
                 )
             );
         },
@@ -516,11 +516,12 @@ export const api = {
             const created: any[] = [];
             for (let i = 0; i < payloads.length; i += chunkSize) {
                 const chunk = payloads.slice(i, i + chunkSize);
-                let result = await supabase.from('study_sessions').insert(chunk).select();
-                if (result.error && result.error.code === '42703') {
+                let result = await supabase.from('study_sessions').upsert(chunk, { onConflict: 'id', ignoreDuplicates: true }).select();
+                if (result.error && ['42703', 'PGRST204'].includes(result.error.code)) {
                     const fallbackChunk = chunk.map(({ questions_link, activity_type, ...rest }) => rest);
-                    result = await supabase.from('study_sessions').insert(fallbackChunk).select();
+                    result = await supabase.from('study_sessions').upsert(fallbackChunk, { onConflict: 'id', ignoreDuplicates: true }).select();
                 }
+                if (result.error) throw result.error;
                 if (result.data) {
                     created.push(...result.data);
                 }
@@ -779,10 +780,10 @@ export const api = {
             const user = await getAuthUser();
             if (user) return handleRequest(supabase.from('scheduled_studies').delete().eq('user_id', user.id));
         },
-        createBatch: async (items: (Omit<ScheduledStudy, 'id'> & { id?: string })[]) => {
+        createBatch: async (items: (Omit<ScheduledStudy, 'id'> & { id?: string })[], { atomic = false } = {}) => {
+            if (items.length === 0) return;
             const user = await getAuthUser();
             if (!user) throw new Error('Not authenticated');
-            if (items.length === 0) return [];
 
             const dbPayloads = items.map(item => {
                 let formattedNotes = item.notes || '';
@@ -809,66 +810,22 @@ export const api = {
                 };
             });
 
-            const chunkSize = 50;
-            const savedResults: ScheduledStudy[] = [];
+            const chunkSize = atomic ? dbPayloads.length : 50;
 
             for (let i = 0; i < dbPayloads.length; i += chunkSize) {
                 const chunk = dbPayloads.slice(i, i + chunkSize);
-                const originalItemsChunk = items.slice(i, i + chunkSize);
-
-                let result = await supabase.from('scheduled_studies').insert(chunk).select();
-                if (result.error && result.error.code === '42703') {
+                let result = await supabase.from('scheduled_studies').upsert(chunk, { onConflict: 'id', ignoreDuplicates: true });
+                if (result.error && ['42703', 'PGRST204'].includes(result.error.code)) {
                     const payloadsWithout = chunk.map(({ questions_link, status: _s, ...rest }) => rest);
-                    result = await supabase.from('scheduled_studies').insert(payloadsWithout).select();
+                    result = await supabase.from('scheduled_studies').upsert(payloadsWithout, { onConflict: 'id', ignoreDuplicates: true });
                 }
-
-                if (result.error) {
-                    console.error('Supabase createBatch chunk error (falling back to local):', JSON.stringify(result.error, null, 2));
-                    // Em caso de erro na rede/Supabase, não descarta o lote; retorna os itens locais com os IDs
-                    originalItemsChunk.forEach((item, idx) => {
-                        savedResults.push({
-                            id: chunk[idx].id,
-                            date: item.date.split('T')[0],
-                            subjectId: item.subjectId,
-                            topicId: item.topicId,
-                            activityType: item.activityType,
-                            notes: chunk[idx].notes || item.notes,
-                            durationInMinutes: item.durationInMinutes || 0,
-                            questionsDone: item.questionsDone,
-                            questionsCorrect: item.questionsCorrect,
-                            questionsLink: item.questionsLink,
-                            status: (item as any).status || 'planejado',
-                            concursoId: item.concursoId,
-                            generatedByCronograma: item.generatedByCronograma ?? true
-                        });
-                    });
-                } else if (result.data) {
-                    result.data.forEach((r: any, idx: number) => {
-                        savedResults.push({
-                            id: r.id,
-                            date: r.date.split('T')[0],
-                            subjectId: r.subject_id,
-                            topicId: r.topic_id,
-                            activityType: r.activity_type,
-                            notes: r.notes,
-                            durationInMinutes: r.duration_minutes,
-                            questionsDone: r.questions_done,
-                            questionsCorrect: r.questions_correct,
-                            questionsLink: r.questions_link || undefined,
-                            status: (r.status as 'planejado' | 'realizado') || 'planejado',
-                            concursoId: originalItemsChunk[idx]?.concursoId || undefined,
-                            generatedByCronograma: originalItemsChunk[idx]?.generatedByCronograma ?? true
-                        });
-                    });
-                }
+                if (result.error) throw result.error;
             }
-
-            return savedResults;
         },
         deleteBatch: async (ids: string[]) => {
             if (ids.length === 0) return;
             const user = await getAuthUser();
-            if (!user) return null;
+            if (!user) throw new Error('Not authenticated');
             const chunkSize = 50;
             const chunks: string[][] = [];
             for (let i = 0; i < ids.length; i += chunkSize) {
@@ -876,7 +833,7 @@ export const api = {
             }
             await Promise.all(
                 chunks.map(chunk =>
-                    supabase.from('scheduled_studies').delete().in('id', chunk).eq('user_id', user.id)
+                    handleRequest(supabase.from('scheduled_studies').delete().in('id', chunk).eq('user_id', user.id))
                 )
             );
         },

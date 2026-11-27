@@ -676,7 +676,8 @@ const StatisticsView: React.FC<StatisticsViewProps> = ({ subjects, sessions, sim
     });
 
     const concursoName = (concursos || []).find(c => c.id === selectedConcursoId)?.name || 'Visao_Global';
-    exportToXlsx(`Analise_Estatistica_${concursoName.replace(/[^a-zA-Z0-9_-]/g, '_')}`, 'Análise Estatística', headers, rows);
+    exportToXlsx(`Analise_Estatistica_${concursoName.replace(/[^a-zA-Z0-9_-]/g, '_')}`, 'Análise Estatística', headers, rows)
+      .catch(() => alert('Não foi possível exportar a planilha.'));
   };
 
   return (

@@ -1396,8 +1396,14 @@ const HubHome: React.FC<HubHomeProps> = ({
   useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    return () => clearInterval(timer);
+    let timer: ReturnType<typeof setTimeout>;
+    const updateClock = () => {
+      const now = new Date();
+      setCurrentTime(now);
+      timer = setTimeout(updateClock, 60_000 - now.getTime() % 60_000);
+    };
+    updateClock();
+    return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {

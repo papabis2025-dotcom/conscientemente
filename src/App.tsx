@@ -76,7 +76,6 @@ const SYNC_KEYS = [
   'estudos_weights_locked',
   'gp_concurso_edulevels_map',
   'cp_concursos_backup',
-  'cp_scheduled_studies',
   'cn_profile_photo',
   'cp_flashcard_spacing_settings',
 ];
@@ -149,7 +148,6 @@ function mergeSettings(
     if (
       key === 'cp_dashboard_layout_v19' ||
       key === 'cp_dashboard_layout_v20' ||
-      key === 'cp_scheduled_studies' ||
       key === 'cp_concursos_backup' ||
       key === 'cn_saude_dashboard_layout' ||
       key === 'cn_home_cards_layout' ||
@@ -725,13 +723,14 @@ const App: React.FC = () => {
         }
 
         try {
-          await supabase.from('user_preferences').upsert({
+          const { error } = await supabase.from('user_preferences').upsert({
             user_id: session.user.id,
             hub_bg_type: bgType,
             hub_bg_color: bgColor,
             hub_bg_image_url: payloadJson
           }, { onConflict: 'user_id' });
 
+          if (error) throw error;
           setLastKnownSettings(currentSerialized);
           setLastSyncTime(updatedTime);
         } catch (err) {
@@ -902,9 +901,7 @@ const App: React.FC = () => {
     let timeoutId: NodeJS.Timeout | null = null;
 
     const triggerImmediateSync = () => {
-      const now = Date.now();
-      lastSyncTimeRef.current = now;
-      setLastSyncTime(now);
+      lastSyncTimeRef.current = Date.now();
 
       if (timeoutId) clearTimeout(timeoutId);
 
@@ -924,13 +921,14 @@ const App: React.FC = () => {
           if (payloadJson.length > 800_000) return;
 
           try {
-            await supabase.from('user_preferences').upsert({
+            const { error } = await supabase.from('user_preferences').upsert({
               user_id: session.user.id,
               hub_bg_type: (localSettings['cn_custom_bg_type'] as any) || bgType,
               hub_bg_color: localSettings['cn_custom_bg_color'] || bgColor,
               hub_bg_image_url: payloadJson
             }, { onConflict: 'user_id' });
 
+            if (error) throw error;
             setLastKnownSettings(currentSerialized);
             setLastSyncTime(updatedTime);
             lastSyncTimeRef.current = updatedTime;
@@ -955,7 +953,7 @@ const App: React.FC = () => {
       if (timeoutId) clearTimeout(timeoutId);
       window.removeEventListener('local-settings-changed', triggerImmediateSync);
     };
-  }, [session, isPrefsLoaded, lastKnownSettings, bgType, bgColor, lastSyncTime]);
+  }, [session, isPrefsLoaded, lastKnownSettings, bgType, bgColor]);
 
   // Apply theme to <html>
   useEffect(() => {

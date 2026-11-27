@@ -280,7 +280,7 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
       case 'concursos':
         return <ConcursosView concursos={concursos} onUpdateConcursos={setConcursos} onSelectConcurso={(c) => { setSelectedConcursoId(c.id); setActiveTab('dashboard'); }} scheduledStudies={allScheduledStudies || scheduledStudies} sessions={allSessions || sessions} />;
       case 'subjects':
-        return <SubjectsView subjects={selectedConcursoId === 'all' ? filteredSubjects : (activeConcurso?.subjects || [])} sessions={sessions} onUpdateSubjects={(subs) => setConcursos(concursos.map(c => c.id === selectedConcursoId ? { ...c, subjects: subs } : c))} selectedConcursoId={selectedConcursoId} onSelectConcursoId={setSelectedConcursoId} concursos={concursos} scheduledStudies={scheduledStudies} onToggleScheduledStudyStatus={toggleScheduledStudyStatus} onNavigateToFlashcards={(subId) => { setSelectedFlashcardSubjectId(subId); setActiveTab('flashcards'); }} />;
+        return <SubjectsView subjects={selectedConcursoId === 'all' ? filteredSubjects : (activeConcurso?.subjects || [])} sessions={sessions} onUpdateSubjects={(subs) => { void setConcursos(concursos.map(c => c.id === selectedConcursoId ? { ...c, subjects: subs } : c)).catch(() => {}); }} selectedConcursoId={selectedConcursoId} onSelectConcursoId={setSelectedConcursoId} concursos={concursos} scheduledStudies={scheduledStudies} onToggleScheduledStudyStatus={toggleScheduledStudyStatus} onNavigateToFlashcards={(subId) => { setSelectedFlashcardSubjectId(subId); setActiveTab('flashcards'); }} />;
       case 'questions':
         return <QuestionsView subjects={filteredSubjects} sessions={sessions} dailyGoals={dailyGoals} onUpdateDailyGoals={setDailyGoals} onAddSession={addSession} onDeleteSession={deleteSession} />;
       case 'simulados':
@@ -297,9 +297,7 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
           onAddScheduledStudiesBatch={addScheduledStudiesBatch}
           onDeleteScheduledStudiesBatch={deleteScheduledStudiesBatch}
           onToggleScheduledStudyStatus={toggleScheduledStudyStatus}
-          onResetConcursoSchedule={resetConcursoSchedule}
           onUpdateScheduledStudy={updateScheduledStudy}
-          onSyncReviews={syncPlannedReviews}
         />;
       case 'flashcards':
         return <FlashcardsView
@@ -400,6 +398,10 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
           alignment === 'right' ? 'ml-auto mr-0' :
           'mx-auto'
         }`}>
+          <div role="status" className="text-xs text-zinc-600 dark:text-zinc-300">
+            {isSaving && <p className="mb-2">Sincronizando com a nuvem…</p>}
+          </div>
+          {saveError && <p role="alert" className="mb-3 rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-800 dark:bg-rose-950 dark:text-rose-200">{saveError}</p>}
           <React.Suspense fallback={
             <div className="flex items-center justify-center min-h-[350px]">
               <div className="w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />

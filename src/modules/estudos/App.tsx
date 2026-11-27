@@ -2,19 +2,22 @@ import React, { useState } from 'react';
 import Sidebar from './components/Sidebar';
 import Dashboard from './pages/Dashboard';
 import SubjectsView from './pages/SubjectsView';
-import StudyPlan from './pages/StudyPlan';
-import SimuladosView from './pages/SimuladosView';
-import ConcursosView from './pages/ConcursosView';
-import CalendarView from './pages/CalendarView';
 import QuestionsView from './pages/QuestionsView';
-import SettingsView from './pages/SettingsView';
-import LogView from './pages/LogView';
-import StatisticsView from './pages/StatisticsView';
-import LoginView from './pages/LoginView';
-import CronogramaView from './pages/CronogramaView';
-import QuestionsNotebooksView from './pages/QuestionsNotebooksView';
-import AtividadesView from './pages/AtividadesView';
-import { FlashcardsView } from './pages/FlashcardsView';
+
+// Code-splitting das visualizações pesadas para carregamento sob demanda
+const StudyPlan = React.lazy(() => import('./pages/StudyPlan'));
+const SimuladosView = React.lazy(() => import('./pages/SimuladosView'));
+const ConcursosView = React.lazy(() => import('./pages/ConcursosView'));
+const CalendarView = React.lazy(() => import('./pages/CalendarView'));
+const SettingsView = React.lazy(() => import('./pages/SettingsView'));
+const LogView = React.lazy(() => import('./pages/LogView'));
+const StatisticsView = React.lazy(() => import('./pages/StatisticsView'));
+const LoginView = React.lazy(() => import('./pages/LoginView'));
+const CronogramaView = React.lazy(() => import('./pages/CronogramaView'));
+const QuestionsNotebooksView = React.lazy(() => import('./pages/QuestionsNotebooksView'));
+const AtividadesView = React.lazy(() => import('./pages/AtividadesView'));
+const FlashcardsView = React.lazy(() => import('./pages/FlashcardsView').then(m => ({ default: m.FlashcardsView })));
+
 import { Concurso, ActivityType, StudySession, Topic } from './types';
 import { useAppData } from './hooks/useAppData';
 import { useTimer } from './hooks/useTimer';
@@ -396,7 +399,15 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
           alignment === 'left' ? 'ml-0 mr-auto' :
           alignment === 'right' ? 'ml-auto mr-0' :
           'mx-auto'
-        }`}>{renderContent()}</div>
+        }`}>
+          <React.Suspense fallback={
+            <div className="flex items-center justify-center min-h-[350px]">
+              <div className="w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+            </div>
+          }>
+            {renderContent()}
+          </React.Suspense>
+        </div>
       </main>
 
 

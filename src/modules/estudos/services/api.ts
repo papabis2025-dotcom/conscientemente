@@ -474,6 +474,59 @@ export const api = {
             if (!user) return null;
             return handleRequest(supabase.from('study_sessions').delete().eq('subject_id', subjectId).eq('user_id', user.id));
         },
+        deleteBatch: async (ids: string[]) => {
+            if (ids.length === 0) return;
+            const user = await getAuthUser();
+            if (!user) return;
+            const chunkSize = 50;
+            const chunks: string[][] = [];
+            for (let i = 0; i < ids.length; i += chunkSize) {
+                chunks.push(ids.slice(i, i + chunkSize));
+            }
+            await Promise.all(
+                chunks.map(chunk =>
+                    supabase.from('study_sessions').delete().in('id', chunk).eq('user_id', user.id)
+                )
+            );
+        },
+        createBatch: async (sessionsList: (Omit<StudySession, 'id' | 'user_id' | 'created_at'> & { id?: string })[]) => {
+            const user = await getAuthUser();
+            if (!user) throw new Error('Not authenticated');
+            if (sessionsList.length === 0) return [];
+
+            const payloads = sessionsList.map(session => {
+                const rawDate = session.date;
+                const normalizedDate = rawDate.includes('T') ? rawDate : `${rawDate}T12:00:00.000Z`;
+                return {
+                    id: session.id || crypto.randomUUID(),
+                    user_id: user.id,
+                    subject_id: session.subjectId,
+                    topic_id: session.topicId || null,
+                    duration_minutes: session.durationInMinutes || 0,
+                    date: normalizedDate,
+                    questions_done: session.questionsDone ?? 0,
+                    questions_correct: session.questionsCorrect ?? 0,
+                    is_simulado: !!session.isSimulado,
+                    activity_type: session.activityType || null,
+                    questions_link: session.questionsLink || null
+                };
+            });
+
+            const chunkSize = 50;
+            const created: any[] = [];
+            for (let i = 0; i < payloads.length; i += chunkSize) {
+                const chunk = payloads.slice(i, i + chunkSize);
+                let result = await supabase.from('study_sessions').insert(chunk).select();
+                if (result.error && result.error.code === '42703') {
+                    const fallbackChunk = chunk.map(({ questions_link, activity_type, ...rest }) => rest);
+                    result = await supabase.from('study_sessions').insert(fallbackChunk).select();
+                }
+                if (result.data) {
+                    created.push(...result.data);
+                }
+            }
+            return created;
+        },
         deleteAll: async () => {
             const user = await getAuthUser();
             if (user) return handleRequest(supabase.from('study_sessions').delete().eq('user_id', user.id));
@@ -593,35 +646,51 @@ export const api = {
                 return []; // Retorna vazio em vez de estourar para nao quebrar o fetchData
             }
 
-            return (result.data || []).map((i: any) => ({
-                id: i.id,
-                date: i.date.split('T')[0],
-                subjectId: i.subject_id,
-                topicId: i.topic_id,
-                activityType: i.activity_type,
-                notes: i.notes,
-                durationInMinutes: i.duration_minutes,
-                questionsDone: i.questions_done,
-                questionsCorrect: i.questions_correct,
-                questionsLink: i.questions_link || undefined,
-                status: (i.status as 'planejado' | 'realizado') || 'planejado'
-            }));
+            return (result.data || []).map((i: any) => {
+                const notesStr = i.notes || '';
+                const cidMatch = notesStr.match(/\[cid:([^\]]+)\]/);
+                const isGenCrono = notesStr.includes('[gen:crono]');
+
+                return {
+                    id: i.id,
+                    date: i.date.split('T')[0],
+                    subjectId: i.subject_id,
+                    topicId: i.topic_id,
+                    activityType: i.activity_type,
+                    notes: i.notes,
+                    durationInMinutes: i.duration_minutes,
+                    questionsDone: i.questions_done,
+                    questionsCorrect: i.questions_correct,
+                    questionsLink: i.questions_link || undefined,
+                    status: (i.status as 'planejado' | 'realizado') || 'planejado',
+                    concursoId: cidMatch ? cidMatch[1] : undefined,
+                    generatedByCronograma: isGenCrono ? true : undefined
+                };
+            });
         },
         create: async (item: Omit<ScheduledStudy, 'id'> & { id?: string }) => {
             const user = await getAuthUser();
             if (!user) throw new Error('Not authenticated');
 
+            let formattedNotes = item.notes || '';
+            if (item.concursoId && !formattedNotes.includes('[cid:')) {
+                formattedNotes = `[cid:${item.concursoId}] ${formattedNotes}`.trim();
+            }
+            if (item.generatedByCronograma && !formattedNotes.includes('[gen:crono]')) {
+                formattedNotes = `[gen:crono] ${formattedNotes}`.trim();
+            }
+
             const dbPayload = {
-                id: item.id,
+                id: item.id || crypto.randomUUID(),
                 user_id: user.id,
                 date: item.date,
                 subject_id: item.subjectId,
-                topic_id: item.topicId,
-                activity_type: item.activityType,
-                notes: item.notes,
-                duration_minutes: item.durationInMinutes,
-                questions_done: item.questionsDone,
-                questions_correct: item.questionsCorrect,
+                topic_id: item.topicId || null,
+                activity_type: item.activityType || null,
+                notes: formattedNotes || null,
+                duration_minutes: item.durationInMinutes || 0,
+                questions_done: item.questionsDone || 0,
+                questions_correct: item.questionsCorrect || 0,
                 questions_link: item.questionsLink || null,
                 status: (item as any).status || 'planejado'
             };
@@ -635,21 +704,21 @@ export const api = {
 
             const rData = result.error ? null : result.data;
             if (result.error) {
-                // Se ainda falhar, loga mas nao rethrow para nao bloquear a UI
                 console.error('Supabase schedule.create error:', JSON.stringify(result.error, null, 2));
-                // Retorna um objeto minimo com o ID original para manter estado local consistente
                 return {
-                    id: item.id || crypto.randomUUID(),
+                    id: dbPayload.id,
                     date: item.date,
                     subjectId: item.subjectId,
                     topicId: item.topicId,
                     activityType: item.activityType,
-                    notes: item.notes,
+                    notes: formattedNotes,
                     durationInMinutes: item.durationInMinutes,
                     questionsDone: item.questionsDone,
                     questionsCorrect: item.questionsCorrect,
                     questionsLink: item.questionsLink,
-                    status: 'planejado' as const
+                    status: 'planejado' as const,
+                    concursoId: item.concursoId,
+                    generatedByCronograma: item.generatedByCronograma
                 } as ScheduledStudy;
             }
 
@@ -664,7 +733,9 @@ export const api = {
                 questionsDone: rData.questions_done,
                 questionsCorrect: rData.questions_correct,
                 questionsLink: rData.questions_link || undefined,
-                status: (item as any).status || 'planejado'
+                status: (item as any).status || 'planejado',
+                concursoId: item.concursoId,
+                generatedByCronograma: item.generatedByCronograma
             } as ScheduledStudy;
         },
         update: async (id: string, updates: Partial<ScheduledStudy>) => {
@@ -711,80 +782,126 @@ export const api = {
         createBatch: async (items: (Omit<ScheduledStudy, 'id'> & { id?: string })[]) => {
             const user = await getAuthUser();
             if (!user) throw new Error('Not authenticated');
+            if (items.length === 0) return [];
 
-            const dbPayloads = items.map(item => ({
-                id: item.id || crypto.randomUUID(),
-                user_id: user.id,
-                date: item.date,
-                subject_id: item.subjectId,
-                topic_id: item.topicId || null,
-                activity_type: item.activityType || null,
-                notes: item.notes || null,
-                duration_minutes: item.durationInMinutes || 0,
-                questions_done: item.questionsDone || 0,
-                questions_correct: item.questionsCorrect || 0,
-                questions_link: item.questionsLink || null,
-                status: (item as any).status || 'planejado'
-            }));
+            const dbPayloads = items.map(item => {
+                let formattedNotes = item.notes || '';
+                if (item.concursoId && !formattedNotes.includes('[cid:')) {
+                    formattedNotes = `[cid:${item.concursoId}] ${formattedNotes}`.trim();
+                }
+                if (item.generatedByCronograma && !formattedNotes.includes('[gen:crono]')) {
+                    formattedNotes = `[gen:crono] ${formattedNotes}`.trim();
+                }
 
-            let result = await supabase.from('scheduled_studies').insert(dbPayloads).select();
-            if (result.error && result.error.code === '42703') {
-                const payloadsWithout = dbPayloads.map(({ questions_link, status: _s, ...rest }) => rest);
-                result = await supabase.from('scheduled_studies').insert(payloadsWithout).select();
+                return {
+                    id: item.id || crypto.randomUUID(),
+                    user_id: user.id,
+                    date: item.date,
+                    subject_id: item.subjectId,
+                    topic_id: item.topicId || null,
+                    activity_type: item.activityType || null,
+                    notes: formattedNotes || null,
+                    duration_minutes: item.durationInMinutes || 0,
+                    questions_done: item.questionsDone || 0,
+                    questions_correct: item.questionsCorrect || 0,
+                    questions_link: item.questionsLink || null,
+                    status: (item as any).status || 'planejado'
+                };
+            });
+
+            const chunkSize = 50;
+            const savedResults: ScheduledStudy[] = [];
+
+            for (let i = 0; i < dbPayloads.length; i += chunkSize) {
+                const chunk = dbPayloads.slice(i, i + chunkSize);
+                const originalItemsChunk = items.slice(i, i + chunkSize);
+
+                let result = await supabase.from('scheduled_studies').insert(chunk).select();
+                if (result.error && result.error.code === '42703') {
+                    const payloadsWithout = chunk.map(({ questions_link, status: _s, ...rest }) => rest);
+                    result = await supabase.from('scheduled_studies').insert(payloadsWithout).select();
+                }
+
+                if (result.error) {
+                    console.error('Supabase createBatch chunk error (falling back to local):', JSON.stringify(result.error, null, 2));
+                    // Em caso de erro na rede/Supabase, não descarta o lote; retorna os itens locais com os IDs
+                    originalItemsChunk.forEach((item, idx) => {
+                        savedResults.push({
+                            id: chunk[idx].id,
+                            date: item.date.split('T')[0],
+                            subjectId: item.subjectId,
+                            topicId: item.topicId,
+                            activityType: item.activityType,
+                            notes: chunk[idx].notes || item.notes,
+                            durationInMinutes: item.durationInMinutes || 0,
+                            questionsDone: item.questionsDone,
+                            questionsCorrect: item.questionsCorrect,
+                            questionsLink: item.questionsLink,
+                            status: (item as any).status || 'planejado',
+                            concursoId: item.concursoId,
+                            generatedByCronograma: item.generatedByCronograma ?? true
+                        });
+                    });
+                } else if (result.data) {
+                    result.data.forEach((r: any, idx: number) => {
+                        savedResults.push({
+                            id: r.id,
+                            date: r.date.split('T')[0],
+                            subjectId: r.subject_id,
+                            topicId: r.topic_id,
+                            activityType: r.activity_type,
+                            notes: r.notes,
+                            durationInMinutes: r.duration_minutes,
+                            questionsDone: r.questions_done,
+                            questionsCorrect: r.questions_correct,
+                            questionsLink: r.questions_link || undefined,
+                            status: (r.status as 'planejado' | 'realizado') || 'planejado',
+                            concursoId: originalItemsChunk[idx]?.concursoId || undefined,
+                            generatedByCronograma: originalItemsChunk[idx]?.generatedByCronograma ?? true
+                        });
+                    });
+                }
             }
 
-            const rData = result.error ? null : result.data;
-            if (result.error) {
-                console.error('Supabase API Error:', JSON.stringify(result.error, null, 2));
-                throw result.error;
-            }
-
-            return rData!.map((r: any, idx: number) => ({
-                id: r.id,
-                date: r.date.split('T')[0],
-                subjectId: r.subject_id,
-                topicId: r.topic_id,
-                activityType: r.activity_type,
-                notes: r.notes,
-                durationInMinutes: r.duration_minutes,
-                questionsDone: r.questions_done,
-                questionsCorrect: r.questions_correct,
-                questionsLink: r.questions_link || undefined,
-                status: (r.status as 'planejado' | 'realizado') || 'planejado',
-                concursoId: items[idx]?.concursoId || r.concurso_id || undefined,
-                generatedByCronograma: items[idx]?.generatedByCronograma || r.generated_by_cronograma || undefined
-            }));
+            return savedResults;
         },
         deleteBatch: async (ids: string[]) => {
             if (ids.length === 0) return;
             const user = await getAuthUser();
             if (!user) return null;
-            const chunkSize = 30;
+            const chunkSize = 50;
+            const chunks: string[][] = [];
             for (let i = 0; i < ids.length; i += chunkSize) {
-                const chunk = ids.slice(i, i + chunkSize);
-                await handleRequest(supabase.from('scheduled_studies').delete().in('id', chunk).eq('user_id', user.id));
+                chunks.push(ids.slice(i, i + chunkSize));
             }
+            await Promise.all(
+                chunks.map(chunk =>
+                    supabase.from('scheduled_studies').delete().in('id', chunk).eq('user_id', user.id)
+                )
+            );
         },
         purgeUncompletedByConcurso: async (concursoId?: string, subjectIds: string[] = []) => {
             const user = await getAuthUser();
             if (!user) return null;
             try {
                 let query = supabase.from('scheduled_studies')
-                    .select('id,activity_type,notes,status,concurso_id,subject_id')
+                    .select('id,activity_type,notes,status,subject_id')
                     .eq('user_id', user.id)
                     .neq('status', 'realizado');
 
-                if (concursoId && concursoId !== 'all') {
-                    if (subjectIds.length > 0) {
-                        query = query.or(`concurso_id.eq.${concursoId},subject_id.in.(${subjectIds.join(',')})`);
-                    } else {
-                        query = query.eq('concurso_id', concursoId);
-                    }
-                } else if (subjectIds.length > 0) {
+                if (subjectIds.length > 0) {
                     query = query.in('subject_id', subjectIds);
                 }
 
-                const { data, error } = await query;
+                let { data, error }: any = await query;
+                if (error && error.code === '42703') {
+                    const retry: any = await supabase.from('scheduled_studies')
+                        .select('id,activity_type,notes,subject_id')
+                        .eq('user_id', user.id);
+                    data = retry.data;
+                    error = retry.error;
+                }
+
                 if (error || !data) return null;
 
                 const idsToDelete = data
@@ -797,11 +914,16 @@ export const api = {
                     .map((item: any) => item.id);
 
                 if (idsToDelete.length > 0) {
-                    const chunkSize = 30;
+                    const chunkSize = 50;
+                    const chunks: string[][] = [];
                     for (let i = 0; i < idsToDelete.length; i += chunkSize) {
-                        const chunk = idsToDelete.slice(i, i + chunkSize);
-                        await supabase.from('scheduled_studies').delete().in('id', chunk).eq('user_id', user.id);
+                        chunks.push(idsToDelete.slice(i, i + chunkSize));
                     }
+                    await Promise.all(
+                        chunks.map(chunk =>
+                            supabase.from('scheduled_studies').delete().in('id', chunk).eq('user_id', user.id)
+                        )
+                    );
                 }
                 return idsToDelete;
             } catch (e) {

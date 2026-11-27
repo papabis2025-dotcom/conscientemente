@@ -76,6 +76,7 @@ const SYNC_KEYS = [
   'estudos_weights_locked',
   'gp_concurso_edulevels_map',
   'cp_concursos_backup',
+  'cp_scheduled_studies',
   'cn_profile_photo',
   'cp_flashcard_spacing_settings',
 ];

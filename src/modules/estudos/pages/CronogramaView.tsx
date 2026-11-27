@@ -399,21 +399,34 @@ const CronogramaView: React.FC<CronogramaViewProps> = ({
       const effectiveStartDateStr = overrideStartDateStr || startDateStr || todayStr;
       setStartDateStr(effectiveStartDateStr);
 
+      const prefs = {
+        durWeeks,
+        dailyHours,
+        subjectsPerDay,
+        topicsPerSubjectPerDay,
+        activeDays,
+        startDateStr: effectiveStartDateStr,
+        isCronogramaEnabled: true,
+        simuladoIntervalDays,
+        simuladoQuestionsLimit
+      };
+
+      let map: Record<string, any> = {};
+      try {
+        const rawMap = localStorage.getItem('cp_cronograma_prefs_map');
+        if (rawMap) map = JSON.parse(rawMap);
+      } catch (e) {}
+
       if (selectedConcursoId && selectedConcursoId !== 'all') {
-        const prefs = {
-          durWeeks,
-          dailyHours,
-          subjectsPerDay,
-          topicsPerSubjectPerDay,
-          activeDays,
-          startDateStr: effectiveStartDateStr,
-          isCronogramaEnabled: true,
-          simuladoIntervalDays,
-          simuladoQuestionsLimit
-        };
         localStorage.setItem(`cp_cronograma_prefs_${selectedConcursoId}`, JSON.stringify(prefs));
-        window.dispatchEvent(new Event('local-settings-changed'));
+        map[selectedConcursoId] = prefs;
+      } else {
+        localStorage.setItem('cp_cronograma_prefs_default', JSON.stringify(prefs));
+        map['default'] = prefs;
       }
+      localStorage.setItem('cp_cronograma_prefs_map', JSON.stringify(map));
+      api.settings.update({ cp_cronograma_prefs_map: map }).catch(() => {});
+      window.dispatchEvent(new Event('local-settings-changed'));
 
       // 0. Purgar tarefas pendentes antigas de estudo regular para evitar duplicatas ao re-gerar (preserva revisões e estudos manuais)
       const uncompletedOldTasks = (scheduledStudies || []).filter(s =>

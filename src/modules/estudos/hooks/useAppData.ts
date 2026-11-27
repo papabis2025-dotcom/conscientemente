@@ -330,52 +330,57 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         });
 
         if (sessionsToDelete.length > 0) {
-            for (const s of sessionsToDelete) {
-                try {
-                    await api.sessions.delete(s.id);
-                    await api.schedule.delete(s.id);
-                } catch (e) {
-                    console.error('Error deleting obsolete session:', s.id, e);
-                }
+            try {
+                const delIds = sessionsToDelete.map(s => s.id);
+                await Promise.all([
+                    api.sessions.deleteBatch(delIds),
+                    api.schedule.deleteBatch(delIds)
+                ]);
+            } catch (e) {
+                console.error('Error deleting obsolete sessions batch:', e);
             }
         }
 
         if (sessionsToCreate.length > 0) {
-            for (const s of sessionsToCreate) {
-                try {
-                    await api.sessions.create(s);
-                    const sessionDate = s.date.split('T')[0];
-                    const newScheduled: ScheduledStudy = {
-                        id: s.id,
-                        date: sessionDate,
-                        subjectId: s.subjectId,
-                        activityType: 'Simulado',
-                        durationInMinutes: s.durationInMinutes,
-                        questionsDone: s.questionsDone,
-                        questionsCorrect: s.questionsCorrect,
-                        status: 'realizado'
-                    };
-                    await api.schedule.create(newScheduled);
-                } catch (e) {
-                    console.error('Error creating missing session:', s.id, e);
-                }
+            try {
+                const newScheduledItems: ScheduledStudy[] = sessionsToCreate.map(s => ({
+                    id: s.id,
+                    date: s.date.split('T')[0],
+                    subjectId: s.subjectId,
+                    activityType: 'Simulado',
+                    durationInMinutes: s.durationInMinutes,
+                    questionsDone: s.questionsDone,
+                    questionsCorrect: s.questionsCorrect,
+                    status: 'realizado'
+                }));
+
+                await Promise.all([
+                    api.sessions.createBatch(sessionsToCreate),
+                    api.schedule.createBatch(newScheduledItems)
+                ]);
+            } catch (e) {
+                console.error('Error creating missing sessions batch:', e);
             }
         }
 
         if (sessionsToUpdate.length > 0) {
-            for (const s of sessionsToUpdate) {
-                try {
-                    await api.sessions.update(s.id, s);
-                    const sessionDate = s.date.split('T')[0];
-                    await api.schedule.update(s.id, {
-                        date: sessionDate,
-                        durationInMinutes: s.durationInMinutes,
-                        questionsDone: s.questionsDone,
-                        questionsCorrect: s.questionsCorrect
-                    });
-                } catch (e) {
-                    console.error('Error updating modified session:', s.id, e);
-                }
+            try {
+                await Promise.all(
+                    sessionsToUpdate.flatMap(s => {
+                        const sessionDate = s.date.split('T')[0];
+                        return [
+                            api.sessions.update(s.id, s).catch(err => console.error('Error updating session:', s.id, err)),
+                            api.schedule.update(s.id, {
+                                date: sessionDate,
+                                durationInMinutes: s.durationInMinutes,
+                                questionsDone: s.questionsDone,
+                                questionsCorrect: s.questionsCorrect
+                            }).catch(err => console.error('Error updating scheduled study:', s.id, err))
+                        ];
+                    })
+                );
+            } catch (e) {
+                console.error('Error updating modified sessions batch:', e);
             }
         }
 
@@ -717,18 +722,17 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         }
 
         if (reviewsToUpdate.length > 0) {
-
-            for (const r of reviewsToUpdate) {
-                try {
-                    await api.schedule.update(r.id, { 
-                        notes: r.notes, 
-                        date: r.date
-                        // Não atualiza questionsLink, durationInMinutes, questionsDone, questionsCorrect
-                        // para preservar dados preenchidos pelo usuário
-                    });
-                } catch (e) {
-                    console.error('Error updating review notes/date:', r.id, e);
-                }
+            try {
+                await Promise.all(
+                    reviewsToUpdate.map(r =>
+                        api.schedule.update(r.id, { 
+                            notes: r.notes, 
+                            date: r.date
+                        }).catch(e => console.error('Error updating review notes/date:', r.id, e))
+                    )
+                );
+            } catch (e) {
+                console.error('Error updating reviews batch:', e);
             }
         }
 
@@ -1013,35 +1017,39 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                     }
                 });
 
-                // Fonte de verdade para status: banco de dados (Supabase).
-                // O localStorage é usado apenas como fallback para itens sem status no banco,
-                // garantindo sincronização cross-device correta.
+                // Mapeamento antecipado de disciplinas para concursos
+                const subjectToConcursoMap = new Map<string, string>();
+                (concursosData || []).forEach(c => {
+                    (c.subjects || []).forEach((sub: any) => subjectToConcursoMap.set(sub.id, c.id));
+                });
+
+                // Fonte de dados combinada: preserva metadados do cache local (concursoId, generatedByCronograma, status)
                 const localRaw = localStorage.getItem('cp_scheduled_studies');
                 const localStudies: ScheduledStudy[] = localRaw ? JSON.parse(localRaw) : [];
-                const localStatusMap = new Map(localStudies.map(s => [s.id, s.status]));
+                const localMap = new Map<string, ScheduledStudy>();
+                localStudies.forEach(s => localMap.set(s.id, s));
                 const sessionIds = new Set(finalSessions.map(s => s.id));
 
                 finalSchedule = finalScheduleRaw.map((s: any) => {
-                    // 1. Prioridade máxima: status vindo do banco (coluna status)
-                    //    Só confia no banco se o registro já foi atualizado (não é o default)
+                    const localItem = localMap.get(s.id);
+                    const concId = s.concursoId || localItem?.concursoId || (s.subjectId ? subjectToConcursoMap.get(s.subjectId) : undefined);
+                    const isGenerated = s.generatedByCronograma ?? localItem?.generatedByCronograma ?? true;
+
+                    // Prioridade de status: banco -> sessões existentes -> cache local -> default
                     const dbStatus = s.status as 'planejado' | 'realizado' | undefined;
-                    if (dbStatus === 'realizado') {
-                        return { ...s, status: 'realizado' as const };
+                    let resolvedStatus: 'planejado' | 'realizado' = 'planejado';
+                    if (dbStatus === 'realizado' || sessionIds.has(s.id)) {
+                        resolvedStatus = 'realizado';
+                    } else if (localItem?.status) {
+                        resolvedStatus = localItem.status;
                     }
 
-                    // 2. Segunda prioridade: existe sessão de estudo no banco com mesmo ID → realizado
-                    if (sessionIds.has(s.id)) {
-                        return { ...s, status: 'realizado' as const };
-                    }
-
-                    // 3. Terceira prioridade: localStorage local (fallback para offline/novo dispositivo sem status no banco ainda)
-                    const localStatus = localStatusMap.get(s.id);
-                    if (localStatus) {
-                        return { ...s, status: localStatus };
-                    }
-
-                    // 4. Default: planejado
-                    return { ...s, status: 'planejado' as const };
+                    return {
+                        ...s,
+                        status: resolvedStatus,
+                        concursoId: concId,
+                        generatedByCronograma: isGenerated
+                    };
                 });
 
                 // Filter out uncompleted tasks for any concurso whose schedule is currently disabled, or deleted tasks
@@ -1050,11 +1058,6 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                     const savedDeleted = localStorage.getItem('cp_deleted_scheduled_ids');
                     if (savedDeleted) deletedIdsSet = new Set(JSON.parse(savedDeleted));
                 } catch (e) {}
-
-                const subjectToConcursoMap = new Map<string, string>();
-                (concursosData || []).forEach(c => {
-                    (c.subjects || []).forEach((sub: any) => subjectToConcursoMap.set(sub.id, c.id));
-                });
 
                 const filteredFinalSchedule = finalSchedule.filter(s => {
                     if (deletedIdsSet.has(s.id) && !isReviewTask(s)) return false;
@@ -1152,10 +1155,10 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         
         fetchDataRef.current();
 
-        // Throttle inteligente: refaz fetch ao focar a janela após 15 segundos
-        // para garantir dados atualizados entre abas e computadores
+        // Throttle inteligente: refaz fetch ao focar a janela após 3 minutos (180 segundos)
+        // para garantir dados atualizados sem sobrecarregar a rede ou causar atrasos
         let lastFocusFetchAt = Date.now();
-        const FOCUS_THROTTLE_MS = 15 * 1000; // 15 segundos
+        const FOCUS_THROTTLE_MS = 180 * 1000; // 3 minutos
 
         const handleFocus = () => {
             const now = Date.now();
@@ -1535,36 +1538,30 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
             return updated;
         });
 
-        // Persist all sessions to DB
-        for (const session of sessionsList) {
+        // Persist all sessions to DB in batch
+        try {
+            await api.sessions.createBatch(sessionsList);
+        } catch (e) {
+            console.error('Error saving batch sessions to DB:', e);
+        }
+
+        // Persist updates to DB in parallel
+        if (updatesList.length > 0) {
             try {
-                await api.sessions.create(session);
+                await Promise.all(
+                    updatesList.map(up =>
+                        api.schedule.update(up.id, up.updates).catch(err => console.error('Error updating batch schedule in DB:', up.id, err))
+                    )
+                );
             } catch (e) {
-                console.error('Error saving batch session to DB:', e);
+                console.error('Error updating batch schedules in DB:', e);
             }
         }
 
-        // Persist updates to DB
-        for (const up of updatesList) {
+        // Persist creations to DB in batch
+        if (creationsList.length > 0) {
             try {
-                await api.schedule.update(up.id, up.updates);
-            } catch (e) {
-                console.error('Error updating batch schedule in DB:', e);
-            }
-        }
-
-        // Persist creations to DB
-        for (const cr of creationsList) {
-            try {
-                const saved = await api.schedule.create(cr);
-                if (saved && saved.id && saved.id !== cr.id) {
-                    const syncedEntry = { ...cr, id: saved.id };
-                    setScheduledStudies(prev => {
-                        const updated = prev.map(s => s.id === cr.id ? syncedEntry : s);
-                        localStorage.setItem('cp_scheduled_studies', JSON.stringify(updated));
-                        return updated;
-                    });
-                }
+                await api.schedule.createBatch(creationsList);
             } catch (e) {
                 console.error('Error creating batch schedule in DB:', e);
             }
@@ -2208,27 +2205,26 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
 
             // Insertions / Updates
             if (formData.status === 'realizado') {
-                for (const session of sessionsList) {
-                    await api.sessions.create(session);
-
-                    const matchingSchedule: ScheduledStudy = {
-                        id: session.id,
-                        date: session.date.split('T')[0],
-                        subjectId: session.subjectId,
-                        topicId: session.topicId,
-                        activityType: session.activityType as ActivityType,
-                        durationInMinutes: session.durationInMinutes,
-                        questionsDone: session.questionsDone,
-                        questionsCorrect: session.questionsCorrect,
-                        status: 'realizado',
-                        notes: (session as any).notes,
-                        questionsLink: session.questionsLink
-                    };
-                    await api.schedule.create(matchingSchedule);
-                }
+                const matchingSchedules: ScheduledStudy[] = sessionsList.map(session => ({
+                    id: session.id,
+                    date: session.date.split('T')[0],
+                    subjectId: session.subjectId,
+                    topicId: session.topicId,
+                    activityType: session.activityType as ActivityType,
+                    durationInMinutes: session.durationInMinutes,
+                    questionsDone: session.questionsDone,
+                    questionsCorrect: session.questionsCorrect,
+                    status: 'realizado',
+                    notes: (session as any).notes,
+                    questionsLink: session.questionsLink
+                }));
+                await Promise.all([
+                    api.sessions.createBatch(sessionsList),
+                    api.schedule.createBatch(matchingSchedules)
+                ]);
             } else {
-                for (const entry of newEntries) {
-                    await api.schedule.create(entry);
+                if (newEntries.length > 0) {
+                    await api.schedule.createBatch(newEntries);
                 }
             }
 
@@ -2263,12 +2259,12 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
 
         const newItems = newSchedule.filter(item => !previousIds.has(item.id));
         try {
-            for (const item of newItems) {
-                await api.schedule.create(item);
+            if (newItems.length > 0) {
+                await api.schedule.createBatch(newItems);
+                setLastSaved(new Date().toLocaleTimeString());
             }
-            if (newItems.length > 0) setLastSaved(new Date().toLocaleTimeString());
         } catch (e) {
-            console.error('Error creating schedule items:', e);
+            console.error('Error creating schedule items in batch:', e);
             setSaveError('Erro ao salvar item na agenda.');
         }
     };
@@ -2277,7 +2273,7 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         setSaveError(null);
         setDailyGoals(newGoals);
         try {
-            for (const goal of newGoals) await api.dailyGoals.upsert(goal);
+            await Promise.all(newGoals.map(goal => api.dailyGoals.upsert(goal)));
             setLastSaved(new Date().toLocaleTimeString());
         } catch (e) {
             console.error('Error updating goals:', e);
@@ -2415,21 +2411,29 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                 };
             });
 
-            const savedItems = await api.schedule.createBatch(itemsWithTags);
+            const targetConcursoId = items[0]?.concursoId;
+            const targetSubjectIds = new Set(items.map(i => i.subjectId));
 
-            // Clear created IDs from cp_deleted_scheduled_ids so future fetches don't filter them
-            try {
-                const deletedRaw = localStorage.getItem('cp_deleted_scheduled_ids') || '[]';
-                const deletedArr: string[] = JSON.parse(deletedRaw);
-                const newIds = new Set(savedItems.map(s => s.id));
-                const filtered = deletedArr.filter(id => !newIds.has(id));
-                localStorage.setItem('cp_deleted_scheduled_ids', JSON.stringify(filtered));
-            } catch (e) {}
+            // Garante IDs definidos para todos os itens novos
+            const itemsWithIds: ScheduledStudy[] = itemsWithTags.map(item => ({
+                id: item.id || crypto.randomUUID(),
+                date: item.date,
+                subjectId: item.subjectId,
+                topicId: item.topicId,
+                activityType: item.activityType,
+                notes: item.notes,
+                durationInMinutes: item.durationInMinutes,
+                questionsDone: item.questionsDone,
+                questionsCorrect: item.questionsCorrect,
+                questionsLink: item.questionsLink,
+                status: 'planejado' as const,
+                concursoId: item.concursoId || targetConcursoId,
+                generatedByCronograma: item.generatedByCronograma ?? true
+            }));
 
+            // 1. Atualização Otimista Imediata no React State e localStorage (resposta visual instantânea)
+            let combinedResult: ScheduledStudy[] = [];
             setScheduledStudies(prev => {
-                const targetConcursoId = items[0]?.concursoId;
-                const targetSubjectIds = new Set(items.map(i => i.subjectId));
-
                 const cleanedPrev = prev.filter(s => {
                     if (s.status === 'realizado') return true;
                     // Preserva sempre todas as revisões
@@ -2441,25 +2445,44 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                     return true;
                 });
 
-                const combined = [...cleanedPrev, ...savedItems];
-                localStorage.setItem('cp_scheduled_studies', JSON.stringify(combined));
-
-                // Aciona sincronização de revisões planejadas de forma assíncrona para manter consistência
+                combinedResult = [...cleanedPrev, ...itemsWithIds];
                 try {
-                    syncPlannedReviewsDb(sessions, combined, concursos).catch(() => {});
+                    localStorage.setItem('cp_scheduled_studies', JSON.stringify(combinedResult));
                 } catch (e) {}
-
-                return combined;
+                return combinedResult;
             });
+
+            // 2. Limpa os novos IDs do filtro de exclusão no localStorage
+            try {
+                const deletedRaw = localStorage.getItem('cp_deleted_scheduled_ids') || '[]';
+                const deletedArr: string[] = JSON.parse(deletedRaw);
+                const newIds = new Set(itemsWithIds.map(s => s.id));
+                const filtered = deletedArr.filter(id => !newIds.has(id));
+                localStorage.setItem('cp_deleted_scheduled_ids', JSON.stringify(filtered));
+            } catch (e) {}
+
             setLastSaved(new Date().toLocaleTimeString());
+            window.dispatchEvent(new Event('local-settings-changed'));
+
+            // 3. Persistência na nuvem via Supabase (em chunks seguros e resiliente)
+            try {
+                await api.schedule.createBatch(itemsWithIds);
+            } catch (cloudErr) {
+                console.error('Non-fatal error creating scheduled studies batch in Supabase:', cloudErr);
+            }
+
+            // 4. Sincronização de revisões planejadas em background
+            try {
+                syncPlannedReviewsDb(sessions, combinedResult, concursos).catch(() => {});
+            } catch (e) {}
         } catch (e) {
             console.error('Error adding scheduled studies batch:', e);
-            setSaveError('Erro ao salvar cronograma.');
+            setSaveError('Erro ao processar cronograma.');
             throw e;
         } finally {
             setIsSaving(false);
         }
-    }, [api.schedule, concursos, getActivityTag]);
+    }, [api.schedule, concursos, getActivityTag, sessions, syncPlannedReviewsDb]);
 
     const deleteScheduledStudiesBatch = useCallback(async (ids: string[]) => {
         if (ids.length === 0) return;
@@ -2501,12 +2524,9 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
         setLastSaved(new Date().toLocaleTimeString());
         window.dispatchEvent(new Event('local-settings-changed'));
 
-        // 2. Tentar deletar no Supabase DB de forma assíncrona (com tratamento de exceção sem bloquear a UI)
+        // 2. Deletar no Supabase DB em lote paralelo (sem loop de sessions.delete individual)
         try {
             await api.schedule.deleteBatch(uncompletedIdsToDelete);
-            for (const id of uncompletedIdsToDelete) {
-                try { await api.sessions.delete(id); } catch(e) {}
-            }
         } catch (e) {
             console.error('Non-fatal error purging scheduled studies from Supabase DB:', e);
         } finally {

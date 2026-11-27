@@ -783,15 +783,25 @@ const HubHome: React.FC<HubHomeProps> = ({
   useEffect(() => {
     fetchCalendarData(calendarMonth).catch(console.error);
 
-    const handleSync = () => {
+    let lastFocusSyncAt = Date.now();
+    const FOCUS_THROTTLE_MS = 180 * 1000; // 3 minutos
+
+    const handleFocusSync = () => {
+      const now = Date.now();
+      if (now - lastFocusSyncAt < FOCUS_THROTTLE_MS) return;
+      lastFocusSyncAt = now;
       fetchCalendarData(calendarMonth).catch(console.error);
     };
 
-    window.addEventListener('focus', handleSync);
-    window.addEventListener('local-storage-sync', handleSync);
+    const handleStorageSync = () => {
+      fetchCalendarData(calendarMonth).catch(console.error);
+    };
+
+    window.addEventListener('focus', handleFocusSync);
+    window.addEventListener('local-storage-sync', handleStorageSync);
     return () => {
-      window.removeEventListener('focus', handleSync);
-      window.removeEventListener('local-storage-sync', handleSync);
+      window.removeEventListener('focus', handleFocusSync);
+      window.removeEventListener('local-storage-sync', handleStorageSync);
     };
   }, [calendarMonth, fetchCalendarData]);
 
@@ -1439,28 +1449,72 @@ const HubHome: React.FC<HubHomeProps> = ({
     const now = new Date();
     const localTodayStr = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().split('T')[0];
 
-    // 1. Pending Tarefas
-    const { data: tarefas } = await supabase
-      .from('tarefas')
-      .select('id, text')
-      .eq('user_id', user.id)
-      .eq('completed', false)
-      .lte('due_date', localTodayStr);
-    setPendingTarefas(tarefas?.length || 0);
-
-    // Fetch tomorrow's tasks
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
     const tomorrowStr = tomorrow.toISOString().split('T')[0];
-    const { data: tTasks } = await supabase
-      .from('tarefas')
-      .select('id, text, due_time, category')
-      .eq('user_id', user.id)
-      .eq('completed', false)
-      .eq('due_date', tomorrowStr);
-    setTomorrowTasks((tTasks || []).map(t => ({ id: t.id, text: t.text, dueTime: t.due_time, category: t.category })));
 
-    // 2. Pending Estudos
+    const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+    // Executa as queries do Supabase em paralelo com Promise.all para acelerar o carregamento da Home
+    const [
+      { data: tarefas },
+      { data: tTasks },
+      { data: saude },
+      { data: financas },
+      { data: pendingFinanceTx }
+    ] = await Promise.all([
+      // 1. Pending Tarefas
+      supabase
+        .from('tarefas')
+        .select('id, text')
+        .eq('user_id', user.id)
+        .eq('completed', false)
+        .lte('due_date', localTodayStr),
+      // 2. Tomorrow's tasks
+      supabase
+        .from('tarefas')
+        .select('id, text, due_time, category')
+        .eq('user_id', user.id)
+        .eq('completed', false)
+        .eq('due_date', tomorrowStr),
+      // 3. Pending Saude
+      supabase
+        .from('saude_treinos')
+        .select('id, type')
+        .eq('user_id', user.id)
+        .lte('date', localTodayStr)
+        .eq('status', 'planejado'),
+      // 4. Finance Balance
+      supabase
+        .from('financas_transacoes')
+        .select('type, amount')
+        .eq('user_id', user.id)
+        .like('date', `${currentMonthStr}%`),
+      // 5. Finance Pending SAÍDAS
+      supabase
+        .from('financas_transacoes')
+        .select('id, name, amount, type')
+        .eq('user_id', user.id)
+        .eq('pending', true)
+        .eq('type', 'saida')
+        .lte('date', localTodayStr)
+    ]);
+
+    setPendingTarefas(tarefas?.length || 0);
+    setTomorrowTasks((tTasks || []).map(t => ({ id: t.id, text: t.text, dueTime: t.due_time, category: t.category })));
+    setPendingSaude(saude?.length || 0);
+
+    let calculatedBalance = 0;
+    if (financas) {
+      const entradas = financas.filter(t => t.type === 'entrada').reduce((acc, t) => acc + Number(t.amount), 0);
+      const saidas = financas.filter(t => t.type === 'saida').reduce((acc, t) => acc + Number(t.amount), 0);
+      calculatedBalance = entradas - saidas;
+      setFinanceBalance(calculatedBalance);
+    } else {
+      setFinanceBalance(0);
+    }
+
+    // 2. Pending Estudos (cálculo local otimizado)
     let deletedStudyTaskIds = new Set<string>();
     let estudos: any[] = [];
     try {
@@ -1497,42 +1551,6 @@ const HubHome: React.FC<HubHomeProps> = ({
     }).length;
     setPendingEstudos(pendingStudyTasks + pendingScheduled);
 
-    // 3. Pending Saude
-    const { data: saude } = await supabase
-      .from('saude_treinos')
-      .select('id, type')
-      .eq('user_id', user.id)
-      .lte('date', localTodayStr)
-      .eq('status', 'planejado');
-    setPendingSaude(saude?.length || 0);
-
-    // 4. Finance Balance
-    const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-    const { data: financas } = await supabase
-      .from('financas_transacoes')
-      .select('type, amount')
-      .eq('user_id', user.id)
-      .like('date', `${currentMonthStr}%`);
-
-    let calculatedBalance = 0;
-    if (financas) {
-      const entradas = financas.filter(t => t.type === 'entrada').reduce((acc, t) => acc + Number(t.amount), 0);
-      const saidas = financas.filter(t => t.type === 'saida').reduce((acc, t) => acc + Number(t.amount), 0);
-      calculatedBalance = entradas - saidas;
-      setFinanceBalance(calculatedBalance);
-    } else {
-      setFinanceBalance(0);
-    }
-
-    // 5. Finance Pending SAÍDAS for today or earlier (overdue)
-    const { data: pendingFinanceTx } = await supabase
-      .from('financas_transacoes')
-      .select('id, name, amount, type')
-      .eq('user_id', user.id)
-      .eq('pending', true)
-      .eq('type', 'saida')
-      .lte('date', localTodayStr);
-    
     const countPending = pendingFinanceTx?.length || 0;
     setPendingFinanceCount(countPending);
 

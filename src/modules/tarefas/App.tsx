@@ -1,11 +1,15 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useAgendaTarget } from '../../hooks/useAgendaTarget';
+import { parseLocalDate } from '../../utils/dateUtils';
 import { CheckSquare, ListTodo, Archive, LayoutTemplate, Plus, Calendar as CalendarIcon, Clock, Tag, ArrowDownAZ, CalendarDays, Trash2, Check, Repeat, ChevronLeft, ChevronRight, Menu, Edit2 } from 'lucide-react';
 
 import { tarefasApi, Task } from './api';
 import { playSound } from '../../utils/audio';
 
 const TarefasApp: React.FC = () => {
-  const [activeTab, setActiveTabState] = useState<'ativas' | 'arquivo' | 'calendario'>('ativas');
+  const agendaTarget = useAgendaTarget('tarefas');
+  const openedAgendaTask = useRef(false);
+  const [activeTab, setActiveTabState] = useState<'ativas' | 'arquivo' | 'calendario'>(agendaTarget ? 'calendario' : 'ativas');
 
   const setActiveTab = (tab: 'ativas' | 'arquivo' | 'calendario') => {
     setActiveTabState(tab);
@@ -47,7 +51,7 @@ const TarefasApp: React.FC = () => {
   const [sortBy, setSortBy] = useState<'data' | 'alfabetica' | 'prioridade'>('prioridade');
 
   // Calendar view states
-  const [calendarDate, setCalendarDate] = useState(new Date());
+  const [calendarDate, setCalendarDate] = useState(() => agendaTarget ? parseLocalDate(agendaTarget.date) : new Date());
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [editingTaskText, setEditingTaskText] = useState('');
@@ -57,6 +61,26 @@ const TarefasApp: React.FC = () => {
   const [editingTaskRecurrence, setEditingTaskRecurrence] = useState<'none' | 'days' | 'monthly'>('none');
   const [editingTaskRecurrenceValue, setEditingTaskRecurrenceValue] = useState<number>(1);
   const [showRecurrenceConfirm, setShowRecurrenceConfirm] = useState(false);
+
+  const openTask = useCallback((task: Task) => {
+    setEditingTask(task);
+    setEditingTaskText(task.text);
+    setEditingTaskDate(task.dueDate);
+    setIsEditingTaskRange(Boolean(task.endDate));
+    setEditingTaskEndDate(task.endDate || '');
+    setEditingTaskTime(task.endDate ? '' : task.dueTime || '');
+    setEditingTaskCategory(task.category);
+    setEditingTaskRecurrence(task.recurrenceType || 'none');
+    setEditingTaskRecurrenceValue(task.recurrenceValue || 1);
+  }, []);
+
+  useEffect(() => {
+    if (!agendaTarget?.id || openedAgendaTask.current) return;
+    const task = tasks.find(item => item.id === agendaTarget.id);
+    if (!task) return;
+    openedAgendaTask.current = true;
+    openTask(task);
+  }, [agendaTarget, tasks, openTask]);
 
   const handlePrevMonth = () => {
     setCalendarDate(new Date(calendarDate.getFullYear(), calendarDate.getMonth() - 1, 1));
@@ -403,23 +427,7 @@ const TarefasApp: React.FC = () => {
       </button>
       <div 
         className="flex-1 min-w-0 cursor-pointer"
-        onClick={() => {
-          setEditingTask(task);
-          setEditingTaskText(task.text);
-          setEditingTaskDate(task.dueDate);
-          if (task.endDate) {
-            setIsEditingTaskRange(true);
-            setEditingTaskEndDate(task.endDate);
-            setEditingTaskTime('');
-          } else {
-            setIsEditingTaskRange(false);
-            setEditingTaskEndDate('');
-            setEditingTaskTime(task.dueTime || '');
-          }
-          setEditingTaskCategory(task.category);
-          setEditingTaskRecurrence(task.recurrenceType || 'none');
-          setEditingTaskRecurrenceValue(task.recurrenceValue || 1);
-        }}
+        onClick={() => openTask(task)}
       >
         <p className={`text-sm font-semibold truncate transition-all ${task.completed ? 'text-zinc-400 line-through' : 'text-zinc-800 dark:text-zinc-200'}`}>
           {task.text}

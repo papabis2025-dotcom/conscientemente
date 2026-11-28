@@ -1,4 +1,6 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { useAgendaTarget } from '../../hooks/useAgendaTarget';
+import { parseLocalDate } from '../../utils/dateUtils';
 import { LayoutTemplate, Wallet, TrendingUp, TrendingDown, CreditCard, ChevronLeft, ChevronRight, Trash2, Calendar, PieChart as PieChartIcon, Edit3, Menu, RefreshCw, FileText } from 'lucide-react';
 import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts';
 import { financasApi } from './api';
@@ -149,7 +151,9 @@ const FinancasApp: React.FC = () => {
     }
   }, [paymentMethods, isLoaded]);
 
-  const [currentDate, setCurrentDate] = useState(() => new Date());
+  const agendaTarget = useAgendaTarget('financas');
+  const [currentDate, setCurrentDate] = useState(() => agendaTarget ? parseLocalDate(agendaTarget.date) : new Date());
+  const openedAgendaTransaction = useRef(false);
   
   const [txType, setTxType] = useState<TransactionType>('saida');
   const [txName, setTxName] = useState('');
@@ -315,7 +319,7 @@ const FinancasApp: React.FC = () => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
   };
 
-  const startEditTransaction = (t: Transaction) => {
+  const startEditTransaction = useCallback((t: Transaction) => {
     setEditingTxId(t.id);
     setTxType(t.type);
     const nameWithoutPrefixes = t.name.replace(/^\[IR\]\s*/, '').replace(/^\[AC\]\s*/, '');
@@ -347,7 +351,15 @@ const FinancasApp: React.FC = () => {
         (inputEl as HTMLInputElement).focus();
       }
     }, 50);
-  };
+  }, []);
+
+  useEffect(() => {
+    if (!agendaTarget?.id || openedAgendaTransaction.current) return;
+    const transaction = transactions.find(item => item.id === agendaTarget.id);
+    if (!transaction) return;
+    openedAgendaTransaction.current = true;
+    startEditTransaction(transaction);
+  }, [agendaTarget, transactions, startEditTransaction]);
 
   const cancelEdit = () => {
     setEditingTxId(null);

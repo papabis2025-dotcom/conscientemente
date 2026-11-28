@@ -2,8 +2,9 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Subject, StudySession, Concurso, ScheduledStudy, DailyGoal, LogEntry, User, Simulado, ActivityType, isReviewTask } from '../types';
 import { supabase } from '../services/supabase';
 import { api } from '../services/api';
-import { createSaveQueue, isPendingGeneratedStudy } from '../utils/persistence';
+import { createSaveQueue, isPendingGeneratedStudy, isScheduledStudyVisible } from '../utils/persistence';
 import { calculatePhaseWeights } from '../utils/phaseWeights';
+import { parseNotesGroup } from '../utils/studyNotes';
 
 const getDeterministicSessionId = (simId: string, subjectId: string): string => {
     if (simId.length < 36 || subjectId.length < 36) {
@@ -25,28 +26,6 @@ export const getDeterministicReviewId = (subId: string, topicId: string | undefi
     return `${part1}-${part2}-${part3}-${part4}-${part5}`;
 };
 
-
-const parseNotesGroup = (notes: string) => {
-    let currentNotes = notes || '';
-    let groupId = null;
-    let tag = null;
-
-    // 1. Extrair groupId se houver
-    const groupMatch = currentNotes.match(/^\[groupId:([^\]]+)\](.*)/s);
-    if (groupMatch) {
-        groupId = groupMatch[1];
-        currentNotes = groupMatch[2].trim();
-    }
-
-    // 2. Extrair tag se houver (ex: #OAB47DPCON080726 - Texto ou #OAB47DPCON080726 Texto)
-    const tagMatch = currentNotes.match(/^(#[A-Za-z0-9_]+)(?:\s*-\s*|\s+)(.*)/s) || currentNotes.match(/^(#[A-Za-z0-9_]+)$/s);
-    if (tagMatch) {
-        tag = tagMatch[1];
-        currentNotes = tagMatch[2] ? tagMatch[2].trim() : '';
-    }
-
-    return { groupId, tag, cleanNotes: currentNotes };
-};
 
 export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme?: () => void) => {
     const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -802,7 +781,10 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                 api.concursos.list(),
                 api.sessions.list(),
                 api.simulados.list(),
-                api.schedule.list(),
+                api.schedule.list().catch(error => {
+                    console.error('Erro ao recarregar cronograma:', error);
+                    return null;
+                }),
                 api.dailyGoals.list(),
                 api.logs.list(),
                 api.studyPlanTasks.list(),
@@ -1054,24 +1036,19 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                     if (savedDeleted) deletedIdsSet = new Set(JSON.parse(savedDeleted));
                 } catch (e) {}
 
-                const filteredFinalSchedule = finalSchedule.filter(s => {
-                    if (deletedIdsSet.has(s.id) && !isReviewTask(s)) return false;
-                    const concId = s.concursoId || (s.subjectId ? subjectToConcursoMap.get(s.subjectId) : undefined);
-                    if (concId) {
+                const filteredFinalSchedule = finalSchedule.filter(s =>
+                    isScheduledStudyVisible(s, deletedIdsSet, concursoId => {
                         try {
-                            const saved = localStorage.getItem(`cp_cronograma_prefs_${concId}`);
-                            if (saved) {
-                                const parsed = JSON.parse(saved);
-                                if (parsed.isCronogramaEnabled === false && s.status !== 'realizado' && !isReviewTask(s) && s.generatedByCronograma) return false;
-                            }
-                        } catch (e) {}
-                    }
-                    return true;
-                });
+                            return JSON.parse(localStorage.getItem(`cp_cronograma_prefs_${concursoId}`) || '{}').isCronogramaEnabled !== false;
+                        } catch {
+                            return true;
+                        }
+                    })
+                );
 
                 const safeDeleteIds = Array.from(deletedIdsSet).filter(id => {
                     const task = finalSchedule.find(s => s.id === id);
-                    return !isReviewTask(task);
+                    return task?.status !== 'realizado' && !isReviewTask(task);
                 });
                 if (safeDeleteIds.length > 0) {
                     api.schedule.deleteBatch(safeDeleteIds).catch(() => {});

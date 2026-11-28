@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { confirmConcursoDeletion, createSaveQueue, isPendingGeneratedStudy } from '../src/modules/estudos/utils/persistence.ts';
+import { confirmConcursoDeletion, createSaveQueue, isMissingOptionalScheduleColumn, isPendingGeneratedStudy, isScheduledStudyVisible } from '../src/modules/estudos/utils/persistence.ts';
 import type { ScheduledStudy } from '../src/modules/estudos/types.ts';
+import { parseNotesGroup } from '../src/modules/estudos/utils/studyNotes.ts';
 
 test('gravações rápidas chegam à nuvem na mesma ordem das alterações', async () => {
   const queue = createSaveQueue();
@@ -57,4 +58,35 @@ test('delete sem efeito falha se o edital ainda estiver no banco', async () => {
 
 test('repetir a exclusão depois que o edital já saiu do banco é seguro', async () => {
   await confirmConcursoDeletion([], async () => null);
+});
+
+test('reconhece respostas do Postgres e do PostgREST para colunas opcionais ausentes', () => {
+  assert.equal(isMissingOptionalScheduleColumn({ code: '42703' }), true);
+  assert.equal(isMissingOptionalScheduleColumn({ code: 'PGRST204' }), true);
+  assert.equal(isMissingOptionalScheduleColumn({ message: 'column scheduled_studies.status does not exist' }), true);
+  assert.equal(isMissingOptionalScheduleColumn({ message: "Could not find the 'questions_link' column in the schema cache" }), true);
+  assert.equal(isMissingOptionalScheduleColumn({ code: '42501', message: 'permission denied' }), false);
+});
+
+test('a agenda e o cronograma aplicam a mesma visibilidade às atividades por edital', () => {
+  const study: ScheduledStudy = {
+    id: 'atividade', date: '2026-11-28', subjectId: 'disciplina', concursoId: 'edital',
+    generatedByCronograma: true, status: 'planejado'
+  };
+  const deleted = new Set([study.id]);
+  assert.equal(isScheduledStudyVisible(study, new Set(), () => true), true);
+  assert.equal(isScheduledStudyVisible(study, new Set(), () => false), false);
+  assert.equal(isScheduledStudyVisible(study, deleted, () => true), false);
+  assert.equal(isScheduledStudyVisible({ ...study, status: 'realizado' }, deleted, () => false), true);
+  assert.equal(isScheduledStudyVisible({ ...study, activityType: 'Revisão' }, deleted, () => false), true);
+  assert.equal(isScheduledStudyVisible({ ...study, generatedByCronograma: false }, new Set(), () => false), true);
+});
+
+test('o agrupamento de atividades sobrevive aos metadados gravados no Supabase', () => {
+  assert.deepEqual(parseNotesGroup('[gen:crono] [cid:edital] [groupId:lote] #ESTUDO - Atividade'), {
+    groupId: 'lote', tag: '#ESTUDO', cleanNotes: 'Atividade'
+  });
+  assert.deepEqual(parseNotesGroup('[groupId:antigo] Atividade'), {
+    groupId: 'antigo', tag: null, cleanNotes: 'Atividade'
+  });
 });

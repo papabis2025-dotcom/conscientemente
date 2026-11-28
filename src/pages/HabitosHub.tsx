@@ -7,6 +7,8 @@ import {
   X, Filter, Sparkles, CheckCheck
 } from 'lucide-react';
 import { api } from '../modules/estudos/services/api';
+import { useAgendaTarget } from '../hooks/useAgendaTarget';
+import { parseLocalDate } from '../utils/dateUtils';
 
 export interface Habit {
   id: string;
@@ -98,7 +100,9 @@ export default function HabitosHub({ onBack, theme, toggleTheme, userName }: Hab
   });
 
   // Tab state: 'painel' (Painel Diário) | 'mapa' (Mapa por Hábito - Anual)
+  const agendaTarget = useAgendaTarget('habitos');
   const [activeTab, setActiveTab] = useState<'painel' | 'mapa'>(() => {
+    if (agendaTarget) return 'painel';
     const savedTab = sessionStorage.getItem('habitosActiveTab');
     if (savedTab === 'painel' || savedTab === 'mapa') {
       return savedTab;
@@ -114,7 +118,7 @@ export default function HabitosHub({ onBack, theme, toggleTheme, userName }: Hab
   const [filterStatus, setFilterStatus] = useState<'todos' | 'pendentes' | 'concluidos'>('todos');
 
   // Navegação do Mês no Painel Diário
-  const [panelMonthDate, setPanelMonthDate] = useState<Date>(() => new Date());
+  const [panelMonthDate, setPanelMonthDate] = useState(() => agendaTarget ? parseLocalDate(agendaTarget.date) : new Date());
 
   // Navegação do Ano no Mapa por Hábito (Apenas Anual)
   const [referenceYear, setReferenceYear] = useState<number>(() => new Date().getFullYear());
@@ -230,24 +234,17 @@ export default function HabitosHub({ onBack, theme, toggleTheme, userName }: Hab
 
   // Mutators
   const toggleHabit = (habitId: string, dateStr: string = todayStr) => {
-    let willBeCompleted = false;
-    setHabitHistory(prev => {
-      const dayLogs = prev[dateStr] || [];
-      let newDayLogs: string[];
-      if (dayLogs.includes(habitId)) {
-        newDayLogs = dayLogs.filter(id => id !== habitId);
-        willBeCompleted = false;
-      } else {
-        newDayLogs = [...dayLogs, habitId];
-        willBeCompleted = true;
-      }
-      const updated = { ...prev, [dateStr]: newDayLogs };
-      localStorage.setItem('cn_habit_history', JSON.stringify(updated));
-      return updated;
-    });
+    const logs = habitHistory[dateStr] || [];
+    const completed = !logs.includes(habitId);
+    const updated = {
+      ...habitHistory,
+      [dateStr]: completed ? [...logs, habitId] : logs.filter(id => id !== habitId)
+    };
+    setHabitHistory(updated);
+    localStorage.setItem('cn_habit_history', JSON.stringify(updated));
     
     // Sync to cloud
-    api.habits.toggleLog(habitId, dateStr, willBeCompleted).catch(err => {
+    api.habits.toggleLog(habitId, dateStr, completed).catch(err => {
       console.error('Error toggling habit log in cloud:', err);
     });
 

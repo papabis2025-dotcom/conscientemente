@@ -1207,7 +1207,6 @@ const App: React.FC = () => {
   } else {
     pageContent = (
       <HubHome
-        userName={userName}
         theme={theme}
         toggleTheme={toggleTheme}
         onLogout={handleLogout}

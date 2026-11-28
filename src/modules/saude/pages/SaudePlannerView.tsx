@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useAgendaTarget } from '../../../hooks/useAgendaTarget';
+import { parseLocalDate } from '../../../utils/dateUtils';
 import { ChevronLeft, ChevronRight, CheckCircle2, Clock, Trash2 } from 'lucide-react';
 import { HealthActivity, ActivityType, CardioLevel, MuscleGroup } from '../App';
 
@@ -36,7 +38,9 @@ const SaudePlannerView: React.FC<SaudePlannerViewProps> = ({
   onDelete,
   onUpdateActivity 
 }) => {
-  const [currentDate, setCurrentDate] = useState(new Date());
+  const agendaTarget = useAgendaTarget('saude');
+  const openedAgendaActivity = useRef(false);
+  const [currentDate, setCurrentDate] = useState(() => agendaTarget ? parseLocalDate(agendaTarget.date) : new Date());
   const [selectedDayKey, setSelectedDayKey] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [editingActivity, setEditingActivity] = useState<HealthActivity | null>(null);
@@ -96,8 +100,7 @@ const SaudePlannerView: React.FC<SaudePlannerViewProps> = ({
     setShowModal(true);
   };
 
-  const handleActivityClick = (e: React.MouseEvent, act: HealthActivity) => {
-    e.stopPropagation();
+  const openActivity = useCallback((act: HealthActivity) => {
     setEditingActivity(act);
     if (act.type.startsWith('Prova')) {
       setFormType('Prova');
@@ -114,7 +117,15 @@ const SaudePlannerView: React.FC<SaudePlannerViewProps> = ({
     setFormStatus(act.status || 'realizado');
     setSelectedDayKey(act.date);
     setShowModal(true);
-  };
+  }, []);
+
+  useEffect(() => {
+    if (!agendaTarget?.id || openedAgendaActivity.current) return;
+    const activity = activities.find(item => item.id === agendaTarget.id);
+    if (!activity) return;
+    openedAgendaActivity.current = true;
+    openActivity(activity);
+  }, [agendaTarget, activities, openActivity]);
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
@@ -250,7 +261,10 @@ const SaudePlannerView: React.FC<SaudePlannerViewProps> = ({
                   {dayActs.map(act => (
                     <div 
                       key={act.id} 
-                      onClick={(e) => handleActivityClick(e, act)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openActivity(act);
+                      }}
                       draggable={true}
                       onDragStart={(e) => handleDragStart(e, act.id)}
                       className={`text-[9px] font-bold px-1.5 py-1 rounded-lg border flex flex-col gap-0.5 transition-all cursor-pointer hover:scale-[1.02] active:scale-95

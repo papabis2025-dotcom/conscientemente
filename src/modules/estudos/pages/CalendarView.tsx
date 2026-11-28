@@ -1,10 +1,14 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { Subject, ScheduledStudy, ActivityType, Topic, StudySession, Simulado, Concurso } from '../types';
 import { getColorHex, getBadgeStyle } from '../utils/colors';
 import { FileText, Layers, Video, BookOpen, Clipboard, Book, Clock, RefreshCw, Sparkles, Plus, Trash2, ExternalLink, Printer, Pin } from 'lucide-react';
 import { exportToPdf } from '../utils/exportUtils';
+import type { AgendaTarget } from '../../../hooks/useAgendaTarget';
+import { parseLocalDate } from '../../../utils/dateUtils';
+import { parseNotesGroup } from '../utils/studyNotes';
 
 interface CalendarViewProps {
+  agendaTarget?: AgendaTarget | null;
   subjects: Subject[]; // For dropdown (filtered)
   allSubjects?: Subject[]; // For lookup (global)
   scheduledStudies: ScheduledStudy[];
@@ -22,28 +26,6 @@ interface CalendarViewProps {
 type ViewMode = 'semanal' | 'mensal' | 'anual' | 'lista';
 type ListGroupBy = 'dia' | 'semana' | 'mes' | 'ano';
 
-const parseNotesGroup = (notes: string) => {
-  let currentNotes = notes || '';
-  let groupId = null;
-  let tag = null;
-
-  // 1. Extrair groupId se houver
-  const groupMatch = currentNotes.match(/^\[groupId:([^\]]+)\](.*)/s);
-  if (groupMatch) {
-    groupId = groupMatch[1];
-    currentNotes = groupMatch[2].trim();
-  }
-
-  // 2. Extrair tag se houver (ex: #OAB47DPCON080726 - Texto ou #OAB47DPCON080726 Texto)
-  const tagMatch = currentNotes.match(/^(#[A-Za-z0-9_]+)(?:\s*-\s*|\s+)(.*)/s) || currentNotes.match(/^(#[A-Za-z0-9_]+)$/s);
-  if (tagMatch) {
-    tag = tagMatch[1];
-    currentNotes = tagMatch[2] ? tagMatch[2].trim() : '';
-  }
-
-  return { groupId, tag, cleanNotes: currentNotes };
-};
-
 const CalendarView: React.FC<CalendarViewProps> = ({ 
   subjects, 
   allSubjects, 
@@ -56,15 +38,17 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   onDelete, 
   onToggleStatus,
   onUpdateScheduledStudy,
-  onSyncReviews
+  onSyncReviews,
+  agendaTarget
 }) => {
-  const [currentDate, setCurrentDate] = useState(new Date());
+  const [currentDate, setCurrentDate] = useState(() => agendaTarget ? parseLocalDate(agendaTarget.date) : new Date());
   const [viewMode, setViewMode] = useState<ViewMode>('mensal');
   const [selectedDayKey, setSelectedDayKey] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [editingTask, setEditingTask] = useState<ScheduledStudy | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
   const savingActivity = useRef(false);
+  const openedAgendaStudy = useRef(false);
   const [isSavingActivity, setIsSavingActivity] = useState(false);
   const [listGroupBy, setListGroupBy] = useState<ListGroupBy>('dia');
   const [listStatusFilter, setListStatusFilter] = useState<'todos' | 'planejado' | 'realizado'>('todos');
@@ -474,13 +458,12 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     }
   };
 
-  const handleTaskClick = (e: React.MouseEvent, task: any) => {
-    e.stopPropagation();
+  const openTask = useCallback((task: any) => {
     if (task.isSimuladoVirtual) {
       alert(`Simulado: ${task.name}\nDuração: ${task.durationInMinutes} min\nQuestões: ${task.questionsCorrect}/${task.questionsDone} acertos (${task.questionsDone > 0 ? Math.round((task.questionsCorrect / task.questionsDone) * 100) : 0}%)`);
       return;
     }
-    setSelectedDayKey(task.date || task.date.split('T')[0]);
+    setSelectedDayKey(task.date.split('T')[0]);
     setEditingTask(task);
     const types = task.activityType
       ? task.activityType.split(',').map((t: string) => t.trim())
@@ -535,6 +518,19 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       questionsLinks: linkList
     });
     setShowModal(true);
+  }, [scheduledStudies]);
+
+  useEffect(() => {
+    if (!agendaTarget?.id || openedAgendaStudy.current) return;
+    const task = scheduledStudies.find(item => item.id === agendaTarget.id);
+    if (!task) return;
+    openedAgendaStudy.current = true;
+    openTask(task);
+  }, [agendaTarget, scheduledStudies, openTask]);
+
+  const handleTaskClick = (e: React.MouseEvent, task: any) => {
+    e.stopPropagation();
+    openTask(task);
   };
 
   const renderView = () => {
@@ -808,7 +804,9 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                     onDragOver={(e) => e.preventDefault()}
                     onDrop={(e) => handleDrop(e, key)}
                     className={`p-1.5 border-r border-b cursor-pointer transition-all flex flex-col min-h-0 overflow-hidden ${
-                      isToday 
+                      agendaTarget?.date === key
+                        ? 'bg-indigo-50 dark:bg-indigo-950/50 ring-2 ring-inset ring-indigo-400'
+                        : isToday
                         ? 'bg-zinc-500/20 dark:bg-zinc-600/30 border-2 border-zinc-400 dark:border-zinc-500 shadow-sm' 
                         : 'border-zinc-100 dark:border-zinc-800 hover:bg-zinc-100 dark:bg-zinc-800/30 dark:hover:bg-blue-900/10'
                     }`}

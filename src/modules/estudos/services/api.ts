@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { confirmConcursoDeletion } from '../utils/persistence';
+import { confirmConcursoDeletion, isMissingOptionalScheduleColumn } from '../utils/persistence';
 import { calculatePhaseWeights } from '../utils/phaseWeights';
 import { Concurso, StudySession, Simulado, ScheduledStudy, DailyGoal, LogEntry, Profile } from '../types';
 
@@ -365,20 +365,21 @@ export const api = {
 
     // Study Sessions
     sessions: {
-        list: async () => {
+        list: async (range?: { from: string; before: string }) => {
             const user = await getAuthUser();
             if (!user) return [];
             // Try selecting with questions_link and activity_type; fall back if columns don't exist
-            let result = await supabase.from('study_sessions').select('id,user_id,subject_id,topic_id,duration_minutes,date,questions_done,questions_correct,is_simulado,activity_type,questions_link').eq('user_id', user.id).order('date', { ascending: false });
+            const select = (columns: string) => {
+                let query = supabase.from('study_sessions').select(columns).eq('user_id', user.id);
+                if (range) query = query.gte('date', range.from).lt('date', range.before);
+                return query.order('date', { ascending: false });
+            };
+            let result = await select('id,user_id,subject_id,topic_id,duration_minutes,date,questions_done,questions_correct,is_simulado,activity_type,questions_link');
             if (result.error && result.error.code === '42703') {
-                result = (await supabase.from('study_sessions')
-                    .select('id,user_id,subject_id,topic_id,duration_minutes,date,questions_done,questions_correct,is_simulado,activity_type')
-                    .eq('user_id', user.id).order('date', { ascending: false })) as any;
+                result = await select('id,user_id,subject_id,topic_id,duration_minutes,date,questions_done,questions_correct,is_simulado,activity_type');
 
                 if (result.error && result.error.code === '42703') {
-                    result = (await supabase.from('study_sessions')
-                        .select('id,user_id,subject_id,topic_id,duration_minutes,date,questions_done,questions_correct,is_simulado')
-                        .eq('user_id', user.id).order('date', { ascending: false })) as any;
+                    result = await select('id,user_id,subject_id,topic_id,duration_minutes,date,questions_done,questions_correct,is_simulado');
                 }
             }
             const data = result.error ? null : result.data;
@@ -629,27 +630,29 @@ export const api = {
 
     // Scheduled Studies
     schedule: {
-        list: async () => {
+        list: async (range?: { from: string; before: string }): Promise<ScheduledStudy[]> => {
             const user = await getAuthUser();
             if (!user) return [];
 
-            // Tenta primeiro com todas as colunas incluindo status
-            let result: any = await supabase.from('scheduled_studies')
-                .select('id,date,subject_id,topic_id,activity_type,notes,duration_minutes,questions_done,questions_correct,questions_link,status')
-                .eq('user_id', user.id)
-                .order('date', { ascending: true });
-
-            if (result.error && result.error.code === '42703') {
-                // Coluna ausente -- retry sem questions_link e status
-                result = await supabase.from('scheduled_studies')
-                    .select('id,date,subject_id,topic_id,activity_type,notes,duration_minutes,questions_done,questions_correct')
-                    .eq('user_id', user.id)
-                    .order('date', { ascending: true });
+            const baseColumns = 'id,date,subject_id,topic_id,activity_type,notes,duration_minutes,questions_done,questions_correct';
+            const columnVariants = [
+                `${baseColumns},questions_link,status`,
+                `${baseColumns},status`,
+                `${baseColumns},questions_link`,
+                baseColumns
+            ];
+            let result: any = null;
+            for (const columns of columnVariants) {
+                let query = supabase.from('scheduled_studies').select(columns).eq('user_id', user.id);
+                if (range) query = query.gte('date', range.from).lt('date', range.before);
+                result = await query.order('date', { ascending: true }).order('id', { ascending: true });
+                if (!result.error || !isMissingOptionalScheduleColumn(result.error)) break;
             }
 
             if (result.error) {
                 console.error('Supabase schedule.list error:', JSON.stringify(result.error, null, 2));
-                return []; // Retorna vazio em vez de estourar para nao quebrar o fetchData
+                // Falha de leitura não equivale a cronograma vazio: preserve o cache atual.
+                throw result.error;
             }
 
             return (result.data || []).map((i: any) => {
@@ -752,7 +755,16 @@ export const api = {
             if (updates.subjectId) dbPayload.subject_id = updates.subjectId;
             if (updates.topicId) dbPayload.topic_id = updates.topicId;
             if (updates.activityType) dbPayload.activity_type = updates.activityType;
-            if (updates.notes !== undefined) dbPayload.notes = updates.notes;
+            if (updates.notes !== undefined) {
+                let notes = updates.notes || '';
+                if (updates.concursoId && !notes.includes('[cid:')) {
+                    notes = `[cid:${updates.concursoId}] ${notes}`.trim();
+                }
+                if (updates.generatedByCronograma && !notes.includes('[gen:crono]')) {
+                    notes = `[gen:crono] ${notes}`.trim();
+                }
+                dbPayload.notes = notes || null;
+            }
             if (updates.durationInMinutes !== undefined) dbPayload.duration_minutes = updates.durationInMinutes;
             if (updates.questionsDone !== undefined) dbPayload.questions_done = updates.questionsDone;
             if (updates.questionsCorrect !== undefined) dbPayload.questions_correct = updates.questionsCorrect;
@@ -1001,14 +1013,16 @@ export const api = {
 
     // Study Plan Tasks (Tarefas do Plano de Estudos)
     studyPlanTasks: {
-        list: async () => {
+        list: async (range?: { from: string; before: string }) => {
             const user = await getAuthUser();
             if (!user) return [];
             try {
-                const { data, error } = await supabase
+                let query = supabase
                     .from('study_plan_tasks')
                     .select('id, subject_id, subject_name, topic_id, topic_name, done, date, concurso_id')
                     .eq('user_id', user.id);
+                if (range) query = query.gte('date', range.from).lt('date', range.before);
+                const { data, error } = await query;
                 if (error) {
                     if (error.code === '42P01') {
                         // Tabela não existe ainda no Supabase (migração pendente)

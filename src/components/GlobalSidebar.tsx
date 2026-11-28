@@ -199,25 +199,21 @@ const GlobalSidebar: React.FC<GlobalSidebarProps> = ({
   // Force sidebar contracted in modules
   const sidebarExpanded = currentRoute === 'hub' ? userSidebarExpanded : false;
 
+  const openProfile = () => {
+    try {
+      const savedPins = JSON.parse(localStorage.getItem('cn_module_pins') || '{}');
+      setModulePins(typeof savedPins === 'object' ? savedPins : {});
+      setPushEnabled(localStorage.getItem('cn_push_notifications_enabled') === 'true');
+      setSoundEnabled(localStorage.getItem('cn_sound_enabled') !== 'false');
+    } catch (e) {}
+    setShowProfileModal(true);
+    setMobileMenuOpen(false);
+  };
+
   useEffect(() => {
-    const handleOpenMainSidebar = () => {
-      setMobileMenuOpen(true);
-    };
-    const handleOpenProfileModal = () => {
-      try {
-        const savedPins = JSON.parse(localStorage.getItem('cn_module_pins') || '{}');
-        setModulePins(typeof savedPins === 'object' ? savedPins : {});
-        setPushEnabled(localStorage.getItem('cn_push_notifications_enabled') === 'true');
-        setSoundEnabled(localStorage.getItem('cn_sound_enabled') !== 'false');
-      } catch (e) {}
-      setShowProfileModal(true);
-    };
+    const handleOpenMainSidebar = () => setMobileMenuOpen(true);
     window.addEventListener('open-main-sidebar', handleOpenMainSidebar);
-    window.addEventListener('open-profile-modal', handleOpenProfileModal);
-    return () => {
-      window.removeEventListener('open-main-sidebar', handleOpenMainSidebar);
-      window.removeEventListener('open-profile-modal', handleOpenProfileModal);
-    };
+    return () => window.removeEventListener('open-main-sidebar', handleOpenMainSidebar);
   }, []);
 
   useEffect(() => {
@@ -550,6 +546,30 @@ const GlobalSidebar: React.FC<GlobalSidebarProps> = ({
             )}
           </div>
 
+          <button
+            type="button"
+            onClick={openProfile}
+            aria-label={`Abrir preferências de perfil de ${userName || 'Usuário'}`}
+            title={`Perfil de ${userName || 'Usuário'}`}
+            className={`w-full min-w-0 -mt-3 flex items-center gap-3 rounded-xl border border-zinc-200/60 bg-white/60 p-2 text-left transition-colors hover:bg-zinc-100 focus-visible:outline-2 focus-visible:outline-indigo-500 dark:border-zinc-800 dark:bg-zinc-900/60 dark:hover:bg-zinc-800 ${
+              sidebarExpanded ? 'px-3' : 'justify-center'
+            }`}
+          >
+            {profilePhoto ? (
+              <img src={profilePhoto} alt="" className="size-9 shrink-0 rounded-full object-cover" />
+            ) : (
+              <span aria-hidden="true" className="size-9 shrink-0 rounded-full bg-indigo-600 text-white flex items-center justify-center text-sm font-black">
+                {(userName[0] || 'U').toUpperCase()}
+              </span>
+            )}
+            {sidebarExpanded && (
+              <span className="min-w-0 flex flex-col gap-0.5">
+                <span className="truncate text-xs font-black text-zinc-800 dark:text-zinc-200">{userName || 'Usuário'}</span>
+                <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Perfil</span>
+              </span>
+            )}
+          </button>
+
           {/* Clock & Date — Flip Clock Style */}
           {(() => {
             const hoursStr = String(currentTime.getHours()).padStart(2, '0');
@@ -606,14 +626,6 @@ const GlobalSidebar: React.FC<GlobalSidebarProps> = ({
               </div>
             );
           })()}
-
-          {/* Welcome User */}
-          {sidebarExpanded && (
-            <div className="px-3 select-none flex flex-col gap-0.5 animate-in fade-in duration-200">
-              <span className="text-[8px] font-black text-zinc-400 uppercase tracking-widest leading-none">Boas-vindas de volta,</span>
-              <span className="text-xs font-black text-zinc-800 dark:text-zinc-200 truncate mt-1">{userName}</span>
-            </div>
-          )}
 
           {/* Divider */}
           <div className="h-px bg-zinc-200/60 dark:bg-zinc-800/60 w-full" />
@@ -743,31 +755,6 @@ const GlobalSidebar: React.FC<GlobalSidebarProps> = ({
               {sidebarExpanded && (
                 <span className="text-[10px] font-black uppercase tracking-wider">
                   Configurações
-                </span>
-              )}
-            </button>
-
-            {/* Preferências de Usuário */}
-            <button
-              onClick={() => {
-                try {
-                  const savedPins = JSON.parse(localStorage.getItem('cn_module_pins') || '{}');
-                  setModulePins(typeof savedPins === 'object' ? savedPins : {});
-                  setPushEnabled(localStorage.getItem('cn_push_notifications_enabled') === 'true');
-                  setSoundEnabled(localStorage.getItem('cn_sound_enabled') !== 'false');
-                } catch (e) {}
-                setShowProfileModal(true);
-                setMobileMenuOpen(false);
-              }}
-              className={`w-full h-11 rounded-xl flex items-center gap-3 border border-zinc-200/60 dark:border-zinc-800 bg-white/40 dark:bg-zinc-900/30 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white transition-all hover:scale-102 hover:shadow-sm ${
-                sidebarExpanded ? 'px-4 justify-start' : 'justify-center'
-              }`}
-              title="Preferências"
-            >
-              <User size={16} />
-              {sidebarExpanded && (
-                <span className="text-[10px] font-black uppercase tracking-wider">
-                  Preferências
                 </span>
               )}
             </button>

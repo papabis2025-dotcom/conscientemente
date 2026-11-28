@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { useAgendaTarget } from '../../hooks/useAgendaTarget';
 import { StickyNote, BookOpen, Trash2, Plus, Save, ChevronLeft, ChevronRight, FileText, Folder, FolderPlus, Calendar, Menu, Search, ArrowLeft, LayoutTemplate } from 'lucide-react';
 import { anotacoesApi } from './api';
 import { showToast } from '../../components/Toast';
@@ -22,6 +23,8 @@ export interface FolderItem {
 }
 
 const AnotacoesApp: React.FC = () => {
+  const agendaTarget = useAgendaTarget('anotacoes');
+  const openedAgendaNote = useRef(false);
   const [activeTab, setActiveTab] = useState<'Anotações' | 'Diário de Leitura'>('Anotações');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
     return localStorage.getItem('global_sidebar_collapsed') === 'true';
@@ -246,13 +249,22 @@ const AnotacoesApp: React.FC = () => {
   };
 
   // Select note to view/edit
-  const handleSelectNote = (note: Note) => {
+  const handleSelectNote = useCallback((note: Note) => {
     setSelectedNote(note);
     setEditorTitle(note.title);
     setEditorContent(note.content);
     setEditorFolderId(note.folderId);
     setCurrentView('editor');
-  };
+  }, []);
+
+  useEffect(() => {
+    if (!agendaTarget?.id || openedAgendaNote.current) return;
+    const note = notes.find(item => item.id === agendaTarget.id);
+    if (!note) return;
+    openedAgendaNote.current = true;
+    setActiveTab(note.category);
+    handleSelectNote(note);
+  }, [agendaTarget, notes, handleSelectNote]);
 
   // Folder CRUD handlers
   const handleAddFolder = (e?: React.MouseEvent) => {

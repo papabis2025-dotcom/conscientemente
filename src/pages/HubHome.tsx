@@ -2,7 +2,11 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { MODULES } from '../constants';
 import { Module } from '../types';
-import { LogEntry } from '../modules/estudos/types';
+import type { LogEntry, ScheduledStudy } from '../modules/estudos/types';
+import { isScheduledStudyVisible } from '../modules/estudos/utils/persistence';
+import { parseNotesGroup } from '../modules/estudos/utils/studyNotes';
+import { getLocalDateString } from '../utils/dateUtils';
+import { openAgendaTarget } from '../hooks/useAgendaTarget';
 import { LogOut, Sun, Moon, ArrowUpRight, Lock, BookOpen, Wallet, ListTodo, Brain, ChevronRight, ChevronLeft, ChevronDown, ChevronUp, Sliders, Activity, TrendingUp, Settings, User, X, HeartPulse, Bell, Plus, Trash2, Check, ClipboardList, BarChart3, Calendar, Award, CheckCircle2, StickyNote, Flame, Clock, DollarSign, Database, Cloud, AlertTriangle, FileText, CalendarDays, Menu, Trophy, AlertCircle, Eye, EyeOff, Target } from 'lucide-react';
 import { api } from '../modules/estudos/services/api';
 import { supabase } from '../modules/estudos/services/supabase';
@@ -28,7 +32,6 @@ interface Habit {
 }
 
 interface HubHomeProps {
-  userName: string;
   theme: 'light' | 'dark';
   toggleTheme: () => void;
   onLogout: () => void;
@@ -177,7 +180,7 @@ const ModuleCard: React.FC<ModuleCardProps> = ({
 
 
 const HubHome: React.FC<HubHomeProps> = ({ 
-  userName, theme, toggleTheme, onLogout, bgType, 
+  theme, toggleTheme, onLogout, bgType,
   isHomeEditMode, setIsHomeEditMode 
 }) => {
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -224,6 +227,9 @@ const HubHome: React.FC<HubHomeProps> = ({
       return { calendar: true, habits: true, sleep: true };
     }
   });
+
+  const visibleWidgets = widgetsOrder.filter(id => widgetsVisibility[id] !== false || isHomeEditMode);
+  const modulesRow = Math.max(0, visibleWidgets.indexOf('calendar')) + 1;
 
   const toggleWidgetVisibility = (id: string) => {
     setWidgetsVisibility(prev => {
@@ -410,13 +416,22 @@ const HubHome: React.FC<HubHomeProps> = ({
     studies: any[];
     workouts: any[];
     finances: any[];
-  }>({ tasks: [], studies: [], workouts: [], finances: [] });
-  const [concursoExamDates, setConcursoExamDates] = useState<{ date: string; name: string }[]>([]);
+    notes: { id: string; title: string; date: string; category: string }[];
+    cloudHabits: Habit[];
+    cloudHabitHistory: { month: string; dates: Record<string, string[]> } | null;
+  }>({ tasks: [], studies: [], workouts: [], finances: [], notes: [], cloudHabits: [], cloudHabitHistory: null });
+  const [calendarUnavailableSources, setCalendarUnavailableSources] = useState<string[]>([]);
+  const [concursoExamDates, setConcursoExamDates] = useState<{ id: string; date: string; name: string }[]>([]);
   const [selectedCalendarDate, setSelectedCalendarDate] = useState(() => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   });
   const [hasPastPendingEvents, setHasPastPendingEvents] = useState(false);
+  const changeAgendaMonth = (offset: number) => {
+    const date = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + offset, 1);
+    setCalendarMonth(date);
+    setSelectedCalendarDate(getLocalDateString(date));
+  };
 
   // Opacity states for widgets
   const [calendarOpacity, setCalendarOpacity] = useState<number>(() => {
@@ -438,7 +453,7 @@ const HubHome: React.FC<HubHomeProps> = ({
     });
   };
 
-  const fetchCalendarData = useCallback(async (date: Date) => {
+  const fetchCalendarData = useCallback(async (date: Date, isCurrent: () => boolean) => {
     const { data: { session } } = await supabase.auth.getSession();
     const user = session?.user;
     if (!user) return;
@@ -450,65 +465,70 @@ const HubHome: React.FC<HubHomeProps> = ({
     const endOfMonth = `${year}-${String(month + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
 
     try {
-      // Janela de data: 2 meses antes e 2 meses depois do mês sendo visualizado
-      const windowStart = new Date(year, month - 2, 1);
-      const windowEnd = new Date(year, month + 3, 0); // último dia do 2º mês seguinte
-      const windowStartStr = windowStart.toISOString().split('T')[0];
-      const windowEndStr = windowEnd.toISOString().split('T')[0];
+      const windowStartStr = getLocalDateString(new Date(year, month - 2, 1));
+      const monthRange = { from: startOfMonth, before: getLocalDateString(new Date(year, month + 1, 1)) };
+      const studyRange = { ...monthRange, from: windowStartStr };
+      const failedSources = new Set<string>();
+      const readSource = async <T,>(label: string, request: PromiseLike<{ data: T; error: unknown }>) => {
+        try {
+          const { data, error } = await request;
+          if (error) throw error;
+          return data;
+        } catch (error) {
+          console.error(`Erro ao consultar ${label} na Agenda Unificada:`, error);
+          failedSources.add(label);
+          return null;
+        }
+      };
 
-      const { data: dbTasks } = await supabase
-        .from('tarefas')
-        .select('id, text, due_date, completed, due_time, category')
-        .eq('user_id', user.id)
-        .gte('due_date', windowStartStr)
-        .lte('due_date', windowEndStr)
-        .order('due_date', { ascending: true })
-        .order('id', { ascending: true });
+      const [
+        dbTasks, dbWorkouts, dbFinances, dbConcursos, dbSimulados, dbScheduled, dbSessions,
+        planTasks, dbNotes, pastTasksCount, dbHabits, dbHabitLogs
+      ] = await Promise.all([
+        readSource('Tarefas', supabase.from('tarefas')
+          .select('id, text, due_date, completed, due_time, category')
+          .eq('user_id', user.id).lte('due_date', endOfMonth)
+          .or(`due_date.gte.${startOfMonth},and(due_time.like.range:*,due_time.gte.range:${startOfMonth})`)
+          .order('due_date', { ascending: true }).order('id', { ascending: true })),
+        readSource('Saúde', supabase.from('saude_treinos')
+          .select('id, type, date, status, muscles')
+          .eq('user_id', user.id).gte('date', startOfMonth).lte('date', endOfMonth)),
+        readSource('Finanças', supabase.from('financas_transacoes')
+          .select('id, name, amount, type, date, pending')
+          .eq('user_id', user.id).gte('date', startOfMonth).lte('date', endOfMonth)),
+        readSource('Estudos', supabase.from('concursos')
+          .select('id, name, target_date, subjects').eq('user_id', user.id)),
+        readSource('Estudos', supabase.from('simulados')
+          .select('id, name, date, results').eq('user_id', user.id).gte('date', startOfMonth).lte('date', endOfMonth)),
+        readSource('Estudos', api.schedule.list(studyRange).then(data => ({ data, error: null }))),
+        readSource('Estudos', api.sessions.list(monthRange).then(data => ({ data, error: null }))),
+        api.studyPlanTasks.list(studyRange),
+        readSource('Anotações', supabase.from('anotacoes')
+          .select('id, title, date, category')
+          .eq('user_id', user.id).gte('date', startOfMonth).lte('date', endOfMonth)),
+        readSource('Tarefas', supabase.from('tarefas').select('id', { count: 'exact', head: true })
+          .eq('user_id', user.id).eq('completed', false).lt('due_date', startOfMonth)
+          .then(({ count, error }) => ({ data: count, error }))),
+        readSource('Hábitos', api.habits.list().then(data => ({ data, error: null }))),
+        readSource('Hábitos', supabase.from('habit_logs').select('habit_id, logged_date')
+          .eq('user_id', user.id).gte('logged_date', startOfMonth).lte('logged_date', endOfMonth))
+      ]);
 
-      const { data: dbWorkouts } = await supabase
-        .from('saude_treinos')
-        .select('id, type, date, status, muscles')
-        .eq('user_id', user.id)
-        .gte('date', startOfMonth)
-        .lte('date', endOfMonth);
-
-      const { data: dbFinances } = await supabase
-        .from('financas_transacoes')
-        .select('id, name, amount, type, date, pending')
-        .eq('user_id', user.id)
-        .eq('type', 'saida')
-        .eq('pending', true)
-        .gte('date', startOfMonth)
-        .lte('date', endOfMonth);
-
-      const { data: dbConcursos } = await supabase
-        .from('concursos')
-        .select('id, name, banca, target_date, subjects, category_id')
-        .eq('user_id', user.id);
+      if (!isCurrent()) return;
 
       const subjectMap = new Map<string, any>();
-      const subjectToConcursoObjMap = new Map<string, any>();
-      const subjectToConcursoIdMap = new Map<string, string>();
-      if (dbConcursos) {
-        dbConcursos.forEach((c: any) => {
-          (c.subjects || []).forEach((sub: any) => {
-            subjectMap.set(sub.id, sub);
-            subjectToConcursoObjMap.set(sub.id, c);
-            subjectToConcursoIdMap.set(sub.id, c.id);
-          });
-        });
+      const subjectToConcursoObjMap = new Map<string, { id: string; name: string }>();
+      const concursoById = new Map((dbConcursos || []).map(concurso => [concurso.id, concurso]));
+      for (const concurso of dbConcursos || []) {
+        for (const subject of concurso.subjects || []) {
+          subjectMap.set(subject.id, subject);
+          subjectToConcursoObjMap.set(subject.id, concurso);
+        }
       }
-
-      const { data: dbSimulados } = await supabase
-        .from('simulados')
-        .select('*')
-        .eq('user_id', user.id)
-        .gte('date', startOfMonth)
-        .lte('date', endOfMonth);
 
       // Normalizar simulados para lidar com o novo formato do campo JSONB 'results'
       const normalizedSimulados = (dbSimulados || []).map((s: any) => {
-        let durationInMinutes = s.duration_minutes || 0;
+        let durationInMinutes = 0;
         let results = s.results;
         
         if (s.results && !Array.isArray(s.results) && typeof s.results === 'object') {
@@ -523,142 +543,82 @@ const HubHome: React.FC<HubHomeProps> = ({
         };
       });
 
-      const { data: dbScheduled } = await supabase
-        .from('scheduled_studies')
-        .select('id, date, subject_id, topic_id, activity_type, notes, duration_minutes, questions_done, questions_correct')
-        .eq('user_id', user.id)
-        .gte('date', windowStartStr)
-        .lte('date', windowEndStr)
-        .order('date', { ascending: true })
-        .order('id', { ascending: true });
-
-      const { data: dbSessions } = await supabase
-        .from('study_sessions')
-        .select('id')
-        .eq('user_id', user.id);
-
-      let deletedTaskIds = new Set<string>();
-      let studyTasksFiltered: any[] = [];
-      try {
-        deletedTaskIds = new Set<string>(JSON.parse(localStorage.getItem('cp_deleted_study_task_ids') || '[]'));
-        const raw = JSON.parse(localStorage.getItem('cp_study_tasks') || '[]');
-        if (Array.isArray(raw)) {
-          studyTasksFiltered = raw.filter((t: any) => t.done || !deletedTaskIds.has(t.id));
-        }
-      } catch {}
-      
-      let deletedScheduledIds = new Set<string>();
-      try {
-        deletedScheduledIds = new Set<string>(JSON.parse(localStorage.getItem('cp_deleted_scheduled_ids') || '[]'));
-      } catch {}
-
-      let scheduledStudiesFiltered: any[] = [];
-      if (dbScheduled) {
-        let localStudies: any[] = [];
+      const readList = <T,>(key: string): T[] => {
         try {
-          const localRaw = localStorage.getItem('cp_scheduled_studies');
-          localStudies = localRaw ? JSON.parse(localRaw) : [];
-        } catch {}
-        const localStatusMap = new Map(localStudies.map(s => [s.id, s.status]));
-        const sessionIds = new Set((dbSessions || []).map(s => s.id));
+          const value = JSON.parse(localStorage.getItem(key) || '[]');
+          return Array.isArray(value) ? value : [];
+        } catch {
+          return [];
+        }
+      };
 
-        scheduledStudiesFiltered = dbScheduled.map((s: any) => {
-          let status: 'planejado' | 'realizado' = 'planejado';
-          if (sessionIds.has(s.id)) {
-            status = 'realizado';
-          } else if (localStatusMap.has(s.id)) {
-            status = localStatusMap.get(s.id) as 'planejado' | 'realizado';
-          }
-          return {
-            id: s.id,
-            date: s.date?.split('T')[0],
-            subjectId: s.subject_id,
-            topicId: s.topic_id,
-            activityType: s.activity_type,
-            notes: s.notes,
-            durationInMinutes: s.duration_minutes,
-            questionsDone: s.questions_done,
-            questionsCorrect: s.questions_correct,
-            status
-          };
-        });
-      } else {
-        scheduledStudiesFiltered = JSON.parse(localStorage.getItem('cp_scheduled_studies') || '[]');
+      const deletedTaskIds = new Set(readList<string>('cp_deleted_study_task_ids'));
+      const studyTasksById = new Map(readList<(typeof planTasks)[number]>('cp_study_tasks').map(task => [task.id, task]));
+      planTasks.forEach(task => studyTasksById.set(task.id, task));
+      const studyTasksFiltered = [...studyTasksById.values()].filter(task => task.done || !deletedTaskIds.has(task.id));
+      const deletedScheduledIds = new Set(readList<string>('cp_deleted_scheduled_ids'));
+      const localStudies = readList<ScheduledStudy>('cp_scheduled_studies');
+      const localById = new Map(localStudies.map(study => [study.id, study]));
+      const sessionIds = new Set((dbSessions || []).map(session => session.id));
+      const studiesById = new Map((dbScheduled ?? localStudies).map(study => {
+        const local = localById.get(study.id);
+        return [study.id, {
+          ...study,
+          concursoId: study.concursoId || local?.concursoId || subjectToConcursoObjMap.get(study.subjectId)?.id,
+          generatedByCronograma: study.generatedByCronograma ?? local?.generatedByCronograma,
+          status: sessionIds.has(study.id) || study.status === 'realizado' || local?.status === 'realizado'
+            ? 'realizado' as const
+            : 'planejado' as const
+        }];
+      }));
+
+      for (const session of dbSessions || []) {
+        if (!studiesById.has(session.id) && !session.isSimulado && session.date) {
+          studiesById.set(session.id, {
+            ...session,
+            date: session.date.split('T')[0],
+            activityType: session.activityType || 'Leitura, Questões',
+            status: 'realizado',
+            concursoId: subjectToConcursoObjMap.get(session.subjectId)?.id,
+            generatedByCronograma: undefined
+          });
+        }
       }
 
-      // Reconstrução de tarefas para sessões de estudo realizadas que não estejam no scheduledStudies
-      const existingScheduledIds = new Set(scheduledStudiesFiltered.map((s: any) => s.id));
-      (dbSessions || []).forEach((sess: any) => {
-        if (!existingScheduledIds.has(sess.id)) {
-          scheduledStudiesFiltered.push({
-            id: sess.id,
-            date: sess.date?.split('T')[0],
-            subjectId: sess.subject_id,
-            topicId: sess.topic_id,
-            activityType: sess.activity_type || 'Leitura, Questões',
-            durationInMinutes: sess.duration_minutes,
-            questionsDone: sess.questions_done,
-            questionsCorrect: sess.questions_correct,
-            status: 'realizado'
-          });
-          existingScheduledIds.add(sess.id);
-        }
-      });
-
-      // Filter out deleted tasks and tasks from disabled cronogramas (mantendo realizadas ativas)
-      const isCronogramaEnabledForConcurso = (concursoId?: string) => {
-        if (!concursoId || concursoId === 'all') return true;
-        try {
-          const saved = localStorage.getItem(`cp_cronograma_prefs_${concursoId}`);
-          if (saved) {
-            const parsed = JSON.parse(saved);
-            if (parsed.isCronogramaEnabled === false) return false;
+      const simuladoDates = new Set(normalizedSimulados.map(sim => sim.date?.split('T')[0]));
+      const visibleScheduledStudies = [...studiesById.values()].filter(study => {
+        if (study.activityType === 'Simulado' &&
+          (study.status === 'realizado' || simuladoDates.has(study.date))) return false;
+        return isScheduledStudyVisible(study, deletedScheduledIds, concursoId => {
+          try {
+            return JSON.parse(localStorage.getItem(`cp_cronograma_prefs_${concursoId}`) || '{}').isCronogramaEnabled !== false;
+          } catch {
+            return true;
           }
-        } catch (e) {}
-        return true;
-      };
-
-      scheduledStudiesFiltered = scheduledStudiesFiltered.filter((s: any) => {
-        if (s.status === 'realizado') return true;
-        if (deletedScheduledIds.has(s.id)) return false;
-        const concId = s.concursoId || (s.subjectId ? subjectToConcursoIdMap.get(s.subjectId) : undefined);
-        if (concId && !isCronogramaEnabledForConcurso(concId)) return false;
-        return true;
+        });
       });
-
-      const simuladosFiltered = normalizedSimulados;
-
-      // Filter out individual simulado study sessions from scheduled studies
-      const nonSimuladoScheduledStudies = scheduledStudiesFiltered.filter((s: any) => s.activityType !== 'Simulado');
 
       // Helper to parse notes group
-      const parseNotesGroup = (notes: string) => {
-        const match = notes?.match(/^\[groupId:([^\]]+)\](.*)/s);
-        if (match) {
-          return { groupId: match[1], cleanNotes: match[2].trim() };
-        }
-        return { groupId: null, cleanNotes: notes || '' };
-      };
-
       // Group nonSimuladoScheduledStudies by groupId
       const groupedMap = new Map<string, any[]>();
       const nonGroupedStudies: any[] = [];
 
-      nonSimuladoScheduledStudies.forEach((s: any) => {
+      visibleScheduledStudies.forEach(s => {
         if (s.notes) {
           const { groupId } = parseNotesGroup(s.notes);
           if (groupId) {
-            if (!groupedMap.has(groupId)) {
-              groupedMap.set(groupId, []);
+            const key = JSON.stringify([s.date, groupId]);
+            if (!groupedMap.has(key)) {
+              groupedMap.set(key, []);
             }
-            groupedMap.get(groupId)!.push(s);
+            groupedMap.get(key)!.push(s);
             return;
           }
         }
         nonGroupedStudies.push(s);
       });
 
-      const groupedStudies = Array.from(groupedMap.entries()).map(([groupId, list]) => {
+      const groupedStudies = Array.from(groupedMap.values()).map(list => {
         const first = list[0];
         const totalDuration = list.reduce((acc, item) => acc + (item.durationInMinutes || 0), 0);
         return {
@@ -666,9 +626,10 @@ const HubHome: React.FC<HubHomeProps> = ({
           activityType: first.activityType,
           durationInMinutes: totalDuration,
           date: first.date,
-          status: first.status,
+          status: list.every(item => item.status === 'realizado') ? 'realizado' : 'planejado',
           notes: first.notes,
-          subjectId: first.subjectId
+          subjectId: first.subjectId,
+          concursoId: first.concursoId
         };
       });
 
@@ -676,10 +637,10 @@ const HubHome: React.FC<HubHomeProps> = ({
 
       const studiesList = [
         ...studyTasksFiltered.map((t: any) => {
-          const conc = subjectToConcursoObjMap.get(t.subjectId);
+          const conc = concursoById.get(t.concursoId || '') || subjectToConcursoObjMap.get(t.subjectId);
           const prefix = conc ? `[${conc.name}] ` : '';
           return { 
-            id: t.id, 
+            id: `plano:${t.id}`,
             text: prefix + t.subjectName + ' - ' + (t.topicName || 'Geral'), 
             date: t.date, 
             completed: t.done,
@@ -688,7 +649,7 @@ const HubHome: React.FC<HubHomeProps> = ({
         }),
         ...consolidatedStudies.map((s: any) => {
           const sub = subjectMap.get(s.subjectId);
-          const conc = subjectToConcursoObjMap.get(s.subjectId);
+          const conc = concursoById.get(s.concursoId || '') || subjectToConcursoObjMap.get(s.subjectId);
           const prefix = conc ? `[${conc.name}] ` : '';
           const subjectName = sub ? sub.name : 'Disciplina';
           const isCompleted = s.status === 'realizado';
@@ -698,18 +659,19 @@ const HubHome: React.FC<HubHomeProps> = ({
           return {
             id: s.id,
             text,
+            isSimulado: s.activityType === 'Simulado',
             date: s.date?.split('T')[0],
             completed: isCompleted,
             concursoId: conc?.id || s.concursoId
           };
         }),
-        ...simuladosFiltered.map((sim: any) => ({
+        ...normalizedSimulados.map(sim => ({
           id: sim.id,
           text: `SIMULADO: ${sim.name} (${sim.durationInMinutes || 0} min)`,
           date: sim.date?.split('T')[0] || sim.date,
           completed: true,
           isSimulado: true,
-          concursoId: sim.concursoId || sim.concurso_id
+          concursoId: subjectToConcursoObjMap.get(sim.results?.[0]?.subjectId)?.id
         }))
       ].filter(s => s.date >= startOfMonth && s.date <= endOfMonth);
 
@@ -737,18 +699,36 @@ const HubHome: React.FC<HubHomeProps> = ({
         };
       });
 
+      const deletedNoteIds = new Set(readList<string>('cn_deleted_note_ids'));
+      const notesById = new Map([
+        ...(dbNotes || []),
+        ...readList<(typeof calendarEvents.notes)[number]>('cn_anotacoes')
+      ].map(note => [note.id, note]));
+      const deletedHabitIds = new Set(readList<string>('cn_deleted_habit_ids'));
+      const cloudHabitHistory: Record<string, string[]> = {};
+      for (const log of dbHabitLogs || []) {
+        (cloudHabitHistory[log.logged_date] ||= []).push(log.habit_id);
+      }
       setCalendarEvents({
         tasks: parsedTasks,
         studies: studiesList,
         workouts: dbWorkouts || [],
-        finances: dbFinances || []
+        finances: dbFinances || [],
+        notes: [...notesById.values()].filter(note => !deletedNoteIds.has(note.id) &&
+          note.date >= startOfMonth && note.date <= endOfMonth),
+        cloudHabits: (dbHabits || []).filter(habit => !deletedHabitIds.has(habit.id)).map(habit => ({
+          id: habit.id, name: habit.name, createdAt: new Date(habit.created_at).getTime()
+        })),
+        cloudHabitHistory: dbHabitLogs ? { month: startOfMonth.slice(0, 7), dates: cloudHabitHistory } : null
       });
+      setCalendarUnavailableSources([...failedSources]);
 
-      const examDatesList: { date: string; name: string }[] = [];
+      const examDatesList: typeof concursoExamDates = [];
       if (dbConcursos) {
         dbConcursos.forEach((c: any) => {
           if (c.target_date) {
             examDatesList.push({
+              id: c.id,
               date: c.target_date.split('T')[0],
               name: c.name
             });
@@ -757,19 +737,11 @@ const HubHome: React.FC<HubHomeProps> = ({
       }
       setConcursoExamDates(examDatesList);
 
-      // Query past incomplete tasks from Supabase
-      const { count: pastTasksCount } = await supabase
-        .from('tarefas')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id)
-        .eq('completed', false)
-        .lt('due_date', startOfMonth);
-
       const hasPastTasks = (pastTasksCount || 0) > 0;
       
       const hasPastStudies = 
         studyTasksFiltered.some((t: any) => t.date && t.date < startOfMonth && !t.done) ||
-        nonSimuladoScheduledStudies.some((s: any) => {
+        visibleScheduledStudies.some(s => {
           const sDate = s.date?.split('T')[0];
           return sDate && sDate < startOfMonth && s.status !== 'realizado';
         });
@@ -777,11 +749,18 @@ const HubHome: React.FC<HubHomeProps> = ({
       setHasPastPendingEvents(hasPastTasks || hasPastStudies);
     } catch (e) {
       console.error('Error fetching calendar data:', e);
+      if (isCurrent()) setCalendarUnavailableSources(['Agenda Unificada']);
     }
   }, []);
 
   useEffect(() => {
-    fetchCalendarData(calendarMonth).catch(console.error);
+    let active = true;
+    let revision = 0;
+    const refresh = () => {
+      const requested = ++revision;
+      fetchCalendarData(calendarMonth, () => active && requested === revision).catch(console.error);
+    };
+    refresh();
 
     let lastFocusSyncAt = Date.now();
     const FOCUS_THROTTLE_MS = 180 * 1000; // 3 minutos
@@ -790,18 +769,36 @@ const HubHome: React.FC<HubHomeProps> = ({
       const now = Date.now();
       if (now - lastFocusSyncAt < FOCUS_THROTTLE_MS) return;
       lastFocusSyncAt = now;
-      fetchCalendarData(calendarMonth).catch(console.error);
+      refresh();
     };
 
+    let syncTimer: ReturnType<typeof setTimeout>;
     const handleStorageSync = () => {
-      fetchCalendarData(calendarMonth).catch(console.error);
+      clearTimeout(syncTimer);
+      syncTimer = setTimeout(refresh, 300);
+    };
+    const readAgendaSettings = () => JSON.stringify([
+      'cp_scheduled_studies', 'cp_study_tasks', 'cp_deleted_study_task_ids',
+      'cp_deleted_scheduled_ids', 'cp_cronograma_prefs_map', 'cn_anotacoes',
+      'cn_deleted_note_ids', 'cn_habits', 'cn_habit_history', 'cn_deleted_habit_ids'
+    ].map(key => localStorage.getItem(key)));
+    let agendaSettings = readAgendaSettings();
+    const handleAgendaSettingsChange = () => {
+      const nextSettings = readAgendaSettings();
+      if (nextSettings === agendaSettings) return;
+      agendaSettings = nextSettings;
+      handleStorageSync();
     };
 
     window.addEventListener('focus', handleFocusSync);
     window.addEventListener('local-storage-sync', handleStorageSync);
+    window.addEventListener('local-settings-changed', handleAgendaSettingsChange);
     return () => {
       window.removeEventListener('focus', handleFocusSync);
       window.removeEventListener('local-storage-sync', handleStorageSync);
+      window.removeEventListener('local-settings-changed', handleAgendaSettingsChange);
+      clearTimeout(syncTimer);
+      active = false;
     };
   }, [calendarMonth, fetchCalendarData]);
 
@@ -836,10 +833,6 @@ const HubHome: React.FC<HubHomeProps> = ({
   useEffect(() => {
     localStorage.setItem('cn_home_cards_layout', JSON.stringify(homeCards));
   }, [homeCards]);
-
-  const [profilePhoto, setProfilePhoto] = useState<string>(() => {
-    return localStorage.getItem('cn_profile_photo') || '';
-  });
 
   const [draggedCardIndex, setDraggedCardIndex] = useState<number | null>(null);
 
@@ -956,6 +949,25 @@ const HubHome: React.FC<HubHomeProps> = ({
   const [showHabitsReport, setShowHabitsReport] = useState(false);
 
   const todayStr = new Date(currentTime.getTime() - currentTime.getTimezoneOffset() * 60000).toISOString().split('T')[0];
+  const agendaHabits = useMemo(() => {
+    if (calendarEvents.cloudHabits.length === 0) return habits;
+    const byId = new Map(habits.filter(habit => !/^h[1-4]$/.test(habit.id)).map(habit => [habit.id, habit]));
+    for (const habit of calendarEvents.cloudHabits) byId.set(habit.id, { ...byId.get(habit.id), ...habit });
+    return [...byId.values()];
+  }, [habits, calendarEvents.cloudHabits]);
+  const cloudHabitIds = useMemo(() => new Set(calendarEvents.cloudHabits.map(habit => habit.id)), [calendarEvents.cloudHabits]);
+  const getAgendaHabits = (date: string) => {
+    const remoteHistory = calendarEvents.cloudHabitHistory;
+    return agendaHabits.map(habit => {
+      const history = cloudHabitIds.has(habit.id) && remoteHistory?.month === date.slice(0, 7)
+        ? remoteHistory.dates
+        : habitHistory;
+      return { ...habit, completed: (history[date] || []).includes(habit.id) };
+    }).filter(habit => habit.completed ||
+      (date >= todayStr && (!habit.createdAt || getLocalDateString(habit.createdAt) <= date)));
+  };
+  const selectedHabits = getAgendaHabits(selectedCalendarDate);
+  const selectedNotes = calendarEvents.notes.filter(note => note.date === selectedCalendarDate);
 
   const requestNotificationPermission = async () => {
     if (!('Notification' in window)) return false;
@@ -1149,65 +1161,23 @@ const HubHome: React.FC<HubHomeProps> = ({
     window.location.hash = 'anotacoes';
   };
 
-  const toggleHabit = (habitId: string) => {
-    let willBeCompleted = false;
-    setHabitHistory(prev => {
-      const todayLogs = prev[todayStr] || [];
-      let newTodayLogs: string[];
-      if (todayLogs.includes(habitId)) {
-        newTodayLogs = todayLogs.filter(id => id !== habitId);
-        willBeCompleted = false;
-      } else {
-        newTodayLogs = [...todayLogs, habitId];
-        willBeCompleted = true;
-        playSound.success();
-      }
-      const updated = { ...prev, [todayStr]: newTodayLogs };
-      localStorage.setItem('cn_habit_history', JSON.stringify(updated));
-      return updated;
-    });
-
-    // Sincroniza com a nuvem (Supabase)
-    api.habits.toggleLog(habitId, todayStr, willBeCompleted).catch(err => {
-      console.error('Error toggling habit log in cloud from home:', err);
-    });
-
-    // Notifica outros componentes e abas
-    setTimeout(() => {
-      window.dispatchEvent(new Event('local-storage-sync'));
-      window.dispatchEvent(new Event('storage'));
-    }, 50);
-  };
-
   const toggleHabitOnDate = (habitId: string, dateStr: string) => {
-    let willBeCompleted = false;
-    setHabitHistory(prev => {
-      const logs = prev[dateStr] || [];
-      const isCompleted = logs.includes(habitId);
-      willBeCompleted = !isCompleted;
-      if (willBeCompleted) {
-        playSound.success();
-      }
-      const updated = {
-        ...prev,
-        [dateStr]: willBeCompleted
-          ? [...logs, habitId]
-          : logs.filter(id => id !== habitId)
-      };
-      localStorage.setItem('cn_habit_history', JSON.stringify(updated));
-      return updated;
-    });
+    const logs = habitHistory[dateStr] || [];
+    const completed = !logs.includes(habitId);
+    const updated = {
+      ...habitHistory,
+      [dateStr]: completed ? [...logs, habitId] : logs.filter(id => id !== habitId)
+    };
+    setHabitHistory(updated);
+    localStorage.setItem('cn_habit_history', JSON.stringify(updated));
+    if (completed) playSound.success();
+    window.dispatchEvent(new Event('local-settings-changed'));
 
-    // Sincroniza com a nuvem (Supabase)
-    api.habits.toggleLog(habitId, dateStr, willBeCompleted).catch(err => {
+    api.habits.toggleLog(habitId, dateStr, completed).then(() => {
+      window.dispatchEvent(new Event('local-storage-sync'));
+    }).catch(err => {
       console.error('Error toggling habit log on date in cloud from home:', err);
     });
-
-    // Notifica outros componentes e abas
-    setTimeout(() => {
-      window.dispatchEvent(new Event('local-storage-sync'));
-      window.dispatchEvent(new Event('storage'));
-    }, 50);
   };
 
   const addHabit = (name: string) => {
@@ -1423,7 +1393,6 @@ const HubHome: React.FC<HubHomeProps> = ({
         }
         const savedPush = localStorage.getItem('cn_push_notifications_enabled') === 'true';
         setPushEnabled(savedPush);
-        setProfilePhoto(localStorage.getItem('cn_profile_photo') || '');
         loadSleepLogs();
         // IMPORTANTE: fetchCalendarData foi removido daqui.
         // O refetch do calendário é gerenciado exclusivamente pelo useEffect dedicado
@@ -2032,43 +2001,12 @@ const HubHome: React.FC<HubHomeProps> = ({
           </div>
         ) : (
           <>
-            <div className="flex flex-col lg:flex-row items-start gap-6 w-full animate-in fade-in slide-in-from-top-2 duration-300">
-              {/* Coluna Lateral: Ícones de acesso aos módulos empilhados na vertical */}
-              <aside className="w-full lg:w-28 xl:w-32 shrink-0 lg:sticky lg:top-6 z-20 flex flex-col gap-3">
-                {/* Widget de Perfil do Usuário */}
-                <div 
-                  onClick={() => window.dispatchEvent(new CustomEvent('open-profile-modal'))}
-                  className="w-full bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md rounded-2xl lg:rounded-3xl border border-zinc-200/90 dark:border-zinc-800 p-2.5 lg:p-3 shadow-sm flex flex-row lg:flex-col items-center justify-between lg:justify-center gap-2 group transition-all duration-200 hover:shadow-md cursor-pointer select-none"
-                  title="Foto de perfil (Clique para configurar em Preferências)"
-                >
-                  <div className="relative shrink-0">
-                    {profilePhoto ? (
-                      <img 
-                        src={profilePhoto} 
-                        alt="Foto de Perfil" 
-                        className="w-10 h-10 lg:w-16 lg:h-16 rounded-full object-cover shadow-sm group-hover:scale-105 transition-all" 
-                      />
-                    ) : (
-                      <div className="w-10 h-10 lg:w-16 lg:h-16 rounded-full bg-gradient-to-tr from-indigo-600 to-violet-500 text-white flex items-center justify-center text-sm lg:text-xl font-black shadow-sm group-hover:scale-105 transition-all">
-                        {((userName && userName[0]) || 'U').toUpperCase()}
-                      </div>
-                    )}
-                    <span 
-                      className="absolute bottom-0 right-0 w-2.5 h-2.5 lg:w-3.5 lg:h-3.5 rounded-full bg-emerald-500 border-2 border-white dark:border-zinc-900 shadow-xs" 
-                      title="Ativo"
-                    />
-                  </div>
-
-                  <div className="flex flex-col items-start lg:items-center text-left lg:text-center min-w-0 flex-1 lg:w-full">
-                    <span className="text-[10px] lg:text-[11px] font-black uppercase tracking-wider text-zinc-800 dark:text-zinc-100 truncate w-full" title={userName || 'Usuário'}>
-                      {userName || 'Usuário'}
-                    </span>
-                    <span className="text-[8px] lg:text-[9px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest truncate w-full">
-                      Perfil
-                    </span>
-                  </div>
-                </div>
-
+            <div className="grid grid-cols-1 lg:grid-cols-[7rem_minmax(0,1fr)] xl:grid-cols-[8rem_minmax(0,1fr)] items-start gap-6 w-full lg:[&>div]:col-start-2 animate-in fade-in slide-in-from-top-2 duration-300">
+              <aside
+                aria-label="Módulos"
+                style={{ '--modules-row': modulesRow } as React.CSSProperties}
+                className="w-full min-w-0 lg:col-start-1 lg:[grid-row-start:var(--modules-row)]"
+              >
                 {/* Lista de Módulos */}
                 <div className="bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md rounded-2xl lg:rounded-3xl border border-zinc-200/90 dark:border-zinc-800 p-2 lg:p-2.5 shadow-sm flex flex-row lg:flex-col items-center justify-between lg:justify-start gap-1 lg:gap-2">
                   <div className="hidden lg:flex items-center justify-center py-1 w-full border-b border-zinc-100 dark:border-zinc-800/80 mb-0.5">
@@ -2095,9 +2033,7 @@ const HubHome: React.FC<HubHomeProps> = ({
                 </div>
               </aside>
               
-              {/* Área Principal dos Widgets (Calendário, Hábitos, Sono) */}
-              <div className="flex-1 min-w-0 flex flex-col gap-6 w-full">
-                {widgetsOrder.map((widgetId) => {
+          {visibleWidgets.map((widgetId) => {
             if (widgetId === 'calendar') {
               const isCalendarVisible = widgetsVisibility['calendar'] !== false;
               if (!isCalendarVisible && !isHomeEditMode) return null;
@@ -2196,9 +2132,7 @@ const HubHome: React.FC<HubHomeProps> = ({
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              const newDate = new Date(calendarMonth);
-                              newDate.setMonth(newDate.getMonth() - 1);
-                              setCalendarMonth(newDate);
+                              changeAgendaMonth(-1);
                             }}
                             type="button"
                             className={`p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl text-zinc-600 dark:text-zinc-300 transition-colors cursor-pointer ${
@@ -2210,9 +2144,7 @@ const HubHome: React.FC<HubHomeProps> = ({
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              const newDate = new Date(calendarMonth);
-                              newDate.setMonth(newDate.getMonth() + 1);
-                              setCalendarMonth(newDate);
+                              changeAgendaMonth(1);
                             }}
                             type="button"
                             className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl text-zinc-600 dark:text-zinc-300 transition-colors cursor-pointer"
@@ -2222,6 +2154,11 @@ const HubHome: React.FC<HubHomeProps> = ({
                         </div>
                       </div>
 
+                      {calendarUnavailableSources.length > 0 && (
+                        <p role="status" className="text-xs text-amber-700 dark:text-amber-400">
+                          Dados indisponíveis no momento em {calendarUnavailableSources.join(', ')}.
+                        </p>
+                      )}
                       {/* Grade Ampliada do Calendário */}
                       <div className="grid grid-cols-7 gap-2">
                         {/* Dias da semana */}
@@ -2341,7 +2278,7 @@ const HubHome: React.FC<HubHomeProps> = ({
                                     );
                                   })}
                                   {dayFinances.map((f, idx) => {
-                                    const isAtrasado = dateStr < todayStr;
+                                    const isAtrasado = dateStr < todayStr && f.pending;
                                     return (
                                       <div 
                                         key={`finance-${f.id || idx}`}
@@ -2366,6 +2303,12 @@ const HubHome: React.FC<HubHomeProps> = ({
                                       />
                                     );
                                   })}
+                                  {calendarEvents.notes.some(note => note.date === dateStr) && (
+                                    <span className="size-2 rounded-full bg-amber-500" title="Anotações" />
+                                  )}
+                                  {getAgendaHabits(dateStr).length > 0 && (
+                                    <span className="size-2 rounded-full bg-slate-500" title="Hábitos" />
+                                  )}
                                 </div>
                               </div>
                             );
@@ -2400,7 +2343,8 @@ const HubHome: React.FC<HubHomeProps> = ({
                             const dayStudies = calendarEvents.studies.filter(s => s.date === selectedCalendarDate);
                             const dayWorkouts = calendarEvents.workouts.filter(w => w.date === selectedCalendarDate);
                             const dayFinances = calendarEvents.finances.filter(f => f.date === selectedCalendarDate);
-                            return dayExams.length + dayTasks.length + dayStudies.length + dayWorkouts.length + dayFinances.length;
+                            return dayExams.length + dayTasks.length + dayStudies.length + dayWorkouts.length + dayFinances.length +
+                              selectedNotes.length + selectedHabits.length;
                           })()} itens
                         </span>
                       </div>
@@ -2433,7 +2377,8 @@ const HubHome: React.FC<HubHomeProps> = ({
                           const dayWorkouts = calendarEvents.workouts.filter(w => w.date === selectedCalendarDate);
                           const dayFinances = calendarEvents.finances.filter(f => f.date === selectedCalendarDate);
 
-                          const totalCount = dayExams.length + dayTasks.length + dayStudies.length + dayWorkouts.length + dayFinances.length;
+                          const totalCount = dayExams.length + dayTasks.length + dayStudies.length + dayWorkouts.length + dayFinances.length +
+                            selectedNotes.length + selectedHabits.length;
 
                           if (totalCount === 0) {
                             return (
@@ -2448,14 +2393,14 @@ const HubHome: React.FC<HubHomeProps> = ({
                           return (
                             <>
                                {/* Prova de Concurso (Destaque em Roxo) */}
-                               {dayExams.map((exam, idx) => (
-                                 <div
-                                   key={`exam-${idx}`}
+                               {dayExams.map(exam => (
+                                 <button type="button"
+                                   key={`exam-${exam.id}`}
                                    onClick={() => {
-                                     window.location.hash = 'estudos';
+                                     openAgendaTarget('estudos', { date: exam.date, id: exam.id, studyTab: 'concursos' });
                                    }}
                                    title="Abrir no Módulo de Estudos"
-                                   className="flex items-center gap-2.5 p-2.5 rounded-xl transition-all duration-200 cursor-pointer hover:scale-[1.01] bg-purple-500/15 dark:bg-purple-500/20 border-2 border-purple-500/50 dark:border-purple-400/60 shadow-sm"
+                                   className="flex w-full items-center gap-2.5 text-left p-2.5 rounded-xl transition-all duration-200 cursor-pointer hover:scale-[1.01] bg-purple-500/15 dark:bg-purple-500/20 border-2 border-purple-500/50 dark:border-purple-400/60 shadow-sm"
                                  >
                                    <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 bg-purple-500 text-white shadow-xs">
                                      <Target size={16} strokeWidth={2.5} />
@@ -2468,27 +2413,25 @@ const HubHome: React.FC<HubHomeProps> = ({
                                        {exam.name}
                                      </p>
                                    </div>
-                                 </div>
+                                 </button>
                                ))}
                                {/* Estudos */}
                                {dayStudies.map(s => {
                                  const isCompleted = s.completed;
                                  const isRevisao = s.text && (s.text.toLowerCase().includes('revisão') || s.text.toLowerCase().includes('revisao'));
                                  return (
-                                   <div 
+                                   <button type="button"
                                      key={s.id} 
                                      onClick={() => {
-                                       if (s.concursoId) {
-                                         localStorage.setItem('cp_selected_concurso_id', s.concursoId);
-                                       }
-                                       sessionStorage.setItem('estudosActiveTab', 'calendar');
-                                       if (s.id) {
-                                         sessionStorage.setItem('targetTaskId', s.id);
-                                       }
-                                       window.location.hash = 'estudos';
+                                       openAgendaTarget('estudos', {
+                                         date: s.date,
+                                         id: s.id,
+                                         concursoId: s.concursoId,
+                                         studyTab: s.id.startsWith('plano:') ? 'study_plan' : 'calendar'
+                                       });
                                      }}
-                                     title="Abrir diretamente no Planner do respectivo curso"
-                                     className={`flex items-center gap-2.5 p-2 rounded-xl transition-all duration-200 cursor-pointer hover:scale-[1.01] ${
+                                     title="Abrir no módulo de Estudos"
+                                     className={`flex w-full items-center gap-2.5 text-left p-2 rounded-xl transition-all duration-200 cursor-pointer hover:scale-[1.01] ${
                                        isCompleted
                                          ? 'bg-zinc-100/40 dark:bg-zinc-800/20 border border-zinc-200/25 dark:border-zinc-800/30 opacity-40'
                                          : isRevisao
@@ -2509,13 +2452,13 @@ const HubHome: React.FC<HubHomeProps> = ({
                                        <p className={`text-[9px] font-black uppercase tracking-wider leading-none ${
                                          isCompleted ? 'text-zinc-400 dark:text-zinc-550' : isRevisao ? 'text-amber-600 dark:text-amber-400' : 'text-purple-600 dark:text-purple-400'
                                        }`}>
-                                         {isRevisao ? 'Revisão' : 'Estudo'} {!isCompleted && '• Pendente'}
+                                         {s.isSimulado ? 'Simulado' : isRevisao ? 'Revisão' : 'Estudo'} {!isCompleted && '• Pendente'}
                                        </p>
                                        <p className={`text-[10px] font-bold text-zinc-750 dark:text-zinc-200 truncate mt-0.5 leading-none ${
                                          isCompleted ? 'line-through opacity-50' : ''
                                        }`}>{s.text}</p>
                                      </div>
-                                   </div>
+                                   </button>
                                  );
                                })}
 
@@ -2525,11 +2468,11 @@ const HubHome: React.FC<HubHomeProps> = ({
                                  const cat = String(t.category || '').trim().toLowerCase();
                                  const isImportant = cat === 'importante' || cat === 'urgente';
                                  return (
-                                   <div 
+                                   <button type="button"
                                      key={t.id} 
-                                     onClick={() => { window.location.hash = 'tarefas'; }}
+                                     onClick={() => openAgendaTarget('tarefas', { date: selectedCalendarDate, id: t.id })}
                                      title="Abrir no módulo de Tarefas"
-                                     className={`flex items-center gap-2.5 p-2 rounded-xl transition-all duration-200 cursor-pointer hover:scale-[1.01] ${
+                                     className={`flex w-full items-center gap-2.5 text-left p-2 rounded-xl transition-all duration-200 cursor-pointer hover:scale-[1.01] ${
                                        isCompleted
                                          ? 'bg-zinc-100/40 dark:bg-zinc-800/20 border border-zinc-200/25 dark:border-zinc-800/30 opacity-40'
                                          : isImportant
@@ -2558,7 +2501,7 @@ const HubHome: React.FC<HubHomeProps> = ({
                                          isCompleted ? 'line-through opacity-50' : ''
                                        }`}>{t.text}</p>
                                      </div>
-                                   </div>
+                                   </button>
                                  );
                                })}
 
@@ -2566,11 +2509,14 @@ const HubHome: React.FC<HubHomeProps> = ({
                                {dayWorkouts.map(w => {
                                  const isCompleted = w.status === 'realizado';
                                  return (
-                                   <div 
+                                   <button type="button"
                                      key={w.id} 
-                                     onClick={() => { window.location.hash = 'saude'; sessionStorage.setItem('saude_active_tab', 'planner'); }}
+                                     onClick={() => {
+                                       sessionStorage.setItem('saude_active_tab', 'planner');
+                                       openAgendaTarget('saude', { date: w.date, id: w.id });
+                                     }}
                                      title="Abrir no módulo de Saúde"
-                                     className={`flex items-center gap-2.5 p-2 rounded-xl transition-all duration-200 cursor-pointer hover:scale-[1.01] ${
+                                     className={`flex w-full items-center gap-2.5 text-left p-2 rounded-xl transition-all duration-200 cursor-pointer hover:scale-[1.01] ${
                                        isCompleted
                                          ? 'bg-zinc-100/40 dark:bg-zinc-800/20 border border-zinc-200/25 dark:border-zinc-800/30 opacity-40'
                                          : 'bg-blue-500/10 dark:bg-blue-500/10 border-2 border-blue-500/40 dark:border-blue-400/50 shadow-xs'
@@ -2593,24 +2539,24 @@ const HubHome: React.FC<HubHomeProps> = ({
                                          isCompleted ? 'line-through opacity-50' : ''
                                        }`}>{w.type}{w.muscles && w.muscles.length > 0 ? ` (${w.muscles.join(', ')})` : ''}</p>
                                      </div>
-                                   </div>
+                                   </button>
                                  );
                                })}
 
                                {/* Finanças */}
                                {dayFinances.map(f => (
-                                 <div 
+                                 <button type="button"
                                    key={f.id} 
-                                   onClick={() => { window.location.hash = 'financas'; sessionStorage.setItem('openAddFinancasType', 'saida'); }}
+                                   onClick={() => openAgendaTarget('financas', { date: f.date, id: f.id })}
                                    title="Abrir no módulo de Finanças"
-                                   className="flex items-center gap-2.5 p-2 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/10 border border-emerald-500/30 dark:border-emerald-400/45 shadow-xs cursor-pointer hover:scale-[1.01] transition-all duration-200"
+                                   className="flex w-full items-center gap-2.5 text-left p-2 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/10 border border-emerald-500/30 dark:border-emerald-400/45 shadow-xs cursor-pointer hover:scale-[1.01] transition-all duration-200"
                                  >
                                    <div className="w-7 h-7 rounded-xl bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
                                      <Wallet size={13} strokeWidth={2.2} />
                                    </div>
                                    <div className="min-w-0 flex-1">
                                      <p className="text-[9px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider leading-none">
-                                       Despesa • Pendente
+                                       {f.type === 'entrada' ? 'Receita' : 'Despesa'} • {f.pending ? 'Pendente' : 'Confirmada'}
                                      </p>
                                      <p className="text-[10px] font-bold text-zinc-750 dark:text-zinc-200 truncate mt-0.5 leading-none">
                                        {f.name}
@@ -2619,7 +2565,31 @@ const HubHome: React.FC<HubHomeProps> = ({
                                    <span className="text-[9px] font-bold text-emerald-650 dark:text-emerald-400 shrink-0">
                                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(f.amount)}
                                    </span>
-                                 </div>
+                                 </button>
+                               ))}
+                               {selectedNotes.map(note => (
+                                 <button key={`note-${note.id}`} type="button"
+                                   onClick={() => openAgendaTarget('anotacoes', { date: note.date, id: note.id })}
+                                   className="flex items-center gap-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 p-2 text-left">
+                                   <StickyNote size={16} className="shrink-0 text-amber-600 dark:text-amber-400" />
+                                   <span className="min-w-0">
+                                     <span className="block text-[9px] font-black uppercase text-amber-700 dark:text-amber-400">{note.category || 'Anotação'}</span>
+                                     <span className="block truncate text-[10px] font-bold">{note.title || 'Sem título'}</span>
+                                   </span>
+                                 </button>
+                               ))}
+                               {selectedHabits.map(habit => (
+                                 <button key={`habit-${habit.id}`} type="button"
+                                   onClick={() => openAgendaTarget('habitos', { date: selectedCalendarDate })}
+                                   className="flex items-center gap-2.5 rounded-xl border border-slate-500/30 bg-slate-500/10 p-2 text-left">
+                                   <Flame size={16} className="shrink-0 text-slate-600 dark:text-slate-400" />
+                                   <span className="min-w-0">
+                                     <span className="block text-[9px] font-black uppercase text-slate-600 dark:text-slate-400">
+                                       Hábito • {habit.completed ? 'Concluído' : 'Pendente'}
+                                     </span>
+                                     <span className="block truncate text-[10px] font-bold">{habit.name}</span>
+                                   </span>
+                                 </button>
                                ))}
                             </>
                           );
@@ -3009,7 +2979,6 @@ const HubHome: React.FC<HubHomeProps> = ({
             }
             return null;
           })}
-        </div>
       </div>
 
         {/* Modal para registrar sono */}

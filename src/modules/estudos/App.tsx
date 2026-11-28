@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { useAgendaTarget } from '../../hooks/useAgendaTarget';
 import Sidebar from './components/Sidebar';
 import Dashboard from './pages/Dashboard';
 import SubjectsView from './pages/SubjectsView';
@@ -30,10 +31,14 @@ interface AppProps {
 }
 
 const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme }) => {
-  const [activeTab, setActiveTabState] = useState('dashboard');
+  const initialAgendaTarget = useAgendaTarget('estudos');
+  const [agendaTarget, setAgendaTarget] = useState(initialAgendaTarget);
+  const appliedAgendaConcurso = React.useRef(false);
+  const [activeTab, setActiveTabState] = useState(agendaTarget?.studyTab || 'dashboard');
   const [selectedFlashcardSubjectId, setSelectedFlashcardSubjectId] = useState<string | undefined>(undefined);
 
   const setActiveTab = (tab: string) => {
+    setAgendaTarget(null);
     setActiveTabState(tab);
     localStorage.setItem('cp_active_tab_estudos', tab);
     window.dispatchEvent(new Event('local-settings-changed'));
@@ -96,6 +101,13 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
       window.removeEventListener('local-settings-changed', handleSync);
     };
   }, []);
+
+  React.useEffect(() => {
+    const concursoId = agendaTarget?.concursoId;
+    if (appliedAgendaConcurso.current || !concursoId || !concursos.some(concurso => concurso.id === concursoId)) return;
+    appliedAgendaConcurso.current = true;
+    if (selectedConcursoId !== concursoId) setSelectedConcursoId(concursoId);
+  }, [agendaTarget, concursos, selectedConcursoId, setSelectedConcursoId]);
 
   React.useEffect(() => {
     if (sessionStorage.getItem('openAddStudyModal') === 'true') {
@@ -282,7 +294,7 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
       case 'dashboard':
         return <Dashboard subjects={filteredSubjects} sessions={sessions} simulados={simulados} activeConcurso={activeConcurso} selectedConcursoId={selectedConcursoId} concursos={concursos} theme={theme} onToggleReorderMode={setIsReorderMode} onAddSession={addSession} globalDailyGoal={globalDailyGoal} studyTasks={studyTasks} onUpdateTasks={setStudyTasks} scheduledStudies={scheduledStudies} timeLeft={timeLeft} isActive={isActive} isAlarmPlaying={isAlarmPlaying} onStartTimer={startTimer} onPauseTimer={pauseTimer} onResumeTimer={resumeTimer} onResetTimer={resetTimer} onStopAlarm={stopAlarm} onNavigateTab={setActiveTab} />;
       case 'concursos':
-        return <ConcursosView concursos={concursos} onUpdateConcursos={setConcursos} onSelectConcurso={(c) => { setSelectedConcursoId(c.id); setActiveTab('dashboard'); }} scheduledStudies={allScheduledStudies || scheduledStudies} sessions={allSessions || sessions} />;
+        return <ConcursosView concursos={concursos} targetConcursoId={agendaTarget?.studyTab === 'concursos' ? agendaTarget.id : undefined} onUpdateConcursos={setConcursos} onSelectConcurso={(c) => { setSelectedConcursoId(c.id); setActiveTab('dashboard'); }} scheduledStudies={allScheduledStudies || scheduledStudies} sessions={allSessions || sessions} />;
       case 'subjects':
         return <SubjectsView phaseWeights={phaseWeights} subjects={selectedConcursoId === 'all' ? filteredSubjects : (activeConcurso?.subjects || [])} sessions={sessions} onUpdateSubjects={(subs) => { void setConcursos(concursos.map(c => c.id === selectedConcursoId ? { ...c, subjects: subs } : c)).catch(() => {}); }} selectedConcursoId={selectedConcursoId} concursos={concursos} scheduledStudies={scheduledStudies} onToggleScheduledStudyStatus={toggleScheduledStudyStatus} onNavigateToFlashcards={(subId) => { setSelectedFlashcardSubjectId(subId); setActiveTab('flashcards'); }} />;
       case 'questions':
@@ -313,6 +325,7 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
         />;
       case 'calendar':
         return <CalendarView
+          agendaTarget={agendaTarget?.studyTab === 'calendar' ? agendaTarget : null}
           subjects={filteredSubjects}
           allSubjects={allSubjects}
           scheduledStudies={allScheduledStudies || scheduledStudies}
@@ -342,6 +355,7 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
         />;
       case 'study_plan':
         return <StudyPlan
+          agendaDate={agendaTarget?.studyTab === 'study_plan' ? agendaTarget.date : undefined}
           phaseWeights={phaseWeights}
           subjects={filteredSubjects}
           sessions={sessions}

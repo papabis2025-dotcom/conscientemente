@@ -9,6 +9,7 @@ import { showToast } from '../../../components/Toast';
 import { getLocalDateString } from '../../../utils/dateUtils';
 
 interface ConcursosViewProps {
+  targetConcursoId?: string;
   concursos: Concurso[];
   onUpdateConcursos: (concursos: Concurso[]) => Promise<void> | void;
   onSelectConcurso: (concurso: Concurso) => void;
@@ -47,7 +48,7 @@ const isTopicCompletedHelper = (subjectId: string, topicId: string, isCompletedF
   return reviews.every(r => r.status === 'realizado');
 };
 
-const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcursos, onSelectConcurso, scheduledStudies, sessions }) => {
+const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, targetConcursoId, onUpdateConcursos, onSelectConcurso, scheduledStudies, sessions }) => {
   const [isAdding, setIsAdding] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [newConcName, setNewConcName] = useState('');
@@ -550,6 +551,9 @@ const ConcursosView: React.FC<ConcursosViewProps> = ({ concursos, onUpdateConcur
           return (
             <div
               key={conc.id}
+              ref={conc.id === targetConcursoId ? element => {
+                element?.scrollIntoView({ block: 'nearest' });
+              } : undefined}
               className={`rounded-[2rem] border p-4 shadow-sm hover:border-blue-400 dark:hover:border-zinc-700 hover:shadow-md transition-all group relative overflow-hidden flex flex-col justify-between min-h-[300px] h-auto ${conc.status === 'approved' ? 'bg-emerald-50/30 dark:bg-emerald-950/20 border-emerald-300 dark:border-emerald-700' : conc.status === 'rejected' ? 'bg-rose-50/30 dark:bg-rose-950/20 border-rose-300 dark:border-rose-700' : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800'}`}
             >
               <div className="absolute top-2.5 right-2.5 flex gap-1 z-10">

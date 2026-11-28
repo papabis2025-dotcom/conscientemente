@@ -7,8 +7,6 @@ import {
   X, Filter, Sparkles, CheckCheck
 } from 'lucide-react';
 import { api } from '../modules/estudos/services/api';
-import { useAgendaTarget } from '../hooks/useAgendaTarget';
-import { parseLocalDate } from '../utils/dateUtils';
 
 export interface Habit {
   id: string;
@@ -100,9 +98,7 @@ export default function HabitosHub({ onBack, theme, toggleTheme, userName }: Hab
   });
 
   // Tab state: 'painel' (Painel Diário) | 'mapa' (Mapa por Hábito - Anual)
-  const agendaTarget = useAgendaTarget('habitos');
   const [activeTab, setActiveTab] = useState<'painel' | 'mapa'>(() => {
-    if (agendaTarget) return 'painel';
     const savedTab = sessionStorage.getItem('habitosActiveTab');
     if (savedTab === 'painel' || savedTab === 'mapa') {
       return savedTab;
@@ -118,7 +114,7 @@ export default function HabitosHub({ onBack, theme, toggleTheme, userName }: Hab
   const [filterStatus, setFilterStatus] = useState<'todos' | 'pendentes' | 'concluidos'>('todos');
 
   // Navegação do Mês no Painel Diário
-  const [panelMonthDate, setPanelMonthDate] = useState(() => agendaTarget ? parseLocalDate(agendaTarget.date) : new Date());
+  const [panelMonthDate, setPanelMonthDate] = useState<Date>(() => new Date());
 
   // Navegação do Ano no Mapa por Hábito (Apenas Anual)
   const [referenceYear, setReferenceYear] = useState<number>(() => new Date().getFullYear());

@@ -542,14 +542,17 @@ export const api = {
 
     // Simulados
     simulados: {
-        list: async () => {
+        list: async (range?: { from: string; before: string }): Promise<Simulado[]> => {
             const user = await getAuthUser();
             if (!user) return [];
             // Limita aos ultimos 12 meses para reduzir egress do Supabase
             const oneYearAgo = new Date();
             oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
             const dateLimit = oneYearAgo.toISOString().split('T')[0];
-            const data = await handleRequest<any[]>(supabase.from('simulados').select('id, name, date, total_questions, results').eq('user_id', user.id).gte('date', dateLimit).order('date', { ascending: false }));
+            let query = supabase.from('simulados').select('id, name, date, total_questions, results')
+                .eq('user_id', user.id).gte('date', dateLimit);
+            if (range) query = query.gte('date', range.from).lt('date', range.before);
+            const data = await handleRequest<any[]>(query.order('date', { ascending: false }));
             return (data || []).map((s: any) => {
                 let durationInMinutes = 0;
                 let results = s.results;
@@ -1013,16 +1016,14 @@ export const api = {
 
     // Study Plan Tasks (Tarefas do Plano de Estudos)
     studyPlanTasks: {
-        list: async (range?: { from: string; before: string }) => {
+        list: async () => {
             const user = await getAuthUser();
             if (!user) return [];
             try {
-                let query = supabase
+                const { data, error } = await supabase
                     .from('study_plan_tasks')
                     .select('id, subject_id, subject_name, topic_id, topic_name, done, date, concurso_id')
                     .eq('user_id', user.id);
-                if (range) query = query.gte('date', range.from).lt('date', range.before);
-                const { data, error } = await query;
                 if (error) {
                     if (error.code === '42P01') {
                         // Tabela não existe ainda no Supabase (migração pendente)

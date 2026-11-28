@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 
-type AgendaModule = 'estudos' | 'tarefas' | 'saude' | 'financas' | 'anotacoes' | 'habitos';
+type AgendaModule = 'estudos' | 'tarefas' | 'saude' | 'financas' | 'anotacoes';
 
 export interface AgendaTarget {
   date: string;
   id?: string;
   concursoId?: string;
-  studyTab?: 'calendar' | 'study_plan' | 'concursos';
+  studyTab?: 'calendar' | 'concursos';
 }
 
 export function openAgendaTarget(module: AgendaModule, target: AgendaTarget) {

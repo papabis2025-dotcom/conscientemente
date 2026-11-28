@@ -355,7 +355,6 @@ const App: React.FC<AppProps> = ({ theme: extTheme, toggleTheme: extToggleTheme 
         />;
       case 'study_plan':
         return <StudyPlan
-          agendaDate={agendaTarget?.studyTab === 'study_plan' ? agendaTarget.date : undefined}
           phaseWeights={phaseWeights}
           subjects={filteredSubjects}
           sessions={sessions}

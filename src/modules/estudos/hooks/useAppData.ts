@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Subject, StudySession, Concurso, ScheduledStudy, DailyGoal, LogEntry, User, Simulado, ActivityType, isReviewTask } from '../types';
 import { supabase } from '../services/supabase';
 import { api } from '../services/api';
-import { createSaveQueue, isPendingGeneratedStudy, isScheduledStudyVisible } from '../utils/persistence';
+import { createSaveQueue, isAutomaticReview, isPendingGeneratedStudy, isScheduledStudyVisible } from '../utils/persistence';
 import { calculatePhaseWeights } from '../utils/phaseWeights';
 import { parseNotesGroup } from '../utils/studyNotes';
 
@@ -565,17 +565,6 @@ export const useAppData = (externalTheme?: 'light' | 'dark', externalToggleTheme
                 localStorage.setItem('cp_deleted_scheduled_ids', JSON.stringify(filteredArr));
             }
         } catch (e) {}
-
-        // Helper para identificar revisões automáticas geradas pelo sistema (ignora Aulão de Revisão e revisões manuais)
-        const isAutomaticReview = (s: ScheduledStudy) => {
-            if (!s.activityType) return false;
-            if (s.activityType.includes('Aulão de Revisão')) return false;
-            const hasRevWord = s.activityType.toLowerCase().includes('revisão') || s.activityType.toLowerCase().includes('revisao');
-            if (!hasRevWord) return false;
-            const isDeterministic = !!(s.id && s.id.split('-')[3]?.startsWith('400'));
-            const isAutoGroup = !!(s.notes && s.notes.includes('[groupId:rev_'));
-            return isDeterministic || isAutoGroup;
-        };
 
         // Deduplicação ativa por chave única (disciplina, tópico, data e origem) para evitar duplicidade de revisões planejadas
         const activeReviewKeysFound = new Set<string>();

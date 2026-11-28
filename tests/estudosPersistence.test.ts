@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { confirmConcursoDeletion, createSaveQueue, isMissingOptionalScheduleColumn, isPendingGeneratedStudy, isScheduledStudyVisible } from '../src/modules/estudos/utils/persistence.ts';
+import { confirmConcursoDeletion, createSaveQueue, getAgendaScheduledStudies, isMissingOptionalScheduleColumn, isPendingGeneratedStudy, isScheduledStudyVisible } from '../src/modules/estudos/utils/persistence.ts';
 import type { ScheduledStudy } from '../src/modules/estudos/types.ts';
 import { parseNotesGroup } from '../src/modules/estudos/utils/studyNotes.ts';
 
@@ -89,4 +89,38 @@ test('o agrupamento de atividades sobrevive aos metadados gravados no Supabase',
   assert.deepEqual(parseNotesGroup('[groupId:antigo] Atividade'), {
     groupId: 'antigo', tag: null, cleanNotes: 'Atividade'
   });
+});
+
+test('a agenda não cria compromissos a partir de sessões avulsas nem do cache do Planner', () => {
+  const saved: ScheduledStudy = { id: 'no-planner', date: '2026-11-28', subjectId: 'disciplina', status: 'planejado' };
+  const options = {
+    localStudies: [{ ...saved, id: 'somente-cache' }],
+    sessionIds: new Set(['somente-historico', saved.id]),
+    deletedIds: new Set<string>(),
+    getConcursoId: () => 'edital',
+    isScheduleEnabled: () => true,
+    areReviewsEnabled: () => true
+  };
+  assert.deepEqual(getAgendaScheduledStudies([], options), []);
+  const studies = getAgendaScheduledStudies([saved], options);
+  assert.deepEqual(studies.map(({ id, status }) => ({ id, status })), [{ id: 'no-planner', status: 'realizado' }]);
+});
+
+test('atividades excluídas e revisões automáticas desativadas não voltam para a agenda', () => {
+  const base: ScheduledStudy = { id: 'manual', date: '2026-11-28', subjectId: 'disciplina', status: 'planejado' };
+  const studies = getAgendaScheduledStudies([
+    base,
+    { ...base, id: 'removida', status: 'realizado' },
+    { ...base, id: 'revisao-excluida', activityType: 'Revisão' },
+    { ...base, id: 'revisao-automatica', activityType: 'Revisão', notes: '[groupId:rev_1]' },
+    { ...base, id: 'revisao-manual', activityType: 'Revisão' }
+  ], {
+    localStudies: [],
+    sessionIds: new Set(),
+    deletedIds: new Set(['removida', 'revisao-excluida']),
+    getConcursoId: () => 'edital',
+    isScheduleEnabled: () => true,
+    areReviewsEnabled: () => false
+  });
+  assert.deepEqual(studies.map(study => study.id), ['manual', 'revisao-manual']);
 });

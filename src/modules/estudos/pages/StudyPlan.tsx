@@ -3,12 +3,10 @@ import React, { useEffect, useMemo } from 'react';
 import { CheckCircle, Circle, Lightbulb } from 'lucide-react';
 import { Subject, StudySession } from '../types';
 import { getSubjectWeight, type CalculatedWeight } from '../utils/phaseWeights';
-import { formatDateBR, getLocalDateString } from '../../../utils/dateUtils';
 
 import AISuggestions from '../components/dashboard/AISuggestions';
 
 interface StudyPlanProps {
-    agendaDate?: string;
     phaseWeights: ReadonlyMap<string, CalculatedWeight>;
     subjects: Subject[];
     sessions: StudySession[];
@@ -16,12 +14,11 @@ interface StudyPlanProps {
     onUpdateTasks: (tasks: { id: string, subjectId: string, subjectName: string, topicId?: string, topicName?: string, done: boolean, date: string }[]) => void;
 }
 
-const StudyPlan: React.FC<StudyPlanProps> = ({ subjects, sessions, studyTasks, onUpdateTasks, phaseWeights, agendaDate }) => {
-    const today = getLocalDateString();
-    const displayedDate = agendaDate || today;
+const StudyPlan: React.FC<StudyPlanProps> = ({ subjects, sessions, studyTasks, onUpdateTasks, phaseWeights }) => {
 
     useEffect(() => {
-        if (displayedDate !== today) return;
+        const now = new Date();
+        const today = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().split('T')[0];
         // Check if we already have tasks for today
         let tasksForToday = studyTasks.filter(t => t.date === today);
 
@@ -148,9 +145,13 @@ const StudyPlan: React.FC<StudyPlanProps> = ({ subjects, sessions, studyTasks, o
             const otherTasks = studyTasks.filter(t => t.date !== today);
             onUpdateTasks([...otherTasks, ...tasksToadd]);
         }
-    }, [subjects, sessions, studyTasks, phaseWeights, displayedDate, today]); // Removed onUpdateTasks from dep array to avoid infinite loop if it changes, though it should be stable.
+    }, [subjects, sessions, studyTasks, phaseWeights]); // Removed onUpdateTasks from dep array to avoid infinite loop if it changes, though it should be stable.
 
-    const todaysTasks = useMemo(() => studyTasks.filter(t => t.date === displayedDate), [studyTasks, displayedDate]);
+    const todaysTasks = useMemo(() => {
+        const now = new Date();
+        const today = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().split('T')[0];
+        return studyTasks.filter(t => t.date === today);
+    }, [studyTasks]);
 
     const toggleTask = (taskId: string) => {
         const newTasks = studyTasks.map(t => {
@@ -235,9 +236,7 @@ const StudyPlan: React.FC<StudyPlanProps> = ({ subjects, sessions, studyTasks, o
                     <div className="bg-white dark:bg-zinc-900 rounded-[2.5rem] p-8 border border-zinc-200 dark:border-zinc-800 shadow-sm">
                         <div className="flex justify-between items-center mb-8">
                             <div>
-                                <h3 className="text-xl font-bold text-zinc-800 dark:text-white uppercase tracking-tight">
-                                    {displayedDate === today ? 'Metas de Hoje' : `Metas de ${formatDateBR(displayedDate)}`}
-                                </h3>
+                                <h3 className="text-xl font-bold text-zinc-800 dark:text-white uppercase tracking-tight">Metas de Hoje</h3>
                                 <p className="text-xs text-zinc-400 font-bold uppercase tracking-widest mt-1">
                                     {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
                                 </p>

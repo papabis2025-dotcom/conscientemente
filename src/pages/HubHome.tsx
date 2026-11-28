@@ -3,7 +3,7 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { MODULES } from '../constants';
 import { Module } from '../types';
 import type { LogEntry, ScheduledStudy } from '../modules/estudos/types';
-import { isScheduledStudyVisible } from '../modules/estudos/utils/persistence';
+import { getAgendaScheduledStudies } from '../modules/estudos/utils/persistence';
 import { parseNotesGroup } from '../modules/estudos/utils/studyNotes';
 import { getLocalDateString } from '../utils/dateUtils';
 import { openAgendaTarget } from '../hooks/useAgendaTarget';
@@ -417,9 +417,7 @@ const HubHome: React.FC<HubHomeProps> = ({
     workouts: any[];
     finances: any[];
     notes: { id: string; title: string; date: string; category: string }[];
-    cloudHabits: Habit[];
-    cloudHabitHistory: { month: string; dates: Record<string, string[]> } | null;
-  }>({ tasks: [], studies: [], workouts: [], finances: [], notes: [], cloudHabits: [], cloudHabitHistory: null });
+  }>({ tasks: [], studies: [], workouts: [], finances: [], notes: [] });
   const [calendarUnavailableSources, setCalendarUnavailableSources] = useState<string[]>([]);
   const [concursoExamDates, setConcursoExamDates] = useState<{ id: string; date: string; name: string }[]>([]);
   const [selectedCalendarDate, setSelectedCalendarDate] = useState(() => {
@@ -482,8 +480,8 @@ const HubHome: React.FC<HubHomeProps> = ({
       };
 
       const [
-        dbTasks, dbWorkouts, dbFinances, dbConcursos, dbSimulados, dbScheduled, dbSessions,
-        planTasks, dbNotes, pastTasksCount, dbHabits, dbHabitLogs
+        dbTasks, dbWorkouts, dbFinances, dbConcursos, simulados, dbScheduled, dbSessions,
+        dbNotes, pastTasksCount
       ] = await Promise.all([
         readSource('Tarefas', supabase.from('tarefas')
           .select('id, text, due_date, completed, due_time, category')
@@ -495,23 +493,19 @@ const HubHome: React.FC<HubHomeProps> = ({
           .eq('user_id', user.id).gte('date', startOfMonth).lte('date', endOfMonth)),
         readSource('Finanças', supabase.from('financas_transacoes')
           .select('id, name, amount, type, date, pending')
+          .or('type.eq.entrada,and(type.eq.saida,pending.eq.true)')
           .eq('user_id', user.id).gte('date', startOfMonth).lte('date', endOfMonth)),
         readSource('Estudos', supabase.from('concursos')
           .select('id, name, target_date, subjects').eq('user_id', user.id)),
-        readSource('Estudos', supabase.from('simulados')
-          .select('id, name, date, results').eq('user_id', user.id).gte('date', startOfMonth).lte('date', endOfMonth)),
+        readSource('Estudos', api.simulados.list(monthRange).then(data => ({ data, error: null }))),
         readSource('Estudos', api.schedule.list(studyRange).then(data => ({ data, error: null }))),
         readSource('Estudos', api.sessions.list(monthRange).then(data => ({ data, error: null }))),
-        api.studyPlanTasks.list(studyRange),
         readSource('Anotações', supabase.from('anotacoes')
           .select('id, title, date, category')
           .eq('user_id', user.id).gte('date', startOfMonth).lte('date', endOfMonth)),
         readSource('Tarefas', supabase.from('tarefas').select('id', { count: 'exact', head: true })
           .eq('user_id', user.id).eq('completed', false).lt('due_date', startOfMonth)
-          .then(({ count, error }) => ({ data: count, error }))),
-        readSource('Hábitos', api.habits.list().then(data => ({ data, error: null }))),
-        readSource('Hábitos', supabase.from('habit_logs').select('habit_id, logged_date')
-          .eq('user_id', user.id).gte('logged_date', startOfMonth).lte('logged_date', endOfMonth))
+          .then(({ count, error }) => ({ data: count, error })))
       ]);
 
       if (!isCurrent()) return;
@@ -526,22 +520,6 @@ const HubHome: React.FC<HubHomeProps> = ({
         }
       }
 
-      // Normalizar simulados para lidar com o novo formato do campo JSONB 'results'
-      const normalizedSimulados = (dbSimulados || []).map((s: any) => {
-        let durationInMinutes = 0;
-        let results = s.results;
-        
-        if (s.results && !Array.isArray(s.results) && typeof s.results === 'object') {
-          durationInMinutes = s.results.durationInMinutes || 0;
-          results = s.results.subjectResults || [];
-        }
-        
-        return {
-          ...s,
-          durationInMinutes,
-          results
-        };
-      });
 
       const readList = <T,>(key: string): T[] => {
         try {
@@ -552,56 +530,34 @@ const HubHome: React.FC<HubHomeProps> = ({
         }
       };
 
-      const deletedTaskIds = new Set(readList<string>('cp_deleted_study_task_ids'));
-      const studyTasksById = new Map(readList<(typeof planTasks)[number]>('cp_study_tasks').map(task => [task.id, task]));
-      planTasks.forEach(task => studyTasksById.set(task.id, task));
-      const studyTasksFiltered = [...studyTasksById.values()].filter(task => task.done || !deletedTaskIds.has(task.id));
-      const deletedScheduledIds = new Set(readList<string>('cp_deleted_scheduled_ids'));
-      const localStudies = readList<ScheduledStudy>('cp_scheduled_studies');
-      const localById = new Map(localStudies.map(study => [study.id, study]));
-      const sessionIds = new Set((dbSessions || []).map(session => session.id));
-      const studiesById = new Map((dbScheduled ?? localStudies).map(study => {
-        const local = localById.get(study.id);
-        return [study.id, {
-          ...study,
-          concursoId: study.concursoId || local?.concursoId || subjectToConcursoObjMap.get(study.subjectId)?.id,
-          generatedByCronograma: study.generatedByCronograma ?? local?.generatedByCronograma,
-          status: sessionIds.has(study.id) || study.status === 'realizado' || local?.status === 'realizado'
-            ? 'realizado' as const
-            : 'planejado' as const
-        }];
-      }));
-
-      for (const session of dbSessions || []) {
-        if (!studiesById.has(session.id) && !session.isSimulado && session.date) {
-          studiesById.set(session.id, {
-            ...session,
-            date: session.date.split('T')[0],
-            activityType: session.activityType || 'Leitura, Questões',
-            status: 'realizado',
-            concursoId: subjectToConcursoObjMap.get(session.subjectId)?.id,
-            generatedByCronograma: undefined
-          });
-        }
-      }
-
-      const simuladoDates = new Set(normalizedSimulados.map(sim => sim.date?.split('T')[0]));
-      const visibleScheduledStudies = [...studiesById.values()].filter(study => {
-        if (study.activityType === 'Simulado' &&
-          (study.status === 'realizado' || simuladoDates.has(study.date))) return false;
-        return isScheduledStudyVisible(study, deletedScheduledIds, concursoId => {
+      const deletedIds = new Set([
+        ...readList<string>('cp_deleted_scheduled_ids'),
+        ...readList<string>('estudos_deleted_review_ids')
+      ]);
+      const visibleScheduledStudies = getAgendaScheduledStudies(dbScheduled || [], {
+        localStudies: readList<ScheduledStudy>('cp_scheduled_studies'),
+        sessionIds: new Set((dbSessions || []).map(session => session.id)),
+        deletedIds,
+        getConcursoId: subjectId => subjectToConcursoObjMap.get(subjectId)?.id,
+        areReviewsEnabled: concursoId => {
+          if (localStorage.getItem(`estudos_disabled_reviews_${concursoId}`) === 'true') return false;
+          try {
+            return !JSON.parse(localStorage.getItem('estudos_disabled_reviews_map') || '{}')[concursoId];
+          } catch {
+            return true;
+          }
+        },
+        isScheduleEnabled: concursoId => {
           try {
             return JSON.parse(localStorage.getItem(`cp_cronograma_prefs_${concursoId}`) || '{}').isCronogramaEnabled !== false;
           } catch {
             return true;
           }
-        });
+        }
       });
 
-      // Helper to parse notes group
-      // Group nonSimuladoScheduledStudies by groupId
-      const groupedMap = new Map<string, any[]>();
-      const nonGroupedStudies: any[] = [];
+      const groupedMap = new Map<string, ScheduledStudy[]>();
+      const nonGroupedStudies: ScheduledStudy[] = [];
 
       visibleScheduledStudies.forEach(s => {
         if (s.notes) {
@@ -618,7 +574,7 @@ const HubHome: React.FC<HubHomeProps> = ({
         nonGroupedStudies.push(s);
       });
 
-      const groupedStudies = Array.from(groupedMap.values()).map(list => {
+      const groupedStudies = Array.from(groupedMap.values()).map((list): ScheduledStudy => {
         const first = list[0];
         const totalDuration = list.reduce((acc, item) => acc + (item.durationInMinutes || 0), 0);
         return {
@@ -636,18 +592,7 @@ const HubHome: React.FC<HubHomeProps> = ({
       const consolidatedStudies = [...nonGroupedStudies, ...groupedStudies];
 
       const studiesList = [
-        ...studyTasksFiltered.map((t: any) => {
-          const conc = concursoById.get(t.concursoId || '') || subjectToConcursoObjMap.get(t.subjectId);
-          const prefix = conc ? `[${conc.name}] ` : '';
-          return { 
-            id: `plano:${t.id}`,
-            text: prefix + t.subjectName + ' - ' + (t.topicName || 'Geral'), 
-            date: t.date, 
-            completed: t.done,
-            concursoId: conc?.id || t.concursoId
-          };
-        }),
-        ...consolidatedStudies.map((s: any) => {
+        ...consolidatedStudies.map(s => {
           const sub = subjectMap.get(s.subjectId);
           const conc = concursoById.get(s.concursoId || '') || subjectToConcursoObjMap.get(s.subjectId);
           const prefix = conc ? `[${conc.name}] ` : '';
@@ -660,12 +605,12 @@ const HubHome: React.FC<HubHomeProps> = ({
             id: s.id,
             text,
             isSimulado: s.activityType === 'Simulado',
-            date: s.date?.split('T')[0],
+            date: s.date,
             completed: isCompleted,
             concursoId: conc?.id || s.concursoId
           };
         }),
-        ...normalizedSimulados.map(sim => ({
+        ...(simulados || []).map(sim => ({
           id: sim.id,
           text: `SIMULADO: ${sim.name} (${sim.durationInMinutes || 0} min)`,
           date: sim.date?.split('T')[0] || sim.date,
@@ -704,22 +649,13 @@ const HubHome: React.FC<HubHomeProps> = ({
         ...(dbNotes || []),
         ...readList<(typeof calendarEvents.notes)[number]>('cn_anotacoes')
       ].map(note => [note.id, note]));
-      const deletedHabitIds = new Set(readList<string>('cn_deleted_habit_ids'));
-      const cloudHabitHistory: Record<string, string[]> = {};
-      for (const log of dbHabitLogs || []) {
-        (cloudHabitHistory[log.logged_date] ||= []).push(log.habit_id);
-      }
       setCalendarEvents({
         tasks: parsedTasks,
         studies: studiesList,
         workouts: dbWorkouts || [],
         finances: dbFinances || [],
         notes: [...notesById.values()].filter(note => !deletedNoteIds.has(note.id) &&
-          note.date >= startOfMonth && note.date <= endOfMonth),
-        cloudHabits: (dbHabits || []).filter(habit => !deletedHabitIds.has(habit.id)).map(habit => ({
-          id: habit.id, name: habit.name, createdAt: new Date(habit.created_at).getTime()
-        })),
-        cloudHabitHistory: dbHabitLogs ? { month: startOfMonth.slice(0, 7), dates: cloudHabitHistory } : null
+          note.date >= startOfMonth && note.date <= endOfMonth)
       });
       setCalendarUnavailableSources([...failedSources]);
 
@@ -739,12 +675,9 @@ const HubHome: React.FC<HubHomeProps> = ({
 
       const hasPastTasks = (pastTasksCount || 0) > 0;
       
-      const hasPastStudies = 
-        studyTasksFiltered.some((t: any) => t.date && t.date < startOfMonth && !t.done) ||
-        visibleScheduledStudies.some(s => {
-          const sDate = s.date?.split('T')[0];
-          return sDate && sDate < startOfMonth && s.status !== 'realizado';
-        });
+      const hasPastStudies = visibleScheduledStudies.some(study =>
+        study.date && study.date < startOfMonth && study.status !== 'realizado'
+      );
 
       setHasPastPendingEvents(hasPastTasks || hasPastStudies);
     } catch (e) {
@@ -778,9 +711,8 @@ const HubHome: React.FC<HubHomeProps> = ({
       syncTimer = setTimeout(refresh, 300);
     };
     const readAgendaSettings = () => JSON.stringify([
-      'cp_scheduled_studies', 'cp_study_tasks', 'cp_deleted_study_task_ids',
-      'cp_deleted_scheduled_ids', 'cp_cronograma_prefs_map', 'cn_anotacoes',
-      'cn_deleted_note_ids', 'cn_habits', 'cn_habit_history', 'cn_deleted_habit_ids'
+      'cp_scheduled_studies', 'cp_deleted_scheduled_ids', 'estudos_deleted_review_ids',
+      'cp_cronograma_prefs_map', 'estudos_disabled_reviews_map', 'cn_anotacoes', 'cn_deleted_note_ids'
     ].map(key => localStorage.getItem(key)));
     let agendaSettings = readAgendaSettings();
     const handleAgendaSettingsChange = () => {
@@ -949,24 +881,6 @@ const HubHome: React.FC<HubHomeProps> = ({
   const [showHabitsReport, setShowHabitsReport] = useState(false);
 
   const todayStr = new Date(currentTime.getTime() - currentTime.getTimezoneOffset() * 60000).toISOString().split('T')[0];
-  const agendaHabits = useMemo(() => {
-    if (calendarEvents.cloudHabits.length === 0) return habits;
-    const byId = new Map(habits.filter(habit => !/^h[1-4]$/.test(habit.id)).map(habit => [habit.id, habit]));
-    for (const habit of calendarEvents.cloudHabits) byId.set(habit.id, { ...byId.get(habit.id), ...habit });
-    return [...byId.values()];
-  }, [habits, calendarEvents.cloudHabits]);
-  const cloudHabitIds = useMemo(() => new Set(calendarEvents.cloudHabits.map(habit => habit.id)), [calendarEvents.cloudHabits]);
-  const getAgendaHabits = (date: string) => {
-    const remoteHistory = calendarEvents.cloudHabitHistory;
-    return agendaHabits.map(habit => {
-      const history = cloudHabitIds.has(habit.id) && remoteHistory?.month === date.slice(0, 7)
-        ? remoteHistory.dates
-        : habitHistory;
-      return { ...habit, completed: (history[date] || []).includes(habit.id) };
-    }).filter(habit => habit.completed ||
-      (date >= todayStr && (!habit.createdAt || getLocalDateString(habit.createdAt) <= date)));
-  };
-  const selectedHabits = getAgendaHabits(selectedCalendarDate);
   const selectedNotes = calendarEvents.notes.filter(note => note.date === selectedCalendarDate);
 
   const requestNotificationPermission = async () => {
@@ -2306,9 +2220,6 @@ const HubHome: React.FC<HubHomeProps> = ({
                                   {calendarEvents.notes.some(note => note.date === dateStr) && (
                                     <span className="size-2 rounded-full bg-amber-500" title="Anotações" />
                                   )}
-                                  {getAgendaHabits(dateStr).length > 0 && (
-                                    <span className="size-2 rounded-full bg-slate-500" title="Hábitos" />
-                                  )}
                                 </div>
                               </div>
                             );
@@ -2344,7 +2255,7 @@ const HubHome: React.FC<HubHomeProps> = ({
                             const dayWorkouts = calendarEvents.workouts.filter(w => w.date === selectedCalendarDate);
                             const dayFinances = calendarEvents.finances.filter(f => f.date === selectedCalendarDate);
                             return dayExams.length + dayTasks.length + dayStudies.length + dayWorkouts.length + dayFinances.length +
-                              selectedNotes.length + selectedHabits.length;
+                              selectedNotes.length;
                           })()} itens
                         </span>
                       </div>
@@ -2378,7 +2289,7 @@ const HubHome: React.FC<HubHomeProps> = ({
                           const dayFinances = calendarEvents.finances.filter(f => f.date === selectedCalendarDate);
 
                           const totalCount = dayExams.length + dayTasks.length + dayStudies.length + dayWorkouts.length + dayFinances.length +
-                            selectedNotes.length + selectedHabits.length;
+                            selectedNotes.length;
 
                           if (totalCount === 0) {
                             return (
@@ -2427,7 +2338,7 @@ const HubHome: React.FC<HubHomeProps> = ({
                                          date: s.date,
                                          id: s.id,
                                          concursoId: s.concursoId,
-                                         studyTab: s.id.startsWith('plano:') ? 'study_plan' : 'calendar'
+                                         studyTab: 'calendar'
                                        });
                                      }}
                                      title="Abrir no módulo de Estudos"
@@ -2575,19 +2486,6 @@ const HubHome: React.FC<HubHomeProps> = ({
                                    <span className="min-w-0">
                                      <span className="block text-[9px] font-black uppercase text-amber-700 dark:text-amber-400">{note.category || 'Anotação'}</span>
                                      <span className="block truncate text-[10px] font-bold">{note.title || 'Sem título'}</span>
-                                   </span>
-                                 </button>
-                               ))}
-                               {selectedHabits.map(habit => (
-                                 <button key={`habit-${habit.id}`} type="button"
-                                   onClick={() => openAgendaTarget('habitos', { date: selectedCalendarDate })}
-                                   className="flex items-center gap-2.5 rounded-xl border border-slate-500/30 bg-slate-500/10 p-2 text-left">
-                                   <Flame size={16} className="shrink-0 text-slate-600 dark:text-slate-400" />
-                                   <span className="min-w-0">
-                                     <span className="block text-[9px] font-black uppercase text-slate-600 dark:text-slate-400">
-                                       Hábito • {habit.completed ? 'Concluído' : 'Pendente'}
-                                     </span>
-                                     <span className="block truncate text-[10px] font-bold">{habit.name}</span>
                                    </span>
                                  </button>
                                ))}
